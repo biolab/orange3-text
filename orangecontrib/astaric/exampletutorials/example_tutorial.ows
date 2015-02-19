@@ -1,0 +1,15 @@
+<?xml version='1.0' encoding='utf-8'?>
+<scheme description="" title="" version="2.0">
+	<nodes>
+		<node id="0" name="File" position="(160.0, 136.0)" project_name="Orange" qualified_name="Orange.OrangeWidgets.Data.OWFile.OWFile" title="File" version="" />
+	</nodes>
+	<links />
+	<annotations>
+		<arrow end="(191.0, 176.0)" fill="#C1272D" id="0" start="(345.0, 540.0)" />
+		<text font-family="Helvetica" font-size="16" id="1" rect="(314.0, 548.0, 150.0, 28.0)">This is file widget</text>
+	</annotations>
+	<thumbnail />
+	<node_properties>
+		<properties format="literal" node_id="0">{'savedWidgetGeometry': None, 'widgetShown': None, 'showAdvanced': 0, 'createNewOn': 1, '__settingsDataVersion': None, 'localContextsVersion': (100, 0), 'recentFiles': []}</properties>
+	</node_properties>
+</scheme>
