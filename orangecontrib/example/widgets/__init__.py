@@ -1,8 +1,5 @@
 # Category metadata.
 
-# Category name shown in the menu
-NAME = "Example"
-
 # Category icon show in the menu
 ICON = "icons/category.svg"
 

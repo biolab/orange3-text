@@ -12,10 +12,10 @@ ENTRY_POINTS = {
 
     # Entry point used to specify packages containing widgets.
     'orange.widgets': (
-        # Syntax: any_text = path.to.package.containing.widgets
+        # Syntax: category name = path.to.package.containing.widgets
         # Widget category specification can be seen in
         #    orangecontrib/example/widgets/__init__.py
-        'ExampleFolder = orangecontrib.example.widgets',
+        'My Category = orangecontrib.example.widgets',
     ),
 }
 
