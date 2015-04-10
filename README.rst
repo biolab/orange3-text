@@ -1,4 +1,4 @@
-Custom Orange Tutorials
-=======================
+Orange3 Example Add-on
+======================
 
-This is a sample Orange 2 Add-On. It shows you how to add your own tutorials to Orange welcome screen.
+This is a example add-on for Orange3. It registers a new widget and adds a new entry to example tutorials.
