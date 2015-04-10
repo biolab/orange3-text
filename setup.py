@@ -7,7 +7,7 @@ ENTRY_POINTS = {
     # from welcome screen. Tutorials are saved Orange Workflows (.ows files).
     'orange.widgets.tutorials': (
         # Syntax: any_text = path.to.package.containing.tutorials
-        'exampletutorials = orangecontrib.example.exampletutorials',
+        'exampletutorials = orangecontrib.example.tutorials',
     ),
 
     # Entry point used to specify packages containing widgets.
@@ -24,10 +24,10 @@ if __name__ == '__main__':
         name="Orange3 Example Add-on",
         packages=['orangecontrib',
                   'orangecontrib.example',
-                  'orangecontrib.example.exampletutorials',
+                  'orangecontrib.example.tutorials',
                   'orangecontrib.example.widgets'],
         package_data={
-            'orangecontrib.example': ['exampletutorials/*.ows'],
+            'orangecontrib.example': ['tutorials/*.ows'],
             'orangecontrib.example.widgets': ['icons/*'],
         },
         install_requires=['Orange'],
