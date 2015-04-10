@@ -16,8 +16,14 @@ ENTRY_POINTS = {
 if __name__ == '__main__':
     setup(
         name="Orange3 Example Add-on",
-        packages=['orangecontrib.example.exampletutorials'],
-        package_data={'orangecontrib.example': ['exampletutorials/*.ows']},
+        packages=['orangecontrib',
+                  'orangecontrib.example',
+                  'orangecontrib.example.exampletutorials',
+                  'orangecontrib.example.widgets'],
+        package_data={
+          'orangecontrib.example': ['exampletutorials/*.ows'],
+          'orangecontrib.example.widgets': ['icons/*'],
+        },
         install_requires=['Orange'],
         entry_points=ENTRY_POINTS,
         namespace_packages=['orangecontrib'],
