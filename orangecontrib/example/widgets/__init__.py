@@ -4,8 +4,8 @@
 NAME = "Example"
 
 # Category icon show in the menu
-ICON = "icons/example.svg"
+ICON = "icons/category.svg"
 
 # Background color for category background in menu
 # and widget icon background in workflow.
-BACKGROUND = "black"
+BACKGROUND = "light-blue"
