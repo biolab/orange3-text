@@ -8,14 +8,15 @@ ENTRY_POINTS = {
     'orange.widgets.tutorials': (
         'exampletutorials = orangecontrib.example.exampletutorials',
     ),
+    'orange.widgets': (
+        'Example = orangecontrib.example.widgets',
+    ),
 }
-
-NAMESPACE_PACAKGES = ["orangecontrib", "orangecontrib.astaric"]
 
 if __name__ == '__main__':
     setup(
         name="Orange3 Example Add-on",
-        packages=['orangecontrib.astaric.exampletutorials'],
+        packages=['orangecontrib.example.exampletutorials'],
         package_data={'orangecontrib.example': ['exampletutorials/*.ows']},
         install_requires=['Orange'],
         entry_points=ENTRY_POINTS,
