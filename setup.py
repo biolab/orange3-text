@@ -19,6 +19,12 @@ ENTRY_POINTS = {
     ),
 }
 
+KEYWORDS = (
+    # [PyPi](https://pypi.python.org) packages with keyword "orange3 add-on"
+    # can be installed using the Orange Add-on Manager
+    'orange3 add-on',
+)
+
 if __name__ == '__main__':
     setup(
         name="Orange3 Example Add-on",
@@ -32,6 +38,7 @@ if __name__ == '__main__':
         },
         install_requires=['Orange'],
         entry_points=ENTRY_POINTS,
+        keywords=KEYWORDS,
         namespace_packages=['orangecontrib'],
         include_package_data=True,
         zip_safe=False,
