@@ -15,19 +15,19 @@ ENTRY_POINTS = {
         # Syntax: category name = path.to.package.containing.widgets
         # Widget category specification can be seen in
         #    orangecontrib/example/widgets/__init__.py
-        'My Category = orangecontrib.example.widgets',
+        'Text Mining = orangecontrib.example.widgets',
     ),
 }
 
 KEYWORDS = (
     # [PyPi](https://pypi.python.org) packages with keyword "orange3 add-on"
     # can be installed using the Orange Add-on Manager
-    'orange3 add-on',
+    'orange3-text',
 )
 
 if __name__ == '__main__':
     setup(
-        name="Orange3 Example Add-on",
+        name="Orange3-Text",
         packages=['orangecontrib',
                   'orangecontrib.example',
                   'orangecontrib.example.tutorials',
