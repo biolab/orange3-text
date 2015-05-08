@@ -1,9 +1,8 @@
 Text Mining Add-on for Orange3
 ==============================
 
-This is an example add-on for [Orange3](http://orange.biolab.si). Add-on can extend Orange either 
-in scripting or GUI part, or in both. We here focus on the GUI part and implement a simple (empty) widget,
-register it with Orange and add a new workflow with this widget to example tutorials.
+This is a text mining add-on for [Orange3](http://orange.biolab.si). It extends Orange in scripting and GUI
+part.
 
 Installation
 ------------

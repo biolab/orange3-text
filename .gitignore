@@ -1,0 +1,22 @@
+# Build files
+build
+dist
+Orange3_Text.egg-info/*
+Orange3_Text.egg-info
+doc/build
+*.so
+*.pyd
+*.pyc
+MANIFEST
+
+# Cython generated files
+__pycache__
+
+# Editor files
+.idea
+.idea/*
+*~
+.project
+.pydevproject
+.settings/*
+.DS_Store

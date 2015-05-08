@@ -7,15 +7,15 @@ ENTRY_POINTS = {
     # from welcome screen. Tutorials are saved Orange Workflows (.ows files).
     'orange.widgets.tutorials': (
         # Syntax: any_text = path.to.package.containing.tutorials
-        'exampletutorials = orangecontrib.example.tutorials',
+        'exampletutorials = orangecontrib.text.tutorials',
     ),
 
     # Entry point used to specify packages containing widgets.
     'orange.widgets': (
         # Syntax: category name = path.to.package.containing.widgets
         # Widget category specification can be seen in
-        #    orangecontrib/example/widgets/__init__.py
-        'Text Mining = orangecontrib.example.widgets',
+        #    orangecontrib/text/widgets/__init__.py
+        'Text Mining = orangecontrib.text.widgets',
     ),
 }
 
@@ -29,12 +29,12 @@ if __name__ == '__main__':
     setup(
         name="Orange3-Text",
         packages=['orangecontrib',
-                  'orangecontrib.example',
-                  'orangecontrib.example.tutorials',
-                  'orangecontrib.example.widgets'],
+                  'orangecontrib.text',
+                  'orangecontrib.text.tutorials',
+                  'orangecontrib.text.widgets'],
         package_data={
-            'orangecontrib.example': ['tutorials/*.ows'],
-            'orangecontrib.example.widgets': ['icons/*'],
+            'orangecontrib.text': ['tutorials/*.ows'],
+            'orangecontrib.text.widgets': ['icons/*'],
         },
         install_requires=['Orange'],
         entry_points=ENTRY_POINTS,
