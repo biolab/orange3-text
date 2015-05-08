@@ -3,7 +3,7 @@ build
 dist
 Orange3_Text.egg-info/*
 Orange3_Text.egg-info
-doc/build
+doc/_build
 *.so
 *.pyd
 *.pyc

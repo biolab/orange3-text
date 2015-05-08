@@ -3,11 +3,11 @@ from Orange.widgets.widget import OWWidget
 from Orange.widgets import gui
 
 
-class MyWidget(OWWidget):
+class Preprocess(OWWidget):
     # Widget needs a name, or it is considered an abstract widget
     # and not shown in the menu.
-    name = "Bag of Words"
-    icon = "icons/BagOfWords.svg"
+    name = "Preprocess"
+    icon = "icons/TextPreprocess.svg"
     want_main_area = False
 
     def __init__(self):
