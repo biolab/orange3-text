@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 ENTRY_POINTS = {
     # Entry point used to specify packages containing tutorials accessible
@@ -28,10 +28,7 @@ KEYWORDS = (
 if __name__ == '__main__':
     setup(
         name="Orange3-Text",
-        packages=['orangecontrib',
-                  'orangecontrib.text',
-                  'orangecontrib.text.tutorials',
-                  'orangecontrib.text.widgets'],
+        packages=find_packages(),
         package_data={
             'orangecontrib.text': ['tutorials/*.ows'],
             'orangecontrib.text.widgets': ['icons/*'],
