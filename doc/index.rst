@@ -20,7 +20,7 @@ Scripting Reference
 .. toctree::
    :maxdepth: 1
 
-   scripting/tokenizer.rst
+   scripting/preprocess.rst
 
 Indices and tables
 ==================
