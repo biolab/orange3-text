@@ -1,10 +1,8 @@
-import sklearn as skl
 from nltk.tokenize import word_tokenize, RegexpTokenizer
 from nltk.stem.porter import PorterStemmer
 from nltk.stem import WordNetLemmatizer
 from nltk.corpus import stopwords
 
-import Orange
 from orangecontrib.text.corpus import Corpus
 
 
@@ -63,11 +61,11 @@ class Preprocessor():
 
             # Stop-word removal.
             if self.stop_wrds is not None:
-                if len(self.stop_wrds) == 0:  # Empty list.
-                    sw = set(stopwords.words(self.lang))
+                if self.stop_wrds == 'english':
+                    sw = set(stopwords.words('english'))
                 else:
                     sw = self.stop_wrds
-                tokens = [w for w in tokens if not w in sw]
+                tokens = [w for w in tokens if w not in sw]
             doc.tokens = tokens
         return data
 
@@ -91,9 +89,6 @@ class Stemmatizer():
         """
         if isinstance(data, str):
             return self.trans(data)
-        elif isinstance(data, Orange.data.Table):
-            # TODO: naredi za orange table
-            return None
         elif isinstance(data, list):
             return [self.trans(word) for word in data]
         else:

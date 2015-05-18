@@ -12,16 +12,16 @@ class Corpus:
 
 class Document:
     """
-        TODO
+        A class holding the data of a single document.
     """
-    def __init__(self, text, type):
+    def __init__(self, text, category):
         """
         :param text: The text of the document.
         :type text: string
-        :param type: The type of the document.
-        :type type: string
+        :param category: The type of the document.
+        :type category: string
         :return: :class: `orangecontrib.text.corpus.Document`
         """
         self.text = text
-        self.type = type
+        self.type = category
         self.tokens = None
