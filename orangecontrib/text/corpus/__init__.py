@@ -23,5 +23,5 @@ class Document:
         :return: :class: `orangecontrib.text.corpus.Document`
         """
         self.text = text
-        self.type = category
+        self.category = category
         self.tokens = None
