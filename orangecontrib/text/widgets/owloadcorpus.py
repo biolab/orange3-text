@@ -1,5 +1,4 @@
 import os
-import sys
 from PyQt4 import QtGui
 
 from Orange.widgets.widget import OWWidget
@@ -24,14 +23,16 @@ class OWLoadCorpus(OWWidget):
         super().__init__()
 
         # Browse.
-        browse_file_box = gui.widgetBox(self.controlArea, "Corpus file", orientation=0)
+        browse_file_box = gui.widgetBox(self.controlArea, "Corpus file",
+                                        orientation=0, addSpace=True)
 
         # Set the label.
         self.file_label = gui.label(browse_file_box, self, 'Browse for files ...')
-        self.file_label.setMinimumWidth(200)
+        self.file_label.setMinimumWidth(150)
 
         browse_button = gui.button(browse_file_box, self, '...', callback=self.browse_file)
         browse_button.setIcon(self.style().standardIcon(QtGui.QStyle.SP_DirOpenIcon))
+        browse_button.setSizePolicy(QtGui.QSizePolicy.Maximum, QtGui.QSizePolicy.Fixed)
 
         # Corpus info.
         corpus_info_box = gui.widgetBox(self.controlArea, "Corpus info", addSpace=True)

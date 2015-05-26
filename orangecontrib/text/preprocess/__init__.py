@@ -1,74 +1,62 @@
-from nltk.tokenize import word_tokenize, RegexpTokenizer
 from nltk.stem.porter import PorterStemmer
 from nltk.stem import WordNetLemmatizer
-from nltk.corpus import stopwords
-
-from orangecontrib.text.corpus import Corpus
-
 
 class Preprocessor():
     """
-        A class holding the implementation of a text tokenizer.
-        The input text may be tokenized by multiple delimiters,
-        the default being whitespace. Can also recognize punctuation
-        as tokens if specified so by the 'incl_punct' parameter. Several
-        transformation objects and flags can be set, including whether the
-        input should be stemmed, lemmatized, lowercased etc.
+        Holds pre-processing flags and other information, about stop word
+        removal, lowercasing, text morphing etc.(the options are set via
+        the Preprocess widget).
     """
-    def __init__(self, incl_punct=True, trans=None, low_case=True, stop_wrds=None):
+    def __init__(self, incl_punct=True, lowercase=True, stop_words=None, trans=None):
         """
-        :param incl_punct: Determines whether the tokenizer should include punctuation as valid tokens.
+        :param incl_punct: Determines whether the tokenizer should include punctuation in the tokens.
         :type incl_punct: boolean
-        :param trans: An optional pre-processor object to perform the corresponding
-            tranformation on the tokens before returning them.
+        :param lowercase: If set, transform the tokens to lower case, before returning them.
+        :type lowercase: boolean
+        :param stop_words: Determines whether stop words should("english"), or should not(None) be removed.
+        :type stop_words: string
+        :param trans: An optional pre-processor object to perform the morphological
+            transformation on the tokens before returning them.
         :type trans: :class: `orangecontrib.text.preprocess.Lemmatizer`
             or :class: `orangecontrib.text.preprocess.Stemmer`
-        :param low_case: If set, transform the tokens to lower case, before returning the list.
-        :type low_case: boolean
-        :param stop_wrds: Determines what stop words should be removed. If "english", remove default
-            english stop words, to remove custom stopwords provide them in a list.
-        :type stop_wrds: string or list
         :return: :class: `orangecontrib.text.preprocess.Preprocessor`
         """
-        self.incl_punct = incl_punct
-        self.trans = trans
-        self.low_case = low_case
-        self.stop_wrds = stop_wrds
+        self.trans_name = None
+        self.transformation = None
+
+        if trans == "Stemmer":
+            self.trans_name = trans
+            self.transformation = Stemmer
+        elif trans == "Lemmatizer":
+            self.trans_name = trans
+            self.transformation = Lemmatizer
+
+        sw = None
+        if stop_words:
+            sw = "english"
+
+        self.pp_info = {"incl_punct": incl_punct, "lowercase": lowercase,
+                        "stop_words": sw, "transformation": self}
 
     def __call__(self, data):
-        """
-            :param data: The input that we wish to tokenize.
-            :type data: :class: `orangecontrib.text.corpus.Corpus`
-            :return: list or :class: `Orange.data.Table`
-        """
-        if not isinstance(data, Corpus):
+        if isinstance(data, str):
+            output = data
+            if self.pp_info["lowercase"]:
+                output = output.lower()
+            if self.transformation:
+                output = self.transformation(output)
+            return output
+        elif isinstance(data, list):
+            output = data
+            if self.pp_info["lowercase"] and self.transformation:
+                output = [self.transformation(word.lower()) for word in output]
+            elif self.transformation:
+                output = [self.transformation(word) for word in output]
+            elif self.pp_info["lowercase"]:
+                output = [word.lower() for word in output]
+            return output
+        else:
             raise ValueError("Type {} not supported.".format(type(data)))
-
-        for doc in data.documents:
-            if self.incl_punct:
-                tokens = word_tokenize(doc.text)
-            else:
-                tokenizer = RegexpTokenizer(r'\w+')
-                tokens = tokenizer.tokenize(doc.text)
-
-            # Perform transformations.
-            if self.trans:
-                tokens = self.trans(tokens)
-
-            # Lowercase.
-            if self.low_case:
-                tokens = [t.lower() for t in tokens]
-
-            # Stop-word removal.
-            if self.stop_wrds is not None:
-                if self.stop_wrds == 'english':
-                    sw = set(stopwords.words('english'))
-                else:
-                    sw = self.stop_wrds
-                tokens = [w for w in tokens if w not in sw]
-            doc.tokens = tokens
-        return data
-
 
 class Stemmatizer():
     """
