@@ -1,3 +1,10 @@
+import os
+
+def get_sample_corpora_dir():
+    path = os.path.dirname(__file__)
+    dir = os.path.join(path, '..', 'datasets')
+    return os.path.realpath(dir)
+
 class Corpus:
     """
         Internal class for storing a corpus of orangecontrib.text.corpus.Document.
@@ -9,6 +16,11 @@ class Corpus:
             type, text = line.strip().split("\t")
             self.documents.append(Document(text, type))
 
+    def get_number_of_categories(self):
+        return len(set([d.category for d in self.documents]))
+
+    def get_number_of_documents(self):
+        return len(self.documents)
 
 class Document:
     """
