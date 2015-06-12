@@ -13,8 +13,8 @@ class Corpus:
         file = open(path, 'r')
         self.documents = []
         for line in file.readlines():
-            type, text = line.strip().split("\t")
-            self.documents.append(Document(text, type))
+            category, text = line.strip().split("\t")
+            self.documents.append(Document(text, category))
 
     def get_number_of_categories(self):
         return len(set([d.category for d in self.documents]))

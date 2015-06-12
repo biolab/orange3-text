@@ -33,7 +33,7 @@ if __name__ == '__main__':
             'orangecontrib.text': ['tutorials/*.ows'],
             'orangecontrib.text.widgets': ['icons/*'],
         },
-        install_requires=['Orange'],
+        install_requires=['Orange', 'nltk', 'scikit-learn', 'numpy'],
         entry_points=ENTRY_POINTS,
         keywords=KEYWORDS,
         namespace_packages=['orangecontrib'],

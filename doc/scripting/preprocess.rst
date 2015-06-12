@@ -1,9 +1,7 @@
-==========
-Preprocess
-==========
-
-The description of the tokenizer goes here.
+============
+Preprocessor
+============
 
 .. autoclass:: orangecontrib.text.preprocess.Preprocessor
 
-.. automethod:: orangecontrib.text.preprocess.Preprocessor.__call__
+.. automethod:: orangecontrib.text.preprocess.Preprocessor.__init__
