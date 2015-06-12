@@ -98,7 +98,7 @@ class OWLoadCorpus(OWWidget):
         self.open_file(filename)
 
     def open_file(self, path):
-        corpus = Corpus(path)
+        corpus = Corpus.from_file(path)
         self.info_label.setText("Corpus consists of {} documents from {} different categories.".format(
             corpus.get_number_of_documents(),
             corpus.get_number_of_categories()))
