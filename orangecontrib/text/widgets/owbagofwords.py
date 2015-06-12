@@ -20,7 +20,7 @@ class OWBagOfWords(OWWidget):
     icon = "icons/BagOfWords.svg"
 
     # Input/output
-    inputs = [("Corpus", Corpus, "set_data"),
+    inputs = [("Corpus", Corpus, "set_corpus"),
               ("Preprocessor", Preprocessor, "set_preprocessor")]
     outputs = [(Output.DATA, Table)]
     want_main_area = False
@@ -66,12 +66,10 @@ class OWBagOfWords(OWWidget):
         gui.button(self.controlArea, self, "&Apply", callback=self.apply, default=True)
 
     def set_preprocessor(self, data):
-        # Pre-processor is optional.
         if isinstance(data, Preprocessor):
             self.preprocessor = data
 
-    def set_data(self, data):
-        # Requires corpus to work.
+    def set_corpus(self, data):
         if isinstance(data, Corpus):
             self.corpus = data
             self.apply()
@@ -104,24 +102,18 @@ class OWBagOfWords(OWWidget):
             else:
                 cv = CountVectorizer(lowercase=False)
 
-            documents = [d.text for d in self.corpus.documents]
+            documents = self.corpus.documents
             feats = cv.fit(documents)  # Features.
             freqs = feats.transform(documents).toarray()  # Frequencies.
 
             # Generate the domain attributes.
-            categories = [d.category for d in self.corpus.documents]
             attr = [ContinuousVariable(f) for f in feats.get_feature_names()]
-            class_domain = DiscreteVariable("category", list(set(categories)))
-            class_values = [class_domain.to_val(i) for i in categories]
-            # metas - 'text'(the text data in this input object)
-            meta_domain = [StringVariable("text")]
-            meta_values = np.array([d.text for d in self.corpus.documents])[:, None]
 
             # Construct a new domain.
-            domain = Domain(attr, class_domain, metas=meta_domain)
+            domain = Domain(attr, self.corpus.domain.class_vars, metas=self.corpus.domain.metas)
 
             # Create the table.
-            new_table = Table.from_numpy(domain, freqs, Y=class_values, metas=meta_values)
+            new_table = Table.from_numpy(domain, freqs, Y=self.corpus._Y, metas=self.corpus.metas)
         self.send("Data", new_table)
 
     def _select_normalization(self, n):
