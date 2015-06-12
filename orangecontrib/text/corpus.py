@@ -49,9 +49,6 @@ class Corpus(Table):
         self.domain = Domain([], metas=[StringVariable('Text')] + meta_vars)
         Table._init_ids(self)
 
-    def _create_metas(self, metadata):
-        return np.zeros((len(self), 0))
-
     def get_number_of_categories(self):
         return len(self.domain['category'].values)
 
