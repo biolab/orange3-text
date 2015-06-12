@@ -18,9 +18,6 @@ class Corpus:
     def get_number_of_categories(self):
         return len(set([d.category for d in self.documents]))
 
-    def get_number_of_documents(self):
-        return len(self.documents)
-
     @classmethod
     def from_file(cls, filename):
         documents = []
@@ -29,6 +26,9 @@ class Corpus:
                 category, text = line.strip().split("\t")
                 documents.append(Document(text, category))
         return cls(documents)
+
+    def __len__(self):
+        return len(self.documents)
 
 
 class Document:
