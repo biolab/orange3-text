@@ -7,7 +7,7 @@ from Orange.data import Domain, StringVariable, Table, DiscreteVariable, Continu
 
 def get_sample_corpora_dir():
     path = os.path.dirname(__file__)
-    dir = os.path.join(path, '..', 'datasets')
+    dir = os.path.join(path, 'datasets')
     return os.path.realpath(dir)
 
 
