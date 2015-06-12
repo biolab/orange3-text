@@ -1,6 +1,7 @@
 from nltk.stem.porter import PorterStemmer
 from nltk.stem import WordNetLemmatizer
 
+
 class Preprocessor():
     """
         Holds pre-processing flags and other information, about stop word
@@ -21,53 +22,27 @@ class Preprocessor():
             or :class: `orangecontrib.text.preprocess.Stemmer`
         :return: :class: `orangecontrib.text.preprocess.Preprocessor`
         """
-        self.trans_name = None
-        self.transformation = None
+        # TODO Needs more elaborate check on list contents.
+        if stop_words != 'english' or isinstance(stop_words, list):
+            raise ValueError("The stop words parameter should be either \'english\' or a list.")
+        self.stop_words = stop_words
+        self.incl_punct = incl_punct
+        self.lowercase = lowercase
+        self.transformation = trans
 
-        if trans == "Stemmer":
-            self.trans_name = trans
-            self.transformation = Stemmer
-        elif trans == "Lemmatizer":
-            self.trans_name = trans
-            self.transformation = Lemmatizer
-
-        sw = None
-        if stop_words:
-            sw = "english"
-
-        self.pp_info = {"incl_punct": incl_punct, "lowercase": lowercase,
-                        "stop_words": sw, "transformation": self}
-
-    def __call__(self, data):
-        if isinstance(data, str):
-            output = data
-            if self.pp_info["lowercase"]:
-                output = output.lower()
-            if self.transformation:
-                output = self.transformation(output)
-            return output
-        elif isinstance(data, list):
-            output = data
-            if self.pp_info["lowercase"] and self.transformation:
-                output = [self.transformation(word.lower()) for word in output]
-            elif self.transformation:
-                output = [self.transformation(word) for word in output]
-            elif self.pp_info["lowercase"]:
-                output = [word.lower() for word in output]
-            return output
-        else:
-            raise ValueError("Type {} not supported.".format(type(data)))
 
 class Stemmatizer():
     """
         A common class for stemming and lemmatization.
     """
-    def __init__(self, trans):
+    def __init__(self, trans, name='Stemmatizer'):
         """
             :param trans: The method that will perform transformation on the tokens.
+            :param name: The name of the transformation object.
             :return: :class: `orangecontrib.text.preprocess.Stemmatizer`
         """
         self.trans = trans
+        self.name = name
 
     def __call__(self, data):
         """
@@ -82,5 +57,5 @@ class Stemmatizer():
         else:
             raise ValueError("Type {} not supported.".format(type(data)))
 
-Stemmer = Stemmatizer(PorterStemmer().stem)
-Lemmatizer = Stemmatizer(WordNetLemmatizer().lemmatize)
+Stemmer = Stemmatizer(PorterStemmer().stem, 'Stemmer')
+Lemmatizer = Stemmatizer(WordNetLemmatizer().lemmatize, 'Lemmatizer')

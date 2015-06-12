@@ -1,9 +1,10 @@
 import os
 from PyQt4 import QtGui
 
+from Orange.widgets.settings import Setting
 from Orange.widgets.widget import OWWidget
 from Orange.widgets import gui
-from orangecontrib.text.corpus import Corpus
+from orangecontrib.text.corpus import Corpus, get_sample_corpora_dir
 
 
 class Output:
@@ -19,42 +20,86 @@ class OWLoadCorpus(OWWidget):
 
     dlgFormats = "Only text files (*.txt)"
 
+    recent_files = Setting(["(none)"])
+
     def __init__(self):
         super().__init__()
 
-        # Browse.
-        browse_file_box = gui.widgetBox(self.controlArea, "Corpus file",
-                                        orientation=0, addSpace=True)
+        # Refresh recent files
+        self.recent_files = [fn for fn in self.recent_files
+                             if os.path.exists(fn)]
 
-        # Set the label.
-        self.file_label = gui.label(browse_file_box, self, 'Browse for files ...')
-        self.file_label.setMinimumWidth(150)
+        # Browse file box
+        fbox = gui.widgetBox(self.controlArea, "Corpus file", orientation=0)
 
-        browse_button = gui.button(browse_file_box, self, '...', callback=self.browse_file)
-        browse_button.setIcon(self.style().standardIcon(QtGui.QStyle.SP_DirOpenIcon))
-        browse_button.setSizePolicy(QtGui.QSizePolicy.Maximum, QtGui.QSizePolicy.Fixed)
+        # Drop-down for recent files
+        self.file_combo = QtGui.QComboBox(fbox)
+        self.file_combo.setMinimumWidth(300)
+        fbox.layout().addWidget(self.file_combo)
+        self.file_combo.activated[int].connect(self.select_file)
 
-        # Corpus info.
-        corpus_info_box = gui.widgetBox(self.controlArea, "Corpus info", addSpace=True)
+        # Browse button
+        browse = gui.button(fbox, self, 'Browse', callback=self.browse_file)
+        browse.setIcon(self.style().standardIcon(QtGui.QStyle.SP_DirOpenIcon))
+        browse.setSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
+
+        # Reload button
+        reload = gui.button(fbox, self, "Reload", callback=self.reload, default=True)
+        reload.setIcon(self.style().standardIcon(QtGui.QStyle.SP_BrowserReload))
+        reload.setSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
+
+        # Corpus info
+        ibox = gui.widgetBox(self.controlArea, "Corpus info", addSpace=True)
 
         corp_info = "Corpus consists of 0 documents from 0 different categories."
-        self.corp_info_label = gui.label(corpus_info_box, self, corp_info)
+        self.info_label = gui.label(ibox, self, corp_info)
 
-    def browse_file(self):
+        # Load the most recent file
+        self.set_file_list()
+        if len(self.recent_files) > 0:
+            self.open_file(self.recent_files[0])
+
+    def set_file_list(self):
+        self.file_combo.clear()
+        if not self.recent_files:
+            self.file_combo.addItem("(none)")
+        for file in self.recent_files:
+            if file == "(none)":
+                self.file_combo.addItem("(none)")
+            else:
+                self.file_combo.addItem(os.path.split(file)[1])
+        self.file_combo.addItem("Browse documentation corpora ...")
+
+    def reload(self):
+        if self.recent_files:
+            return self.open_file(self.recent_files[0])
+
+    def select_file(self, n):
+        if n < len(self.recent_files) :
+            name = self.recent_files[n]
+            del self.recent_files[n]
+            self.recent_files.insert(0, name)
+        elif n:
+            self.browse_file(True)
+
+        if len(self.recent_files) > 0:
+            self.set_file_list()
+            self.open_file(self.recent_files[0])
+
+    def browse_file(self, demos_loc=False):
         start_file = os.path.expanduser("~/")
+        if demos_loc:
+            start_file = get_sample_corpora_dir()
         filename = QtGui.QFileDialog.getOpenFileName(
-            self, 'Open Orange Data File', start_file, self.dlgFormats)
+            self, 'Open Orange Document Corpus', start_file, self.dlgFormats)
         if not filename:
             return
-        self.file_label.setText(filename)
+        self.recent_files.insert(0, filename)
         self.open_file(filename)
 
     def open_file(self, path):
-        self.corpus = Corpus(path)
-
-        # Update corpus info.
-        categories = set([d.category for d in self.corpus.documents])
-        self.corp_info_label.setText("Corpus consists of {} documents from {} different categories."
-                                     .format(len(self.corpus.documents), len(categories)))
-
-        self.send(Output.CORPUS, self.corpus)
+        corpus = Corpus(path)
+        self.info_label.setText("Corpus consists of {} documents from {} different categories.".format(
+            corpus.get_number_of_documents(),
+            corpus.get_number_of_categories()))
+        self.send(Output.CORPUS, corpus)
