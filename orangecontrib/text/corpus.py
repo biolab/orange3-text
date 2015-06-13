@@ -46,7 +46,7 @@ class Corpus(Table):
 
         self.metas = np.hstack((text, metas))
         self.X = self._Y = self.W = np.zeros((len(documents), 0))
-        self.domain = Domain([], metas=[StringVariable('Text')] + meta_vars)
+        self.domain = Domain([], metas=[StringVariable('text')] + meta_vars)
         Table._init_ids(self)
 
     @classmethod
