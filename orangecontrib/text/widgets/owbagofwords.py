@@ -20,7 +20,7 @@ class OWBagOfWords(OWWidget):
     icon = "icons/BagOfWords.svg"
 
     # Input/output
-    inputs = [("Corpus", Corpus, "set_corpus"),
+    inputs = [("Corpus", Table, "set_corpus"),  # hack to accept input signals of type Table
               ("Preprocessor", Preprocessor, "set_preprocessor")]
     outputs = [(Output.DATA, Table)]
     want_main_area = False
@@ -66,13 +66,16 @@ class OWBagOfWords(OWWidget):
         gui.button(self.controlArea, self, "&Apply", callback=self.apply, default=True)
 
     def set_preprocessor(self, data):
-        if isinstance(data, Preprocessor):
-            self.preprocessor = data
+        self.preprocessor = data
 
     def set_corpus(self, data):
-        if isinstance(data, Corpus):
+        self.error(1)
+        if data is None or isinstance(data, Corpus):
             self.corpus = data
-            self.apply()
+        else:
+            self.corpus = None
+            self.error(1, 'Input should be of type Corpus')
+        self.apply()
 
     def apply(self):
         # TODO Move the logic to the scripting module.
