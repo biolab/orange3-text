@@ -13,7 +13,7 @@ def get_sample_corpora_dir():
 
 class Corpus(Table):
     """
-        Internal class for storing a corpus of orangecontrib.text.corpus.Document.
+        Internal class for storing a corpus of orangecontrib.text.corpus.Corpus.
     """
 
     def __new__(cls, *args, **kwargs):
@@ -48,6 +48,13 @@ class Corpus(Table):
         self.X = self._Y = self.W = np.zeros((len(documents), 0))
         self.domain = Domain([], metas=[StringVariable('Text')] + meta_vars)
         Table._init_ids(self)
+
+    @classmethod
+    def from_table(cls, domain, source, row_indices=...):
+        c = super().from_table(domain, source, row_indices)
+        c.documents = source.documents
+        c._Y = c._Y.astype(np.float64)
+        return c
 
     def get_number_of_categories(self):
         return len(self.domain['category'].values)
