@@ -7,7 +7,11 @@ part.
 Installation
 ------------
 
-To install the add-on, run
+To install the add-on with pip use
+
+    pip install Orange3-Text
+
+To install the add-on from source, run
 
     python setup.py install
 
@@ -22,8 +26,6 @@ Usage
 After the installation, the widget from this add-on is registered with Orange. To run Orange from the terminal,
 use
 
-    python -m Orange.canvas
+    python3 -m Orange.canvas
 
-The new widget appears in the toolbox bar under the section Example.
-
-![screenshot](https://github.com/biolab/orange3-example-addon/blob/master/screenshot.png)
+Text Mining widgets are in the toolbox bar under Text Mining section.
