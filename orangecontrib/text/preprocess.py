@@ -1,8 +1,9 @@
 from nltk.stem.porter import PorterStemmer
 from nltk.stem import WordNetLemmatizer
+from sklearn.feature_extraction.text import CountVectorizer
 
 
-class Preprocessor():
+class Preprocessor:
     """
         Holds pre-processing flags and other information, about stop word
         removal, lowercasing, text morphing etc.(the options are set via
@@ -15,7 +16,8 @@ class Preprocessor():
         :param lowercase: If set, transform the tokens to lower case, before returning them.
         :type lowercase: boolean
         :param stop_words: Determines whether stop words should("english"), or should not(None) be removed.
-        :type stop_words: string
+            If this is list, it should contain stopwords.
+        :type stop_words: 'english' or list or None
         :param trans: An optional pre-processor object to perform the morphological
             transformation on the tokens before returning them.
         :type trans: :class: `orangecontrib.text.preprocess.Lemmatizer`
@@ -23,12 +25,31 @@ class Preprocessor():
         :return: :class: `orangecontrib.text.preprocess.Preprocessor`
         """
         # TODO Needs more elaborate check on list contents.
-        if stop_words != 'english' or isinstance(stop_words, list):
-            raise ValueError("The stop words parameter should be either \'english\' or a list.")
+        if not (stop_words == 'english' or isinstance(stop_words, list) or stop_words is None):
+            raise ValueError("The stop words parameter should be either \'english\', a list or None.")
         self.stop_words = stop_words
+        # TODO does including punctuation even work?
         self.incl_punct = incl_punct
         self.lowercase = lowercase
         self.transformation = trans
+        self.cv = CountVectorizer(
+            lowercase=lowercase,
+            stop_words=stop_words,
+            preprocessor=trans,
+        )
+
+    def __call__(self, data):
+        if isinstance(data, str):
+            vec = self.cv.fit(data)
+            return vec.get_feature_names()
+        if isinstance(data, list):
+            c = []
+            for d in data:
+                vec = self.cv.fit([d])
+                c.append(vec.get_feature_names())
+            return c
+        else:
+            raise ValueError("Type '{}' not supported.".format(type(data)))
 
 
 class Stemmatizer():
