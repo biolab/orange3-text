@@ -14,3 +14,12 @@ class CorpusTests(unittest.TestCase):
         self.assertEqual(len(c.domain), 0)
         self.assertEqual(len(c.domain.metas), 2)
         self.assertEqual(c.metas.shape, (140, 2))
+
+    def test_corpus_from_file_just_text(self):
+        c = Corpus.from_file(os.path.join(DATASET_PATH, 'deerwester.txt'))
+
+        self.assertEqual(len(c), 9)
+
+        self.assertEqual(len(c.domain), 0)
+        self.assertEqual(len(c.domain.metas), 1)
+        self.assertEqual(c.metas.shape, (9, 1))

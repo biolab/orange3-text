@@ -64,10 +64,18 @@ class Corpus(Table):
         documents = []
         metadata = []
         with codecs.open(filename, 'r', 'utf-8') as f:
+            header = f.readline().strip().split('\t')
+            if header.count('text') != 1:
+                raise RuntimeError("File should contain exactly one column labeled 'text'.")
+            text_ind = header.index('text')
+            f.readline()
+
             for line in f:
-                category, text = line.strip().split("\t")
-                documents.append(text)
-                metadata.append(dict(category=category))
+                fields = line.strip().split("\t")
+                if len(fields) != len(header):
+                    raise RuntimeError("All lines should contain the same number of fields as a header.")
+                documents.append(fields[text_ind])
+                metadata.append({header[i]: fields[i] for i in range(len(fields)) if i != text_ind})
         return cls(documents, metadata)
 
     def __len__(self):

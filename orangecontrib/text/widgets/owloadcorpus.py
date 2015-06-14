@@ -51,7 +51,7 @@ class OWLoadCorpus(OWWidget):
         # Corpus info
         ibox = gui.widgetBox(self.controlArea, "Corpus info", addSpace=True)
 
-        corp_info = "Corpus consists of 0 documents from 0 different categories."
+        corp_info = "Corpus of 0 documents with 0 optional attributes."
         self.info_label = gui.label(ibox, self, corp_info)
 
         # Load the most recent file
@@ -99,7 +99,9 @@ class OWLoadCorpus(OWWidget):
 
     def open_file(self, path):
         corpus = Corpus.from_file(path)
-        self.info_label.setText("Corpus consists of {} documents from {} different categories.".format(
+        self.info_label.setText("Corpus of {} documents with {} optional attribute{}.".format(
             len(corpus),
-            corpus.get_number_of_categories()))
+            len(corpus.domain.metas)-1,
+            '' if len(corpus.domain.metas) == 2 else 's',
+        ))
         self.send(Output.CORPUS, corpus)
