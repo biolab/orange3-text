@@ -9,7 +9,7 @@ class Preprocessor:
         removal, lowercasing, text morphing etc.(the options are set via
         the Preprocess widget).
     """
-    def __init__(self, incl_punct=True, lowercase=True, stop_words=None, trans=None):
+    def __init__(self, incl_punct=False, lowercase=True, stop_words='english', trans=None, min_df=1):
         """
         :param incl_punct: Determines whether the tokenizer should include punctuation in the tokens.
         :type incl_punct: boolean
@@ -27,27 +27,32 @@ class Preprocessor:
         # TODO Needs more elaborate check on list contents.
         if not (stop_words == 'english' or isinstance(stop_words, list) or stop_words is None):
             raise ValueError("The stop words parameter should be either \'english\', a list or None.")
+        if isinstance(trans, Stemmatizer):  # hack, since scikit does not obey lowercase when preprocesor given
+            trans.lowercase = lowercase
         self.stop_words = stop_words
         # TODO does including punctuation even work?
         self.incl_punct = incl_punct
         self.lowercase = lowercase
         self.transformation = trans
+        self.min_df = min_df
         self.cv = CountVectorizer(
             lowercase=lowercase,
             stop_words=stop_words,
             preprocessor=trans,
+            min_df=min_df,
         )
 
     def __call__(self, data):
         if isinstance(data, str):
-            vec = self.cv.fit(data)
+            vec = self.cv.fit([data])
             return vec.get_feature_names()
         if isinstance(data, list):
-            c = []
-            for d in data:
-                vec = self.cv.fit([d])
-                c.append(vec.get_feature_names())
-            return c
+            vec = self.cv.fit(data)
+            features = vec.get_feature_names()
+            docs = [[] for _ in range(len(data))]
+            for (line, column), count in vec.transform(data).todok().items():
+                docs[line].extend([features[column]] * count)
+            return docs
         else:
             raise ValueError("Type '{}' not supported.".format(type(data)))
 
@@ -56,7 +61,7 @@ class Stemmatizer():
     """
         A common class for stemming and lemmatization.
     """
-    def __init__(self, trans, name='Stemmatizer'):
+    def __init__(self, trans, lowercase=True, name='Stemmatizer'):
         """
             :param trans: The method that will perform transformation on the tokens.
             :param name: The name of the transformation object.
@@ -64,6 +69,7 @@ class Stemmatizer():
         """
         self.trans = trans
         self.name = name
+        self.lowercase = lowercase
 
     def __call__(self, data):
         """
@@ -72,9 +78,15 @@ class Stemmatizer():
             :return: string, list or :class: `Orange.data.Table`
         """
         if isinstance(data, str):
-            return self.trans(data)
+            if self.lowercase:
+                return self.trans(data).lower()
+            else:
+                return self.trans(data)
         elif isinstance(data, list):
-            return [self.trans(word) for word in data]
+            if self.lowercase:
+                return [self.trans(word).lower() for word in data]
+            else:
+                return [self.trans(word) for word in data]
         else:
             raise ValueError("Type {} not supported.".format(type(data)))
 
