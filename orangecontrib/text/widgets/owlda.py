@@ -43,11 +43,13 @@ class OWLDA(OWWidget):
 
         # Settings.
         topic_box = gui.widgetBox(self.controlArea, "Settings")
-        self.num_topics_input = gui.spin(
-            topic_box, self, "num_topics", label="Number of topics: ",
-            minv=1, maxv=2 ** 31 - 1,)
-        self.use_tfidf_button = gui.checkBox(topic_box, self, "use_tfidf",
-                     "Use TF-IDF weighting")
+        hbox = gui.widgetBox(topic_box, orientation=0)
+        self.topics_label = gui.label(hbox, self, 'Number of topics: ')
+        self.topics_label.setMaximumSize(self.topics_label.sizeHint())
+        self.topics_input = gui.spin(hbox, self, "num_topics",
+                                     minv=1, maxv=2 ** 31 - 1,)
+        self.tfidf_button = gui.checkBox(topic_box, self, "use_tfidf",
+                                         "Use TF-IDF weighting")
 
         # Commit button
         self.commit = gui.button(self.controlArea, self, "&Commit",
@@ -73,9 +75,10 @@ class OWLDA(OWWidget):
 
     def refresh_gui(self):
         got_corpus = self.corpus is not None
-        self.num_topics_input.setEnabled(got_corpus)
+        self.topics_label.setEnabled(got_corpus)
+        self.topics_input.setEnabled(got_corpus)
         self.commit.setEnabled(got_corpus)
-        self.use_tfidf_button.setEnabled(got_corpus)
+        self.tfidf_button.setEnabled(got_corpus)
 
         ndoc = len(self.corpus) if got_corpus else "(None)"
         self.info_label.setText("Input text entries: {}".format(ndoc))
