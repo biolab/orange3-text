@@ -1,16 +1,16 @@
-from gensim import corpora, models, matutils
-
 from Orange.widgets.widget import OWWidget
 from Orange.widgets.settings import Setting
 from Orange.widgets import gui
-from Orange.data import Table, ContinuousVariable, Domain
+from Orange.data import Table
 from Orange.widgets.data.contexthandlers import DomainContextHandler
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.preprocess import Preprocessor
+from orangecontrib.text.lda import LDA
 
 
 class Output:
     DATA = "Data"
+    TOPICS = "Topics"
 
 
 class OWLDA(OWWidget):
@@ -24,7 +24,8 @@ class OWLDA(OWWidget):
     # Input/output
     inputs = [("Corpus", Table, "set_data"),  # hack to accept input signals of type Table
               ("Preprocessor", Preprocessor, "set_preprocessor")]
-    outputs = [(Output.DATA, Table)]
+    outputs = [(Output.DATA, Table),
+               (Output.TOPICS, Table)]
     want_main_area = False
 
     # Settings
@@ -86,34 +87,14 @@ class OWLDA(OWWidget):
     def apply(self):
         self.refresh_gui()
         if self.corpus:
-            # Preprocess
             preprocessed = self.preprocessor(self.corpus.documents)
-            dictionary = corpora.Dictionary(preprocessed)
-            corpus = [dictionary.doc2bow(t) for t in preprocessed]
 
-            # LDA
-            if self.use_tfidf:
-                tfidf = models.TfidfModel(corpus)
-                corpus = tfidf[corpus]
+            lda = LDA(preprocessed, num_topics=self.num_topics, use_tf_idf=self.use_tfidf)
+            table = lda.insert_topics_into_corpus(self.corpus)
+            topics = lda.get_topics_table()
 
-            lda = models.LdaModel(corpus, id2word=dictionary,
-                                  num_topics=self.num_topics)
-            corpus = lda[corpus]
-            corpus_np = matutils.corpus2dense(corpus,
-                                              num_terms=self.num_topics).T
-
-            # Generate the new table.
-            attr = [ContinuousVariable(f) for f in
-                    lda.show_topics(num_topics=self.num_topics, num_words=3)]
-            domain = Domain(attr,
-                            self.corpus.domain.class_vars,
-                            metas=self.corpus.domain.metas)
-            print(corpus_np.shape[1], len(attr))
-            new_table = Table.from_numpy(domain,
-                                         corpus_np,
-                                         Y=self.corpus._Y,
-                                         metas=self.corpus.metas)
-
-            self.send("Data", new_table)
+            self.send(Output.DATA, table)
+            self.send(Output.TOPICS, topics)
         else:
-            self.send("Data", None)
+            self.send(Output.DATA, None)
+            self.send(Output.TOPICS, None)
