@@ -46,7 +46,9 @@ class LDA:
                                        num_terms=self.num_topics).T
 
         # Generate the new table.
-        attr = [ContinuousVariable("topic #{}".format(i)) for i in range(self.num_topics)]
+        topics = self.lda.show_topics(num_topics=-1, num_words=3, formatted=False)
+        names = [', '.join([i[1] for i in t]) for t in topics]
+        attr = [ContinuousVariable("T{} ({}, ...)".format(i, n)) for i, n in enumerate(names, 1)]
         domain = Domain(attr,
                         corp_in.domain.class_vars,
                         metas=corp_in.domain.metas)
@@ -77,8 +79,8 @@ class LDA:
         print(data)
         attr = []
         for i in range(ntopics):
-            attr.append(DiscreteVariable("topic #{}".format(i), values=list(data[:, 2*i])))
-            attr.append(ContinuousVariable("topic #{} weights".format(i)))
+            attr.append(DiscreteVariable("T{}".format(i+1), values=list(data[:, 2*i])))
+            attr.append(ContinuousVariable("T{}_weights".format(i+1)))
         domain = Domain(attr)
 
         for t in range(data.shape[1]):
