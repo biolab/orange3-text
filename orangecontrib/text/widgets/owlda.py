@@ -76,10 +76,7 @@ class OWLDA(OWWidget):
 
     def refresh_gui(self):
         got_corpus = self.corpus is not None
-        self.topics_label.setEnabled(got_corpus)
-        self.topics_input.setEnabled(got_corpus)
         self.commit.setEnabled(got_corpus)
-        self.tfidf_button.setEnabled(got_corpus)
 
         ndoc = len(self.corpus) if got_corpus else "(None)"
         self.info_label.setText("Input text entries: {}".format(ndoc))
