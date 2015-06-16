@@ -84,14 +84,19 @@ class OWLDA(OWWidget):
         ndoc = len(self.corpus) if got_corpus else "(None)"
         self.info_label.setText("Input text entries: {}".format(ndoc))
 
+    def progress(self, p):
+        self.progressBarSet(p)
+
     def apply(self):
         self.refresh_gui()
         if self.corpus:
             preprocessed = self.preprocessor(self.corpus.documents)
 
-            lda = LDA(preprocessed, num_topics=self.num_topics, use_tf_idf=self.use_tfidf)
+            self.progressBarInit()
+            lda = LDA(preprocessed, num_topics=self.num_topics, use_tf_idf=self.use_tfidf, callback=self.progress)
             table = lda.insert_topics_into_corpus(self.corpus)
             topics = lda.get_topics_table()
+            self.progressBarFinished()
 
             self.send(Output.DATA, table)
             self.send(Output.TOPICS, topics)

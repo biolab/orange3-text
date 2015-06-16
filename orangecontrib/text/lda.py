@@ -4,9 +4,19 @@ from gensim import corpora, models, matutils
 from Orange.data.table import Table
 from Orange.data.domain import Domain, ContinuousVariable, DiscreteVariable
 
+def chunk_list(l, num):
+    num = min(len(l), num)
+    avg = len(l) / float(num)
+    out = []
+    last = 0.0
+    while last < len(l):
+        out.append(l[int(last):int(last + avg)])
+        last += avg
+    return out
+
 
 class LDA:
-    def __init__(self, text, num_topics=5, use_tf_idf=False):
+    def __init__(self, text, num_topics=5, use_tf_idf=False, callback=None):
         """
         Wraper for Gensim LDA model.
 
@@ -24,12 +34,16 @@ class LDA:
         corpus = [dictionary.doc2bow(t) for t in self.text]
 
         # TODO remove tfidf when this will be separate widget
-        if self.use_tf_idf:
-            tf_idf = models.TfidfModel(corpus)
-            corpus = tf_idf[corpus]
+        #if self.use_tf_idf:
+        #    tf_idf = models.TfidfModel(corpus)
+        #    corpus = tf_idf[corpus]
 
-        lda = models.LdaModel(corpus, id2word=dictionary,
-                              num_topics=self.num_topics)
+        lda = models.LdaModel(id2word=dictionary, num_topics=self.num_topics)
+        done = 0
+        for i, part in enumerate(chunk_list(corpus, 90)):
+            lda.update(part)
+            done += len(part)
+            callback(90.0*done/len(corpus))
         corpus = lda[corpus]
 
         self.corpus = corpus
@@ -76,7 +90,6 @@ class LDA:
             data[:, 2*i] = [item[1] for item in topic]
             data[:, 2*i+1] = ['{:.3e}'.format(item[0]) for item in topic]
 
-        print(data)
         attr = []
         for i in range(ntopics):
             attr.append(DiscreteVariable("T{}".format(i+1), values=list(data[:, 2*i])))
