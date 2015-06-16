@@ -30,7 +30,6 @@ class OWLDA(OWWidget):
 
     # Settings
     num_topics = Setting(5)
-    use_tfidf = Setting(False)
 
     def __init__(self):
         super().__init__()
@@ -49,8 +48,6 @@ class OWLDA(OWWidget):
         self.topics_label.setMaximumSize(self.topics_label.sizeHint())
         self.topics_input = gui.spin(hbox, self, "num_topics",
                                      minv=1, maxv=2 ** 31 - 1,)
-        self.tfidf_button = gui.checkBox(topic_box, self, "use_tfidf",
-                                         "Use TF-IDF weighting")
 
         # Commit button
         self.commit = gui.button(self.controlArea, self, "&Commit",
@@ -90,7 +87,7 @@ class OWLDA(OWWidget):
             preprocessed = self.preprocessor(self.corpus.documents)
 
             self.progressBarInit()
-            lda = LDA(preprocessed, num_topics=self.num_topics, use_tf_idf=self.use_tfidf, callback=self.progress)
+            lda = LDA(preprocessed, num_topics=self.num_topics, callback=self.progress)
             table = lda.insert_topics_into_corpus(self.corpus)
             topics = lda.get_topics_table()
             self.progressBarFinished()
