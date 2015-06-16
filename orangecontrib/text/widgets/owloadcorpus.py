@@ -95,6 +95,7 @@ class OWLoadCorpus(OWWidget):
         if not filename:
             return
         self.recent_files.insert(0, filename)
+        self.set_file_list()
         self.open_file(filename)
 
     def open_file(self, path):
