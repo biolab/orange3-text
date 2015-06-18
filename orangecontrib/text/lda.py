@@ -16,27 +16,20 @@ def chunk_list(l, num):
 
 
 class LDA:
-    def __init__(self, text, num_topics=5, use_tf_idf=False, callback=None):
+    def __init__(self, text, num_topics=5, callback=None):
         """
         Wraper for Gensim LDA model.
 
         :param text: Preprocessed text.
         :param num_topics: Number of topics to infer.
-        :param use_tf_idf: Whether to use TF-IDF preprocessing.
         :return: None
         """
         self.text = text
         self.num_topics = num_topics
-        self.use_tf_idf = use_tf_idf
 
         # generate dict and corpus
         dictionary = corpora.Dictionary(self.text)
         corpus = [dictionary.doc2bow(t) for t in self.text]
-
-        # TODO remove tfidf when this will be separate widget
-        #if self.use_tf_idf:
-        #    tf_idf = models.TfidfModel(corpus)
-        #    corpus = tf_idf[corpus]
 
         lda = models.LdaModel(id2word=dictionary, num_topics=self.num_topics)
         done = 0

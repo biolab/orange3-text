@@ -11,6 +11,31 @@ def get_sample_corpora_dir():
     return os.path.realpath(dir)
 
 
+def documents_to_numpy(documents, metadata):
+    metadata2 = dict()
+    for md in metadata:
+        for key in md.keys():
+            metadata2.setdefault(key, set()).add(md[key])
+
+    meta_vars = [StringVariable('text')]
+    for key in sorted(metadata2.keys()):
+        if len(metadata2[key]) < 21:
+            meta_vars.append(DiscreteVariable(key, values=list(metadata2[key])))
+        else:
+            meta_vars.append(StringVariable(key))
+
+    metas = [[None] * len(meta_vars) for x in range(len(documents))]
+    for i, md in enumerate(metadata):
+        for j, var in enumerate(meta_vars):
+            if var.name in md:
+                metas[i][j] = var.to_val(md[var.name])
+
+    text = np.array(documents).reshape(len(documents), 1)
+    metas = np.array(metas, dtype=object)
+
+    return np.hstack((text, metas)), meta_vars
+
+
 class Corpus(Table):
     """
         Internal class for storing a corpus of orangecontrib.text.corpus.Corpus.
@@ -20,33 +45,14 @@ class Corpus(Table):
         """Bypass Table.__new__."""
         return object.__new__(Corpus)
 
-    def __init__(self, documents, metadata=None):
+    def __init__(self, documents, metadata=[]):
         self.documents = documents
 
-        metadata2 = dict()
-        for md in metadata:
-            for key in md.keys():
-                metadata2.setdefault(key, set()).add(md[key])
+        metas, meta_vars = documents_to_numpy(documents, metadata)
 
-        meta_vars = []
-        for key in sorted(metadata2.keys()):
-            if len(metadata2[key]) < 21:
-                meta_vars.append(DiscreteVariable(key, values=list(metadata2[key])))
-            else:
-                meta_vars.append(StringVariable(key))
-
-        metas = [[None] * len(meta_vars) for x in range(len(documents))]
-        for i, md in enumerate(metadata):
-            for j, var in enumerate(meta_vars):
-                if var.name in md:
-                    metas[i][j] = var.to_val(md[var.name])
-
-        text = np.array(documents).reshape(len(documents), 1)
-        metas = np.array(metas, dtype=object)
-
-        self.metas = np.hstack((text, metas))
+        self.metas = metas
         self.X = self._Y = self.W = np.zeros((len(documents), 0))
-        self.domain = Domain([], metas=[StringVariable('text')] + meta_vars)
+        self.domain = Domain([], metas=meta_vars)
         Table._init_ids(self)
 
     @classmethod
@@ -78,22 +84,16 @@ class Corpus(Table):
                 metadata.append({header[i]: fields[i] for i in range(len(fields)) if i != text_ind})
         return cls(documents, metadata)
 
+    def extend_corpus(self, documents, metadata=[]):
+        metas, meta_vars = documents_to_numpy(documents, metadata)
+
+        # TODO check if Domains match!
+
+        self.metas = np.vstack((self.metas, metas))
+        self.documents += documents
+
+        self.X = self._Y = self.W = np.zeros((len(self.documents), 0))
+        Table._init_ids(self)
+
     def __len__(self):
         return len(self.documents)
-
-
-class Document:
-    """
-        A class holding the data of a single document.
-    """
-    def __init__(self, text, category):
-        """
-        :param text: The text of the document.
-        :type text: string
-        :param category: The type of the document.
-        :type category: string
-        :return: :class: `orangecontrib.text.corpus.Document`
-        """
-        self.text = text
-        self.category = category
-        self.tokens = None
