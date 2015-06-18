@@ -103,7 +103,8 @@ class OWBagOfWords(OWWidget):
                             self._normalization_options[self.normalization_type])
                 self.pp_info_label.setText(pp_info_tag)
             else:
-                cv = CountVectorizer(lowercase=False)
+                cv = CountVectorizer(lowercase=True,
+                                     binary=True)
 
             documents = self.corpus.documents
             feats = cv.fit(documents)  # Features.
