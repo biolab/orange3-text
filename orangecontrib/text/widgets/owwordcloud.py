@@ -11,10 +11,6 @@ from Orange.widgets import widget, gui, settings
 from orangecontrib.text.topics import Topics
 
 
-JS_WORDCLOUD = open(path.join(path.dirname(__file__), 'wordcloud2.js'), encoding='utf-8').read()
-JS_SCRIPT = open(path.join(path.dirname(__file__), 'wordcloud_script.js'), encoding='utf-8').read()
-
-
 class SelectedWords(set):
     def __init__(self, widget):
         self.widget = widget
@@ -56,24 +52,6 @@ class OWWordCloud(widget.OWWidget):
         self.n_topics = 0
         self.mean_weight = 0
         self.selected_words = SelectedWords(self)
-        self.webview = webview = gui.WebviewWidget(self.mainArea, self)
-        script = '''
-<!doctype html>
-<html>
-<head>
-<meta charset="utf-8">
-<style>
-html, body {margin:0px;padding:0px;width:100%;height:100%;}
-span:hover {color:OrangeRed !important}
-span.selected {color:red !important}
-</style>
-</head>
-<body id="canvas">&nbsp;
-</body>
-</html>'''
-        webview.setHtml(script)
-        webview.evalJS(JS_WORDCLOUD)
-        webview.evalJS(JS_SCRIPT)
         self._create_layout()
 
     @QtCore.pyqtSlot(str, result=str)
@@ -92,6 +70,25 @@ span.selected {color:red !important}
             return ''
 
     def _create_layout(self):
+        html = '''
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+html, body {margin:0px;padding:0px;width:100%;height:100%;}
+span:hover {color:OrangeRed !important}
+span.selected {color:red !important}
+</style>
+</head>
+<body id="canvas">&nbsp;
+</body>
+</html>'''
+        self.webview = webview = gui.WebviewWidget(self.mainArea, self, html)
+        for script in ('wordcloud2.js',
+                       'wordcloud-script.js'):
+            self.webview.evalJS(open(path.join(path.dirname(__file__), 'resources', script), encoding='utf-8').read())
+
         box = gui.widgetBox(self.controlArea, 'Info')
         gui.label(box, self, '%(n_topics)d topics')
         gui.label(box, self, '%(n_words)d words per topic')
