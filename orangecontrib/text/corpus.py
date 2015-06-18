@@ -17,7 +17,7 @@ def documents_to_numpy(documents, metadata):
         for key in md.keys():
             metadata2.setdefault(key, set()).add(md[key])
 
-    meta_vars = [StringVariable('text')]
+    meta_vars = []
     for key in sorted(metadata2.keys()):
         if len(metadata2[key]) < 21:
             meta_vars.append(DiscreteVariable(key, values=list(metadata2[key])))
@@ -32,7 +32,7 @@ def documents_to_numpy(documents, metadata):
 
     text = np.array(documents).reshape(len(documents), 1)
     metas = np.array(metas, dtype=object)
-
+    meta_vars.append(StringVariable('text'))
     return np.hstack((text, metas)), meta_vars
 
 
