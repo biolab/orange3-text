@@ -18,6 +18,7 @@ class OWBagOfWords(OWWidget):
     name = "Bag of words"
     description = "Generates a bag of words from the input corpus."
     icon = "icons/BagOfWords.svg"
+    priority = 40
 
     # Input/output
     inputs = [("Corpus", Table, "set_corpus"),  # hack to accept input signals of type Table

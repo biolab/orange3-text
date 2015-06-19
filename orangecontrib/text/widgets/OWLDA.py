@@ -18,6 +18,7 @@ class OWLDA(OWWidget):
     name = "LDA"
     description = "Latent Dirichlet Allocation topic model."
     icon = "icons/LDA.svg"
+    priority = 50
 
     settingsHandler = DomainContextHandler()
 

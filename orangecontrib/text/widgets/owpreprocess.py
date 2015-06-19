@@ -13,6 +13,7 @@ class OWPreprocess(OWWidget):
     name = "Preprocess"
     description = "Choose the pre-processing options and return a Preprocessor object."
     icon = "icons/TextPreprocess.svg"
+    priority = 30
 
     outputs = [(Output.PREPROCESSOR, Preprocessor)]
     want_main_area = False

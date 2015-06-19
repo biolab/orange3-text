@@ -14,6 +14,7 @@ class OWLoadCorpus(OWWidget):
     name = "Corpus"
     description = "Load a corpus of text documents, (optionally) tagged with categories."
     icon = "icons/TextFile.svg"
+    priority = 10
 
     outputs = [(Output.CORPUS, Corpus)]
     want_main_area = False

@@ -25,6 +25,7 @@ class OWNYT(OWWidget):
     name = "New York Times"
     description = "Load data from the New York Times article search API."
     icon = "icons/TextFile.svg"
+    priority = 20
 
     outputs = [(Output.CORPUS, Corpus)]
     want_main_area = False
