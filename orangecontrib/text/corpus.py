@@ -32,7 +32,7 @@ def documents_to_numpy(documents, metadata):
 
     text = np.array(documents).reshape(len(documents), 1)
     metas = np.array(metas, dtype=object)
-    meta_vars.append(StringVariable('text'))
+    meta_vars.insert(0, StringVariable('text'))
     return np.hstack((text, metas)), meta_vars
 
 
