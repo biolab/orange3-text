@@ -11,7 +11,7 @@ class OWWordEnrichment(OWWidget):
     # Basic widget info
     name = "Word Enrichment"
     description = "Word enrichment analysis for selected documents."
-    icon = "icons/mywidget.svg"
+    icon = "icons/SetEnrichment.svg"
 
     # Input/output
     inputs = [("Selected Data", Table, "set_data_selected"),
