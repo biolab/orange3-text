@@ -54,5 +54,6 @@ class NYT:
             if isinstance(item, list) or isinstance(item, dict):
                 string_document += self._walk_json(item)
             else:
-                string_document += " " + item
+                if item:
+                    string_document += " " + item
         return string_document
