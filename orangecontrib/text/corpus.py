@@ -72,13 +72,23 @@ class Corpus(Table):
                     first_id = i
                 if attr.attributes.get('include', 'False') == 'True':
                     include_ids.append(i)
+        if len(include_ids) == 0:
+            include_ids.append(first_id)
+
         documents = []
-        if len(include_ids) > 0:
-            for line in range(table.metas.shape[0]):
-                documents.append(' '.join(table.metas[line, include_ids]))
-        else:
-            documents = table.metas[:, first_id].tolist()
-        return cls(documents, table.X, table.Y, table.metas, table.domain)
+        for line in range(table.metas.shape[0]):
+            documents.append(' '.join(table.metas[line, include_ids]))
+
+        corp = cls(documents, table.X, table.Y, table.metas, table.domain)
+        corp.used_features = [f for i, f in enumerate(table.domain.metas) if i in include_ids]
+        return corp
+
+    def regenerate_documents(self, selected_features):
+        documents = []
+        indices = [self.domain.metas.index(f) for f in selected_features]
+        for line in range(self.metas.shape[0]):
+            documents.append(' '.join(self.metas[line, indices]))
+        self.documents = documents
 
     def extend_corpus(self, documents, metadata=[]):
         metas, meta_vars = documents_to_numpy(documents, metadata)

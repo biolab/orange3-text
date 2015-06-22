@@ -4,6 +4,7 @@ from PyQt4 import QtGui
 from Orange.widgets.settings import Setting
 from Orange.widgets.widget import OWWidget
 from Orange.widgets import gui
+from Orange.widgets.data.owselectcolumns import VariablesListItemModel, VariablesListItemView
 from orangecontrib.text.corpus import Corpus, get_sample_corpora_dir
 
 
@@ -25,6 +26,8 @@ class OWLoadCorpus(OWWidget):
 
     def __init__(self):
         super().__init__()
+
+        self.corpus = None
 
         # Refresh recent files
         self.recent_files = [fn for fn in self.recent_files
@@ -51,9 +54,28 @@ class OWLoadCorpus(OWWidget):
 
         # Corpus info
         ibox = gui.widgetBox(self.controlArea, "Corpus info", addSpace=True)
-
         corp_info = "Corpus of 0 documents."
         self.info_label = gui.label(ibox, self, corp_info)
+
+        # Used Text Features
+        fbox = gui.widgetBox(self.controlArea, orientation=0)
+        ubox = gui.widgetBox(fbox, "Used Text Features", addSpace=True)
+        self.used_attrs = VariablesListItemModel()
+        self.used_attrs_view = VariablesListItemView()
+        self.used_attrs_view.setModel(self.used_attrs)
+        ubox.layout().addWidget(self.used_attrs_view)
+
+        aa = self.used_attrs
+        aa.dataChanged.connect(self.update_feature_selection)
+        aa.rowsInserted.connect(self.update_feature_selection)
+        aa.rowsRemoved.connect(self.update_feature_selection)
+
+        # Ignored Text Features
+        ibox = gui.widgetBox(fbox, "Ignored Text Features", addSpace=True)
+        self.unused_attrs = VariablesListItemModel()
+        self.unused_attrs_view = VariablesListItemView()
+        self.unused_attrs_view.setModel(self.unused_attrs)
+        ibox.layout().addWidget(self.unused_attrs_view)
 
         # Load the most recent file
         self.set_file_list()
@@ -103,9 +125,23 @@ class OWLoadCorpus(OWWidget):
 
     def open_file(self, path):
         self.error(1, '')
+        self.used_attrs[:] = []
+        self.unused_attrs[:] = []
+
         try:
-            corpus = Corpus.from_file(path)
-            self.info_label.setText("Corpus of {} documents.".format(len(corpus)))
-            self.send(Output.CORPUS, corpus)
+            self.corpus = Corpus.from_file(path)
+            for i in self.corpus.used_features:
+                self.used_attrs.append(i)
+            for i in self.corpus.domain.metas:
+                if i not in self.corpus.used_features:
+                    self.unused_attrs.append(i)
+
+            self.info_label.setText("Corpus of {} documents.".format(len(self.corpus)))
+            self.send(Output.CORPUS, self.corpus)
         except BaseException as err:
             self.error(1, str(err))
+
+    def update_feature_selection(self):
+        if self.corpus is not None:
+            self.corpus.regenerate_documents(self.used_attrs)
+            self.send(Output.CORPUS, self.corpus)
