@@ -1,17 +1,14 @@
 import os
 import math
-import shelve
-import tempfile
 from time import sleep
 from PyQt4 import QtCore
 from PyQt4.QtGui import *
-from urllib import request, parse
 
 from Orange.widgets.settings import Setting
 from Orange.widgets.widget import OWWidget
 from Orange.widgets import gui
 from orangecontrib.text.corpus import Corpus
-from orangecontrib.text.nyt import NYT, validate_year
+from orangecontrib.text.nyt import NYT
 
 
 def _i(name, icon_path="icons"):
@@ -30,23 +27,21 @@ class OWNYT(OWWidget):
     outputs = [(Output.CORPUS, Corpus)]
     want_main_area = False
 
-    # Request parameters.
     output_corpus = None
-    api_key = ""
+    # Response info.
     all_hits = 0
     num_retrieved = 0
-    initial_query = ""
+    # NYT info:
+    nyt_api = None
+    api_key = ""
     api_key_is_valid = False
     query_running = False
-    base_url = 'http://api.nytimes.com/svc/search/v2/articlesearch.json'
-    temp_query_filename = tempfile.NamedTemporaryFile(suffix="ow_nyt_queries.db", delete=True).name
 
     # Settings.
     recent_queries = Setting([])
     recent_api_keys = Setting([])
     year_from = Setting("")
     year_to = Setting("")
-
     # Text includes checkboxes.
     includes_headline = Setting(True)
     includes_lead_paragraph = Setting(True)
@@ -61,7 +56,10 @@ class OWNYT(OWWidget):
         # Refresh recent queries.
         self.recent_queries = [query for query in self.recent_queries]
 
+        # To hold all the controls. Makes access easier.
         self.nyt_controls = []
+
+        # Root box.
         parameter_box = gui.widgetBox(self.controlArea, addSpace=True)
 
         # API key box.
@@ -153,7 +151,8 @@ class OWNYT(OWWidget):
         if self.recent_api_keys:
             self.api_key = self.recent_api_keys[0]
             self.check_api_key(self.api_key)
-        self.set_enabled_all()
+
+        self.enable_controls()
 
     def set_query_list(self):
         self.query_combo.clear()
@@ -175,69 +174,44 @@ class OWNYT(OWWidget):
             self.set_query_list()
 
     def run_initial_query(self):
-        nyt_api = NYT(self.api_key)
+        # Only execute if the NYT object is present(safety lock).
+        # Otherwise this method cannot be called anyway.
+        if self.nyt_api:
+            # Query keywords.
+            qkw = self.query_combo.currentText()
 
-        # Query and API key.
-        q = self.query_combo.currentText()
-        query = parse.urlencode({
-            "q": q,
-            "fq": "The New York Times",
-            "api-key": self.api_key
-        })
+            # Text fields.
+            text_includes_params = [self.includes_headline, self.includes_lead_paragraph, self.includes_snippet,
+                                    self.includes_abstract, self.includes_print_page, self.includes_keywords]
 
-        # Years.
-        if self.year_from and self.year_from.isdigit():
-            query += "&begin_date=" + validate_year(self.year_from) + "0101"
-        if self.year_to and self.year_to.isdigit():
-            query += "&end_date=" + validate_year(self.year_to) + "1231"
+            # Set the query url.
+            q = self.nyt_api.set_query_url(qkw, self.year_from, self.year_to, text_includes_params)
 
-        # Text fields.
-        text_includes_params = [self.includes_headline, self.includes_lead_paragraph, self.includes_snippet,
-                                self.includes_abstract, self.includes_print_page, self.includes_keywords]
-        if True in text_includes_params:
-            fl_fields = ["headline", "lead_paragraph", "snippet", "abstract", "print_page", "keywords"]
-            fl = ",".join([f1 for f1, f2 in zip(fl_fields, text_includes_params) if f2])
-            query += "&fl=" + fl
+            # Execute the query.
+            res, cached = self.nyt_api.execute_query(0)
 
-        full_query_url = "{0}?{1}".format(self.base_url, query+"&page=0")
+            # Construct a corpus for the output.
+            self.output_corpus = Corpus(self.nyt_api.parse_record_json(res))
+            self.send(Output.CORPUS, self.output_corpus)
 
-        # Check whether this query has already been cached.
-        query_db = shelve.open(self.temp_query_filename)
+            # Update the response info.
+            self.all_hits = res["response"]["meta"]["hits"]
+            self.num_retrieved = len(res["response"]["docs"])
+            self.query_info_label.setText("Records: {}\nRetrieved: {}"
+                                          .format(self.all_hits, self.num_retrieved))
 
-        # Execute.
-        if full_query_url in query_db:
-            res = query_db[full_query_url]
-        else:
-            res = nyt_api.execute_query(full_query_url)
-            query_db[full_query_url] = res
-        query_db.close()
+            # Enable 'retrieve remaining' button.
+            if self.num_retrieved < self.all_hits:
+                self.retrieve_other_button.setText('Retrieve remaining records ({})'
+                                                   .format(self.all_hits-self.num_retrieved))
+                self.retrieve_other_button.setEnabled(True)
+            else:
+                self.retrieve_other_button.setText('All records retrieved')
+                self.retrieve_other_button.setEnabled(False)
 
-        # Construct a corpus for the output.
-        docs = nyt_api.parse_record_json(res)
-        self.output_corpus = Corpus(docs)
-        self.send(Output.CORPUS, self.output_corpus)
-
-        # Update the response info.
-        self.all_hits = res["response"]["meta"]["hits"]
-        self.num_retrieved = len(res["response"]["docs"])
-        self.query_info_label.setText("Records: {}\nRetrieved: {}"
-                                      .format(self.all_hits, self.num_retrieved))
-
-        # Enable 'retrieve remaining' button.
-        if self.num_retrieved < self.all_hits:
-            self.retrieve_other_button.setText('Retrieve remaining records ({})'
-                                               .format(self.all_hits-self.num_retrieved))
-            self.retrieve_other_button.setEnabled(True)
-        else:
-            self.retrieve_other_button.setText('All records retrieved')
-            self.retrieve_other_button.setEnabled(False)
-
-        # Store the current query.
-        self.initial_query = query
-
-        # Add the query to history.
-        if q not in self.recent_queries:
-            self.recent_queries.insert(0, q)
+            # Add the query to history.
+            if qkw not in self.recent_queries:
+                self.recent_queries.insert(0, qkw)
 
     def retrieve_remaining_records(self):
         # If a query is running, stop it.
@@ -245,90 +219,73 @@ class OWNYT(OWWidget):
             self.query_running = False
             return
 
-        nyt_api = NYT(self.api_key)
+        if self.nyt_api:
+            num_steps = math.ceil(self.all_hits/10)
 
-        num_steps = math.ceil(self.all_hits/10)
+            # Update buttons.
+            self.retrieve_other_button.setText('Stop retrieving')
+            self.open_set_api_key_dialog_button.setEnabled(False)
+            self.run_query_button.setEnabled(False)
 
-        # Update buttons.
-        self.retrieve_other_button.setText('Stop retrieving')
-        self.open_set_api_key_dialog_button.setEnabled(False)
-        self.run_query_button.setEnabled(False)
+            # Accumulate remaining results in these lists.
+            remaining_docs = []
 
-        # Accumulate remaining results in these lists.
-        remaining_docs = []
+            self.query_running = True
+            self.progressBarInit()
+            for i in range(int(self.num_retrieved/10), num_steps):
+                # Stop querying if the flag is not set.
+                if not self.query_running:
+                    break
 
-        query_db = shelve.open(self.temp_query_filename)
+                # Update the progress bar.
+                self.progressBarSet(100.0 * (i/num_steps))
 
-        self.query_running = True
-        self.progressBarInit()
-        for i in range(int(self.num_retrieved/10), num_steps):
-            # Stop querying if the flag is not set.
-            if not self.query_running:
-                break
+                res, cached = self.nyt_api.execute_query(i)
 
-            # Update the progress bar.
-            self.progressBarSet(100.0 * (i/num_steps))
+                docs = self.nyt_api.parse_record_json(res)
+                remaining_docs += docs
 
-            full_query_url = "{0}?{1}".format(self.base_url, self.initial_query+"&page="+str(i))
-            if full_query_url in query_db:
-                res = query_db[full_query_url]
+                # Update the info label.
+                self.num_retrieved += len(res["response"]["docs"])
+                self.query_info_label.setText("Records: {}\nRetrieved: {}"
+                                              .format(self.all_hits, self.num_retrieved))
+
+                if not cached:  # Only wait if an actual request was made.
+                    sleep(1)
+            self.progressBarFinished()
+            self.query_running = False
+
+            # Update the corpus.
+            self.output_corpus.extend_corpus(remaining_docs)
+            self.send(Output.CORPUS, self.output_corpus)
+
+            if self.num_retrieved == self.all_hits:
+                self.retrieve_other_button.setText('All records retrieved')
+                self.retrieve_other_button.setEnabled(False)
             else:
-                res = nyt_api.execute_query(full_query_url)
+                self.retrieve_other_button.setText('Retrieve remaining records ({})'
+                                                   .format(self.all_hits-self.num_retrieved))
 
-            docs = nyt_api.parse_record_json(res)
-            remaining_docs += docs
-
-            # Update the info label.
-            self.num_retrieved += len(res["response"]["docs"])
-            self.query_info_label.setText("Records: {}\nRetrieved: {}"
-                                          .format(self.all_hits, self.num_retrieved))
-
-            # Cache this query's result.
-            query_db[full_query_url] = res
-            sleep(1)    # Wait.
-        self.progressBarFinished()
-        query_db.close()
-        self.query_running = False
-
-        # Update the corpus.
-        self.output_corpus.extend_corpus(remaining_docs)
-        self.send(Output.CORPUS, self.output_corpus)
-
-        if self.num_retrieved == self.all_hits:
-            self.retrieve_other_button.setText('All records retrieved')
-            self.retrieve_other_button.setEnabled(False)
-        else:
-            self.retrieve_other_button.setText('Retrieve remaining records ({})'
-                                               .format(self.all_hits-self.num_retrieved))
-
-        self.open_set_api_key_dialog_button.setEnabled(True)
-        self.run_query_button.setEnabled(True)
+            self.open_set_api_key_dialog_button.setEnabled(True)
+            self.run_query_button.setEnabled(True)
 
     def check_api_key(self, api_key):
-        query = parse.urlencode({
-            "q": "test",
-            "fq": "The New York Times",
-            "api-key": api_key
-        })
-
-        try:
-            connection = request.urlopen("{0}?{1}".format(self.base_url, query+"&page=0"))
-            if connection.getcode() == 200:  # The API key works.
-                self.api_key_updated(True)
-        except:
-            self.api_key_updated(False)
+        nyt_api = NYT(api_key)
+        self.api_key_updated(nyt_api.check_api_key())
 
     def api_key_updated(self, is_valid):
         self.api_key_is_valid = is_valid
-        self.set_enabled_all()
+        self.enable_controls()
+
         if is_valid:
             self.api_key_valid_label.setPixmap(QPixmap(_i("valid.svg"))
                                                .scaled(15, 15, QtCore.Qt.KeepAspectRatio))
+            self.nyt_api = NYT(self.api_key)    # Set the NYT API object, if key is valid.
         else:
             self.api_key_valid_label.setPixmap(QPixmap(_i("invalid.svg"))
                                                .scaled(15, 15, QtCore.Qt.KeepAspectRatio))
 
-    def set_enabled_all(self):
+    def enable_controls(self):
         for control in self.nyt_controls:
             control.setEnabled(self.api_key_is_valid)
 
