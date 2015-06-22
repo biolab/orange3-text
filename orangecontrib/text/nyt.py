@@ -1,8 +1,8 @@
 import json
+import shelve
+from appdirs import *
 from datetime import date
 from urllib import request, parse
-
-from orangecontrib.text.corpus import Corpus
 
 
 def validate_year(year):
@@ -19,6 +19,7 @@ class NYT:
     def __init__(self, api_key):
         self._api_key = api_key
         self._query_url = ""
+        self.query_cache = None
 
     def set_query_url(self,
                       query,
@@ -79,12 +80,22 @@ class NYT:
         Will not execute, if the class object's query_url has not been set.
 
         :param page: Determine what page of the query to return.
-        :return: A JSON representation of the query's results.
+        :return: A JSON representation of the query's results and a boolean flag,
+            that serves as feedback, whether the request was cached or not.
         """
         if self._query_url:
-            connection = request.urlopen(self._query_url+"&page={}".format(page))
-            response = connection.readall().decode("utf-8")
-            return json.loads(response)
+            current_query = self._query_url+"&page={}".format(page)
+            self.query_cache = shelve.open(user_data_dir("Orange Canvas", "fri-biolab")+"/nyt_query_cache")
+            if current_query in self.query_cache.keys():
+                response = self.query_cache[current_query]
+                self.query_cache.close()
+                return json.loads(response), True
+            else:
+                connection = request.urlopen(current_query)
+                response = connection.readall().decode("utf-8")
+                self.query_cache[current_query] = response
+                self.query_cache.close()
+                return json.loads(response), False
 
     def parse_record_json(self, record):
         """

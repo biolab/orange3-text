@@ -187,7 +187,7 @@ class OWNYT(OWWidget):
             q = self.nyt_api.set_query_url(qkw, self.year_from, self.year_to, text_includes_params)
 
             # Execute the query.
-            res = self.nyt_api.execute_query(0)
+            res, cached = self.nyt_api.execute_query(0)
 
             # Construct a corpus for the output.
             self.output_corpus = Corpus(self.nyt_api.parse_record_json(res))
@@ -209,8 +209,8 @@ class OWNYT(OWWidget):
                 self.retrieve_other_button.setEnabled(False)
 
             # Add the query to history.
-            if q not in self.recent_queries:
-                self.recent_queries.insert(0, q)
+            if qkw not in self.recent_queries:
+                self.recent_queries.insert(0, qkw)
 
     def retrieve_remaining_records(self):
         # If a query is running, stop it.
@@ -239,7 +239,7 @@ class OWNYT(OWWidget):
                 # Update the progress bar.
                 self.progressBarSet(100.0 * (i/num_steps))
 
-                res = self.nyt_api.execute_query(i)
+                res, cached = self.nyt_api.execute_query(i)
 
                 docs = self.nyt_api.parse_record_json(res)
                 remaining_docs += docs
@@ -249,7 +249,8 @@ class OWNYT(OWWidget):
                 self.query_info_label.setText("Records: {}\nRetrieved: {}"
                                               .format(self.all_hits, self.num_retrieved))
 
-                sleep(1)    # Wait.
+                if not cached:  # Only wait if an actual request was made.
+                    sleep(1)
             self.progressBarFinished()
             self.query_running = False
 
