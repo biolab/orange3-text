@@ -45,14 +45,13 @@ class Corpus(Table):
         """Bypass Table.__new__."""
         return object.__new__(Corpus)
 
-    def __init__(self, documents, metadata=[]):
+    def __init__(self, documents, X, Y, metas, domain):
         self.documents = documents
-
-        metas, meta_vars = documents_to_numpy(documents, metadata)
-
+        self.X = X
+        self.Y = Y
         self.metas = metas
-        self.X = self._Y = self.W = np.zeros((len(documents), 0))
-        self.domain = Domain([], metas=meta_vars)
+        self.W = np.zeros((len(documents), 0))
+        self.domain = domain
         Table._init_ids(self)
 
     @classmethod
@@ -62,27 +61,24 @@ class Corpus(Table):
         c._Y = c._Y.astype(np.float64)
         return c
 
-    def get_number_of_categories(self):
-        return len(self.domain['category'].values)
-
     @classmethod
     def from_file(cls, filename):
+        table = Table.from_file(filename)
+        include_ids = []
+        first_id = None
+        for i, attr in enumerate(table.domain.metas):
+            if isinstance(attr, StringVariable):
+                if first_id is None:
+                    first_id = i
+                if attr.attributes.get('include', 'False') == 'True':
+                    include_ids.append(i)
         documents = []
-        metadata = []
-        with codecs.open(filename, 'r', 'utf-8') as f:
-            header = f.readline().strip().split('\t')
-            if header.count('text') != 1:
-                raise RuntimeError("File should contain exactly one column labeled 'text'.")
-            text_ind = header.index('text')
-            f.readline()
-
-            for line in f:
-                fields = line.strip().split("\t")
-                if len(fields) != len(header):
-                    raise RuntimeError("All lines should contain the same number of fields as a header.")
-                documents.append(fields[text_ind])
-                metadata.append({header[i]: fields[i] for i in range(len(fields)) if i != text_ind})
-        return cls(documents, metadata)
+        if len(include_ids) > 0:
+            for line in range(table.metas.shape[0]):
+                documents.append(' '.join(table.metas[line, include_ids]))
+        else:
+            documents = table.metas[:, first_id].tolist()
+        return cls(documents, table.X, table.Y, table.metas, table.domain)
 
     def extend_corpus(self, documents, metadata=[]):
         metas, meta_vars = documents_to_numpy(documents, metadata)

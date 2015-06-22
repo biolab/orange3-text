@@ -19,7 +19,7 @@ class OWLoadCorpus(OWWidget):
     outputs = [(Output.CORPUS, Corpus)]
     want_main_area = False
 
-    dlgFormats = "Only text files (*.txt)"
+    dlgFormats = "Only tab files (*.tab)"
 
     recent_files = Setting(["(none)"])
 
@@ -52,7 +52,7 @@ class OWLoadCorpus(OWWidget):
         # Corpus info
         ibox = gui.widgetBox(self.controlArea, "Corpus info", addSpace=True)
 
-        corp_info = "Corpus of 0 documents with 0 optional attributes."
+        corp_info = "Corpus of 0 documents."
         self.info_label = gui.label(ibox, self, corp_info)
 
         # Load the most recent file
@@ -95,15 +95,17 @@ class OWLoadCorpus(OWWidget):
             self, 'Open Orange Document Corpus', start_file, self.dlgFormats)
         if not filename:
             return
+        if filename in self.recent_files:
+            self.recent_files.remove(filename)
         self.recent_files.insert(0, filename)
         self.set_file_list()
         self.open_file(filename)
 
     def open_file(self, path):
-        corpus = Corpus.from_file(path)
-        self.info_label.setText("Corpus of {} documents with {} optional attribute{}.".format(
-            len(corpus),
-            len(corpus.domain.metas)-1,
-            '' if len(corpus.domain.metas) == 2 else 's',
-        ))
-        self.send(Output.CORPUS, corpus)
+        self.error(1, '')
+        try:
+            corpus = Corpus.from_file(path)
+            self.info_label.setText("Corpus of {} documents.".format(len(corpus)))
+            self.send(Output.CORPUS, corpus)
+        except BaseException as err:
+            self.error(1, str(err))
