@@ -14,6 +14,8 @@ def chunk_list(l, num):
         last += avg
     return out
 
+MAX_WORDS = 1000
+
 
 class LDA:
     def __init__(self, text, num_topics=5, callback=None):
@@ -68,30 +70,37 @@ class LDA:
                                 Y=corp_in._Y,
                                 metas=corp_in.metas)
 
-    def get_topics_table(self):
+    def get_topics_table_by_id(self, topic_id):
         """
         Transform topics from gensim LDA model to table.
 
         :param lda: gensim LDA model.
         :return: `Orange.data.table.Table`.
         """
-        topics = self.lda.show_topics(num_topics=-1, num_words=-1, formatted=False)
-        num_topics = len(topics)
+        topics = self.lda.show_topics(num_topics=-1, num_words=MAX_WORDS, formatted=False)
+        if topic_id >= len(topics):
+            raise ValueError("Too large topic ID.")
+
         num_words = max([len(it) for it in topics])
 
-        data = np.zeros((num_words, 2*num_topics), dtype=object)
+        data = np.zeros((num_words, 2), dtype=object)
+        data[:, 0] = [item[1] for item in topics[topic_id]]
+        data[:, 1] = [item[0] for item in topics[topic_id]]
 
-        for i, topic in enumerate(topics):
-            data[:, 2*i] = [item[1] for item in topic]
-            data[:, 2*i+1] = [item[0] for item in topic]
-
-        metas = []
-        for i in range(num_topics):
-            metas.append(StringVariable(self.topic_names[i]))
-            metas.append(ContinuousVariable("Topic{}_weights".format(i+1)))
-            metas[-1]._out_format = '%.2e'
+        metas = [StringVariable(self.topic_names[topic_id]),
+                 ContinuousVariable("Topic{}_weights".format(topic_id+1))]
+        metas[-1]._out_format = '%.2e'
 
         domain = Domain([], metas=metas)
-        return Table.from_numpy(domain,
-                                X=np.zeros((num_words, 0)),
-                                metas=data)
+        t = Table.from_numpy(domain,
+                             X=np.zeros((num_words, 0)),
+                             metas=data)
+        t.W = data[:, 1]
+        return t
+
+    def get_top_words_by_id(self, topic_id):
+        topics = self.lda.show_topics(num_topics=-1, num_words=10, formatted=False)
+        if topic_id >= len(topics):
+            raise ValueError("Too large topic ID.")
+        return [item[1] for item in topics[topic_id]]
+
