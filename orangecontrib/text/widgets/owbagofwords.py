@@ -21,7 +21,7 @@ class OWBagOfWords(OWWidget):
     priority = 40
 
     # Input/output
-    inputs = [("Corpus", Table, "set_corpus"),  # hack to accept input signals of type Table
+    inputs = [("Corpus", Corpus, "set_corpus"),
               ("Preprocessor", Preprocessor, "set_preprocessor")]
     outputs = [(Output.DATA, Table)]
     want_main_area = False
@@ -70,12 +70,7 @@ class OWBagOfWords(OWWidget):
         self.preprocessor = data
 
     def set_corpus(self, data):
-        self.error(1)
-        if data is None or isinstance(data, Corpus):
-            self.corpus = data
-        else:
-            self.corpus = None
-            self.error(1, 'Input should be of type Corpus')
+        self.corpus = data
         self.apply()
 
     def apply(self):

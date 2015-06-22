@@ -25,7 +25,7 @@ class OWLDA(OWWidget):
     settingsHandler = DomainContextHandler()
 
     # Input/output
-    inputs = [("Corpus", Table, "set_data"),  # hack to accept input signals of type Table
+    inputs = [("Corpus", Corpus, "set_data"),
               ("Preprocessor", Preprocessor, "set_preprocessor")]
     outputs = [(Output.DATA, Table),
                (Output.TOPICS, Table)]
@@ -79,12 +79,7 @@ class OWLDA(OWWidget):
         self.apply()
 
     def set_data(self, data=None):
-        self.error(1)
-        if data is None or isinstance(data, Corpus):
-            self.corpus = data
-        else:
-            self.corpus = None
-            self.error(1, 'Input should be of type Corpus')
+        self.corpus = data
         self.apply()
 
     def refresh_gui(self):
