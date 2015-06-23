@@ -107,12 +107,19 @@ class OWLDA(OWWidget):
     def send_topic_by_id(self, topic_id):
         self.send(Output.TOPICS, self.lda.get_topics_table_by_id(topic_id))
 
+    def enabled(self, bool):
+        self.commit.setEnabled(bool)
+        self.topics_input.setEnabled(bool)
+
     def progress(self, p):
         self.progressBarSet(p)
 
     def apply(self):
+        self.topic_desc.clear()
         self.refresh_gui()
         if self.corpus:
+            self.enabled(False)
+
             preprocessed = self.preprocessor(self.corpus.documents)
 
             self.progressBarInit()
@@ -123,10 +130,12 @@ class OWLDA(OWWidget):
 
             self.send(Output.DATA, table)
             self.send_topic_by_id(0)
+
+            self.enabled(True)
         else:
-            self.topic_desc.clear()
             self.send(Output.DATA, None)
             self.send(Output.TOPICS, None)
+
 
 class LDATreeWidgetItem(QtGui.QTreeWidgetItem):
     def __init__(self, topic_id, words, parent):
