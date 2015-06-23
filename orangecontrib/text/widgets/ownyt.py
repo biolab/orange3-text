@@ -209,13 +209,13 @@ class OWNYT(OWWidget):
                 # Update the response info.
                 self.all_hits = res["response"]["meta"]["hits"]
                 self.num_retrieved = len(res["response"]["docs"])
-                self.query_info_label.setText("Records: {}\nRetrieved: {}"
+                self.query_info_label.setText("Records: {}\nRetrieved: {} (max 1000)"
                                               .format(self.all_hits, self.num_retrieved))
 
                 # Enable 'retrieve remaining' button.
                 if self.num_retrieved < self.all_hits:
                     self.retrieve_other_button.setText('Retrieve remaining records ({})'
-                                                       .format(self.all_hits-self.num_retrieved))
+                                                       .format(min(self.all_hits, 1000)-self.num_retrieved))
                     self.retrieve_other_button.setEnabled(True)
                 else:
                     self.retrieve_other_button.setText('All records retrieved')
@@ -239,7 +239,7 @@ class OWNYT(OWWidget):
             return
 
         if self.nyt_api:
-            num_steps = math.ceil(self.all_hits/10)
+            num_steps = min(math.ceil(self.all_hits/10), 100)
 
             # Update buttons.
             self.retrieve_other_button.setText('Stop retrieving')
@@ -270,7 +270,7 @@ class OWNYT(OWWidget):
 
                     # Update the info label.
                     self.num_retrieved += len(res["response"]["docs"])
-                    self.query_info_label.setText("Records: {}\nRetrieved: {}"
+                    self.query_info_label.setText("Records: {}\nRetrieved: {} (max 1000)"
                                                   .format(self.all_hits, self.num_retrieved))
 
                     if not cached:  # Only wait if an actual request was made.
@@ -294,7 +294,7 @@ class OWNYT(OWWidget):
                 self.retrieve_other_button.setEnabled(False)
             else:
                 self.retrieve_other_button.setText('Retrieve remaining records ({})'
-                                                   .format(self.all_hits-self.num_retrieved))
+                                                   .format(min(self.all_hits, 1000)-self.num_retrieved))
 
             self.open_set_api_key_dialog_button.setEnabled(True)
             self.run_query_button.setEnabled(True)

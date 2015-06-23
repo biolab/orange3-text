@@ -26,12 +26,13 @@ def parse_record_json(record, includes_metadata):
     :return: A list of articles parsed into documents and a list of the
         corresponding metadata, joined in a tuple.
     """
-    n = includes_metadata.count(True)
     text_fields = ["headline", "lead_paragraph", "snippet", "abstract", "keywords"]
 
     documents = []
-    metadata = np.empty((0, n), dtype=object)
     meta_vars = [StringVariable.make(field) for field, flag in zip(text_fields, includes_metadata) if flag]
+    # Also add pub_date and glocation.
+    meta_vars += [StringVariable.make("pub_date"), StringVariable.make("country")]
+    metadata = np.empty((0, len(meta_vars)), dtype=object)
     for doc in record["response"]["docs"]:
         string_document = ""
         metas_row = []
@@ -47,6 +48,13 @@ def parse_record_json(record, includes_metadata):
                         field_value = doc[field]
                 string_document += field_value
                 metas_row.append(field_value)
+        # Add the pub_date.
+        field_value = ""
+        if "pub_date" in doc and doc["pub_date"]:
+            field_value = doc["pub_date"]
+        metas_row.append(field_value)
+        # Add the glocation.
+        metas_row.append(" ".join([kw["value"] for kw in doc["keywords"] if kw["name"] == "glocations"]))
 
         documents.append(string_document)
         metadata = np.vstack((metadata, np.array(metas_row)))
@@ -59,6 +67,7 @@ class NYT:
     def __init__(self, api_key):
         self._api_key = api_key
         self._query_url = ""
+        self.query_key = ""
 
         self.cache_pth = os.path.join(environ.buffer_dir, "nytcache")
         try:
@@ -107,8 +116,21 @@ class NYT:
             fl_fields = ["headline", "lead_paragraph", "snippet", "abstract", "keywords"]
             fl = ",".join([f1 for f1, f2 in zip(fl_fields, text_includes) if f2])
             query_url += "&fl=" + fl
+        # Add pub_date.
+        query_url += ",pub_date"
+        # Add keywords in every case, since we need them for geolocating.
+        if not text_includes[-1]:
+            query_url += ",keywords"
 
         self._query_url = "{0}?{1}".format(self.base_url, query_url)
+        # This query's key, to store with shelve.
+        # Queries differ in query words, included text fields and date range.
+        query_key = query.split(" ") + [f1 for f1, f2 in zip(fl_fields, text_includes) if f2]
+        if year_from:
+            query_key += [validate_year(year_from)]
+        if year_to:
+            query_key += [validate_year(year_to)]
+        self.query_key = "_".join(query_key)
         return self._query_url
 
     def check_api_key(self):
@@ -135,20 +157,20 @@ class NYT:
         """
         if self._query_url:
             current_query = self._query_url+"&page={}".format(page)
+            curreny_query_key = self.query_key + "_" + str(page)
             self.query_cache = shelve.open(os.path.join(self.cache_pth, "query_cache"))
-            if current_query in self.query_cache.keys():
-                response = self.query_cache[current_query]
+            if curreny_query_key in self.query_cache.keys():
+                response = self.query_cache[curreny_query_key]
                 self.query_cache.close()
                 return json.loads(response), True, None
             else:
                 try:
                     connection = request.urlopen(current_query)
                     response = connection.readall().decode("utf-8")
-                    self.query_cache[current_query] = response
+                    self.query_cache[curreny_query_key] = response
                     self.query_cache.close()
                     return json.loads(response), False, None
                 except HTTPError as error:
                     return "", False, error
                 except URLError as error:
                     return "", False, error
-
