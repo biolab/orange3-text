@@ -1,8 +1,13 @@
+import os
 import json
 import shelve
-from appdirs import *
+import numpy as np
 from datetime import date
 from urllib import request, parse
+from urllib.error import HTTPError, URLError
+
+from Orange.canvas.utils import environ
+from Orange.data import StringVariable
 
 
 def validate_year(year):
@@ -13,13 +18,57 @@ def validate_year(year):
     return year
 
 
+def parse_record_json(record, includes_metadata):
+    """
+    Parses the JSON representation of the record returned by the New York Times Article API.
+    :param record: The JSON representation of the query's results.
+    :param includes_metadata: The flags that determine which fields to include.
+    :return: A list of articles parsed into documents and a list of the
+        corresponding metadata, joined in a tuple.
+    """
+    n = includes_metadata.count(True)
+    text_fields = ["headline", "lead_paragraph", "snippet", "abstract", "keywords"]
+
+    documents = []
+    metadata = np.empty((0, n), dtype=object)
+    meta_vars = [StringVariable.make(field) for field, flag in zip(text_fields, includes_metadata)]
+    for doc in record["response"]["docs"]:
+        string_document = ""
+        metas_row = []
+        for field, flag in zip(text_fields, includes_metadata):
+            if flag and field in doc:
+                field_value = ""
+                if isinstance(doc[field], dict):
+                    field_value = " ".join([val for val in doc[field].values() if val])
+                elif isinstance(doc[field], list):
+                    for kw in doc[field]:
+                        if kw:
+                            field_value += " " + str(kw["value"])
+                else:
+                    if doc[field]:
+                        field_value = doc[field]
+                string_document += field_value
+                metas_row.append(field_value)
+
+        documents.append(string_document)
+        metadata = np.vstack((metadata, np.array(metas_row)))
+    return documents, metadata, meta_vars
+
+
 class NYT:
     base_url = 'http://api.nytimes.com/svc/search/v2/articlesearch.json'
 
     def __init__(self, api_key):
         self._api_key = api_key
         self._query_url = ""
+
+        self.cache_pth = os.path.join(environ.buffer_dir, "nytcache")
+        try:
+            os.makedirs(self.cache_pth)
+        except:
+            pass
         self.query_cache = None
+        self.includes_fields = [False]*5
 
     def set_query_url(self,
                       query,
@@ -36,9 +85,12 @@ class NYT:
             up to this year only.
         :param text_includes: A list of boolean flags that determines what text fields,
             the API should return. Ordered as follows: [headline, lead_paragraph, snippet,
-            abstract, print_page, keywords]
+            abstract, keywords]
         :return: Returns the query URL in the form of a string.
         """
+        if text_includes:
+            self.includes_fields = text_includes
+
         # Query keywords, base url and API key.
         query_url = parse.urlencode({
             "q": query,
@@ -54,7 +106,7 @@ class NYT:
 
         # Text fields.
         if text_includes and True in text_includes:
-            fl_fields = ["headline", "lead_paragraph", "snippet", "abstract", "print_page", "keywords"]
+            fl_fields = ["headline", "lead_paragraph", "snippet", "abstract", "keywords"]
             fl = ",".join([f1 for f1, f2 in zip(fl_fields, text_includes) if f2])
             query_url += "&fl=" + fl
 
@@ -85,46 +137,20 @@ class NYT:
         """
         if self._query_url:
             current_query = self._query_url+"&page={}".format(page)
-            self.query_cache = shelve.open(user_data_dir("Orange Canvas", "fri-biolab")+"/nyt_query_cache")
+            self.query_cache = shelve.open(os.path.join(self.cache_pth, "query_cache"))
             if current_query in self.query_cache.keys():
                 response = self.query_cache[current_query]
                 self.query_cache.close()
-                return json.loads(response), True
+                return json.loads(response), True, None
             else:
-                connection = request.urlopen(current_query)
-                response = connection.readall().decode("utf-8")
-                self.query_cache[current_query] = response
-                self.query_cache.close()
-                return json.loads(response), False
+                try:
+                    connection = request.urlopen(current_query)
+                    response = connection.readall().decode("utf-8")
+                    self.query_cache[current_query] = response
+                    self.query_cache.close()
+                    return json.loads(response), False, None
+                except HTTPError as error:
+                    return "", False, error
+                except URLError as error:
+                    return "", False, error
 
-    def parse_record_json(self, record):
-        """
-        Parses the JSON representation of the record returned by the New York Times Article API.
-
-        :param record: The JSON representation of the query's results.
-        :return: A list of articles parsed into documents and a list of the
-            corresponding metadata, joined in a tuple.
-        """
-        documents = []
-        for doc in record["response"]["docs"]:
-            documents.append(self._walk_json(doc))
-        return documents
-
-    def _walk_json(self, json_document):
-        """
-        A recursive method called to collect and concatenate all values from a JSON
-        of unknown hierarchical structure. Not meant to be called by the user.
-
-        :param json_document: The JSON representation of the document.
-        :return: All values of the input JSON concatenated into a single string.
-        """
-        string_document = ""
-        for item in json_document:
-            if not isinstance(item, list) and not isinstance(item, dict):
-                item = json_document[item]
-            if isinstance(item, list) or isinstance(item, dict):
-                string_document += self._walk_json(item)
-            else:
-                if item:
-                    string_document += " " + item
-        return string_document
