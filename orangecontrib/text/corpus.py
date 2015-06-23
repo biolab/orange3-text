@@ -1,8 +1,7 @@
 import os
-import codecs
 
 import numpy as np
-from Orange.data import Domain, StringVariable, Table, DiscreteVariable, ContinuousVariable
+from Orange.data import StringVariable, Table, DiscreteVariable
 
 
 def get_sample_corpora_dir():
