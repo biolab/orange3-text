@@ -175,6 +175,7 @@ class OWNYT(OWWidget):
 
     def run_initial_query(self):
         self.warning(1)
+        self.error(1)
         # Only execute if the NYT object is present(safety lock).
         # Otherwise this method cannot be called anyway.
         if self.nyt_api:
@@ -184,6 +185,10 @@ class OWNYT(OWWidget):
             # Text fields.
             text_includes_params = [self.includes_headline, self.includes_lead_paragraph, self.includes_snippet,
                                     self.includes_abstract, self.includes_keywords]
+
+            if True not in text_includes_params:
+                self.warning(1, "You must select at least one text field.")
+                return
 
             # Set the query url.
             self.nyt_api.set_query_url(qkw, self.year_from, self.year_to, text_includes_params)
@@ -222,12 +227,12 @@ class OWNYT(OWWidget):
             else:
                 if error:
                     if isinstance(error, HTTPError):
-                        self.warning(1, "An error occurred(HTTP {})".format(error.code))
+                        self.error(1, "An error occurred(HTTP {})".format(error.code))
                     elif isinstance(error, URLError):
-                        self.warning(1, "An error occurred(URL {})".format(error.reason))
+                        self.error(1, "An error occurred(URL {})".format(error.reason))
 
     def retrieve_remaining_records(self):
-        self.warning(1)
+        self.error(1)
         # If a query is running, stop it.
         if self.query_running:
             self.query_running = False
@@ -273,9 +278,9 @@ class OWNYT(OWWidget):
                 else:
                     if error:
                         if isinstance(error, HTTPError):
-                            self.warning(1, "An error occurred(HTTP {})".format(error.code))
+                            self.error(1, "An error occurred(HTTP {})".format(error.code))
                         elif isinstance(error, URLError):
-                            self.warning(1, "An error occurred(URL {})".format(error.reason))
+                            self.error(1, "An error occurred(URL {})".format(error.reason))
                         break
             self.progressBarFinished()
             self.query_running = False

@@ -31,7 +31,7 @@ def parse_record_json(record, includes_metadata):
 
     documents = []
     metadata = np.empty((0, n), dtype=object)
-    meta_vars = [StringVariable.make(field) for field, flag in zip(text_fields, includes_metadata)]
+    meta_vars = [StringVariable.make(field) for field, flag in zip(text_fields, includes_metadata) if flag]
     for doc in record["response"]["docs"]:
         string_document = ""
         metas_row = []
@@ -41,9 +41,7 @@ def parse_record_json(record, includes_metadata):
                 if isinstance(doc[field], dict):
                     field_value = " ".join([val for val in doc[field].values() if val])
                 elif isinstance(doc[field], list):
-                    for kw in doc[field]:
-                        if kw:
-                            field_value += " " + str(kw["value"])
+                    field_value = " ".join([kw["value"] for kw in doc[field] if kw])
                 else:
                     if doc[field]:
                         field_value = doc[field]
