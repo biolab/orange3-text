@@ -301,6 +301,7 @@ class OWNYT(OWWidget):
 
     def check_api_key(self, api_key):
         nyt_api = NYT(api_key)
+        self.api_key = api_key
         self.api_key_updated(nyt_api.check_api_key())
 
     def api_key_updated(self, is_valid):
