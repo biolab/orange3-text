@@ -38,18 +38,16 @@ class OWWordCloud(widget.OWWidget):
     name = "Word Cloud"
     priority = 10000
     icon = "icons/WordCloud.svg"
-    inputs = [("Topics", Topics, "on_data")]
+    inputs = [("Topics", Topics, "on_topic_change")]
     outputs = []
 
     selected_words = settings.ContextSetting(SelectedWords('whatevar (?)'))
-    selected_topic = settings.ContextSetting('')
     words_color = settings.Setting(True)
     words_tilt = settings.Setting(1)
 
     def __init__(self):
         super().__init__()
         self.n_words = 0
-        self.n_topics = 0
         self.mean_weight = 0
         self.selected_words = SelectedWords(self)
         self._create_layout()
@@ -90,9 +88,8 @@ span.selected {color:red !important}
             self.webview.evalJS(open(path.join(path.dirname(__file__), 'resources', script), encoding='utf-8').read())
 
         box = gui.widgetBox(self.controlArea, 'Info')
-        gui.label(box, self, '%(n_topics)d topics')
-        gui.label(box, self, '%(n_words)d words per topic')
-        gui.label(box, self, 'Mean weight in selected topic: %(mean_weight).4f')
+        gui.label(box, self, '%(n_words)d words')
+        gui.label(box, self, 'Mean weight: %(mean_weight).4f')
 
         box = gui.widgetBox(self.controlArea, 'Cloud preferences')
         gui.checkBox(box, self, 'words_color', 'Color words', callback=self.on_cloud_pref_change)
@@ -104,9 +101,6 @@ span.selected {color:red !important}
         gui.button(box, None, 'Regenerate word cloud', callback=self.cloud_redraw)
 
         box = gui.widgetBox(self.controlArea, 'Words && weights')
-        self.topic_combo = gui.comboBox(box, self, 'selected_topic',
-                                        callback=self.on_topic_change,
-                                        sendSelectedValue=True)
         self.table = gui.TableWidget(box,
                                      col_labels=['Weight', 'Word'],
                                      multi_selection=True,
@@ -143,48 +137,43 @@ span.selected {color:red !important}
         self.webview.evalJS('OPTIONS["rotateRatio"] = {};'.format(tilt_ratio))
         self.cloud_redraw()
 
-    def _repopulate_topic_combo(self, data):
-        metas = data.domain.metas if data else []
-        self.topics = OrderedDict([(var.name, col)
-                                   for col, var in enumerate(metas)
-                                   if var.is_string])
-        self.topic_combo.clear()
-        self.topic_combo.addItems(list(self.topics.keys()))
-        self.n_topics = len(self.topics)
-
-    def on_data(self, data):
-        self.data = data
-        self._repopulate_topic_combo(data)
-        self.on_topic_change()
-
-    def _repopulate_table(self, data):
+    def _repopulate_table(self, words, weights):
         self.table.clear()
-        for word, weight in data:
+        for word, weight in zip(words, weights):
             self.table.addRow((weight, word), data=word)
         self.table.sortByColumn(0, QtCore.Qt.DescendingOrder)
 
-    def _repopulate_wordcloud(self, data):
-        self.mean_weight = mean = np.mean(data[:, 1])
+    def _repopulate_wordcloud(self, words, weights):
+        self.mean_weight = mean = np.mean(weights)
         MIN_SIZE, MEAN_SIZE, MAX_SIZE = 8, 18, 40
 
         def _size(w):
             return np.clip(w/mean*MEAN_SIZE, MIN_SIZE, MAX_SIZE)
 
-        wordlist = [[word, _size(weight)] for word, weight in data]
+        wordlist = [[word, _size(weight)] for word, weight in zip(words, weights)]
         self.webview.evalJS('OPTIONS["list"] = {};'.format(wordlist))
         self.on_cloud_pref_change()
 
-    def on_topic_change(self):
-        col = self.topics.get(self.selected_topic, None)
-        if col is None and self.topics:
-            col = 0
-            topic = next(iter(self.topics))
-            self.topic_combo.setCurrentIndex(self.topic_combo.findText(topic))
+    def on_topic_change(self, data):
+        self.data = data
+        metas = data.domain.metas if data else []
+        try: self.topic = next(i for i,var in enumerate(metas) if var.is_string)
+        except StopIteration:
+            self.topic = None
+        col = self.topic
+        if col is None:
+            return
         N_BEST = 200
-        data = self.data.metas[:N_BEST, col:col+2] if self.topics else np.zeros((0, 2))
-        self.n_words = data.shape[0]
-        self._repopulate_table(data)
-        self._repopulate_wordcloud(data)
+        words = self.data.metas[:N_BEST, col] if self.topic is not None else np.zeros((0, 1))
+        if self.data.W.any():
+            weights = self.data.W[:N_BEST]
+        elif 'weights' in self.data.domain:
+            weights = self.data.get_column_view(self.data.domain['weights'])[0][:N_BEST]
+        else:
+            weights = np.ones(N_BEST)
+        self.n_words = words.shape[0]
+        self._repopulate_table(words, weights)
+        self._repopulate_wordcloud(words, weights)
 
 
 def main():
@@ -206,7 +195,7 @@ def main():
                              metas=data)
     app = QtGui.QApplication([''])
     w = OWWordCloud()
-    w.on_data(table)
+    w.on_topic_change(table)
     w.show()
     app.exec()
 
