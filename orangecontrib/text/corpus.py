@@ -1,38 +1,13 @@
 import os
 
 import numpy as np
-from Orange.data import StringVariable, Table, DiscreteVariable
+from Orange.data import StringVariable, Table
 
 
 def get_sample_corpora_dir():
     path = os.path.dirname(__file__)
     dir = os.path.join(path, 'datasets')
     return os.path.realpath(dir)
-
-
-def documents_to_numpy(documents, metadata):
-    metadata2 = dict()
-    for md in metadata:
-        for key in md.keys():
-            metadata2.setdefault(key, set()).add(md[key])
-
-    meta_vars = []
-    for key in sorted(metadata2.keys()):
-        if len(metadata2[key]) < 21:
-            meta_vars.append(DiscreteVariable(key, values=list(metadata2[key])))
-        else:
-            meta_vars.append(StringVariable(key))
-
-    metas = [[None] * len(meta_vars) for x in range(len(documents))]
-    for i, md in enumerate(metadata):
-        for j, var in enumerate(meta_vars):
-            if var.name in md:
-                metas[i][j] = var.to_val(md[var.name])
-
-    text = np.array(documents).reshape(len(documents), 1)
-    metas = np.array(metas, dtype=object)
-    meta_vars.insert(0, StringVariable('text'))
-    return np.hstack((text, metas)), meta_vars
 
 
 class Corpus(Table):
@@ -46,8 +21,14 @@ class Corpus(Table):
 
     def __init__(self, documents, X, Y, metas, domain):
         self.documents = documents
-        self.X = X
-        self.Y = Y
+        if X:
+            self.X = X
+        else:
+            self.X = np.zeros((len(documents), 0))
+        if Y:
+            self.Y = Y
+        else:
+            self.Y = np.zeros((len(documents), 0))
         self.metas = metas
         self.W = np.zeros((len(documents), 0))
         self.domain = domain
@@ -90,11 +71,8 @@ class Corpus(Table):
         self.documents = documents
 
     def extend_corpus(self, documents, metadata=[]):
-        metas, meta_vars = documents_to_numpy(documents, metadata)
-
         # TODO check if Domains match!
-
-        self.metas = np.vstack((self.metas, metas))
+        self.metas = np.vstack((self.metas, metadata))
         self.documents += documents
 
         self.X = self._Y = self.W = np.zeros((len(self.documents), 0))
