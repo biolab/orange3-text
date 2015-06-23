@@ -39,6 +39,7 @@ window.addEventListener('click', function(event) {
 });
 
 // Mark words in SELECTED_WORDS list selected
+var SELECTED_WORDS = [];
 document.getElementById('canvas')
     .addEventListener('wordclouddrawn', selectWords);
 function selectWords() {
