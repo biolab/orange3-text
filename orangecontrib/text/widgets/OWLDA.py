@@ -18,7 +18,7 @@ class Output:
 
 class OWLDA(OWWidget):
     # Basic widget info
-    name = "LDA"
+    name = "Topic Discovery"
     description = "Latent Dirichlet Allocation topic model."
     icon = "icons/LDA.svg"
     priority = 50
@@ -60,7 +60,7 @@ class OWLDA(OWWidget):
         gui.rubber(self.controlArea)
 
         # Topics description
-        self.cols = ['Topic', 'Words']
+        self.cols = ['Topic', 'Topic keywords']
         self.topic_desc = QtGui.QTreeWidget()
         self.topic_desc.setColumnCount(len(self.cols))
         self.topic_desc.setHeaderLabels(self.cols)
@@ -143,5 +143,5 @@ class LDATreeWidgetItem(QtGui.QTreeWidgetItem):
         self.topic_id = topic_id
         self.words = words
 
-        self.setText(0, 'Topic {:d}'.format(topic_id+1))
+        self.setText(0, '{:d}'.format(topic_id+1))
         self.setText(1, ', '.join(words))
