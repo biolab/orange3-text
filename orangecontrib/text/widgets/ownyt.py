@@ -1,14 +1,17 @@
 import os
 import math
+import numpy as np
 from time import sleep
 from PyQt4 import QtCore
 from PyQt4.QtGui import *
+from urllib.error import HTTPError, URLError
 
 from Orange.widgets.settings import Setting
 from Orange.widgets.widget import OWWidget
 from Orange.widgets import gui
 from orangecontrib.text.corpus import Corpus
-from orangecontrib.text.nyt import NYT
+from orangecontrib.text.nyt import NYT, parse_record_json
+from Orange.data import Domain
 
 
 def _i(name, icon_path="icons"):
@@ -47,7 +50,6 @@ class OWNYT(OWWidget):
     includes_lead_paragraph = Setting(True)
     includes_snippet = Setting(False)
     includes_abstract = Setting(False)
-    includes_print_page = Setting(False)
     includes_keywords = Setting(False)
 
     def __init__(self):
@@ -112,15 +114,12 @@ class OWNYT(OWWidget):
                                           "includes_snippet", "Snippet")
         self.abstract_chbox = gui.checkBox(self.text_includes_box, self,
                                            "includes_abstract", "Abstract")
-        self.print_page_chbox = gui.checkBox(self.text_includes_box, self,
-                                             "includes_print_page", "Print page")
         self.keywords_chbox = gui.checkBox(self.text_includes_box, self,
                                            "includes_keywords", "Keywords")
         self.nyt_controls.append(self.headline_chbox)
         self.nyt_controls.append(self.lead_paragraph_chbox)
         self.nyt_controls.append(self.snippet_chbox)
         self.nyt_controls.append(self.abstract_chbox)
-        self.nyt_controls.append(self.print_page_chbox)
         self.nyt_controls.append(self.keywords_chbox)
 
         # Run query button.
@@ -158,9 +157,10 @@ class OWNYT(OWWidget):
         self.query_combo.clear()
         if not self.recent_queries:
             # Sample queries.
-            self.recent_queries.append("slovenia maze")
-            self.recent_queries.append("slovenia zavec")
-            self.recent_queries.append("fc bayern")
+            self.recent_queries.append("slovenia")
+            self.recent_queries.append("text mining")
+            self.recent_queries.append("orange data mining")
+            self.recent_queries.append("bioinformatics")
         for query in self.recent_queries:
             self.query_combo.addItem(query)
 
@@ -174,6 +174,8 @@ class OWNYT(OWWidget):
             self.set_query_list()
 
     def run_initial_query(self):
+        self.warning(1)
+        self.error(1)
         # Only execute if the NYT object is present(safety lock).
         # Otherwise this method cannot be called anyway.
         if self.nyt_api:
@@ -182,38 +184,55 @@ class OWNYT(OWWidget):
 
             # Text fields.
             text_includes_params = [self.includes_headline, self.includes_lead_paragraph, self.includes_snippet,
-                                    self.includes_abstract, self.includes_print_page, self.includes_keywords]
+                                    self.includes_abstract, self.includes_keywords]
+
+            if True not in text_includes_params:
+                self.warning(1, "You must select at least one text field.")
+                return
 
             # Set the query url.
-            q = self.nyt_api.set_query_url(qkw, self.year_from, self.year_to, text_includes_params)
+            self.nyt_api.set_query_url(qkw, self.year_from, self.year_to, text_includes_params)
 
             # Execute the query.
-            res, cached = self.nyt_api.execute_query(0)
+            res, cached, error = self.nyt_api.execute_query(0)
 
-            # Construct a corpus for the output.
-            self.output_corpus = Corpus(self.nyt_api.parse_record_json(res))
-            self.send(Output.CORPUS, self.output_corpus)
+            if res:
+                # Construct a corpus for the output.
+                documents, metas, meta_vars = parse_record_json(res, text_includes_params)
+                X = np.zeros((len(documents), 0))
+                Y = np.zeros((len(documents), 0))
+                domain = Domain([], metas=meta_vars)
 
-            # Update the response info.
-            self.all_hits = res["response"]["meta"]["hits"]
-            self.num_retrieved = len(res["response"]["docs"])
-            self.query_info_label.setText("Records: {}\nRetrieved: {}"
-                                          .format(self.all_hits, self.num_retrieved))
+                self.output_corpus = Corpus(documents, None, None, metas, domain)
+                self.send(Output.CORPUS, self.output_corpus)
 
-            # Enable 'retrieve remaining' button.
-            if self.num_retrieved < self.all_hits:
-                self.retrieve_other_button.setText('Retrieve remaining records ({})'
-                                                   .format(self.all_hits-self.num_retrieved))
-                self.retrieve_other_button.setEnabled(True)
+                # Update the response info.
+                self.all_hits = res["response"]["meta"]["hits"]
+                self.num_retrieved = len(res["response"]["docs"])
+                self.query_info_label.setText("Records: {}\nRetrieved: {}"
+                                              .format(self.all_hits, self.num_retrieved))
+
+                # Enable 'retrieve remaining' button.
+                if self.num_retrieved < self.all_hits:
+                    self.retrieve_other_button.setText('Retrieve remaining records ({})'
+                                                       .format(self.all_hits-self.num_retrieved))
+                    self.retrieve_other_button.setEnabled(True)
+                else:
+                    self.retrieve_other_button.setText('All records retrieved')
+                    self.retrieve_other_button.setEnabled(False)
+
+                # Add the query to history.
+                if qkw not in self.recent_queries:
+                    self.recent_queries.insert(0, qkw)
             else:
-                self.retrieve_other_button.setText('All records retrieved')
-                self.retrieve_other_button.setEnabled(False)
-
-            # Add the query to history.
-            if qkw not in self.recent_queries:
-                self.recent_queries.insert(0, qkw)
+                if error:
+                    if isinstance(error, HTTPError):
+                        self.error(1, "An error occurred(HTTP {})".format(error.code))
+                    elif isinstance(error, URLError):
+                        self.error(1, "An error occurred(URL {})".format(error.reason))
 
     def retrieve_remaining_records(self):
+        self.error(1)
         # If a query is running, stop it.
         if self.query_running:
             self.query_running = False
@@ -229,6 +248,8 @@ class OWNYT(OWWidget):
 
             # Accumulate remaining results in these lists.
             remaining_docs = []
+            num_metas = len(self.output_corpus.domain.metas)
+            remaining_metas = np.empty((0, num_metas), dtype=object)
 
             self.query_running = True
             self.progressBarInit()
@@ -240,23 +261,32 @@ class OWNYT(OWWidget):
                 # Update the progress bar.
                 self.progressBarSet(100.0 * (i/num_steps))
 
-                res, cached = self.nyt_api.execute_query(i)
+                res, cached, error = self.nyt_api.execute_query(i)
 
-                docs = self.nyt_api.parse_record_json(res)
-                remaining_docs += docs
+                if res:
+                    docs, metas, meta_vars = parse_record_json(res, self.nyt_api.includes_fields)
+                    remaining_docs += docs
+                    remaining_metas = np.vstack((remaining_metas, np.array(metas)))
 
-                # Update the info label.
-                self.num_retrieved += len(res["response"]["docs"])
-                self.query_info_label.setText("Records: {}\nRetrieved: {}"
-                                              .format(self.all_hits, self.num_retrieved))
+                    # Update the info label.
+                    self.num_retrieved += len(res["response"]["docs"])
+                    self.query_info_label.setText("Records: {}\nRetrieved: {}"
+                                                  .format(self.all_hits, self.num_retrieved))
 
-                if not cached:  # Only wait if an actual request was made.
-                    sleep(1)
+                    if not cached:  # Only wait if an actual request was made.
+                        sleep(1)
+                else:
+                    if error:
+                        if isinstance(error, HTTPError):
+                            self.error(1, "An error occurred(HTTP {})".format(error.code))
+                        elif isinstance(error, URLError):
+                            self.error(1, "An error occurred(URL {})".format(error.reason))
+                        break
             self.progressBarFinished()
             self.query_running = False
 
             # Update the corpus.
-            self.output_corpus.extend_corpus(remaining_docs)
+            self.output_corpus.extend_corpus(remaining_docs, remaining_metas)
             self.send(Output.CORPUS, self.output_corpus)
 
             if self.num_retrieved == self.all_hits:
