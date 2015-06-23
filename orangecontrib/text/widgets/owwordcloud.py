@@ -50,6 +50,7 @@ class OWWordCloud(widget.OWWidget):
         self.n_words = 0
         self.mean_weight = 0
         self.selected_words = SelectedWords(self)
+        self.webview = None
         self._create_layout()
 
     @QtCore.pyqtSlot(str, result=str)
@@ -67,8 +68,8 @@ class OWWordCloud(widget.OWWidget):
             self.table.deselectRowsWhere(1, word)
             return ''
 
-    def _create_layout(self):
-        html = '''
+    def _new_webview(self):
+        HTML = '''
 <!doctype html>
 <html>
 <head>
@@ -82,11 +83,15 @@ span.selected {color:red !important}
 <body id="canvas">&nbsp;
 </body>
 </html>'''
-        self.webview = webview = gui.WebviewWidget(self.mainArea, self, html)
+        if self.webview:
+            self.mainArea.layout().removeWidget(self.webview)
+        self.webview = gui.WebviewWidget(self.mainArea, self, HTML, debug=True)
         for script in ('wordcloud2.js',
                        'wordcloud-script.js'):
             self.webview.evalJS(open(path.join(path.dirname(__file__), 'resources', script), encoding='utf-8').read())
 
+    def _create_layout(self):
+        self._new_webview()
         box = gui.widgetBox(self.controlArea, 'Info')
         gui.label(box, self, '%(n_words)d words')
         gui.label(box, self, 'Mean weight: %(mean_weight).4f')
@@ -98,7 +103,7 @@ span.selected {color:red !important}
                         values=list(range(len(TILT_VALUES))),
                         callback=self.on_cloud_pref_change,
                         labelFormat=lambda x: TILT_VALUES[x])
-        gui.button(box, None, 'Regenerate word cloud', callback=self.cloud_redraw)
+        gui.button(box, None, 'Regenerate word cloud', callback=self.on_cloud_pref_change)
 
         box = gui.widgetBox(self.controlArea, 'Words && weights')
         self.table = gui.TableWidget(box,
@@ -117,13 +122,11 @@ span.selected {color:red !important}
 
         self.table.selectionChanged = _selection_changed
 
-    def cloud_redraw(self):
-        self.webview.evalJS('redrawWordCloud();')
-
     def cloud_reselect(self):
         self.webview.evalJS('selectWords();')
 
     def on_cloud_pref_change(self):
+        self._new_webview()
         self.webview.evalJS('OPTIONS["color"] = "{}"'.format(
             'random-dark' if self.words_color else 'black'))
         tilt_ratio, tilt_amount = {
@@ -135,7 +138,9 @@ span.selected {color:red !important}
         self.webview.evalJS('OPTIONS["minRotation"] = {}; \
                              OPTIONS["maxRotation"] = {};'.format(-tilt_amount, tilt_amount))
         self.webview.evalJS('OPTIONS["rotateRatio"] = {};'.format(tilt_ratio))
-        self.cloud_redraw()
+        # Trigger cloud redrawing by constructing new webview, because everything else fail Macintosh
+        self.webview.evalJS('OPTIONS["list"] = {};'.format(self.wordlist))
+        self.webview.evalJS('redrawWordCloud();')
 
     def _repopulate_table(self, words, weights):
         self.table.clear()
@@ -150,12 +155,11 @@ span.selected {color:red !important}
         def _size(w):
             return np.clip(w/mean*MEAN_SIZE, MIN_SIZE, MAX_SIZE)
 
-        wordlist = [[word, _size(weight)] for word, weight in zip(words, weights)]
-        self.webview.evalJS('OPTIONS["list"] = {};'.format(wordlist))
+        self.wordlist = [[word, _size(weight)] for word, weight in zip(words, weights)]
+        self.webview.evalJS('OPTIONS["list"] = {};'.format(self.wordlist))
         self.on_cloud_pref_change()
 
     def on_topic_change(self, data):
-        self.data = data
         metas = data.domain.metas if data else []
         try: self.topic = next(i for i,var in enumerate(metas) if var.is_string)
         except StopIteration:
@@ -164,11 +168,11 @@ span.selected {color:red !important}
         if col is None:
             return
         N_BEST = 200
-        words = self.data.metas[:N_BEST, col] if self.topic is not None else np.zeros((0, 1))
-        if self.data.W.any():
-            weights = self.data.W[:N_BEST]
-        elif 'weights' in self.data.domain:
-            weights = self.data.get_column_view(self.data.domain['weights'])[0][:N_BEST]
+        words = data.metas[:N_BEST, col] if self.topic is not None else np.zeros((0, 1))
+        if data.W.any():
+            weights = data.W[:N_BEST]
+        elif 'weights' in data.domain:
+            weights = data.get_column_view(data.domain['weights'])[0][:N_BEST]
         else:
             weights = np.ones(N_BEST)
         self.n_words = words.shape[0]
