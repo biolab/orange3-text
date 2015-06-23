@@ -59,7 +59,7 @@ class OWLoadCorpus(OWWidget):
 
         # Used Text Features
         fbox = gui.widgetBox(self.controlArea, orientation=0)
-        ubox = gui.widgetBox(fbox, "Used Text Features", addSpace=True)
+        ubox = gui.widgetBox(fbox, "Used text features", addSpace=True)
         self.used_attrs = VariablesListItemModel()
         self.used_attrs_view = VariablesListItemView()
         self.used_attrs_view.setModel(self.used_attrs)
@@ -71,7 +71,7 @@ class OWLoadCorpus(OWWidget):
         aa.rowsRemoved.connect(self.update_feature_selection)
 
         # Ignored Text Features
-        ibox = gui.widgetBox(fbox, "Ignored Text Features", addSpace=True)
+        ibox = gui.widgetBox(fbox, "Ignored text features", addSpace=True)
         self.unused_attrs = VariablesListItemModel()
         self.unused_attrs_view = VariablesListItemView()
         self.unused_attrs_view.setModel(self.unused_attrs)
