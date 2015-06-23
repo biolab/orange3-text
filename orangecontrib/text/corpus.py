@@ -21,11 +21,11 @@ class Corpus(Table):
 
     def __init__(self, documents, X, Y, metas, domain):
         self.documents = documents
-        if X:
+        if X is not None:
             self.X = X
         else:
             self.X = np.zeros((len(documents), 0))
-        if Y:
+        if Y is not None:
             self.Y = Y
         else:
             self.Y = np.zeros((len(documents), 0))
