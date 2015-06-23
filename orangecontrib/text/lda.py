@@ -3,6 +3,7 @@ from gensim import corpora, models, matutils
 
 from Orange.data.table import Table
 from Orange.data.domain import Domain, ContinuousVariable, StringVariable
+from orangecontrib.text.topics import Topics
 
 def chunk_list(l, num):
     num = min(len(l), num)
@@ -92,9 +93,9 @@ class LDA:
         metas[-1]._out_format = '%.2e'
 
         domain = Domain([], metas=metas)
-        t = Table.from_numpy(domain,
-                             X=np.zeros((num_words, 0)),
-                             metas=data)
+        t = Topics.from_numpy(domain,
+                              X=np.zeros((num_words, 0)),
+                              metas=data)
         t.W = data[:, 1]
         return t
 

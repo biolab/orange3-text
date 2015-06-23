@@ -8,7 +8,7 @@ import numpy as np
 from PyQt4 import QtCore, QtGui
 
 from Orange.widgets import widget, gui, settings
-from Orange.data import Table
+from orangecontrib.text.topics import Topics
 
 
 JS_WORDCLOUD = open(path.join(path.dirname(__file__), 'wordcloud2.js'), encoding='utf-8').read()
@@ -42,7 +42,7 @@ class OWWordCloud(widget.OWWidget):
     name = "Word Cloud"
     priority = 10000
     icon = "icons/WordCloud.svg"
-    inputs = [("Topics", Table, "on_data")]
+    inputs = [("Topics", Topics, "on_data")]
     outputs = []
 
     selected_words = settings.ContextSetting(SelectedWords('whatevar (?)'))

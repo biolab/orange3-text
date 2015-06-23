@@ -3,11 +3,12 @@ from PyQt4 import QtGui
 from Orange.widgets.widget import OWWidget
 from Orange.widgets.settings import Setting
 from Orange.widgets import gui
-from Orange.data import Table, Domain
+from Orange.data import Table
 from Orange.widgets.data.contexthandlers import DomainContextHandler
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.preprocess import Preprocessor
 from orangecontrib.text.lda import LDA
+from orangecontrib.text.topics import Topics
 
 
 class Output:
@@ -28,7 +29,7 @@ class OWLDA(OWWidget):
     inputs = [("Corpus", Corpus, "set_data"),
               ("Preprocessor", Preprocessor, "set_preprocessor")]
     outputs = [(Output.DATA, Table),
-               (Output.TOPICS, Table)]
+               (Output.TOPICS, Topics)]
     want_main_area = True
 
     # Settings
