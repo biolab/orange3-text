@@ -15,7 +15,7 @@ class Output:
 
 class OWBagOfWords(OWWidget):
     # Basic widget info
-    name = "Bag of words"
+    name = "Bag of Words"
     description = "Generates a bag of words from the input corpus."
     icon = "icons/BagOfWords.svg"
     priority = 40
