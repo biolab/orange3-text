@@ -75,8 +75,9 @@ class Corpus(Table):
         self.metas = np.vstack((self.metas, metadata))
         self.documents += documents
 
-        for val in class_values:
-            self.domain.class_var.add_value(val)
+        for val in set(class_values):
+            if val not in self.domain.class_var.values:
+                self.domain.class_var.add_value(val)
         new_Y = np.array([self.domain.class_var.to_val(cv) for cv in class_values])[:, None]
         new_Y[np.isnan(new_Y)] = 0
         self._Y = np.vstack((self._Y, new_Y))
