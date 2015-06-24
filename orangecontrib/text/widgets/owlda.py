@@ -52,11 +52,13 @@ class OWLDA(OWWidget):
         self.topics_label = gui.label(hbox, self, 'Number of topics: ')
         self.topics_label.setMaximumSize(self.topics_label.sizeHint())
         self.topics_input = gui.spin(hbox, self, "num_topics",
-                                     minv=1, maxv=2 ** 31 - 1,)
+                                     minv=1, maxv=2 ** 31 - 1,
+                                     callback=self.num_topics_changed)
 
         # Commit button
         self.commit = gui.button(self.controlArea, self, "&Apply",
                                  callback=self.apply, default=True)
+        self.commit.setEnabled(False)
         gui.rubber(self.controlArea)
 
         # Topics description
@@ -85,8 +87,6 @@ class OWLDA(OWWidget):
 
     def refresh_gui(self):
         got_corpus = self.corpus is not None
-        self.commit.setEnabled(got_corpus)
-
         ndoc = len(self.corpus) if got_corpus else "(None)"
         self.info_label.setText("Input text entries: {}".format(ndoc))
 
@@ -99,6 +99,13 @@ class OWLDA(OWWidget):
         for i in range(2):
             self.topic_desc.resizeColumnToContents(i)
 
+    def num_topics_changed(self):
+        if self.corpus is None or \
+                (self.lda is not None and self.lda.num_topics == self.num_topics):
+            self.commit.setEnabled(False)
+        else:
+            self.commit.setEnabled(True)
+
     def selected_topic_changed(self):
         selected = self.topic_desc.selectedItems()
         if selected:
@@ -108,7 +115,6 @@ class OWLDA(OWWidget):
         self.send(Output.TOPICS, self.lda.get_topics_table_by_id(topic_id))
 
     def enabled(self, bool):
-        self.commit.setEnabled(bool)
         self.topics_input.setEnabled(bool)
 
     def progress(self, p):
@@ -118,6 +124,7 @@ class OWLDA(OWWidget):
         self.topic_desc.clear()
         self.refresh_gui()
         if self.corpus:
+            self.commit.setEnabled(False)
             self.enabled(False)
 
             preprocessed = self.preprocessor(self.corpus.documents)
