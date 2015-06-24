@@ -75,13 +75,11 @@ class Corpus(Table):
         self.metas = np.vstack((self.metas, metadata))
         self.documents += documents
 
-        class_vars = [DiscreteVariable("section_name",
-                                       values=list(set(class_values+self.domain.class_var.values)))]
-        new_Y = np.array([class_vars[0].to_val(cv) for cv in class_values])[:, None]
+        for val in class_values:
+            self.domain.class_var.add_value(val)
+        new_Y = np.array([self.domain.class_var.to_val(cv) for cv in class_values])[:, None]
         new_Y[np.isnan(new_Y)] = 0
         self._Y = np.vstack((self._Y, new_Y))
-
-        self.domain = Domain([], class_vars=class_vars, metas=meta_vars)
 
         self.X = self.W = np.zeros((len(self.documents), 0))
         Table._init_ids(self)
