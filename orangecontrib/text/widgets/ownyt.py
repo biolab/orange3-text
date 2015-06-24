@@ -22,7 +22,7 @@ class Output:
     CORPUS = "Corpus"
 
 class OWNYT(OWWidget):
-    name = "New York Times"
+    name = "NY Times"
     description = "Load data from the New York Times article search API."
     icon = "icons/TextFile.svg"
     priority = 20
@@ -79,6 +79,7 @@ class OWNYT(OWWidget):
         self.open_set_api_key_dialog_button = gui.button(api_key_box, self, 'Article API key',
                                                          callback=self.open_set_api_key_dialog,
                                                          tooltip="Set the API key for this widget.")
+        self.open_set_api_key_dialog_button
 
         # Query box.
         query_box = gui.widgetBox(parameter_box, orientation=0)
@@ -138,7 +139,7 @@ class OWNYT(OWWidget):
                                           "Records: {}\nRetrieved: {}".format("/", "/"))
 
         # Retrieve other records.
-        self.retrieve_other_button = gui.button(self.controlArea, self, 'Retrieve remaining records (max 1000)',
+        self.retrieve_other_button = gui.button(self.controlArea, self, 'Retrieve remaining records',
                                                 callback=self.retrieve_remaining_records,
                                                 tooltip="Retrieve the remaining records obtained in the query.")
         self.retrieve_other_button.setEnabled(False)
@@ -209,8 +210,10 @@ class OWNYT(OWWidget):
                 # Update the response info.
                 self.all_hits = res["response"]["meta"]["hits"]
                 self.num_retrieved = len(res["response"]["docs"])
-                self.query_info_label.setText("Records: {}\nRetrieved: {} (max 1000)"
-                                              .format(self.all_hits, self.num_retrieved))
+                info_label = "Records: {}\nRetrieved: {}".format(self.all_hits, self.num_retrieved)
+                if self.all_hits > 1000:
+                    info_label += " (max 1000)"
+                self.query_info_label.setText(info_label)
 
                 # Enable 'retrieve remaining' button.
                 if self.num_retrieved < self.all_hits:
@@ -270,8 +273,10 @@ class OWNYT(OWWidget):
 
                     # Update the info label.
                     self.num_retrieved += len(res["response"]["docs"])
-                    self.query_info_label.setText("Records: {}\nRetrieved: {} (max 1000)"
-                                                  .format(self.all_hits, self.num_retrieved))
+                    info_label = "Records: {}\nRetrieved: {}".format(self.all_hits, self.num_retrieved)
+                    if self.all_hits > 1000:
+                        info_label += " (max 1000)"
+                    self.query_info_label.setText(info_label)
 
                     if not cached:  # Only wait if an actual request was made.
                         sleep(1)
