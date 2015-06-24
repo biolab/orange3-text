@@ -54,7 +54,7 @@ def parse_record_json(record, includes_metadata):
             field_value = doc["pub_date"]
         metas_row.append(field_value)
         # Add the glocation.
-        metas_row.append(" ".join([kw["value"] for kw in doc["keywords"] if kw["name"] == "glocations"]))
+        metas_row.append(",".join([kw["value"] for kw in doc["keywords"] if kw["name"] == "glocations"]))
 
         documents.append(string_document)
         metadata = np.vstack((metadata, np.array(metas_row)))
@@ -65,7 +65,7 @@ class NYT:
     base_url = 'http://api.nytimes.com/svc/search/v2/articlesearch.json'
 
     def __init__(self, api_key):
-        self._api_key = api_key
+        self._api_key = api_key.strip()
         self._query_url = ""
         self.query_key = ""
 
