@@ -29,6 +29,7 @@ def parse_record_json(record, includes_metadata):
     text_fields = ["headline", "lead_paragraph", "snippet", "abstract", "keywords"]
 
     documents = []
+    class_values = []
     meta_vars = [StringVariable.make(field) for field, flag in zip(text_fields, includes_metadata) if flag]
     # Also add pub_date and glocation.
     meta_vars += [StringVariable.make("pub_date"), StringVariable.make("country")]
@@ -54,18 +55,24 @@ def parse_record_json(record, includes_metadata):
             field_value = doc["pub_date"]
         metas_row.append(field_value)
         # Add the glocation.
-        metas_row.append(" ".join([kw["value"] for kw in doc["keywords"] if kw["name"] == "glocations"]))
+        metas_row.append(",".join([kw["value"] for kw in doc["keywords"] if kw["name"] == "glocations"]))
+
+        # Add the section_name.
+        class_val = ""
+        if "section_name" in doc and doc["section_name"]:
+            class_val = doc["section_name"]
 
         documents.append(string_document)
+        class_values.append(class_val)
         metadata = np.vstack((metadata, np.array(metas_row)))
-    return documents, metadata, meta_vars
+    return documents, metadata, meta_vars, class_values
 
 
 class NYT:
     base_url = 'http://api.nytimes.com/svc/search/v2/articlesearch.json'
 
     def __init__(self, api_key):
-        self._api_key = api_key
+        self._api_key = api_key.strip()
         self._query_url = ""
         self.query_key = ""
 
@@ -118,6 +125,8 @@ class NYT:
             query_url += "&fl=" + fl
         # Add pub_date.
         query_url += ",pub_date"
+        # Add section_name.
+        query_url += ",section_name"
         # Add keywords in every case, since we need them for geolocating.
         if not text_includes[-1]:
             query_url += ",keywords"

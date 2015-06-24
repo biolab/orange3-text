@@ -1,7 +1,7 @@
 import os
 
 import numpy as np
-from Orange.data import StringVariable, Table
+from Orange.data import StringVariable, Table, DiscreteVariable, Domain
 
 
 def get_sample_corpora_dir():
@@ -70,12 +70,19 @@ class Corpus(Table):
             documents.append(' '.join(self.metas[line, indices]))
         self.documents = documents
 
-    def extend_corpus(self, documents, metadata=[]):
+    def extend_corpus(self, documents, metadata, class_values, meta_vars):
         # TODO check if Domains match!
         self.metas = np.vstack((self.metas, metadata))
         self.documents += documents
 
-        self.X = self._Y = self.W = np.zeros((len(self.documents), 0))
+        for val in set(class_values):
+            if val not in self.domain.class_var.values:
+                self.domain.class_var.add_value(val)
+        new_Y = np.array([self.domain.class_var.to_val(cv) for cv in class_values])[:, None]
+        new_Y[np.isnan(new_Y)] = 0
+        self._Y = np.vstack((self._Y, new_Y))
+
+        self.X = self.W = np.zeros((len(self.documents), 0))
         Table._init_ids(self)
 
     def __len__(self):

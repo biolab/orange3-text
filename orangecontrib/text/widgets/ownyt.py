@@ -11,7 +11,7 @@ from Orange.widgets.widget import OWWidget
 from Orange.widgets import gui
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.nyt import NYT, parse_record_json
-from Orange.data import Domain
+from Orange.data import Domain, DiscreteVariable
 
 
 def _i(name, icon_path="icons"):
@@ -22,7 +22,7 @@ class Output:
     CORPUS = "Corpus"
 
 class OWNYT(OWWidget):
-    name = "New York Times"
+    name = "NY Times"
     description = "Load data from the New York Times article search API."
     icon = "icons/TextFile.svg"
     priority = 20
@@ -138,7 +138,7 @@ class OWNYT(OWWidget):
                                           "Records: {}\nRetrieved: {}".format("/", "/"))
 
         # Retrieve other records.
-        self.retrieve_other_button = gui.button(self.controlArea, self, 'Retrieve remaining records (max 1000)',
+        self.retrieve_other_button = gui.button(self.controlArea, self, 'Retrieve remaining records',
                                                 callback=self.retrieve_remaining_records,
                                                 tooltip="Retrieve the remaining records obtained in the query.")
         self.retrieve_other_button.setEnabled(False)
@@ -198,25 +198,29 @@ class OWNYT(OWWidget):
 
             if res:
                 # Construct a corpus for the output.
-                documents, metas, meta_vars = parse_record_json(res, text_includes_params)
-                X = np.zeros((len(documents), 0))
-                Y = np.zeros((len(documents), 0))
-                domain = Domain([], metas=meta_vars)
+                documents, metas, meta_vars, class_values = parse_record_json(res, text_includes_params)
+                class_vars = [DiscreteVariable("section_name", values=list(set(class_values)))]
+                Y = np.array([class_vars[0].to_val(cv) for cv in class_values])[:, None]
+                Y[np.isnan(Y)] = 0
+                domain = Domain([], class_vars=class_vars, metas=meta_vars)
 
-                self.output_corpus = Corpus(documents, None, None, metas, domain)
+                self.output_corpus = Corpus(documents, None, Y, metas, domain)
                 self.send(Output.CORPUS, self.output_corpus)
 
                 # Update the response info.
                 self.all_hits = res["response"]["meta"]["hits"]
                 self.num_retrieved = len(res["response"]["docs"])
-                self.query_info_label.setText("Records: {}\nRetrieved: {} (max 1000)"
-                                              .format(self.all_hits, self.num_retrieved))
+                info_label = "Records: {}\nRetrieved: {}".format(self.all_hits, self.num_retrieved)
+                if self.all_hits > 1000:
+                    info_label += " (max 1000)"
+                self.query_info_label.setText(info_label)
 
                 # Enable 'retrieve remaining' button.
-                if self.num_retrieved < self.all_hits:
+                if self.num_retrieved < min(self.all_hits, 1000):
                     self.retrieve_other_button.setText('Retrieve remaining records ({})'
                                                        .format(min(self.all_hits, 1000)-self.num_retrieved))
                     self.retrieve_other_button.setEnabled(True)
+                    self.retrieve_other_button.setFocus()
                 else:
                     self.retrieve_other_button.setText('All records retrieved')
                     self.retrieve_other_button.setEnabled(False)
@@ -250,6 +254,7 @@ class OWNYT(OWWidget):
             remaining_docs = []
             num_metas = len(self.output_corpus.domain.metas)
             remaining_metas = np.empty((0, num_metas), dtype=object)
+            remaining_classes = []
 
             self.query_running = True
             self.progressBarInit()
@@ -264,14 +269,17 @@ class OWNYT(OWWidget):
                 res, cached, error = self.nyt_api.execute_query(i)
 
                 if res:
-                    docs, metas, meta_vars = parse_record_json(res, self.nyt_api.includes_fields)
+                    docs, metas, meta_vars, class_values = parse_record_json(res, self.nyt_api.includes_fields)
                     remaining_docs += docs
                     remaining_metas = np.vstack((remaining_metas, np.array(metas)))
+                    remaining_classes += class_values
 
                     # Update the info label.
                     self.num_retrieved += len(res["response"]["docs"])
-                    self.query_info_label.setText("Records: {}\nRetrieved: {} (max 1000)"
-                                                  .format(self.all_hits, self.num_retrieved))
+                    info_label = "Records: {}\nRetrieved: {}".format(self.all_hits, self.num_retrieved)
+                    if self.all_hits > 1000:
+                        info_label += " (max 1000)"
+                    self.query_info_label.setText(info_label)
 
                     if not cached:  # Only wait if an actual request was made.
                         sleep(1)
@@ -286,15 +294,16 @@ class OWNYT(OWWidget):
             self.query_running = False
 
             # Update the corpus.
-            self.output_corpus.extend_corpus(remaining_docs, remaining_metas)
+            self.output_corpus.extend_corpus(remaining_docs, remaining_metas, remaining_classes, meta_vars)
             self.send(Output.CORPUS, self.output_corpus)
 
-            if self.num_retrieved == self.all_hits:
-                self.retrieve_other_button.setText('All records retrieved')
+            if self.num_retrieved == min(self.all_hits, 1000):
+                self.retrieve_other_button.setText('All available records retrieved')
                 self.retrieve_other_button.setEnabled(False)
             else:
                 self.retrieve_other_button.setText('Retrieve remaining records ({})'
                                                    .format(min(self.all_hits, 1000)-self.num_retrieved))
+                self.retrieve_other_button.setFocus()
 
             self.open_set_api_key_dialog_button.setEnabled(True)
             self.run_query_button.setEnabled(True)
@@ -319,6 +328,10 @@ class OWNYT(OWWidget):
     def enable_controls(self):
         for control in self.nyt_controls:
             control.setEnabled(self.api_key_is_valid)
+        if not self.api_key_is_valid:
+            self.open_set_api_key_dialog_button.setFocus()
+        elif self.api_key_is_valid:
+            self.run_query_button.setFocus()
 
     def open_set_api_key_dialog(self):
         api_dlg = APIKeyDialog(self, "New York Times API key")
