@@ -9,6 +9,8 @@ from PyQt4 import QtCore, QtGui
 
 from Orange.widgets import widget, gui, settings
 from orangecontrib.text.topics import Topics
+from orangecontrib.text.corpus import Corpus
+from orangecontrib.text.preprocess import Preprocessor
 
 
 class SelectedWords(set):
@@ -18,28 +20,50 @@ class SelectedWords(set):
     def _update_webview(self):
         self.widget.webview.evalJS('SELECTED_WORDS = {};'.format(list(self)))
 
-    def add(self, item):
-        if item not in self:
-            super().add(item)
-            self._update_webview()
+    def _update_filter(self):
+        filter = set()
+        if self.widget.bow is not None:
+            for word in self:
+                index = self.widget.PREPROCESS.cv.vocabulary_.get(word)
+                if index is None: continue
+                filter |= set(self.widget.bow[:, index].nonzero()[0])
+        if filter:
+            self.widget.send(Output.CORPUS, self.widget.corpus[sorted(filter), :])
+        else:
+            self.widget.send(Output.CORPUS, None)
 
-    def remove(self, item):
-        if item in self:
-            super().remove(item)
+    def add(self, word):
+        if word not in self:
+            super().add(word)
             self._update_webview()
+            self._update_filter()
+
+    def remove(self, word):
+        if word in self:
+            super().remove(word)
+            self._update_webview()
+            self._update_filter()
 
     def clear(self):
         super().clear()
         self._update_webview()
+        self._update_filter()
         self.widget.table.clearSelection()
+
+
+class Output:
+    CORPUS = 'Corpus'
 
 
 class OWWordCloud(widget.OWWidget):
     name = "Word Cloud"
     priority = 10000
     icon = "icons/WordCloud.svg"
-    inputs = [("Topics", Topics, "on_topic_change")]
-    outputs = []
+    inputs = [
+        ('Topics', Topics, 'on_topics_change'),
+        (Output.CORPUS, Corpus, 'on_corpus_change'),
+    ]
+    outputs = [('Corpus', Corpus)]
 
     selected_words = settings.ContextSetting(SelectedWords('whatevar (?)'))
     words_color = settings.Setting(True)
@@ -49,8 +73,13 @@ class OWWordCloud(widget.OWWidget):
         super().__init__()
         self.n_words = 0
         self.mean_weight = 0
+        self.std_weight = 0
         self.selected_words = SelectedWords(self)
         self.webview = None
+        self.bow = None  # bag-of-words, obviously
+        self.topics = None
+        self.corpus = None
+        self.PREPROCESS = Preprocessor()
         self._create_layout()
 
     @QtCore.pyqtSlot(str, result=str)
@@ -80,8 +109,7 @@ span:hover {color:OrangeRed !important}
 span.selected {color:red !important}
 </style>
 </head>
-<body id="canvas">&nbsp;
-</body>
+<body id="canvas"></body>
 </html>'''
         if self.webview:
             self.mainArea.layout().removeWidget(self.webview)
@@ -93,8 +121,8 @@ span.selected {color:red !important}
     def _create_layout(self):
         self._new_webview()
         box = gui.widgetBox(self.controlArea, 'Info')
-        gui.label(box, self, '%(n_words)d words')
-        gui.label(box, self, 'Mean weight: %(mean_weight).4f')
+        gui.label(box, self, '%(n_words)s words')
+        gui.label(box, self, 'Mean weight: %(mean_weight).3f ± %(std_weight).3f')
 
         box = gui.widgetBox(self.controlArea, 'Cloud preferences')
         gui.checkBox(box, self, 'words_color', 'Color words', callback=self.on_cloud_pref_change)
@@ -142,14 +170,18 @@ span.selected {color:red !important}
         self.webview.evalJS('OPTIONS["list"] = {};'.format(self.wordlist))
         self.webview.evalJS('redrawWordCloud();')
 
-    def _repopulate_table(self, words, weights):
+
+    def _repopulate_wordcloud(self, words, weights):
+        N_BEST = 200
+        words, weights = words[:N_BEST], weights[:N_BEST]
+        # Repopulate table
         self.table.clear()
         for word, weight in zip(words, weights):
             self.table.addRow((weight, word), data=word)
         self.table.sortByColumn(0, QtCore.Qt.DescendingOrder)
-
-    def _repopulate_wordcloud(self, words, weights):
+        # Reset wordcloud
         self.mean_weight = mean = np.mean(weights)
+        self.std_weight = mean = np.std(weights)
         MIN_SIZE, MEAN_SIZE, MAX_SIZE = 8, 18, 40
 
         def _size(w):
@@ -159,25 +191,57 @@ span.selected {color:red !important}
         self.webview.evalJS('OPTIONS["list"] = {};'.format(self.wordlist))
         self.on_cloud_pref_change()
 
-    def on_topic_change(self, data):
+    def on_topics_change(self, data):
+        self.topics = data
+        if not data and self.corpus:  # Topics aren't, but raw corpus is avaiable
+            return self._count_words_in_corpus()
         metas = data.domain.metas if data else []
-        try: self.topic = next(i for i,var in enumerate(metas) if var.is_string)
+        try:
+            col = next(i for i,var in enumerate(metas) if var.is_string)
         except StopIteration:
-            self.topic = None
-        col = self.topic
-        if col is None:
-            return
-        N_BEST = 200
-        words = data.metas[:N_BEST, col] if self.topic is not None else np.zeros((0, 1))
-        if data.W.any():
-            weights = data.W[:N_BEST]
-        elif 'weights' in data.domain:
-            weights = data.get_column_view(data.domain['weights'])[0][:N_BEST]
+            words = np.zeros((0, 1))
+            self.n_words = '-'
         else:
-            weights = np.ones(N_BEST)
-        self.n_words = words.shape[0]
-        self._repopulate_table(words, weights)
+            words = data.metas[:, col]
+            self.n_words = data.metas.shape[0]
+        if data.W.any():
+            weights = data.W[:]
+        elif 'weights' in data.domain:
+            weights = data.get_column_view(data.domain['weights'])[0]
+        else:
+            weights = np.ones(len(words))
         self._repopulate_wordcloud(words, weights)
+
+    def _get_text_column(self):
+        col = None
+        try:
+            # Take the first string meta variable
+            col = next(i for i,var in enumerate(self.corpus.domain.metas) if var.is_string)
+            # But prefer any that has name 'text'
+            col = next(i for i,var in enumerate(self.corpus.domain.metas)
+                       if var.is_string and var.name == 'text')
+        except (StopIteration, AttributeError): pass
+        return col
+
+    def _bag_of_words_from_corpus(self):
+        self.bow = None
+        col = self._get_text_column()
+        if col is None: return
+        texts = self.corpus.metas[:, col]
+        self.bow = self.PREPROCESS.cv.fit_transform(texts).tocsc()
+
+    def _count_words_in_corpus(self):
+        col = self._get_text_column()
+        if col is None: return
+        words = self.PREPROCESS.cv.get_feature_names()
+        freqs = np.array(self.bow.sum(axis=0))[0]
+        self._repopulate_wordcloud(words, freqs)
+
+    def on_corpus_change(self, data):
+        self.corpus = data
+        self._bag_of_words_from_corpus()
+        if not self.topics:
+            self._count_words_in_corpus()
 
 
 def main():
@@ -185,7 +249,7 @@ def main():
 
     words = 'hey~mr. tallyman tally~me banana daylight come and me wanna go home'
     words = np.array([w.replace('~', ' ') for w in words.split()], dtype=object, ndmin=2).T
-    weights = np.random.random((len(words), 3))
+    weights = np.random.random((len(words), 1))
 
     data = np.zeros((len(words), 0))
     metas = []
@@ -199,7 +263,10 @@ def main():
                              metas=data)
     app = QtGui.QApplication([''])
     w = OWWordCloud()
-    w.on_topic_change(table)
+    w.on_topics_change(table)
+    domain = Domain([], metas=[StringVariable('text')])
+    data = Corpus.from_numpy(domain, X=np.zeros((1, 0)), metas=np.array([[' '.join(words.flat)]]))
+    w.on_corpus_change(data)
     w.show()
     app.exec()
 
