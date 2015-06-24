@@ -112,6 +112,7 @@ class OWLDA(OWWidget):
             self.send_topic_by_id(selected[0].topic_id)
 
     def send_topic_by_id(self, topic_id):
+        self.topic_desc.setCurrentItem(self.topic_desc.topLevelItem(topic_id))
         self.send(Output.TOPICS, self.lda.get_topics_table_by_id(topic_id))
 
     def enabled(self, bool):
