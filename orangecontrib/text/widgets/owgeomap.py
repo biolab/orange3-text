@@ -43,12 +43,14 @@ class OWGeoMap(widget.OWWidget):
     @QtCore.pyqtSlot(str, result=str)
     def region_selected(self, regions):
         """Called from JavaScript"""
-        if not regions: return
+        if not regions:
+            return self.send('Data', None)
         regions = regions.split(',')
         from Orange.data.filter import FilterStringList
         # TODO, FIXME: make this work for discrete attrs also
         filter = FilterStringList(self.metas[self.selected_attr], regions)
         self.send('Data', self.data._filter_values(filter))
+
 
     def _create_layout(self):
         box = gui.widgetBox(self.controlArea,
