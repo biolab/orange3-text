@@ -67,13 +67,12 @@ class OWWordCloud(widget.OWWidget):
 
     selected_words = settings.ContextSetting(SelectedWords('whatevar (?)'))
     words_color = settings.Setting(True)
-    words_tilt = settings.Setting(1)
+    words_tilt = settings.Setting(0)
 
     def __init__(self):
         super().__init__()
-        self.n_words = 0
-        self.mean_weight = 0
-        self.std_weight = 0
+        self.n_topic_words = 0
+        self.documents_info_str = ''
         self.selected_words = SelectedWords(self)
         self.webview = None
         self.bow = None  # bag-of-words, obviously
@@ -121,8 +120,8 @@ span.selected {color:red !important}
     def _create_layout(self):
         self._new_webview()
         box = gui.widgetBox(self.controlArea, 'Info')
-        gui.label(box, self, '%(n_words)s words')
-        gui.label(box, self, 'Mean weight: %(mean_weight).3f ± %(std_weight).3f')
+        self.topic_info = gui.label(box, self, '%(n_topic_words)d words in a topic')
+        gui.label(box, self, '%(documents_info_str)s')
 
         box = gui.widgetBox(self.controlArea, 'Cloud preferences')
         gui.checkBox(box, self, 'words_color', 'Color words', callback=self.on_cloud_pref_change)
@@ -180,8 +179,7 @@ span.selected {color:red !important}
             self.table.addRow((weight, word), data=word)
         self.table.sortByColumn(0, QtCore.Qt.DescendingOrder)
         # Reset wordcloud
-        self.mean_weight = mean = np.mean(weights)
-        self.std_weight = mean = np.std(weights)
+        mean = np.mean(weights)
         MIN_SIZE, MEAN_SIZE, MAX_SIZE = 8, 18, 40
 
         def _size(w):
@@ -193,6 +191,7 @@ span.selected {color:red !important}
 
     def on_topics_change(self, data):
         self.topics = data
+        self.topic_info.setVisible(bool(data))
         if not data and self.corpus:  # Topics aren't, but raw corpus is avaiable
             return self._count_words_in_corpus()
         metas = data.domain.metas if data else []
@@ -200,16 +199,18 @@ span.selected {color:red !important}
             col = next(i for i,var in enumerate(metas) if var.is_string)
         except StopIteration:
             words = np.zeros((0, 1))
-            self.n_words = '-'
         else:
             words = data.metas[:, col]
-            self.n_words = data.metas.shape[0]
-        if data.W.any():
+            self.n_topic_words = data.metas.shape[0]
+        if not data:
+            weights = np.ones(len(words))
+        if data and data.W.any():
             weights = data.W[:]
-        elif 'weights' in data.domain:
+        elif data and 'weights' in data.domain:
             weights = data.get_column_view(data.domain['weights'])[0]
         else:
             weights = np.ones(len(words))
+
         self._repopulate_wordcloud(words, weights)
 
     def _get_text_column(self):
@@ -226,9 +227,10 @@ span.selected {color:red !important}
     def _bag_of_words_from_corpus(self):
         self.bow = None
         col = self._get_text_column()
-        if col is None: return
+        if col is None: return 0, 0
         texts = self.corpus.metas[:, col]
         self.bow = self.PREPROCESS.cv.fit_transform(texts).tocsc()
+        return self.bow.shape
 
     def _count_words_in_corpus(self):
         col = self._get_text_column()
@@ -239,7 +241,9 @@ span.selected {color:red !important}
 
     def on_corpus_change(self, data):
         self.corpus = data
-        self._bag_of_words_from_corpus()
+        n_docs, n_words = self._bag_of_words_from_corpus()
+        self.documents_info_str = ('{} documents with {} words'.format(n_docs, n_words)
+                                   if n_docs else '(no documents on input)')
         if not self.topics:
             self._count_words_in_corpus()
 
