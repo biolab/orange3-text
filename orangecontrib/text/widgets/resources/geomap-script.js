@@ -1,6 +1,7 @@
 var DATA = {};
 var MAP_CODE = 'world_mill_en';
 var REGIONS = {};
+var SELECTED_REGIONS = [];
 
 function renderMap() {
     if ('europe_mill_en|world_mill_en|us_aea_en'.indexOf(MAP_CODE) < 0) {
@@ -38,6 +39,15 @@ function renderMap() {
         onRegionTipShow: function(e, el, code) {
             el.html(el.html() + ' (' + (DATA[code] || 0) + ')');
         },
+        onRegionClick: function(event, code) {
+            event = event.originalEvent;
+            if (typeof event === 'undefined') {
+                alert('expected Event.originalEvent, see https://github.com/bjornd/jvectormap/pull/341');
+            }
+            if (! (event.ctrlKey || event.shiftKey)) {
+                map.clearSelectedRegions();
+            }
+        },
         onRegionSelected: function() {
             var regions = [];
             var selected = map.getSelectedRegions();
@@ -60,10 +70,10 @@ function renderMap() {
     svg.addEventListener('click', function(event) {
         if (event.target != svg)
             return;
-        for (region in map.regions)
-            map.regions[region].element.setSelected(false);
+        map.clearSelectedRegions();
     });
-    // TODO: map.setSelectedRegions([]);
+
+    map.setSelectedRegions(SELECTED_REGIONS.filter(function(el) { return map.regions[el]; }));
 }
 
 window.onresize = renderMap;

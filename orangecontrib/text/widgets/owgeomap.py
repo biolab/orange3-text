@@ -35,6 +35,7 @@ class OWGeoMap(widget.OWWidget):
 
     selected_attr = settings.Setting(0)
     selected_map = settings.Setting(0)
+    regions = settings.Setting([])
 
     def __init__(self):
         super().__init__()
@@ -45,10 +46,10 @@ class OWGeoMap(widget.OWWidget):
         """Called from JavaScript"""
         if not regions:
             return self.send('Data', None)
-        regions = regions.split(',')
+        self.regions = regions.split(',')
         from Orange.data.filter import FilterStringList
         # TODO, FIXME: make this work for discrete attrs also
-        filter = FilterStringList(self.metas[self.selected_attr], regions)
+        filter = FilterStringList(self.metas[self.selected_attr], self.regions)
         self.send('Data', self.data._filter_values(filter))
 
     def _create_layout(self):
@@ -121,6 +122,7 @@ html, body, #map {margin:0px;padding:0px;width:100%;height:100%;}
         else:
             map_code = map_code or self.map_combo.itemData(self.selected_map)
         self.webview.evalJS('MAP_CODE = "{}";'.format(map_code))
+        self.webview.evalJS('SELECTED_REGIONS = {};'.format(self.regions))
         self.webview.evalJS('renderMap();')
 
     def on_attr_change(self):
