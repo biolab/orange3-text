@@ -51,7 +51,6 @@ class OWGeoMap(widget.OWWidget):
         filter = FilterStringList(self.metas[self.selected_attr], regions)
         self.send('Data', self.data._filter_values(filter))
 
-
     def _create_layout(self):
         box = gui.widgetBox(self.controlArea,
                             orientation='horizontal')
@@ -104,8 +103,12 @@ html, body, #map {margin:0px;padding:0px;width:100%;height:100%;}
                       if (a.is_discrete and a.values and isinstance(a.values[0], str) and not a.ordered or
                           a.is_string)] if data else []
         self.attr_combo.clear()
-        for var in self.metas:
+        for i, var in enumerate(self.metas):
             self.attr_combo.addItem(gui.attributeIconDict[var], var.name)
+            # Select default attribute
+            if var.name.lower() == 'country':
+                self.selected_attr = i
+        self.attr_combo.setCurrentIndex(self.attr_combo.findText(self.metas[self.selected_attr].name))
 
     def on_data(self, data):
         self.data = data
