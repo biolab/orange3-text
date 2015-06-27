@@ -104,17 +104,24 @@ html, body, #map {margin:0px;padding:0px;width:100%;height:100%;}
                       if (a.is_discrete and a.values and isinstance(a.values[0], str) and not a.ordered or
                           a.is_string)] if data else []
         self.attr_combo.clear()
+        self.selected_attr = 0
         for i, var in enumerate(self.metas):
             self.attr_combo.addItem(gui.attributeIconDict[var], var.name)
             # Select default attribute
             if var.name.lower() == 'country':
                 self.selected_attr = i
-        self.attr_combo.setCurrentIndex(self.attr_combo.findText(self.metas[self.selected_attr].name))
+        if self.metas:
+            self.attr_combo.setCurrentIndex(self.attr_combo.findText(self.metas[self.selected_attr].name))
 
     def on_data(self, data):
         self.data = data
         self._repopulate_attr_combo(data)
-        self.on_attr_change()
+        if not data:
+            self.region_selected('')
+            self.webview.evalJS('DATA = {}; renderMap();')
+        else:
+            self.on_attr_change()
+
 
     def on_map_change(self, map_code=''):
         if map_code:
