@@ -35,6 +35,7 @@ class OWGeoMap(widget.OWWidget):
 
     selected_attr = settings.Setting(0)
     selected_map = settings.Setting(0)
+    regions = settings.Setting([])
 
     def __init__(self):
         super().__init__()
@@ -45,12 +46,11 @@ class OWGeoMap(widget.OWWidget):
         """Called from JavaScript"""
         if not regions:
             return self.send('Data', None)
-        regions = regions.split(',')
+        self.regions = regions.split(',')
         from Orange.data.filter import FilterStringList
         # TODO, FIXME: make this work for discrete attrs also
-        filter = FilterStringList(self.metas[self.selected_attr], regions)
+        filter = FilterStringList(self.metas[self.selected_attr], self.regions)
         self.send('Data', self.data._filter_values(filter))
-
 
     def _create_layout(self):
         box = gui.widgetBox(self.controlArea,
@@ -104,13 +104,24 @@ html, body, #map {margin:0px;padding:0px;width:100%;height:100%;}
                       if (a.is_discrete and a.values and isinstance(a.values[0], str) and not a.ordered or
                           a.is_string)] if data else []
         self.attr_combo.clear()
-        for var in self.metas:
+        self.selected_attr = 0
+        for i, var in enumerate(self.metas):
             self.attr_combo.addItem(gui.attributeIconDict[var], var.name)
+            # Select default attribute
+            if var.name.lower() == 'country':
+                self.selected_attr = i
+        if self.metas:
+            self.attr_combo.setCurrentIndex(self.attr_combo.findText(self.metas[self.selected_attr].name))
 
     def on_data(self, data):
         self.data = data
         self._repopulate_attr_combo(data)
-        self.on_attr_change()
+        if not data:
+            self.region_selected('')
+            self.webview.evalJS('DATA = {}; renderMap();')
+        else:
+            self.on_attr_change()
+
 
     def on_map_change(self, map_code=''):
         if map_code:
@@ -118,6 +129,7 @@ html, body, #map {margin:0px;padding:0px;width:100%;height:100%;}
         else:
             map_code = map_code or self.map_combo.itemData(self.selected_map)
         self.webview.evalJS('MAP_CODE = "{}";'.format(map_code))
+        self.webview.evalJS('SELECTED_REGIONS = {};'.format(self.regions))
         self.webview.evalJS('renderMap();')
 
     def on_attr_change(self):

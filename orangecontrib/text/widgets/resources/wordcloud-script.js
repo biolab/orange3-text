@@ -26,17 +26,24 @@ window.onresize = redrawWordCloud;
 window.addEventListener('click', function(event) {
     var span = event.target;
     if (span.tagName == 'SPAN') {
+        // Allow multiselection only if modifier key pressed
+        if (! (event.ctrlKey || event.shiftKey)) {
+            clearSelection();
+        }
         cls = pybridge.word_clicked(span.innerHTML);
         console.log(cls);
         span.className = cls;
     } else if (span.tagName == 'BODY') {
-        pybridge.word_clicked('');
-        var spans = document.getElementsByTagName('span');
-        for (var i=0; i < spans.length; ++i) {
-            spans[i].className = '';
-        }
+        clearSelection();
     }
 });
+function clearSelection() {
+    pybridge.word_clicked('');
+    var spans = document.getElementsByTagName('span');
+    for (var i=0; i < spans.length; ++i) {
+        spans[i].className = '';
+    }
+}
 
 // Mark words in SELECTED_WORDS list selected
 var SELECTED_WORDS = [];
