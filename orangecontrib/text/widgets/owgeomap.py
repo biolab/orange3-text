@@ -52,10 +52,10 @@ class OWGeoMap(widget.OWWidget):
             self.regions = []
             return self.send('Data', None)
         self.regions = regions.split(',')
+        attr = self.metas[self.selected_attr]
+        if attr.is_discrete: return  # TODO, FIXME: make this work for discrete attrs also
         from Orange.data.filter import FilterRegex
-        print(r'\b|\b'.join(self.regions))
-        # TODO, FIXME: make this work for discrete attrs also
-        filter = FilterRegex(self.metas[self.selected_attr], r'\b{}\b'.format(r'\b|\b'.join(self.regions)), re.IGNORECASE)
+        filter = FilterRegex(attr, r'\b{}\b'.format(r'\b|\b'.join(self.regions)), re.IGNORECASE)
         self.send('Data', self.data._filter_values(filter))
 
     def _create_layout(self):
@@ -151,6 +151,8 @@ html, body, #map {margin:0px;padding:0px;width:100%;height:100%;}
 
     def on_attr_change(self):
         attr = self.metas[self.selected_attr]
+        if attr.is_discrete:
+            return self.warning(0, 'Discrete region attributes not yet supported. Patches welcome!')
         countries = (set(CC_NAMES.findall(i.lower())) if len(i) > 3 else (i,)
                      for i in self.data.get_column_view(self.data.domain.index(attr))[0])
         def flatten(seq):
