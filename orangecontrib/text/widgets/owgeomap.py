@@ -1,7 +1,8 @@
 # coding: utf-8
-from collections import OrderedDict
+from collections import defaultdict, Counter
 from os import path
 from math import pi as PI
+import re
 
 import numpy as np
 
@@ -13,6 +14,9 @@ from orangecontrib.text.country_codes import \
     CC_EUROPE, INV_CC_EUROPE, SET_CC_EUROPE, \
     CC_WORLD, INV_CC_WORLD, \
     CC_USA, INV_CC_USA, SET_CC_USA
+
+
+CC_NAMES = re.compile('[\w\s\.\-]+')
 
 
 class Map:
@@ -45,11 +49,13 @@ class OWGeoMap(widget.OWWidget):
     def region_selected(self, regions):
         """Called from JavaScript"""
         if not regions:
+            self.regions = []
             return self.send('Data', None)
         self.regions = regions.split(',')
-        from Orange.data.filter import FilterStringList
+        from Orange.data.filter import FilterRegex
+        print(r'\b|\b'.join(self.regions))
         # TODO, FIXME: make this work for discrete attrs also
-        filter = FilterStringList(self.metas[self.selected_attr], self.regions)
+        filter = FilterRegex(self.metas[self.selected_attr], r'\b{}\b'.format(r'\b|\b'.join(self.regions)), re.IGNORECASE)
         self.send('Data', self.data._filter_values(filter))
 
     def _create_layout(self):
@@ -122,32 +128,42 @@ html, body, #map {margin:0px;padding:0px;width:100%;height:100%;}
         else:
             self.on_attr_change()
 
-
     def on_map_change(self, map_code=''):
         if map_code:
             self.map_combo.setCurrentIndex(self.map_combo.findData(map_code))
         else:
-            map_code = map_code or self.map_combo.itemData(self.selected_map)
+            map_code = self.map_combo.itemData(self.selected_map)
+
+        inv_cc_map, cc_map = {Map.USA: (INV_CC_USA, CC_USA),
+                              Map.WORLD: (INV_CC_WORLD, CC_WORLD),
+                              Map.EUROPE: (INV_CC_EUROPE, CC_EUROPE)} [map_code]
+        # Set country counts in JS
+        data = defaultdict(int)
+        for cc in self.cc_counts:
+            key = inv_cc_map.get(cc, cc)
+            if key in cc_map:
+                data[key] += self.cc_counts[cc]
+        self.webview.evalJS('DATA = {};'.format(dict(data)))
+        # Draw the new map
         self.webview.evalJS('MAP_CODE = "{}";'.format(map_code))
         self.webview.evalJS('SELECTED_REGIONS = {};'.format(self.regions))
         self.webview.evalJS('renderMap();')
 
     def on_attr_change(self):
         attr = self.metas[self.selected_attr]
-        from collections import Counter, defaultdict
-        counts = Counter(self.data.get_column_view(self.data.domain.index(attr))[0])
+        countries = (set(CC_NAMES.findall(i.lower())) if len(i) > 3 else (i,)
+                     for i in self.data.get_column_view(self.data.domain.index(attr))[0])
+        def flatten(seq):
+            return (i for sub in seq for i in sub)
+        self.cc_counts = Counter(flatten(countries))
         # Auto-select region map
-        values = set(counts)
+        values = set(self.cc_counts)
         if 0 == len(values - SET_CC_USA):
-            cc_map, inv_cc_map, map_code = CC_USA, INV_CC_USA, Map.USA
+            map_code = Map.USA
         elif 0 == len(values - SET_CC_EUROPE):
-            cc_map, inv_cc_map, map_code = CC_EUROPE, INV_CC_EUROPE, Map.EUROPE
+            map_code = Map.EUROPE
         else:
-            cc_map, inv_cc_map, map_code = CC_WORLD, INV_CC_WORLD, Map.WORLD
-        data = defaultdict(int)
-        for cc in counts:
-            data[inv_cc_map.get(cc, cc)] += counts[cc]
-        self.webview.evalJS('DATA = {};'.format(dict(data)))
+            map_code = Map.WORLD
         self.on_map_change(map_code)
 
 

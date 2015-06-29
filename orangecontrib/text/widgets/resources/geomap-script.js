@@ -57,9 +57,7 @@ function renderMap() {
                     console.error(alias + ': ' + selected[i] + ' not in REGIONS[MAP_CODE]');
                     continue;
                 }
-                for (var j=0; j<alias.length; ++j) {
-                    regions.push(alias[j]);
-                }
+                regions = regions.concat(alias);
                 regions.push(selected[i]);
             }
             pybridge.region_selected(regions);
