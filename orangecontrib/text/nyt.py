@@ -161,25 +161,42 @@ class NYT:
         Will not execute, if the class object's query_url has not been set.
 
         :param page: Determine what page of the query to return.
-        :return: A JSON representation of the query's results and a boolean flag,
-            that serves as feedback, whether the request was cached or not.
+        :return: A JSON representation of the query's results, a boolean flag,
+            that serves as feedback, whether the request was cached or not and
+            the error if one occurred during execution.
         """
         if self._query_url:
+            # Method return values.
+            response_data = ""
+            is_cached = False
+            error = None
+
             current_query = self._query_url+"&page={}".format(page)
-            curreny_query_key = self.query_key + "_" + str(page)
+            current_query_key = self.query_key + "_" + str(page)
+
             self.query_cache = shelve.open(os.path.join(self.cache_pth, "query_cache"))
-            if curreny_query_key in self.query_cache.keys():
-                response = self.query_cache[curreny_query_key]
-                self.query_cache.close()
-                return json.loads(response), True, None
+
+            if current_query_key in self.query_cache.keys():
+                response = self.query_cache[current_query_key]
+                response_data = json.loads(response)
+                is_cached = True
+                error = None
             else:
                 try:
                     connection = request.urlopen(current_query)
                     response = connection.readall().decode("utf-8")
-                    self.query_cache[curreny_query_key] = response
-                    self.query_cache.close()
-                    return json.loads(response), False, None
-                except HTTPError as error:
-                    return "", False, error
-                except URLError as error:
-                    return "", False, error
+                    self.query_cache[current_query_key] = response
+
+                    response_data = json.loads(response)
+                    is_cached = False
+                    error = None
+                except HTTPError as err:
+                    error = err
+                except URLError as err:
+                    error = err
+            try:
+                self.query_cache.close()    # Release resources.
+            except ValueError as ve:
+                print("Shelve is already closed({}).".format(ve))
+
+            return response_data, is_cached, error

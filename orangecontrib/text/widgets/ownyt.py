@@ -182,6 +182,10 @@ class OWNYT(OWWidget):
             # Query keywords.
             qkw = self.query_combo.currentText()
 
+            if not qkw:
+                self.warning(1, "Please enter a query before attempting to fetch results.")
+                return
+
             # Text fields.
             text_includes_params = [self.includes_headline, self.includes_lead_paragraph, self.includes_snippet,
                                     self.includes_abstract, self.includes_keywords]
@@ -310,8 +314,12 @@ class OWNYT(OWWidget):
 
     def check_api_key(self, api_key):
         nyt_api = NYT(api_key)
-        self.api_key = api_key
-        self.api_key_updated(nyt_api.check_api_key())
+        key_valid_flag = nyt_api.check_api_key()
+
+        if key_valid_flag:
+            self.api_key = api_key
+
+        self.api_key_updated(key_valid_flag)
 
     def api_key_updated(self, is_valid):
         self.api_key_is_valid = is_valid
@@ -396,9 +404,9 @@ class APIKeyDialog(QDialog):
     def accept_changes(self):
         self.parent.check_api_key(self.api_key_combo.currentText())  # On OK check the API key also.
 
-        if self.api_key_combo.currentText() not in self.parent.recent_api_keys:
+        if self.api_key_combo.currentText() not in self.parent.recent_api_keys \
+                and self.parent.api_key_is_valid:
             self.parent.recent_api_keys.append(self.api_key_combo.currentText())
-        self.parent.api_key = self.api_key_combo.currentText()
         QDialog.accept(self)
 
     def reject_changes(self):
