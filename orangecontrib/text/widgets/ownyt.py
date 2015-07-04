@@ -179,9 +179,9 @@ class OWNYT(OWWidget):
         # Only execute if the NYT object is present(safety lock).
         # Otherwise this method cannot be called anyway.
         if self.nyt_api:
+            # Interrupts on faulty inputs. #
             # Query keywords.
             qkw = self.query_combo.currentText()
-
             if not qkw:
                 self.warning(1, "Please enter a query before attempting to fetch results.")
                 return
@@ -189,10 +189,23 @@ class OWNYT(OWWidget):
             # Text fields.
             text_includes_params = [self.includes_headline, self.includes_lead_paragraph, self.includes_snippet,
                                     self.includes_abstract, self.includes_keywords]
-
             if True not in text_includes_params:
                 self.warning(1, "You must select at least one text field.")
                 return
+
+            # Year span.
+            if self.year_from and not self.year_from.isdigit() or \
+                    self.year_to and not self.year_to.isdigit():
+                self.warning(1, "The time interval endpoints must be digits.")
+                return
+
+            # Warnings on bad inputs. #
+            if self.year_from and self.year_from > self.year_to:
+                self.warning(1, "The end time is greater than the starting time.")
+
+            if self.year_from and int(self.year_from) < 1851:
+                self.warning(1, "There are no records before the year 1851. "
+                                "Assumed 1851 as start date for this query.")
 
             # Set the query url.
             self.nyt_api.set_query_url(qkw, self.year_from, self.year_to, text_includes_params)

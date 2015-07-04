@@ -2,20 +2,11 @@ import os
 import json
 import shelve
 import numpy as np
-from datetime import date
 from urllib import request, parse
 from urllib.error import HTTPError, URLError
 
 from Orange.canvas.utils import environ
 from Orange.data import StringVariable
-
-
-def validate_year(year):
-    if int(year) <= 1851:
-        return "1851"
-    if int(year) >= date.today().year:
-        return str(date.today().year)
-    return year
 
 
 def parse_record_json(record, includes_metadata):
@@ -114,9 +105,9 @@ class NYT:
 
         # Years.
         if year_from and year_from.isdigit():
-            query_url += "&begin_date=" + validate_year(year_from) + "0101"
+            query_url += "&begin_date=" + year_from + "0101"
         if year_to and year_to.isdigit():
-            query_url += "&end_date=" + validate_year(year_to) + "1231"
+            query_url += "&end_date=" + year_to + "1231"
 
         # Text fields.
         if text_includes and True in text_includes:
@@ -135,10 +126,10 @@ class NYT:
         # This query's key, to store with shelve.
         # Queries differ in query words, included text fields and date range.
         query_key = query.split(" ") + [f1 for f1, f2 in zip(fl_fields, text_includes) if f2]
-        if year_from:
-            query_key += [validate_year(year_from)]
-        if year_to:
-            query_key += [validate_year(year_to)]
+        if year_from and year_from.isdigit():
+            query_key += [year_from]
+        if year_to and year_to.isdigit():
+            query_key += [year_to]
         self.query_key = "_".join(query_key)
         return self._query_url
 
