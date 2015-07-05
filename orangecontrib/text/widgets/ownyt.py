@@ -30,16 +30,6 @@ class OWNYT(OWWidget):
     outputs = [(Output.CORPUS, Corpus)]
     want_main_area = False
 
-    output_corpus = None
-    # Response info.
-    all_hits = 0
-    num_retrieved = 0
-    # NYT info:
-    nyt_api = None
-    api_key = ""
-    api_key_is_valid = False
-    query_running = False
-
     # Settings.
     recent_queries = Setting([])
     recent_api_keys = Setting([])
@@ -56,8 +46,13 @@ class OWNYT(OWWidget):
     def __init__(self):
         super().__init__()
 
-        # Refresh recent queries.
-        self.recent_queries = [query for query in self.recent_queries]
+        self.output_corpus = None
+        self.all_hits = 0
+        self.num_retrieved = 0
+        self.nyt_api = None
+        self.api_key = ""
+        self.api_key_is_valid = False
+        self.query_running = False
 
         # To hold all the controls. Makes access easier.
         self.nyt_controls = []
@@ -69,12 +64,7 @@ class OWNYT(OWWidget):
         api_key_box = gui.widgetBox(parameter_box, orientation=0)
         # Valid API key feedback.
         self.api_key_valid_label = gui.label(api_key_box, self, "")
-        if self.api_key_is_valid:
-            self.api_key_valid_label.setPixmap(QPixmap(_i("valid.svg"))
-                                               .scaled(15, 15, QtCore.Qt.KeepAspectRatio))
-        else:
-            self.api_key_valid_label.setPixmap(QPixmap(_i("invalid.svg"))
-                                           .scaled(15, 15, QtCore.Qt.KeepAspectRatio))
+        self.update_validity_icon()
         self.api_key_valid_label.setMaximumSize(self.api_key_valid_label.sizeHint())
         # Set API key button.
         self.open_set_api_key_dialog_button = gui.button(api_key_box, self, 'Article API key',
@@ -135,8 +125,7 @@ class OWNYT(OWWidget):
 
         # Query info.
         query_info_box = gui.widgetBox(self.controlArea, addSpace=True)
-        self.query_info_label = gui.label(query_info_box, self,
-                                          "Records: {}\nRetrieved: {}".format("/", "/"))
+        self.query_info_label = gui.label(query_info_box, self, "Records: /\nRetrieved: /")
 
         # Retrieve other records.
         self.retrieve_other_button = gui.button(self.controlArea, self, 'Retrieve remaining records',
@@ -173,6 +162,14 @@ class OWNYT(OWWidget):
 
         if len(self.recent_queries) > 0:
             self.set_query_list()
+
+    def update_validity_icon(self):
+        if self.api_key_is_valid:
+            self.api_key_valid_label.setPixmap(QPixmap(_i("valid.svg"))
+                                               .scaled(15, 15, QtCore.Qt.KeepAspectRatio))
+        else:
+            self.api_key_valid_label.setPixmap(QPixmap(_i("invalid.svg"))
+                                           .scaled(15, 15, QtCore.Qt.KeepAspectRatio))
 
     def run_initial_query(self):
         self.warning(1)
@@ -267,74 +264,75 @@ class OWNYT(OWWidget):
             self.query_running = False
             return
 
-        if self.nyt_api:
-            num_steps = min(math.ceil(self.all_hits/10), 100)
+        if not self.nyt_api:
+            return
 
-            # Update buttons.
-            self.retrieve_other_button.setText('Stop retrieving')
-            self.open_set_api_key_dialog_button.setEnabled(False)
-            self.run_query_button.setEnabled(False)
+        num_steps = min(math.ceil(self.all_hits/10), 100)
 
-            # Accumulate remaining results in these lists.
-            remaining_docs = []
-            num_metas = len(self.output_corpus.domain.metas)
-            remaining_metas = np.empty((0, num_metas), dtype=object)
-            remaining_classes = []
+        # Update buttons.
+        self.retrieve_other_button.setText('Stop retrieving')
+        self.open_set_api_key_dialog_button.setEnabled(False)
+        self.run_query_button.setEnabled(False)
 
-            self.query_running = True
-            self.progressBarInit()
-            for i in range(int(self.num_retrieved/10), num_steps):
-                # Stop querying if the flag is not set.
-                if not self.query_running:
-                    break
+        self.query_running = True
+        self.progressBarInit()
+        for i in range(int(self.num_retrieved/10), num_steps):
+            # Stop querying if the flag is not set.
+            if not self.query_running:
+                break
 
-                # Update the progress bar.
-                self.progressBarSet(100.0 * (i/num_steps))
+            res, cached, error = self.nyt_api.execute_query(i)
 
-                res, cached, error = self.nyt_api.execute_query(i)
+            if not res:     # Break if no response.
+                if error:
+                    self.display_error_response(error)
+                break
 
-                if res:
-                    metas, class_values = parse_record_json(res, self.nyt_api.includes_fields)
-                    docs = []
-                    for doc in metas:
-                        docs.append(" ".join(doc).strip())
-                    remaining_docs += docs
-                    remaining_metas = np.vstack((remaining_metas, np.array(metas)))
-                    remaining_classes += class_values
-
-                    # Update the info label.
-                    self.num_retrieved += len(res["response"]["docs"])
-                    info_label = "Records: {}\nRetrieved: {}".format(self.all_hits, self.num_retrieved)
-                    if self.all_hits > 1000:
-                        info_label += " (max 1000)"
-                    self.query_info_label.setText(info_label)
-
-                    if not cached:  # Only wait if an actual request was made.
-                        sleep(1)
-                else:
-                    if error:
-                        if isinstance(error, HTTPError):
-                            self.error(1, "An error occurred(HTTP {})".format(error.code))
-                        elif isinstance(error, URLError):
-                            self.error(1, "An error occurred(URL {})".format(error.reason))
-                        break
-            self.progressBarFinished()
-            self.query_running = False
+            metas, class_values = parse_record_json(res, self.nyt_api.includes_fields)
+            docs = []
+            for doc in metas:
+                docs.append(" ".join(doc).strip())
 
             # Update the corpus.
-            self.output_corpus.extend_corpus(remaining_docs, remaining_metas, remaining_classes)
-            self.send(Output.CORPUS, self.output_corpus)
+            self.output_corpus.extend_corpus(docs, metas, class_values)
 
-            if self.num_retrieved == min(self.all_hits, 1000):
-                self.retrieve_other_button.setText('All available records retrieved')
-                self.retrieve_other_button.setEnabled(False)
-            else:
-                self.retrieve_other_button.setText('Retrieve remaining records ({})'
-                                                   .format(min(self.all_hits, 1000)-self.num_retrieved))
-                self.retrieve_other_button.setFocus()
+            # Update the info label.
+            self.num_retrieved += len(res["response"]["docs"])
+            self.update_info_label()
 
-            self.open_set_api_key_dialog_button.setEnabled(True)
-            self.run_query_button.setEnabled(True)
+            if not cached:  # Only wait if an actual request was made.
+                sleep(1)
+
+            # Update the progress bar.
+            self.progressBarSet(100.0 * (i/num_steps))
+
+        self.progressBarFinished()
+        self.query_running = False
+
+        self.send(Output.CORPUS, self.output_corpus)
+
+        if self.num_retrieved == min(self.all_hits, 1000):
+            self.retrieve_other_button.setText('All available records retrieved')
+            self.retrieve_other_button.setEnabled(False)
+        else:
+            self.retrieve_other_button.setText('Retrieve remaining {} records'
+                                               .format(min(self.all_hits, 1000)-self.num_retrieved))
+            self.retrieve_other_button.setFocus()
+
+        self.open_set_api_key_dialog_button.setEnabled(True)
+        self.run_query_button.setEnabled(True)
+
+    def update_info_label(self):
+        info_label = "Records: {}\nRetrieved: {}".format(self.all_hits, self.num_retrieved)
+        if self.all_hits > 1000:
+            info_label += " (max 1000)"
+        self.query_info_label.setText(info_label)
+
+    def display_error_response(self, error):
+        if error and isinstance(error, HTTPError):
+            self.error(1, "An error occurred (HTTP {})".format(error.code))
+        elif error and isinstance(error, URLError):
+            self.error(1, "An error occurred (URL {})".format(error.reason))
 
     def check_api_key(self, api_key):
         nyt_api = NYT(api_key)
@@ -349,13 +347,9 @@ class OWNYT(OWWidget):
         self.api_key_is_valid = is_valid
         self.enable_controls()
 
+        self.update_validity_icon()
         if is_valid:
-            self.api_key_valid_label.setPixmap(QPixmap(_i("valid.svg"))
-                                               .scaled(15, 15, QtCore.Qt.KeepAspectRatio))
             self.nyt_api = NYT(self.api_key)    # Set the NYT API object, if key is valid.
-        else:
-            self.api_key_valid_label.setPixmap(QPixmap(_i("invalid.svg"))
-                                               .scaled(15, 15, QtCore.Qt.KeepAspectRatio))
 
     def enable_controls(self):
         for control in self.nyt_controls:
@@ -396,10 +390,7 @@ class APIKeyDialog(QDialog):
         # Label
         self.label_box = gui.widgetBox(self, orientation="horizontal")
         self.api_key_check_label = gui.label(self.label_box, self, "")
-        if self.parent.api_key_is_valid:
-            self.api_key_check_label.setText("API key is valid.")
-        else:
-            self.api_key_check_label.setText("API key NOT validated!")
+        self.update_validity_label()
 
         # Load the most recent API keys.
         self.set_key_list()
@@ -409,21 +400,15 @@ class APIKeyDialog(QDialog):
         for key in self.parent.recent_api_keys:
             self.api_key_combo.addItem(key)
 
-    def select_key(self, n):
-        if n < len(self.parent.recent_api_keys):
-            key = self.parent.recent_api_keys[n]
-            del self.parent.recent_api_keys[n]
-            self.parent.recent_api_keys.insert(0, key)
-
-        if len(self.parent.recent_api_keys) > 0:
-            self.set_key_list()
-
-    def check_api_key(self):
-        self.parent.check_api_key(self.api_key_combo.currentText())
+    def update_validity_label(self):
         if self.parent.api_key_is_valid:
             self.api_key_check_label.setText("API key is valid.")
         else:
-            self.api_key_check_label.setText("API key NOT valid!")
+            self.api_key_check_label.setText("API key not validated!")
+
+    def check_api_key(self):
+        self.parent.check_api_key(self.api_key_combo.currentText())
+        self.update_validity_label()
 
     def accept_changes(self):
         self.parent.check_api_key(self.api_key_combo.currentText())  # On OK check the API key also.
