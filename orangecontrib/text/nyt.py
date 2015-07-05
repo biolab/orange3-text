@@ -6,7 +6,6 @@ from urllib import request, parse
 from urllib.error import HTTPError, URLError
 
 from Orange.canvas.utils import environ
-from Orange.data import StringVariable
 
 
 def parse_record_json(record, includes_metadata):
@@ -14,22 +13,14 @@ def parse_record_json(record, includes_metadata):
     Parses the JSON representation of the record returned by the New York Times Article API.
     :param record: The JSON representation of the query's results.
     :param includes_metadata: The flags that determine which fields to include.
-    :return: A list of articles parsed into documents and a list of the
-        corresponding metadata, joined in a tuple.
+    :return: A list of the corresponding metadata and class values for the instances.
     """
-    text_fields = ["headline", "lead_paragraph", "snippet", "abstract", "keywords"]
-
-    documents = []
     class_values = []
-    meta_vars = [StringVariable.make(field) for field, flag in zip(text_fields, includes_metadata) if flag]
-    # Also add pub_date and glocation.
-    meta_vars += [StringVariable.make("pub_date"), StringVariable.make("country")]
-    metadata = np.empty((0, len(meta_vars)), dtype=object)
+    metadata = np.empty((0, len(includes_metadata)+2), dtype=object)    # columns: Text fields + (pub_date + country)
     for doc in record["response"]["docs"]:
-        string_document = ""
         metas_row = []
-        for field, flag in zip(text_fields, includes_metadata):
-            if flag and field in doc:
+        for field in includes_metadata:
+            if field in doc:
                 field_value = ""
                 if isinstance(doc[field], dict):
                     field_value = " ".join([val for val in doc[field].values() if val])
@@ -38,25 +29,23 @@ def parse_record_json(record, includes_metadata):
                 else:
                     if doc[field]:
                         field_value = doc[field]
-                string_document += field_value
                 metas_row.append(field_value)
         # Add the pub_date.
-        field_value = ""
-        if "pub_date" in doc and doc["pub_date"]:
-            field_value = doc["pub_date"]
-        metas_row.append(field_value)
+        metas_row.append(doc.get("pub_date", ""))
         # Add the glocation.
         metas_row.append(",".join([kw["value"] for kw in doc["keywords"] if kw["name"] == "glocations"]))
 
         # Add the section_name.
-        class_val = ""
-        if "section_name" in doc and doc["section_name"]:
-            class_val = doc["section_name"]
+        class_val = doc.get("section_name", "")
 
-        documents.append(string_document)
+        if class_val is None:
+            class_val = ""
         class_values.append(class_val)
+
+        metas_row = ["" if v is None else v for v in metas_row]
         metadata = np.vstack((metadata, np.array(metas_row)))
-    return documents, metadata, meta_vars, class_values
+
+    return metadata, class_values
 
 
 class NYT:
@@ -64,16 +53,16 @@ class NYT:
 
     def __init__(self, api_key):
         self._api_key = api_key.strip()
-        self._query_url = ""
-        self.query_key = ""
+        self._query_url = None
+        self.query_key = None
 
-        self.cache_pth = os.path.join(environ.buffer_dir, "nytcache")
+        self.cache_path = os.path.join(environ.buffer_dir, "nytcache")
         try:
-            os.makedirs(self.cache_pth)
+            if not os.path.exists(self.cache_path):
+                os.makedirs(self.cache_path)
         except:
-            pass
+            print("WARNING: Could not assemble NYT query cache path.")
         self.query_cache = None
-        self.includes_fields = [False]*5
 
     def set_query_url(self,
                       query,
@@ -88,14 +77,9 @@ class NYT:
             from this year forth only.
         :param year_to: A digit input that signifies to return articles
             up to this year only.
-        :param text_includes: A list of boolean flags that determines what text fields,
-            the API should return. Ordered as follows: [headline, lead_paragraph, snippet,
-            abstract, keywords]
+        :param text_includes: A list of text fields that are to be requested.
         :return: Returns the query URL in the form of a string.
         """
-        if text_includes:
-            self.includes_fields = text_includes
-
         # Query keywords, base url and API key.
         query_url = parse.urlencode({
             "q": query,
@@ -110,22 +94,22 @@ class NYT:
             query_url += "&end_date=" + year_to + "1231"
 
         # Text fields.
-        if text_includes and True in text_includes:
-            fl_fields = ["headline", "lead_paragraph", "snippet", "abstract", "keywords"]
-            fl = ",".join([f1 for f1, f2 in zip(fl_fields, text_includes) if f2])
+        if text_includes:
+            self.includes_fields = text_includes
+            fl = ",".join(text_includes)
             query_url += "&fl=" + fl
         # Add pub_date.
         query_url += ",pub_date"
         # Add section_name.
         query_url += ",section_name"
         # Add keywords in every case, since we need them for geolocating.
-        if not text_includes[-1]:
+        if "keywords" not in text_includes:
             query_url += ",keywords"
 
         self._query_url = "{0}?{1}".format(self.base_url, query_url)
         # This query's key, to store with shelve.
         # Queries differ in query words, included text fields and date range.
-        query_key = query.split(" ") + [f1 for f1, f2 in zip(fl_fields, text_includes) if f2]
+        query_key = query.split(" ") + text_includes
         if year_from and year_from.isdigit():
             query_key += [year_from]
         if year_to and year_to.isdigit():
@@ -165,7 +149,7 @@ class NYT:
             current_query = self._query_url+"&page={}".format(page)
             current_query_key = self.query_key + "_" + str(page)
 
-            self.query_cache = shelve.open(os.path.join(self.cache_pth, "query_cache"))
+            self.query_cache = shelve.open(os.path.join(self.cache_path, "query_cache"))
 
             if current_query_key in self.query_cache.keys():
                 response = self.query_cache[current_query_key]

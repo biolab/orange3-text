@@ -11,7 +11,7 @@ from Orange.widgets.widget import OWWidget
 from Orange.widgets import gui
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.nyt import NYT, parse_record_json
-from Orange.data import Domain, DiscreteVariable
+from Orange.data import Domain, DiscreteVariable, StringVariable
 
 
 def _i(name, icon_path="icons"):
@@ -51,6 +51,7 @@ class OWNYT(OWWidget):
     includes_snippet = Setting(False)
     includes_abstract = Setting(False)
     includes_keywords = Setting(False)
+    text_fields = ["headline", "lead_paragraph", "snippet", "abstract", "keywords"]
 
     def __init__(self):
         super().__init__()
@@ -208,18 +209,29 @@ class OWNYT(OWWidget):
                                 "Assumed 1851 as start date for this query.")
 
             # Set the query url.
-            self.nyt_api.set_query_url(qkw, self.year_from, self.year_to, text_includes_params)
+            required_text_fields = [tp for tf, tp in zip(text_includes_params, self.text_fields) if tf]
+            self.nyt_api.set_query_url(qkw, self.year_from,
+                                       self.year_to,
+                                       required_text_fields)
 
             # Execute the query.
             res, cached, error = self.nyt_api.execute_query(0)
 
             if res:
                 # Construct a corpus for the output.
-                documents, metas, meta_vars, class_values = parse_record_json(res, text_includes_params)
+                metas, class_values = parse_record_json(res, required_text_fields)
+                documents = []
+                for doc in metas:
+                    documents.append(" ".join(doc).strip())
+
+                # Create domain.
+                meta_vars = [StringVariable.make(field) for field in required_text_fields]
+                meta_vars += [StringVariable.make("pub_date"), StringVariable.make("country")]
                 class_vars = [DiscreteVariable("section_name", values=list(set(class_values)))]
+                domain = Domain([], class_vars=class_vars, metas=meta_vars)
+
                 Y = np.array([class_vars[0].to_val(cv) for cv in class_values])[:, None]
                 Y[np.isnan(Y)] = 0
-                domain = Domain([], class_vars=class_vars, metas=meta_vars)
 
                 self.output_corpus = Corpus(documents, None, Y, metas, domain)
                 self.send(Output.CORPUS, self.output_corpus)
@@ -286,7 +298,10 @@ class OWNYT(OWWidget):
                 res, cached, error = self.nyt_api.execute_query(i)
 
                 if res:
-                    docs, metas, meta_vars, class_values = parse_record_json(res, self.nyt_api.includes_fields)
+                    metas, class_values = parse_record_json(res, self.nyt_api.includes_fields)
+                    docs = []
+                    for doc in metas:
+                        docs.append(" ".join(doc).strip())
                     remaining_docs += docs
                     remaining_metas = np.vstack((remaining_metas, np.array(metas)))
                     remaining_classes += class_values
@@ -311,7 +326,7 @@ class OWNYT(OWWidget):
             self.query_running = False
 
             # Update the corpus.
-            self.output_corpus.extend_corpus(remaining_docs, remaining_metas, remaining_classes, meta_vars)
+            self.output_corpus.extend_corpus(remaining_docs, remaining_metas, remaining_classes)
             self.send(Output.CORPUS, self.output_corpus)
 
             if self.num_retrieved == min(self.all_hits, 1000):

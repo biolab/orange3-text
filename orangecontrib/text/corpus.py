@@ -70,7 +70,7 @@ class Corpus(Table):
             documents.append(' '.join(self.metas[line, indices]))
         self.documents = documents
 
-    def extend_corpus(self, documents, metadata, class_values, meta_vars):
+    def extend_corpus(self, documents, metadata, class_values):
         # TODO check if Domains match!
         self.metas = np.vstack((self.metas, metadata))
         self.documents += documents
