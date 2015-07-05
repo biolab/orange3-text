@@ -179,90 +179,86 @@ class OWNYT(OWWidget):
         self.error(1)
         # Only execute if the NYT object is present(safety lock).
         # Otherwise this method cannot be called anyway.
-        if self.nyt_api:
-            # Interrupts on faulty inputs. #
-            # Query keywords.
-            qkw = self.query_combo.currentText()
-            if not qkw:
-                self.warning(1, "Please enter a query before attempting to fetch results.")
-                return
+        if not self.nyt_api:
+            return
 
-            # Text fields.
-            text_includes_params = [self.includes_headline, self.includes_lead_paragraph, self.includes_snippet,
-                                    self.includes_abstract, self.includes_keywords]
-            if True not in text_includes_params:
-                self.warning(1, "You must select at least one text field.")
-                return
+        # Interrupts on faulty inputs. #
+        # Query keywords.
+        qkw = self.query_combo.currentText()
+        if not qkw:
+            self.warning(1, "Please enter a query before attempting to fetch results.")
+            return
 
-            # Year span.
-            if self.year_from and not self.year_from.isdigit() or \
-                    self.year_to and not self.year_to.isdigit():
-                self.warning(1, "The time interval endpoints must be digits.")
-                return
+        # Text fields.
+        text_includes_params = [self.includes_headline, self.includes_lead_paragraph, self.includes_snippet,
+                                self.includes_abstract, self.includes_keywords]
+        if True not in text_includes_params:
+            self.warning(1, "You must select at least one text field.")
+            return
 
-            # Warnings on bad inputs. #
-            if self.year_from and self.year_from > self.year_to:
-                self.warning(1, "The end time is greater than the starting time.")
+        # Year span.
+        if self.year_from and not self.year_from.isdigit() or \
+                self.year_to and not self.year_to.isdigit():
+            self.warning(1, "The time interval endpoints must be digits.")
+            return
 
-            if self.year_from and int(self.year_from) < 1851:
-                self.warning(1, "There are no records before the year 1851. "
-                                "Assumed 1851 as start date for this query.")
+        # Warnings on bad inputs. #
+        if self.year_from and self.year_from > self.year_to:
+            self.warning(1, "The start date is greater than the end date.")
 
-            # Set the query url.
-            required_text_fields = [tp for tf, tp in zip(text_includes_params, self.text_fields) if tf]
-            self.nyt_api.set_query_url(qkw, self.year_from,
-                                       self.year_to,
-                                       required_text_fields)
+        if self.year_from and int(self.year_from) < 1851:
+            self.warning(1, "There are no records before the year 1851. "
+                            "Assumed 1851 as start date for this query.")
 
-            # Execute the query.
-            res, cached, error = self.nyt_api.execute_query(0)
+        # Set the query url.
+        required_text_fields = [tp for tf, tp in zip(text_includes_params, self.text_fields) if tf]
+        self.nyt_api.set_query_url(qkw, self.year_from,
+                                   self.year_to,
+                                   required_text_fields)
 
-            if res:
-                # Construct a corpus for the output.
-                metas, class_values = parse_record_json(res, required_text_fields)
-                documents = []
-                for doc in metas:
-                    documents.append(" ".join(doc).strip())
+        # Execute the query.
+        res, cached, error = self.nyt_api.execute_query(0)
 
-                # Create domain.
-                meta_vars = [StringVariable.make(field) for field in required_text_fields]
-                meta_vars += [StringVariable.make("pub_date"), StringVariable.make("country")]
-                class_vars = [DiscreteVariable("section_name", values=list(set(class_values)))]
-                domain = Domain([], class_vars=class_vars, metas=meta_vars)
+        if not res:     # Just return if no response.
+            if error:
+                self.display_error_response(error)
+            return
 
-                Y = np.array([class_vars[0].to_val(cv) for cv in class_values])[:, None]
-                Y[np.isnan(Y)] = 0
+        # Construct a corpus for the output.
+        metas, class_values = parse_record_json(res, required_text_fields)
+        documents = []
+        for doc in metas:
+            documents.append(" ".join(doc).strip())
 
-                self.output_corpus = Corpus(documents, None, Y, metas, domain)
-                self.send(Output.CORPUS, self.output_corpus)
+        # Create domain.
+        meta_vars = [StringVariable.make(field) for field in required_text_fields]
+        meta_vars += [StringVariable.make("pub_date"), StringVariable.make("country")]
+        class_vars = [DiscreteVariable("section_name", values=list(set(class_values)))]
+        domain = Domain([], class_vars=class_vars, metas=meta_vars)
 
-                # Update the response info.
-                self.all_hits = res["response"]["meta"]["hits"]
-                self.num_retrieved = len(res["response"]["docs"])
-                info_label = "Records: {}\nRetrieved: {}".format(self.all_hits, self.num_retrieved)
-                if self.all_hits > 1000:
-                    info_label += " (max 1000)"
-                self.query_info_label.setText(info_label)
+        Y = np.array([class_vars[0].to_val(cv) for cv in class_values])[:, None]
 
-                # Enable 'retrieve remaining' button.
-                if self.num_retrieved < min(self.all_hits, 1000):
-                    self.retrieve_other_button.setText('Retrieve remaining records ({})'
-                                                       .format(min(self.all_hits, 1000)-self.num_retrieved))
-                    self.retrieve_other_button.setEnabled(True)
-                    self.retrieve_other_button.setFocus()
-                else:
-                    self.retrieve_other_button.setText('All records retrieved')
-                    self.retrieve_other_button.setEnabled(False)
+        self.output_corpus = Corpus(documents, None, Y, metas, domain)
+        self.send(Output.CORPUS, self.output_corpus)
 
-                # Add the query to history.
-                if qkw not in self.recent_queries:
-                    self.recent_queries.insert(0, qkw)
-            else:
-                if error:
-                    if isinstance(error, HTTPError):
-                        self.error(1, "An error occurred(HTTP {})".format(error.code))
-                    elif isinstance(error, URLError):
-                        self.error(1, "An error occurred(URL {})".format(error.reason))
+        # Update the response info.
+        self.all_hits = res["response"]["meta"]["hits"]
+        self.num_retrieved = len(res["response"]["docs"])
+        self.update_info_label()
+
+        # Enable 'retrieve remaining' button.
+        if self.num_retrieved < min(self.all_hits, 1000):
+            self.retrieve_other_button.setText('Retrieve remaining {} records'
+                                               .format(min(self.all_hits, 1000)-self.num_retrieved))
+            self.retrieve_other_button.setEnabled(True)
+            self.retrieve_other_button.setFocus()
+        else:
+            self.retrieve_other_button.setText('All records retrieved')
+            self.retrieve_other_button.setEnabled(False)
+
+        # Add the query to history.
+        if qkw not in self.recent_queries:
+            self.recent_queries.insert(0, qkw)
 
     def retrieve_remaining_records(self):
         self.error(1)
