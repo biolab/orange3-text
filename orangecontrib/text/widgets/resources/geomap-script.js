@@ -32,7 +32,10 @@ function renderMap() {
                 scale: ['#ffdddd', '#ff0000'],
                 normalizeFunction: 'polynomial',
                 legend: {
-                    horizontal: true
+                    horizontal: true,
+                    labelRender: function(v) {
+                        return v.toString().match(/.+?(\.\d\d)?/)[0];
+                    }
                 }
             }]
         },
