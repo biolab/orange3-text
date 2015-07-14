@@ -73,17 +73,18 @@ class OWGeoMap(widget.OWWidget):
 <html>
 <head>
 <meta charset="utf-8">
+<base href="file://{}/"/>
 <style>
-html, body, #map {margin:0px;padding:0px;width:100%;height:100%;}
+html, body, #map {{margin:0px;padding:0px;width:100%;height:100%;}}
 </style>
 <link  href="resources/jquery-jvectormap-2.0.2.css" rel="stylesheet">
 </head>
 <body>
 <div id="map"></div>
 </body>
-</html>'''
+</html>'''.format(path.abspath(path.dirname(__file__)))
         self.webview = gui.WebviewWidget(self.controlArea, self, debug=True)
-        self.webview.setHtml(html, 'file://{}/'.format(path.dirname(__file__)))
+        self.webview.setHtml(html)
         for script in ('jquery-2.1.4.min.js',
                        'jquery-jvectormap-2.0.2.min.js',
                        'jquery-jvectormap-world-mill-en.js',
