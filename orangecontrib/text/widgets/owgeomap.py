@@ -154,7 +154,7 @@ html, body, #map {{margin:0px;padding:0px;width:100%;height:100%;}}
         attr = self.metas[self.selected_attr]
         if attr.is_discrete:
             return self.warning(0, 'Discrete region attributes not yet supported. Patches welcome!')
-        countries = (set(CC_NAMES.findall(i.lower())) if len(i) > 3 else (i,)
+        countries = (set(map(str.strip, CC_NAMES.findall(i.lower()))) if len(i) > 3 else (i,)
                      for i in self.data.get_column_view(self.data.domain.index(attr))[0])
         def flatten(seq):
             return (i for sub in seq for i in sub)
