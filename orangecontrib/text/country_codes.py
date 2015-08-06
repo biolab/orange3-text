@@ -44,7 +44,7 @@ CC_EUROPE = {
     'FI': ['FIN', 'Finland'],
     'FO': ['FRO', 'Faroe Islands', 'Faeroe Is.'],
     'FR': ['FRA', 'France'],
-    'GB': ['GBR', 'United Kingdom'],
+    'GB': ['GBR', 'United Kingdom', 'Great Britain', 'England'],
     'GE': ['GEO', 'Georgia'],
     'GG': ['GGY', 'Guernsey'],
     'GR': ['GRC', 'Greece'],
@@ -91,7 +91,7 @@ CC_EUROPE = {
 
 CC_WORLD = {
     # Does NOT include CC_EUROPE
-    '_1': ['Somaliland',],
+    '_1': ['Somaliland'],
     'AE': ['ARE', 'United Arab Emirates'],
     'AF': ['AFG', 'Afghanistan'],
     'AM': ['ARM', 'Armenia'],
@@ -213,7 +213,6 @@ CC_WORLD = {
     'ZM': ['ZMB', 'Zambia'],
     'ZW': ['ZWE', 'Zimbabwe'],
 }
-CC_WORLD.update(CC_EUROPE)
 
 
 CC_USA = {
@@ -244,8 +243,8 @@ CC_USA = {
     'US-MO': ['MO', 'Missouri'],
     'US-MS': ['MS', 'Mississippi'],
     'US-MT': ['MT', 'Montana'],
-    'US-NC': ['NC', 'North Carolina'],
-    'US-ND': ['ND', 'North Dakota'],
+    'US-NC': ['NC', 'North Carolina', 'N. Carolina'],
+    'US-ND': ['ND', 'North Dakota', 'N. Dakota'],
     'US-NE': ['NE', 'Nebraska'],
     'US-NH': ['NH', 'New Hampshire'],
     'US-NJ': ['NJ', 'New Jersey'],
@@ -257,8 +256,8 @@ CC_USA = {
     'US-OR': ['OR', 'Oregon'],
     'US-PA': ['PA', 'Pennsylvania'],
     'US-RI': ['RI', 'Rhode Island'],
-    'US-SC': ['SC', 'South Carolina'],
-    'US-SD': ['SD', 'South Dakota'],
+    'US-SC': ['SC', 'South Carolina', 'S. Carolina'],
+    'US-SD': ['SD', 'South Dakota', 'S. Dakota'],
     'US-TN': ['TN', 'Tennessee'],
     'US-TX': ['TX', 'Texas'],
     'US-UT': ['UT', 'Utah'],
@@ -270,9 +269,66 @@ CC_USA = {
     'US-WY': ['WY', 'Wyoming'],
 }
 
+US_CITIES = {
+    # From https://en.wikipedia.org/wiki/List_of_United_States_cities_by_population
+    'US-AK': ['Anchorage'],
+    'US-AL': ['Birmingham', 'Montgomery', 'Mobile', 'Huntsville'],
+    'US-AR': ['Little Rock'],
+    'US-AZ': ['Phoenix', 'Tucson', 'Mesa', 'Chandler', 'Gilbert', 'Glendale', 'Scottsdale', 'Tempe', 'Peoria', 'Surprise'],
+    'US-CA': ['Los Angeles', 'San Diego', 'San Jose', 'San Francisco', 'Fresno', 'Sacramento', 'Long Beach', 'Oakland', 'Bakersfield', 'Anaheim', 'Santa Ana', 'Riverside', 'Stockton', 'Chula Vista', 'Irvine', 'Fremont', 'San Bernardino', 'Modesto', 'Oxnard', 'Fontana', 'Moreno Valley', 'Huntington Beach', 'Glendale', 'Santa Clarita', 'Garden Grove', 'Oceanside', 'Rancho Cucamonga', 'Santa Rosa', 'Ontario', 'Elk Grove', 'Corona', 'Lancaster', 'Palmdale', 'Salinas', 'Hayward', 'Pomona', 'Escondido', 'Sunnyvale', 'Torrance', 'Pasadena', 'Orange', 'Fullerton', 'Thousand Oaks', 'Visalia', 'Roseville', 'Concord', 'Simi Valley', 'Santa Clara', 'Victorville', 'Vallejo', 'Berkeley', 'El Monte', 'Downey', 'Costa Mesa', 'Carlsbad', 'Inglewood', 'Fairfield', 'Ventura', 'Temecula', 'Antioch', 'Richmond', 'West Covina', 'Murrieta', 'Norwalk', 'Daly City', 'Burbank', 'Santa Maria', 'El Cajon', 'San Mateo', 'Rialto', 'Clovis', 'East Los Angeles'],
+    'US-CO': ['Denver', 'Colorado Springs', 'Aurora', 'Fort Collins', 'Lakewood', 'Thornton', 'Arvada', 'Westminster', 'Pueblo', 'Centennial', 'Boulder'],
+    'US-CT': ['Bridgeport', 'New Haven', 'Stamford', 'Hartford', 'Waterbury'],
+    'US-DC': ['Washington'],
+    'US-FL': ['Jacksonville', 'Miami', 'Tampa', 'Orlando', 'St. Petersburg', 'Hialeah', 'Tallahassee', 'Fort Lauderdale', 'Port St. Lucie', 'Cape Coral', 'Pembroke Pines', 'Hollywood', 'Miramar', 'Gainesville', 'Coral Springs', 'Miami Gardens', 'Clearwater', 'Pompano Beach', 'Palm Bay', 'West Palm Beach', 'Lakeland', 'Brandon'],
+    'US-GA': ['Atlanta', 'Columbus', 'Augusta', 'Macon', 'Savannah', 'Athens', 'Sandy Springs'],
+    'US-HI': ['Honolulu'],
+    'US-IA': ['Des Moines', 'Cedar Rapids', 'Davenport'],
+    'US-ID': ['Boise'],
+    'US-IL': ['Chicago', 'Aurora', 'Rockford', 'Joliet', 'Naperville', 'Springfield', 'Peoria', 'Elgin'],
+    'US-IN': ['Indianapolis', 'Fort Wayne', 'Evansville', 'South Bend'],
+    'US-KS': ['Wichita', 'Overland Park', 'Kansas City', 'Olathe', 'Topeka'],
+    'US-KY': ['Louisville', 'Lexington'],
+    'US-LA': ['New Orleans', 'Baton Rouge', 'Shreveport', 'Lafayette', 'Metairie'],
+    'US-MA': ['Boston', 'Worcester', 'Springfield', 'Lowell', 'Cambridge'],
+    'US-MD': ['Baltimore'],
+    'US-MI': ['Detroit', 'Grand Rapids', 'Warren', 'Sterling Heights', 'Ann Arbor', 'Lansing'],
+    'US-MN': ['Minneapolis', 'St. Paul', 'Rochester'],
+    'US-MO': ['Kansas City', 'St. Louis', 'Springfield', 'Independence', 'Columbia'],
+    'US-MS': ['Jackson'],
+    'US-MT': ['Billings'],
+    'US-NC': ['Charlotte', 'Raleigh', 'Greensboro', 'Durham', 'Winston–Salem', 'Fayetteville', 'Cary', 'Wilmington', 'High Point'],
+    'US-ND': ['Fargo'],
+    'US-NE': ['Omaha', 'Lincoln'],
+    'US-NH': ['Manchester'],
+    'US-NJ': ['Newark', 'Jersey City', 'Paterson', 'Elizabeth'],
+    'US-NM': ['Albuquerque', 'Las Cruces'],
+    'US-NV': ['Las Vegas', 'Henderson', 'Reno', 'North Las Vegas', 'Paradise', 'Sunrise Manor', 'Spring Valley', 'Enterprise'],
+    'US-NY': ['New York City', 'Buffalo', 'Rochester', 'Yonkers', 'Syracuse'],
+    'US-OH': ['Columbus', 'Cleveland', 'Cincinnati', 'Toledo', 'Akron', 'Dayton'],
+    'US-OK': ['Oklahoma City', 'Tulsa', 'Norman', 'Broken Arrow'],
+    'US-OR': ['Portland', 'Salem', 'Eugene', 'Gresham'],
+    'US-PA': ['Philadelphia', 'Pittsburgh', 'Allentown'],
+    'US-RI': ['Providence'],
+    'US-SC': ['Columbia', 'Charleston', 'North Charleston'],
+    'US-SD': ['Sioux Falls'],
+    'US-TN': ['Memphis', 'Nashville', 'Knoxville', 'Chattanooga', 'Clarksville', 'Murfreesboro'],
+    'US-TX': ['Houston', 'San Antonio', 'Dallas', 'Austin', 'Fort Worth', 'El Paso', 'Arlington', 'Corpus Christi', 'Plano', 'Laredo', 'Lubbock', 'Garland', 'Irving', 'Amarillo', 'Grand Prairie', 'Brownsville', 'McKinney', 'Pasadena', 'Frisco', 'Mesquite', 'McAllen', 'Killeen', 'Waco', 'Carrollton', 'Denton', 'Midland', 'Abilene', 'Beaumont', 'Odessa', 'Round Rock', 'Richardson', 'Wichita Falls', 'College Station', 'Pearland', 'Lewisville', 'Tyler'],
+    'US-UT': ['Salt Lake City', 'West Valley City', 'Provo', 'West Jordan'],
+    'US-VA': ['Virginia Beach', 'Norfolk', 'Chesapeake', 'Richmond', 'Newport News', 'Alexandria', 'Hampton', 'Arlington County'],
+    'US-WA': ['Seattle', 'Spokane', 'Tacoma', 'Vancouver', 'Bellevue', 'Kent', 'Everett'],
+    'US-WI': ['Milwaukee', 'Madison', 'Green Bay'],
+}
+
+# Extend USA with US_CITIES
+for i in US_CITIES: CC_USA[i].extend(US_CITIES[i])
+
+# Extend world with Europe and USA
+CC_WORLD.update(CC_EUROPE)
+CC_WORLD['US'].extend(i for v in CC_USA.values() for i in v[1:])
+
 
 def _invert_mapping(dict):
-    return {v:k for k in dict for v in dict[k]}
+    return {(v.lower() if len(v) > 3 else v): k for k in dict for v in dict[k]}
 
 
 INV_CC_EUROPE = _invert_mapping(CC_EUROPE)
