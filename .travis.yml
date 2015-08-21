@@ -1,0 +1,32 @@
+language: python
+
+sudo: false   # use container-based infrastructure
+
+python:
+  - "3.4"
+
+addons:
+    apt:
+        packages:
+            - gfortran
+            - libblas-dev
+            - liblapack-dev
+            - libqt4-dev
+
+cache:
+    apt: true   # does not work for public repos
+    directories:
+        - $HOME/.cache/pip
+        - $HOME/.ccache
+        - $HOME/nltk_data
+
+before_install:
+    - pip install -U setuptools pip wheel
+
+install:
+    - travis_wait source $TRAVIS_BUILD_DIR/travis/install_orange.sh
+    - travis_wait pip install -r requirements.txt
+    - source $TRAVIS_BUILD_DIR/travis/nltk_download.sh
+
+script:
+    - python setup.py test

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import sys
 from setuptools import setup, find_packages
 
 VERSION = '0.1.2'
@@ -32,6 +33,21 @@ KEYWORDS = (
     'orange3 add-on',
 )
 
+INSTALL_REQUIRES = (
+    'Orange >= 3.1',
+    'nltk',
+    'scikit-learn',
+    'numpy',
+    'gensim',
+)
+
+if 'test' in sys.argv:
+    extra_setuptools_args = dict(
+        test_suite='orangecontrib.text.tests',
+    )
+else:
+    extra_setuptools_args = dict()
+
 if __name__ == '__main__':
     setup(
         name="Orange3-Text",
@@ -46,10 +62,11 @@ if __name__ == '__main__':
             'orangecontrib.text': ['tutorials/*.ows'],
             'orangecontrib.text.widgets': ['icons/*'],
         },
-        install_requires=['Orange', 'nltk', 'scikit-learn', 'numpy', 'gensim', 'appdirs'],
+        install_requires=INSTALL_REQUIRES,
         entry_points=ENTRY_POINTS,
         keywords=KEYWORDS,
         namespace_packages=['orangecontrib'],
         include_package_data=True,
         zip_safe=False,
+        **extra_setuptools_args
     )
