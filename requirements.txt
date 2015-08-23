@@ -1,0 +1,4 @@
+nltk
+scikit-learn
+numpy
+gensim
