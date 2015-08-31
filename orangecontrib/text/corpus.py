@@ -21,6 +21,7 @@ class Corpus(Table):
 
     def __init__(self, documents, X, Y, metas, domain):
         self.documents = documents
+        self.tokens = None
         if X is not None:
             self.X = X
         else:
