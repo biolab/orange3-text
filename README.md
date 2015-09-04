@@ -1,6 +1,9 @@
 Text Mining Add-on for Orange3
 ==============================
 
+[![Build Status](https://travis-ci.org/biolab/orange3-text.svg?branch=master)](https://travis-ci.org/biolab/orange3-text)
+[![codecov.io](http://codecov.io/github/biolab/orange3-text/coverage.svg?branch=master)](http://codecov.io/github/biolab/orange3-text?branch=master)
+
 This is a text mining add-on for [Orange3](http://orange.biolab.si). It extends Orange in scripting and GUI
 part.
 
