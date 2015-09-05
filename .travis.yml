@@ -20,6 +20,9 @@ cache:
         - $HOME/.ccache
         - $HOME/nltk_data
 
+before_cache:   # prevent logs from caching
+    - rm -f $HOME/.cache/pip/log/debug.log
+
 before_install:
     - pip install -U setuptools pip wheel
     - pip install codecov
