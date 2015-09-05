@@ -10,7 +10,7 @@ from Orange.widgets.settings import Setting
 from Orange.widgets.widget import OWWidget
 from Orange.widgets import gui
 from orangecontrib.text.corpus import Corpus
-from orangecontrib.text.nyt import NYT, parse_record_json
+from orangecontrib.text.nyt import NYT, _parse_record_json, NYT_TEXT_FIELDS, _generate_corpus
 from Orange.data import Domain, DiscreteVariable, StringVariable
 
 
@@ -41,7 +41,6 @@ class OWNYT(OWWidget):
     includes_snippet = Setting(False)
     includes_abstract = Setting(False)
     includes_keywords = Setting(False)
-    text_fields = ["headline", "lead_paragraph", "snippet", "abstract", "keywords"]
 
     def __init__(self):
         super().__init__()
@@ -208,34 +207,21 @@ class OWNYT(OWWidget):
                             "Assumed 1851 as start date for this query.")
 
         # Set the query url.
-        required_text_fields = [tp for tf, tp in zip(text_includes_params, self.text_fields) if tf]
-        self.nyt_api.set_query_url(qkw, self.year_from,
-                                   self.year_to,
-                                   required_text_fields)
+        required_text_fields = [tp for tf, tp in zip(text_includes_params, NYT_TEXT_FIELDS) if tf]
+        self.nyt_api._set_endpoint_url(qkw, self.year_from,
+                                       self.year_to,
+                                       required_text_fields)
 
         # Execute the query.
-        res, cached, error = self.nyt_api.execute_query(0)
+        res, cached, error = self.nyt_api._execute_query(0)
 
-        if not res:     # Just return if no response.
-            if error:
-                self.display_error_response(error)
+        # Display error if failure.
+        if self.display_error_response(res, error):
             return
 
         # Construct a corpus for the output.
-        metas, class_values = parse_record_json(res, required_text_fields)
-        documents = []
-        for doc in metas:
-            documents.append(" ".join(doc).strip())
-
-        # Create domain.
-        meta_vars = [StringVariable.make(field) for field in required_text_fields]
-        meta_vars += [StringVariable.make("pub_date"), StringVariable.make("country")]
-        class_vars = [DiscreteVariable("section_name", values=list(set(class_values)))]
-        domain = Domain([], class_vars=class_vars, metas=meta_vars)
-
-        Y = np.array([class_vars[0].to_val(cv) for cv in class_values])[:, None]
-
-        self.output_corpus = Corpus(documents, None, Y, metas, domain)
+        corpus = _generate_corpus(res["response"]["docs"], required_text_fields)
+        self.output_corpus = corpus
         self.send(Output.CORPUS, self.output_corpus)
 
         # Update the response info.
@@ -281,14 +267,13 @@ class OWNYT(OWWidget):
             if not self.query_running:
                 break
 
-            res, cached, error = self.nyt_api.execute_query(i)
+            res, cached, error = self.nyt_api._execute_query(i)
 
-            if not res:     # Break if no response.
-                if error:
-                    self.display_error_response(error)
-                break
+            # Display error if failure.
+            if self.display_error_response(res, error):
+                return
 
-            metas, class_values = parse_record_json(res, self.nyt_api.includes_fields)
+            metas, class_values = _parse_record_json(res["response"]["docs"], self.nyt_api.includes_fields)
             docs = []
             for doc in metas:
                 docs.append(" ".join(doc).strip())
@@ -328,11 +313,14 @@ class OWNYT(OWWidget):
             info_label += " (max 1000)"
         self.query_info_label.setText(info_label)
 
-    def display_error_response(self, error):
-        if error and isinstance(error, HTTPError):
-            self.error(1, "An error occurred (HTTP {})".format(error.code))
-        elif error and isinstance(error, URLError):
-            self.error(1, "An error occurred (URL {})".format(error.reason))
+    def display_error_response(self, res, error):
+        failure = (not res) or ('response' not in res) or ('docs' not in res['response'])
+        if failure and error is not None:
+            if isinstance(error, HTTPError):
+                self.error(1, "An error occurred (HTTP {})".format(error.code))
+            elif isinstance(error, URLError):
+                self.error(1, "An error occurred (URL {})".format(error.reason))
+        return failure
 
     def check_api_key(self, api_key):
         nyt_api = NYT(api_key)
