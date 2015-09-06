@@ -80,8 +80,8 @@ class TokenizerEditor(BaseEditor):
 
     # Keywords for the pp objects.
     TokenizerObjects = {
-        WordTokenizer: "word_tokenizer",
-        TwitterTokenizer: "twitter_tokenizer"
+        WordTokenizer: False,
+        TwitterTokenizer: True
     }
     # Names of the pp objects.
     Names = {
@@ -178,7 +178,7 @@ class TokenizerEditor(BaseEditor):
         method = params.pop("method", TokenizerEditor.WordTokenizer)
         lwcase = params.pop("lwcase", False)
         used_method = TokenizerEditor.TokenizerObjects[method]
-        return {"tokenizer": used_method, "lowercase": lwcase}
+        return {"use_twitter_tokenizer": used_method, "lowercase": lwcase}
 
 
 class TransformationEditor(BaseEditor):
@@ -383,20 +383,13 @@ class StopWordEditor(BaseEditor):
             return
 
         new_files = [f for f in self.recent_sw_files if f != path]
-        #if len(new_files) < len(self.recent_sw_files):
         new_files.insert(0, path)
         self.recent_sw_files = new_files
         self.set_file_list()
         self.update_custom_source()
 
     def open_file(self, path):
-        try:
-            self.current_file_path = path
-
-            #sw_list = self.read_sw_from_file(path)
-            #self.StopWordSources[self.Custom] = sw_list
-        except BaseException as err:
-            print(err)
+        self.current_file_path = path
 
     def update_custom_source(self):
         self.StopWordSources[self.Custom] = self.recent_sw_files
@@ -1307,8 +1300,6 @@ class OWPreprocess(OWWidget):
         output_corp = self.data
         tokens = preprocessor(input_data)
 
-        print(tokens)
-
         # Update the input corpus with a list of tokens.
         self.data.tokens = tokens
         self.send(Output.PP_CORPUS, self.data)
@@ -1319,7 +1310,7 @@ class OWPreprocess(OWWidget):
     def build_preproc(self):
         self.warning(1, "")
         # Preprocessor parameters that we require.
-        p = {"tokenizer": None, "lowercase": False, "stop_words": None, "transformation": None}
+        p = {"use_twitter_tokenizer": False, "lowercase": False, "stop_words": None, "transformation": None}
         # For each row in the self.preprocessormodel, acquire
         # the info for the preprocessor.
         for i in range(self.preprocessormodel.rowCount()):
@@ -1345,14 +1336,9 @@ class OWPreprocess(OWWidget):
                     self.warning(1, "Stop word remover: {}".format(err))
 
             p.update(pp_info)
-        print("Pre-procesing with: \n", p)
 
-        # Return false if no tokenizer was specified.
-        if p["tokenizer"] is None:
-            return False
-
-        return Preprocessor(tokenizer=p["tokenizer"], lowercase=p["lowercase"], stop_words=p["stop_words"],
-                            transformation=p["transformation"])
+        return Preprocessor(use_twitter_tokenizer=p["use_twitter_tokenizer"], lowercase=p["lowercase"],
+                            stop_words=p["stop_words"], transformation=p["transformation"])
 
     @Slot()
     def __update_size_constraint(self):

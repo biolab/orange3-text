@@ -15,29 +15,23 @@ class Preprocessor:
         is capable of tokenizing, lowercasing, stemming and lemmatizing the input. Returns a list
         of preprocessed tokens, sorted by order of appearance in text.
     """
-    def __init__(self, tokenizer="word_tokenizer", lowercase=True, stop_words=None, transformation=None):
+    def __init__(self, lowercase=True, stop_words=None, transformation=None, use_twitter_tokenizer=False):
         """
-        :param tokenization: A mandatory argument that defines the type of tokenizer we wish to use.
-        :type tokenization: 'word_tokenizer' or 'twitter_tokenizer'
         :param lowercase: If set, transform the tokens to lower case, before returning them.
         :type lowercase: boolean
         :param stop_words: Determines whether and what stop words should be removed. Can remove
             default nltk stop words for the English language or stop words provided in a custom list.
         :type stop_words: 'default', a list or None
-        :param trans: Name of the morphological transformation method to be performed on the tokens.
-        :type trans: 'porter_stemmer', 'snowball_stemmer', 'lemmatizer' or None
+        :param transformation: Name of the morphological transformation method to be performed on the tokens.
+        :type transformation: 'porter_stemmer', 'snowball_stemmer', 'lemmatizer' or None
+        :param use_twitter_tokenizer: Determines the use of either the Twitter or default word tokenizer.
+        :type use_twitter_tokenizer: bool
         :return: list
         """
         # Tokenizer.
-        if tokenizer is None:
-            raise ValueError("The pre-processor must specify a tokenizer "
-                             "('word_tokenizer' or 'twitter_tokenizer').")
-        elif tokenizer == "word_tokenizer":
-            self.tokenizer = word_tokenize
-        elif tokenizer == "twitter_tokenizer":
-            self.tokenizer = word_tokenize
-        else:
-            raise ValueError("Tokenizer of type '{}', is not recognized.".format(tokenizer))
+        self.tokenizer = word_tokenize
+        if use_twitter_tokenizer:
+            self.tokenizer = None  # TODO: Change when twitter tokenizer is available.
 
         # Lowercase.
         self.lowercase = lowercase
