@@ -17,7 +17,8 @@ from PyQt4.QtCore import (
 from PyQt4.QtCore import pyqtSignal as Signal, pyqtSlot as Slot
 
 from Orange.widgets.widget import OWWidget
-from orangecontrib.text.preprocess import Preprocessor
+from orangecontrib.text.preprocess import Preprocessor, \
+    PorterStemmer as ps, Lemmatizer as lm, SnowballStemmer as ss
 from orangecontrib.text.corpus import Corpus
 
 from Orange.widgets import gui, settings
@@ -98,10 +99,6 @@ class TokenizerEditor(BaseEditor):
         # Layout.
         layout = QVBoxLayout()
         self.setLayout(layout)
-
-        # Set the label.
-        rg_label = QLabel("Tokenizer type:")
-        layout.addWidget(rg_label)
 
         # Set the radio buttons.
         self.__group = group = QButtonGroup(self, exclusive=True)
@@ -190,9 +187,9 @@ class TransformationEditor(BaseEditor):
 
     TransformationObjects = {
         NoTrans: None,
-        PorterStemmer: "porter_stemmer",
-        SnowballStemmer: "snowball_stemmer",
-        Lemmatizer: "lemmatizer"
+        PorterStemmer: ps,
+        SnowballStemmer: ss,
+        Lemmatizer: lm
     }
     Names = {
         NoTrans: "None",
@@ -209,10 +206,6 @@ class TransformationEditor(BaseEditor):
         # Layout.
         layout = QVBoxLayout()
         self.setLayout(layout)
-
-        # Set the label.
-        rg_label = QLabel("Stemmer type:")
-        layout.addWidget(rg_label)
 
         # Set the radio buttons.
         self.__group = group = QButtonGroup(self, exclusive=True)
@@ -287,10 +280,6 @@ class StopWordEditor(BaseEditor):
 
         layout = QVBoxLayout()
         self.setLayout(layout)
-
-        # Set the label.
-        rg_label = QLabel("Stop word source:")
-        layout.addWidget(rg_label)
 
         # Radio buttons.
         self.__group = group = QButtonGroup(self, exclusive=True)

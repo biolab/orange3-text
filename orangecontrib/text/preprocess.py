@@ -6,14 +6,12 @@ from nltk.stem.snowball import SnowballStemmer
 
 from orangecontrib.text.corpus import Corpus
 
-import Orange
-
 
 class Preprocessor:
     """
-        A pre-processing class for the Orange text mining extension. An instance of the class
-        is capable of tokenizing, lowercasing, stemming and lemmatizing the input. Returns a list
-        of preprocessed tokens, sorted by order of appearance in text.
+        A pre-processing class for the Orange text mining extension is capable of tokenizing,
+        lowercasing, stemming and lemmatizing the input. Returns a list of preprocessed tokens,
+        sorted by order of appearance in text.
     """
     def __init__(self, lowercase=True, stop_words=None, transformation=None, use_twitter_tokenizer=False):
         """
@@ -23,7 +21,7 @@ class Preprocessor:
             default nltk stop words for the English language or stop words provided in a custom list.
         :type stop_words: 'default', a list or None
         :param transformation: Name of the morphological transformation method to be performed on the tokens.
-        :type transformation: 'porter_stemmer', 'snowball_stemmer', 'lemmatizer' or None
+        :type transformation: `orangecontrib.text.preprocess.Stemmatizer`
         :param use_twitter_tokenizer: Determines the use of either the Twitter or default word tokenizer.
         :type use_twitter_tokenizer: bool
         :return: list
@@ -48,15 +46,9 @@ class Preprocessor:
                              "a list containing the stop words or None.")
 
         # Transformation.
+        if not isinstance(transformation, Stemmatizer):
+            raise ValueError("Type '{}' not supported.".format(transformation))
         self.transformation = transformation
-        if transformation == 'porter_stemmer':
-            self.transformation = PorterStemmer
-        elif transformation == 'snowball_stemmer':
-            self.transformation = SnowballStemmer
-        elif transformation == 'lemmatizer':
-            self.transformation = Lemmatizer
-        elif transformation is not None:    # If not None and not supported.
-            raise ValueError("Transformation type '{}', is not recognized.".format(transformation))
 
     def __call__(self, data):
         if isinstance(data, Corpus):
@@ -71,19 +63,19 @@ class Preprocessor:
 
     def preprocess_document(self, data):
         # Tokenize.
-        data = self.tokenize(data)
+        data = self._tokenize(data)
         # Remove stop words.
         if self.stop_words is not None:
-            data = self.remove_stop_words(data)
+            data = self._remove_stop_words(data)
         # Lowercase.
         if self.lowercase:
             data = [token.lower() for token in data]
         # Transform.
         if self.transformation is not None:
-            data = self.transform(data)
+            data = self._transform(data)
         return data
 
-    def tokenize(self, data):
+    def _tokenize(self, data):
         """
         Splits the text of the input into tokens by whitespaces and punctuation.
         :param data: The input holding the text to be tokenized. Can be provided
@@ -93,13 +85,10 @@ class Preprocessor:
         """
         if isinstance(data, str):
             return self.tokenizer(data)
-        elif isinstance(data, Orange.data.Table):
-            # TODO: Handle this input.
-            return None
         else:
-            raise ValueError("Cannot tokenize. Type {} not supported.".format(type(data)))
+            raise ValueError("Type {} not supported.".format(type(data)))
 
-    def transform(self, data):
+    def _transform(self, data):
         """
         Performs on the input, whatever transformation was specified at class instance creation.
         :param data: The input holding the text to be transformed. Can be provided
@@ -107,21 +96,15 @@ class Preprocessor:
         :type data: string, list
         :return: string, list
         """
-        if self.transformation is None:
-            raise ValueError("Cannot perform transformation, none was specified.")
-
         return self.transformation(data)
 
-    def remove_stop_words(self, data):
+    def _remove_stop_words(self, data):
         """
         Removes the stop words specified at class instance creation, from the list of tokens.
         :param data: The list of string tokens, from where the stop words are to be removed.
         :type data: list
         :return: list
         """
-        if self.stop_words is None:
-            raise ValueError("Cannot remove stop word, no set of such was specified.")
-
         return [word for word in data if word not in self.stop_words]
 
 class Stemmatizer():
@@ -148,7 +131,7 @@ class Stemmatizer():
         elif isinstance(data, list):
             return [self.transformation(word) for word in data]
         else:
-            raise ValueError("Cannot transform. Type {} not supported.".format(type(data)))
+            raise ValueError("Type {} not supported.".format(type(data)))
 
 PorterStemmer = Stemmatizer(PorterStemmer().stem, 'PorterStemmer')
 SnowballStemmer = Stemmatizer(SnowballStemmer(language="english").stem, 'SnowballStemmer')
