@@ -1,9 +1,20 @@
 #!/usr/bin/env python
 
+import os
 import sys
 from setuptools import setup, find_packages
 
-VERSION = '0.1.2'
+NAME = 'Orange3-Text'
+
+VERSION = '0.1.3.dev0'
+
+DESCRIPTION = 'Orange3 TextMining add-on.'
+README_FILE = os.path.join(os.path.dirname(__file__), 'README.md')
+LONG_DESCRIPTION = open(README_FILE).read()
+AUTHOR = 'Bioinformatics Laboratory, FRI UL'
+AUTHOR_EMAIL = 'contact@orange.biolab.si'
+URL = "https://github.com/biolab/orange3-text"
+DOWNLOAD_URL = "https://github.com/biolab/orange3-text/tarball/{}".format(VERSION)
 
 ENTRY_POINTS = {
     'orange3.addon': (
@@ -25,13 +36,13 @@ ENTRY_POINTS = {
     ),
 }
 
-KEYWORDS = (
+KEYWORDS = [
     # [PyPi](https://pypi.python.org) packages with keyword "orange3 add-on"
     # can be installed using the Orange Add-on Manager
     'orange3-text',
     'data mining',
     'orange3 add-on',
-)
+]
 
 INSTALL_REQUIRES = (
     'Orange >= 3.1',
@@ -40,6 +51,11 @@ INSTALL_REQUIRES = (
     'numpy',
     'gensim',
 )
+
+PACKAGE_DATA = {
+    'orangecontrib.text': ['tutorials/*.ows'],
+    'orangecontrib.text.widgets': ['icons/*'],
+}
 
 if 'test' in sys.argv:
     extra_setuptools_args = dict(
@@ -50,18 +66,16 @@ else:
 
 if __name__ == '__main__':
     setup(
-        name="Orange3-Text",
-        description="Orange TextMining add-on.",
+        name=NAME,
+        description=DESCRIPTION,
+        long_description=LONG_DESCRIPTION,
         version=VERSION,
-        author='Bioinformatics Laboratory, FRI UL',
-        author_email='contact@orange.biolab.si',
-        url="https://github.com/nikicc/orange3-text",
-        download_url="https://github.com/nikicc/orange3-text/tarball/{}".format(VERSION),
+        author=AUTHOR,
+        author_email=AUTHOR_EMAIL,
+        url=URL,
+        download_url=DOWNLOAD_URL,
         packages=find_packages(),
-        package_data={
-            'orangecontrib.text': ['tutorials/*.ows'],
-            'orangecontrib.text.widgets': ['icons/*'],
-        },
+        package_data=PACKAGE_DATA,
         install_requires=INSTALL_REQUIRES,
         entry_points=ENTRY_POINTS,
         keywords=KEYWORDS,

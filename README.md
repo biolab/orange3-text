@@ -1,11 +1,16 @@
-Text Mining Add-on for Orange3
-==============================
+Orange3 Text 
+============
 
 [![Build Status](https://travis-ci.org/biolab/orange3-text.svg?branch=master)](https://travis-ci.org/biolab/orange3-text)
 [![codecov.io](http://codecov.io/github/biolab/orange3-text/coverage.svg?branch=master)](http://codecov.io/github/biolab/orange3-text?branch=master)
 
-This is a text mining add-on for [Orange3](http://orange.biolab.si). It extends Orange in scripting and GUI
-part.
+Orange3 Text extends [Orange3](http://orange.biolab.si), a data mining software
+package, with common functionality for text mining. It provides access
+to publicly available data, like NY Times, Twitter and PubMed. Further,
+it provides tools for preprocessing, constructing vector spaces (like
+bag-of-words, topic modeling and word2vec) and visualizations like word cloud
+end geo map. All features can be combined with powerful data mining techniques
+from the Orange data mining framework.
 
 Installation
 ------------
