@@ -1,2 +1,6 @@
 include orangecontrib/text/tutorials/*.ows
 include orangecontrib/text/widgets/icons/*
+
+include requirements.txt
+include README.md
+include LICENSE
