@@ -121,9 +121,11 @@ class NYT:
         :return: True or False depending on the validation outcome.
         """
         query_url = self._encode_base_url("test")
-        with request.urlopen("{0}?{1}&page=0".format(self._base_url, query_url)) as connection:
-            if connection.getcode() == 200:
-                return True
+        try:
+            with request.urlopen("{0}?{1}&page=0".format(self._base_url, query_url)) as connection:
+                if connection.getcode() == 200:
+                    return True
+        except HTTPError:
             return False
 
     def run_query(self, query, year_from=None, year_to=None, max_records=10):

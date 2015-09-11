@@ -344,8 +344,6 @@ class OWNYT(OWWidget):
             control.setEnabled(self.api_key_is_valid)
         if not self.api_key_is_valid:
             self.open_set_api_key_dialog_button.setFocus()
-        elif self.api_key_is_valid:
-            self.run_query_button.setFocus()
 
     def open_set_api_key_dialog(self):
         api_dlg = APIKeyDialog(self, "New York Times API key")
