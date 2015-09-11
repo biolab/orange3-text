@@ -263,4 +263,4 @@ class NYT:
         :type query: str
         :return: The foundation url for this query.
         """
-        return parse.urlencode({"q": query, "fq": "The New York Times", "api-key": self._api_key})
+        return parse.urlencode([("q", query), ("fq", "The New York Times"), ("api-key", self._api_key)])
