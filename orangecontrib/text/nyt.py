@@ -47,7 +47,7 @@ def _parse_record_json(records, includes_metadata):
         # Add the section_name.
         class_values.append(doc.get("section_name", None))
 
-        metas_row = ["" if v is None else v for v in metas_row]
+        metas_row = [None if v is "" else v for v in metas_row]
         metadata = np.vstack((metadata, np.array(metas_row)))
 
     return metadata, class_values
@@ -77,7 +77,7 @@ def _generate_corpus(records, required_text_fields):
     metas, class_values = _parse_record_json(records, required_text_fields)
     documents = []
     for doc in metas:
-        documents.append(" ".join(doc).strip())
+        documents.append(" ".join([d for d in doc if d is not None]).strip())
 
     # Create domain.
     meta_vars = [StringVariable.make(field) for field in required_text_fields]

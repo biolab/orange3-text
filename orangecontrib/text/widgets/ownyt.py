@@ -11,7 +11,6 @@ from Orange.widgets.widget import OWWidget
 from Orange.widgets import gui
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.nyt import NYT, _parse_record_json, NYT_TEXT_FIELDS, _generate_corpus
-from Orange.data import Domain, DiscreteVariable, StringVariable
 
 
 def _i(name, icon_path="icons"):
@@ -69,6 +68,7 @@ class OWNYT(OWWidget):
         self.open_set_api_key_dialog_button = gui.button(api_key_box, self, 'Article API key',
                                                          callback=self.open_set_api_key_dialog,
                                                          tooltip="Set the API key for this widget.")
+        self.open_set_api_key_dialog_button.setFocusPolicy(QtCore.Qt.NoFocus)
 
         # Query box.
         query_box = gui.widgetBox(parameter_box, orientation=0)
@@ -116,6 +116,7 @@ class OWNYT(OWWidget):
         self.run_query_button = gui.button(self.controlArea, self, 'Run query',
                                            callback=self.run_initial_query,
                                            tooltip="Run the chosen NYT article query.")
+        self.run_query_button.setFocusPolicy(QtCore.Qt.NoFocus)
         self.nyt_controls.append(self.run_query_button)
         h_line = QFrame()
         h_line.setFrameShape(QFrame.HLine)
@@ -130,6 +131,7 @@ class OWNYT(OWWidget):
         self.retrieve_other_button = gui.button(self.controlArea, self, 'Retrieve remaining records',
                                                 callback=self.retrieve_remaining_records,
                                                 tooltip="Retrieve the remaining records obtained in the query.")
+        self.retrieve_other_button.setFocusPolicy(QtCore.Qt.NoFocus)
         self.retrieve_other_button.setEnabled(False)
 
         # Load the most recent queries.
@@ -168,7 +170,7 @@ class OWNYT(OWWidget):
                                                .scaled(15, 15, QtCore.Qt.KeepAspectRatio))
         else:
             self.api_key_valid_label.setPixmap(QPixmap(_i("invalid.svg"))
-                                           .scaled(15, 15, QtCore.Qt.KeepAspectRatio))
+                                               .scaled(15, 15, QtCore.Qt.KeepAspectRatio))
 
     def run_initial_query(self):
         self.warning(1)
@@ -234,7 +236,7 @@ class OWNYT(OWWidget):
             self.retrieve_other_button.setText('Retrieve remaining {} records'
                                                .format(min(self.all_hits, 1000)-self.num_retrieved))
             self.retrieve_other_button.setEnabled(True)
-            self.retrieve_other_button.setFocus()
+            #self.retrieve_other_button.setFocus()
         else:
             self.retrieve_other_button.setText('All records retrieved')
             self.retrieve_other_button.setEnabled(False)
@@ -276,7 +278,7 @@ class OWNYT(OWWidget):
             metas, class_values = _parse_record_json(res["response"]["docs"], self.nyt_api.includes_fields)
             docs = []
             for doc in metas:
-                docs.append(" ".join(doc).strip())
+                docs.append(" ".join([d for d in doc if d is not None]).strip())
 
             # Update the corpus.
             self.output_corpus.extend_corpus(docs, metas, class_values)
