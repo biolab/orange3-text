@@ -246,8 +246,8 @@ class NYT:
                 error = None
             else:
                 try:
-                    connection = request.urlopen(current_query)
-                    response = connection.readall().decode("utf-8")
+                    with request.urlopen(current_query) as connection:
+                        response = connection.readall().decode("utf-8")
                     query_cache[current_query_key] = response
 
                     response_data = json.loads(response)

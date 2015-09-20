@@ -55,6 +55,7 @@ INSTALL_REQUIRES = (
 PACKAGE_DATA = {
     'orangecontrib.text': ['tutorials/*.ows'],
     'orangecontrib.text.widgets': ['icons/*'],
+    'orangecontrib.text.tests': ['nyt-cache.txt'],
 }
 
 if 'test' in sys.argv:

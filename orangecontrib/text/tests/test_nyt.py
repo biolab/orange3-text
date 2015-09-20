@@ -61,22 +61,28 @@ class NYTTests(unittest.TestCase):
         self.assertTrue(self.nyt.check_api_key())
 
     def test_nyt_query_keywords(self):
-        corpus = self.nyt.run_query('slovenia')
-        self.assertEqual(len(corpus.documents), 10)
+        records = self.nyt.run_query('slovenia')
+        self.assertEqual(len(records), 10)
 
     def test_nyt_query_date_range(self):
         corpus = self.nyt.run_query('slovenia', datetime.date(2013, 1, 1), datetime.date(2014, 1, 1))
         self.assertEqual(len(corpus.documents), 10)
 
     def test_nyt_query_max_records(self):
-        corpus = self.nyt.run_query('slovenia', max_records=25)
-        self.assertEqual(len(corpus.documents), 25)
+        records = self.nyt.run_query('slovenia', max_records=25)
+        self.assertEqual(len(records), 25)
 
     def test_nyt_corpus_domain_generation(self):
         corpus = self.nyt.run_query('slovenia')
-
         meta_vars = [StringVariable.make(field) for field in NYT_TEXT_FIELDS] + \
                     [StringVariable.make('pub_date'), StringVariable.make('country')]
 
         self.assertEqual(len(meta_vars), len(corpus.domain.metas))
         self.assertEqual(len(corpus.Y), 10)
+
+    def test_nyt_result_caching(self):
+        # Run a query to create a cache entry first.
+        self.nyt.run_query('slovenia')
+        data, is_cached, error = self.nyt._execute_query(0)
+        # Check if the response was cached.
+        self.assertTrue(is_cached)
