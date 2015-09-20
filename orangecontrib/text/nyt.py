@@ -5,6 +5,7 @@ import shelve
 import warnings
 import datetime
 import numpy as np
+from datetime import date
 from urllib import request, parse
 from urllib.error import HTTPError, URLError
 from orangecontrib.text.corpus import Corpus
@@ -128,18 +129,16 @@ class NYT:
         except HTTPError:
             return False
 
-    def run_query(self, query, year_from=None, year_to=None, max_records=10):
+    def run_query(self, query, date_from=None, date_to=None, max_records=10):
         """
         Executes the NYT query specified by the input parameters and returns a
         list of records.
         :param query: The query keywords in a string, but separated with whitespaces.
         :type query: str
-        :param year_from: A digit input that signifies to return articles
-            from this year forth only.
-        :type year_from: int
-        :param year_to: A digit input that signifies to return articles
-            up to this year only.
-        :type year_to: int
+        :param date_from: Signifies to return articles from this date forth only.
+        :type date_from: date
+        :param date_to: Signifies to return articles up to this date only.
+        :type date_to: date
         :param max_records: Specifies an upper limit to the number of retrieved records.
             Max 1000.
         :type max_records: int
@@ -150,7 +149,7 @@ class NYT:
             warnings.warn("Cannot execute query. The specified API key is not valid.", RuntimeWarning)
 
         # Collect the user inputs and assemble the API endpoint.
-        self._set_endpoint_url(query, year_from, year_to, NYT_TEXT_FIELDS)
+        self._set_endpoint_url(query, date_from, date_to, NYT_TEXT_FIELDS)
 
         if max_records > 1000:
             warnings.warn("Cannot retrieve more than 1000 records for a particular query.", RuntimeWarning)
@@ -170,7 +169,7 @@ class NYT:
 
         return _generate_corpus(records, NYT_TEXT_FIELDS)
 
-    def _set_endpoint_url(self, query, year_from=None, year_to=None, text_includes=None):
+    def _set_endpoint_url(self, query, date_from=None, date_to=None, text_includes=None):
         """
         Builds a NYT article API query url with the input parameters.
         For more information on the inputs, refer to the docs for 'run_query' method.
@@ -180,19 +179,23 @@ class NYT:
         query_url = self._encode_base_url(query)
         query_key = []  # This query's key, to store with shelve.
 
-        # Use these as parts of cache keys to prevent re-use of old cache.
-        query_key_sdate = _date_to_str(datetime.date(1851, 1, 1))
-        query_key_edate = _date_to_str(datetime.datetime.now().date())
-        # Check user date range input.
-        if year_from and year_from.isdigit():
-            query_key_sdate = year_from + "0101"
-            query_url += "&begin_date=" + query_key_sdate
-        if year_to and year_to.isdigit():
-            query_key_edate = year_to + "1231"
-            query_url += "&end_date=" + query_key_edate
-        # Update cache keys.
-        query_key.append(query_key_sdate)
-        query_key.append(query_key_edate)
+        # Check from date.
+        if date_from is None:   # Is none provided?
+            query_key.append(_date_to_str(datetime.date(1851, 1, 1)))   # For caching.
+        elif not isinstance(date_from, date):   # Is it in an unsupported format?
+            warnings.warn('Type {} is not supported.'.format(type(date_from)), RuntimeWarning)
+        else:   # Update the url and cache key.
+            query_key.append(_date_to_str(date_from))
+            query_url += "&begin_date=" + _date_to_str(date_from)
+
+        # Check to date.
+        if date_to is None:   # Is none provided?
+            query_key.append(_date_to_str(datetime.datetime.now().date()))   # For caching.
+        elif not isinstance(date_to, date):   # Is it in an unsupported format?
+            warnings.warn('Type {} is not supported.'.format(type(date_to)), RuntimeWarning)
+        else:   # Update the url and cache key.
+            query_key.append(_date_to_str(date_to))
+            query_url += "&end_date=" + _date_to_str(date_to)
 
         # Text fields.
         if text_includes:

@@ -1,6 +1,7 @@
 import os
 import tempfile
 import unittest
+import datetime
 from unittest.mock import patch
 from contextlib import contextmanager
 from orangecontrib.text.nyt import NYT, NYT_TEXT_FIELDS
@@ -64,7 +65,7 @@ class NYTTests(unittest.TestCase):
         self.assertEqual(len(corpus.documents), 10)
 
     def test_nyt_query_date_range(self):
-        corpus = self.nyt.run_query('slovenia', '2011', '2014')
+        corpus = self.nyt.run_query('slovenia', datetime.date(2013, 1, 1), datetime.date(2014, 1, 1))
         self.assertEqual(len(corpus.documents), 10)
 
     def test_nyt_query_max_records(self):

@@ -1,9 +1,11 @@
 import os
+import re
 import math
 import numpy as np
 from time import sleep
-from PyQt4 import QtCore
 from PyQt4.QtGui import *
+from PyQt4 import QtCore, QtGui
+from datetime import date, datetime
 from urllib.error import HTTPError, URLError
 
 from Orange.widgets.settings import Setting
@@ -80,16 +82,38 @@ class OWNYT(OWWidget):
         self.query_combo.setEditable(True)
         query_box.layout().addWidget(self.query_combo)
         self.query_combo.activated[int].connect(self.select_query)
+        self.query_combo.lineEdit().returnPressed.connect(self.run_initial_query)
         self.nyt_controls.append(self.query_combo)
 
         # Year box.
-        # TODO Add calendar widget and month+day support.
         year_box = gui.widgetBox(parameter_box, orientation=0)
         # Inputs for years.
-        gui.label(year_box, self, "From year")
+        gui.label(year_box, self, "From")
         self.year_from_input = gui.lineEdit(year_box, self, "year_from")
-        gui.label(year_box, self, "to year")
+        self.year_from_input.setPlaceholderText("YYYY/MM/DD")
+        self.year_from_input.setMinimumWidth(80)
+        # Calendar button from.
+        open_calendar_button_from = gui.button(year_box, self, '',
+                                               callback=lambda: self.open_calendar(self.year_from_input),
+                                               tooltip="Pick a date using the calendar widget.")
+        open_calendar_button_from.setMaximumSize(open_calendar_button_from.sizeHint())
+        open_calendar_button_from.setIcon(QIcon(_i("calendar.svg")))
+        open_calendar_button_from.setIconSize(QtCore.QSize(16, 16))
+        open_calendar_button_from.setFocusPolicy(QtCore.Qt.NoFocus)
+        open_calendar_button_from.setSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
+        gui.label(year_box, self, "to")
         self.year_to_input = gui.lineEdit(year_box, self, "year_to")
+        self.year_to_input.setPlaceholderText("YYYY/MM/DD")
+        self.year_to_input.setMinimumWidth(80)
+        # Calendar button to.
+        open_calendar_button_to = gui.button(year_box, self, '',
+                                             callback=lambda: self.open_calendar(self.year_to_input),
+                                             tooltip="Pick a date using the calendar widget.")
+        open_calendar_button_to.setMaximumSize(open_calendar_button_to.sizeHint())
+        open_calendar_button_to.setIcon(QIcon(_i("calendar.svg")))
+        open_calendar_button_to.setIconSize(QtCore.QSize(16, 16))
+        open_calendar_button_to.setFocusPolicy(QtCore.Qt.NoFocus)
+
         self.nyt_controls.append(self.year_from_input)
         self.nyt_controls.append(self.year_to_input)
 
@@ -160,6 +184,8 @@ class OWNYT(OWWidget):
             name = self.recent_queries[n]
             del self.recent_queries[n]
             self.recent_queries.insert(0, name)
+        else:
+            self.recent_queries.insert(0, self.query_combo.currentText())
 
         if len(self.recent_queries) > 0:
             self.set_query_list()
@@ -195,24 +221,22 @@ class OWNYT(OWWidget):
             return
 
         # Year span.
-        if self.year_from and not self.year_from.isdigit() or \
-                self.year_to and not self.year_to.isdigit():
-            self.warning(1, "The time interval endpoints must be digits.")
-            return
+        date_from = self.validate_date(self.year_from)
+        date_to = self.validate_date(self.year_to)
 
         # Warnings on bad inputs. #
-        if self.year_from and self.year_from > self.year_to:
-            self.warning(1, "The start date is greater than the end date.")
-
-        if self.year_from and int(self.year_from) < 1851:
-            self.warning(1, "There are no records before the year 1851. "
-                            "Assumed 1851 as start date for this query.")
+        if date_from is not None:
+            if date_from < date(1851, 1, 1):
+                date_from = date(1851, 1, 1)
+                self.warning(1, "There are no records before the year 1851. "
+                                "Assumed 1851/01/01 as start date for this query.")
+            if date_to is not None:
+                if date_from > date_to:
+                    self.warning(1, "The start date is greater than the end date.")
 
         # Set the query url.
         required_text_fields = [tp for tf, tp in zip(text_includes_params, NYT_TEXT_FIELDS) if tf]
-        self.nyt_api._set_endpoint_url(qkw, self.year_from,
-                                       self.year_to,
-                                       required_text_fields)
+        self.nyt_api._set_endpoint_url(qkw, date_from, date_to, required_text_fields)
 
         # Execute the query.
         res, cached, error = self.nyt_api._execute_query(0)
@@ -244,6 +268,7 @@ class OWNYT(OWWidget):
         # Add the query to history.
         if qkw not in self.recent_queries:
             self.recent_queries.insert(0, qkw)
+            self.select_query(0)
 
     def retrieve_remaining_records(self):
         self.error(1)
@@ -324,6 +349,19 @@ class OWNYT(OWWidget):
                 self.error(1, "An error occurred (URL {})".format(error.reason))
         return failure
 
+    def validate_date(self, input_string):
+        if not input_string or input_string is None:
+            return None  # Nothing to do here.
+
+        format_mapping = {1: "%Y", 2: "%Y/%m", 3: "%Y/%m/%d"}
+        # Check for input formats: YYYY, YYYY/MM or YYYY/MM/DD.
+        try:
+            f = format_mapping.get(len(input_string.split('/')), '')
+            return datetime.strptime(input_string, f).date()
+        except ValueError:
+            self.warning(1, "Invalid date interval endpoint format (must be YYYY/MM/DD).")
+            return None
+
     def check_api_key(self, api_key):
         nyt_api = NYT(api_key)
         key_valid_flag = nyt_api.check_api_key()
@@ -350,6 +388,11 @@ class OWNYT(OWWidget):
     def open_set_api_key_dialog(self):
         api_dlg = APIKeyDialog(self, "New York Times API key")
         api_dlg.exec_()
+
+    def open_calendar(self, widget):
+        cal_dlg = CalendarDialog(self, "to", "Date picker")
+        if cal_dlg.exec_():
+            widget.setText(cal_dlg.picked_date)
 
 
 class APIKeyDialog(QDialog):
@@ -417,3 +460,34 @@ class APIKeyDialog(QDialog):
 
         if len(self.parent.recent_api_keys) > 0:
             self.set_key_list()
+
+
+class CalendarDialog(QDialog):
+
+    picked_date = None
+    source = None
+    parent = None
+
+    def __init__(self, parent, source, windowTitle="Date picker"):
+        super().__init__(parent, windowTitle=windowTitle)
+
+        self.source = source
+        self.parent = parent
+
+        self.setLayout(QVBoxLayout())
+        self.mainArea = gui.widgetBox(self)
+        self.layout().addWidget(self.mainArea)
+
+        self.cal = QtGui.QCalendarWidget(self)
+        self.cal.setGridVisible(True)
+        self.cal.move(20, 20)
+        self.cal.clicked[QtCore.QDate].connect(self.set_date)
+        self.mainArea.layout().addWidget(self.cal)
+
+        # Set the default date.
+        self.picked_date = self.cal.selectedDate().toString('yyyy/MM/dd')
+
+        gui.button(self.mainArea, self, "OK", lambda: QDialog.accept(self))
+
+    def set_date(self, date):
+        self.picked_date = date.toString('yyyy/MM/dd')
