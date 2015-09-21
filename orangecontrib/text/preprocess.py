@@ -35,7 +35,7 @@ class Preprocessor:
         self.lowercase = lowercase
 
         # Stop words.
-        if stop_words == "default":
+        if stop_words == "english":
             self.stop_words = stopwords.words("english")
         elif isinstance(stop_words, list):
             self.stop_words = stop_words

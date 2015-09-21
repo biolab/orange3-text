@@ -261,7 +261,7 @@ class StopWordEditor(BaseEditor):
     NoRemoval, Default, Custom = 0, 1, 2
     StopWordSources = {
         NoRemoval: None,
-        Default: "default",
+        Default: "english",
         Custom: []
     }
     Names = {
@@ -413,7 +413,14 @@ class StopWordEditor(BaseEditor):
         source = params.pop("source", StopWordEditor.NoRemoval)
         used_source = StopWordEditor.StopWordSources[source]
 
-        return {"stop_words": used_source}
+        if isinstance(used_source, list):   # If custom, read the stopwords into a list.
+            try:
+                with open(used_source[0]) as f:     # Read most recent.
+                    custom_stop_words = f.read().splitlines()
+            except Exception as err:    # Raise an exception otherwise.
+                custom_stop_words = err
+
+        return {"stop_words": custom_stop_words}
 
 
 class PreprocessAction(object):
@@ -1286,7 +1293,6 @@ class OWPreprocess(OWWidget):
 
         # Take the input corpus and append tokens to the metadata.
         input_data = self.data.documents
-        output_corp = self.data
         tokens = preprocessor(input_data)
 
         # Update the input corpus with a list of tokens.
@@ -1313,21 +1319,14 @@ class OWPreprocess(OWWidget):
             # Get the method from the BaseEditor class.
             pp_info = desc.view_class.create_instance(params)
 
-            # Custom sw file. Read into list.
-            if "stop_words" in pp_info and pp_info["stop_words"] not in ["default", "None"]:
-                sw_files = pp_info["stop_words"]
-                try:
-                    with open(pp_info["stop_words"][0]) as f:
-                        pp_info["stop_words"] = f.readlines()
-                        self.flow_view.set_recent_sw_files(self.recent_sw_files)
-                        self.recent_sw_files = sw_files
-                except Exception as err:
-                    self.warning(1, "Stop word remover: {}".format(err))
+            # If stop words, check for a possible exception.
+            if isinstance(pp_info.get("stop_words", None), Exception):
+                self.warning(1, "Stop word removal failed: {}".format(pp_info["stop_words"]))
+                pp_info["stop_words"] = None
 
             p.update(pp_info)
 
-        return Preprocessor(use_twitter_tokenizer=p["use_twitter_tokenizer"], lowercase=p["lowercase"],
-                            stop_words=p["stop_words"], transformation=p["transformation"])
+        return Preprocessor(**pp_info)
 
     @Slot()
     def __update_size_constraint(self):
