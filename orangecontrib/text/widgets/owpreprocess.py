@@ -75,18 +75,16 @@ class TokenizerEditor(BaseEditor):
     Editor for orangecontrib.text.preprocess tokenizing.
     """
     # Tokenizing methods
-    WordTokenizer, TwitterTokenizer = 0, 1
-    # Lowercase flag.
-    __use_lowercase = False
+    NLTKTokenizer, TwitterTokenizer = 0, 1
 
     # Keywords for the pp objects.
     TokenizerObjects = {
-        WordTokenizer: False,
+        NLTKTokenizer: False,
         TwitterTokenizer: True
     }
     # Names of the pp objects.
     Names = {
-        WordTokenizer: "Word tokenizer",
+        NLTKTokenizer: "NLTK tokenizer",
         TwitterTokenizer: "Twitter tokenizer"
     }
 
@@ -94,7 +92,7 @@ class TokenizerEditor(BaseEditor):
         BaseEditor.__init__(self, parent, **kwargs)
 
         # Default tokenizer. Cannot be None.
-        self.__method = TokenizerEditor.WordTokenizer
+        self.__method = TokenizerEditor.NLTKTokenizer
 
         # Layout.
         layout = QVBoxLayout()
@@ -102,33 +100,18 @@ class TokenizerEditor(BaseEditor):
 
         # Set the radio buttons.
         self.__group = group = QButtonGroup(self, exclusive=True)
-        for method in [self.WordTokenizer, self.TwitterTokenizer]:
+        for method in [self.NLTKTokenizer, self.TwitterTokenizer]:
             rb = QRadioButton(
                 self, text=self.Names[method],
                 checked=self.__method == method
             )
+            if method == self.TwitterTokenizer:
+                rb.setEnabled(False)    # Disable until the Twitter tokenizer is available.
             layout.addWidget(rb)
             group.addButton(rb, method)
         group.buttonClicked.connect(self.__on_button_clicked)
 
-        # HLine divider.
-        h_line = QFrame()
-        h_line.setFrameShape(QFrame.HLine)
-        h_line.setFrameShadow(QFrame.Sunken)
-        layout.addWidget(h_line)
-
-        # Set the lowercase checkbox.
-        self.lowercase_checkbox = QCheckBox("Lowercase")
-        self.lowercase_checkbox.clicked.connect(self.__on_chbox_clicked)
-        layout.addWidget(self.lowercase_checkbox)
-
         self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
-
-    def set_lowercase_flag(self, flag):
-        if self.__use_lowercase != flag:
-            self.__use_lowercase = flag
-            self.lowercase_checkbox.setChecked(flag)
-            self.changed.emit()
 
     def set_method(self, method):
         """
@@ -142,12 +125,10 @@ class TokenizerEditor(BaseEditor):
 
     def set_parameters(self, params):
         method = params.get("method", 0)
-        lwcase = params.get("lwcase", False)
-        self.set_lowercase_flag(lwcase)
         self.set_method(method)
 
     def parameters(self):
-        return {"method": self.__method, "lwcase": self.__use_lowercase}
+        return {"method": self.__method}
 
     def __on_button_clicked(self):
         """
@@ -158,24 +139,14 @@ class TokenizerEditor(BaseEditor):
             self.set_method(self.__group.checkedId())
             self.edited.emit()
 
-    def __on_chbox_clicked(self):
-        """
-        Whenever user clicks the checkbox.
-        """
-        flag = self.lowercase_checkbox.isChecked()
-        if flag != self.__use_lowercase:
-            self.set_lowercase_flag(self.lowercase_checkbox.isChecked())
-            self.edited.emit()
-
     @staticmethod
     def create_instance(params):
         """
         Reads the parameters and generates a setting.
         """
-        method = params.pop("method", TokenizerEditor.WordTokenizer)
-        lwcase = params.pop("lwcase", False)
+        method = params.pop("method", TokenizerEditor.NLTKTokenizer)
         used_method = TokenizerEditor.TokenizerObjects[method]
-        return {"use_twitter_tokenizer": used_method, "lowercase": lwcase}
+        return {"use_twitter_tokenizer": used_method}
 
 
 class TransformationEditor(BaseEditor):
@@ -184,6 +155,8 @@ class TransformationEditor(BaseEditor):
     """
     # Transformation methods
     NoTrans, PorterStemmer, SnowballStemmer, Lemmatizer = 0, 1, 2, 3
+    # Lowercase flag.
+    __use_lowercase = False
 
     TransformationObjects = {
         NoTrans: None,
@@ -218,6 +191,17 @@ class TransformationEditor(BaseEditor):
             group.addButton(rb, method)
         group.buttonClicked.connect(self.__on_button_clicked)
 
+        # HLine divider.
+        h_line = QFrame()
+        h_line.setFrameShape(QFrame.HLine)
+        h_line.setFrameShadow(QFrame.Sunken)
+        layout.addWidget(h_line)
+
+        # Set the lowercase checkbox.
+        self.lowercase_checkbox = QCheckBox("Lowercase")
+        self.lowercase_checkbox.clicked.connect(self.__on_chbox_clicked)
+        layout.addWidget(self.lowercase_checkbox)
+
         self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
 
     def set_method(self, method):
@@ -227,12 +211,29 @@ class TransformationEditor(BaseEditor):
             b.setChecked(True)
             self.changed.emit()
 
+    def set_lowercase_flag(self, flag):
+        if self.__use_lowercase != flag:
+            self.__use_lowercase = flag
+            self.lowercase_checkbox.setChecked(flag)
+            self.changed.emit()
+
     def set_parameters(self, params):
         method = params.get("method", 1)
+        lwcase = params.get("lwcase", False)
+        self.set_lowercase_flag(lwcase)
         self.set_method(method)
 
     def parameters(self):
-        return {"method": self.__method}
+        return {"method": self.__method, "lwcase": self.__use_lowercase}
+
+    def __on_chbox_clicked(self):
+        """
+        Whenever user clicks the checkbox.
+        """
+        flag = self.lowercase_checkbox.isChecked()
+        if flag != self.__use_lowercase:
+            self.set_lowercase_flag(self.lowercase_checkbox.isChecked())
+            self.edited.emit()
 
     def __on_button_clicked(self):
         # On user 'method' button click.
@@ -247,8 +248,9 @@ class TransformationEditor(BaseEditor):
         Reads the parameters and generates a setting.
         """
         method = params.pop("method", TransformationEditor.PorterStemmer)
+        lwcase = params.pop("lwcase", False)
         used_method = TransformationEditor.TransformationObjects[method]
-        return {"transformation": used_method}
+        return {"transformation": used_method, "lowercase": lwcase}
 
 
 class StopWordEditor(BaseEditor):
@@ -416,11 +418,11 @@ class StopWordEditor(BaseEditor):
         if isinstance(used_source, list):   # If custom, read the stopwords into a list.
             try:
                 with open(used_source[0]) as f:     # Read most recent.
-                    custom_stop_words = f.read().splitlines()
+                    used_source = f.read().splitlines()
             except Exception as err:    # Raise an exception otherwise.
-                custom_stop_words = err
+                used_source = err
 
-        return {"stop_words": custom_stop_words}
+        return {"stop_words": used_source}
 
 
 class PreprocessAction(object):
@@ -443,7 +445,7 @@ def icon_path(basename):
 # Mandatory preprocessors.
 DEFAULT_PREPROCESSORS = [
     PreprocessAction(
-        "orangecontrib.text.preprocess.tokenizer", "Tokenizer", icon_path("TextPreprocess.svg"),
+        "orangecontrib.text.preprocess.tokenizer", "Tokenization", icon_path("TextPreprocess.svg"),
         "Splits the text into single word tokens.",
         TokenizerEditor
     )
@@ -451,12 +453,12 @@ DEFAULT_PREPROCESSORS = [
 
 PREPROCESSORS = [
     PreprocessAction(
-        "orangecontrib.text.preprocess.stemmer", "Stemmer", icon_path("TextPreprocess.svg"),
+        "orangecontrib.text.preprocess.stemmer", "Stemming", icon_path("TextPreprocess.svg"),
         "Performs the chosen morphological transformation on the text tokens.",
         TransformationEditor
     ),
     PreprocessAction(
-        "orangecontrib.text.preprocess.stopwords", "Stop word remover", icon_path("TextPreprocess.svg"),
+        "orangecontrib.text.preprocess.stopwords", "Token filtering", icon_path("TextPreprocess.svg"),
         "Removes stop words from text.",
         StopWordEditor
     )
@@ -1294,6 +1296,7 @@ class OWPreprocess(OWWidget):
         # Take the input corpus and append tokens to the metadata.
         input_data = self.data.documents
         tokens = preprocessor(input_data)
+        print(tokens)
 
         # Update the input corpus with a list of tokens.
         self.data.tokens = tokens
