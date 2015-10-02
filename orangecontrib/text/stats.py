@@ -1,5 +1,5 @@
 import numpy as np
-import scipy as sp
+from scipy import stats
 import math
 
 # To speed-up FDR, calculate ahead sum([1/i for i in range(1, m+1)]), for m in [1,100000].
@@ -57,35 +57,38 @@ def false_discovery_rate(p_values, dependent=False, m=None, ordered=False):
     return fdrs
 
 
-def hypergeom_p_values(selected, other, callback):
+def hypergeom_p_values(data, selected, callback=None):
     """
     Calculates p_values using Hypergeometric distribution for two numpy arrays.
+    Works on a matrices containing zeros and ones. All other values are truncated to zeros and ones.
 
+    :param data: all examples in rows, theirs features in columns
+    :type data: numpy.array
     :param selected: selected examples in rows, theirs features in columns
     :type selected: numpy.array
-    :param other: other examples in rows, theirs features in columns
-    :type other: numpy.array
-    :return: p-values
+    :return: p-values for features
     """
-    if selected.shape[1] != other.shape[1]:
+    if data.shape[1] != selected.shape[1]:
         raise ValueError("Number of columns does not match.")
 
-    sel_ex = selected.shape[0]
-    oth_ex = other.shape[0]
-    all_ex = sel_ex + oth_ex
-    all_features = selected.shape[1]
+    # clip values to a binary variables
+    data = data > 0
+    selected = selected > 0
 
-    sel = np.sum(selected, axis=0)
-    oth = np.sum(other, axis=0)
+    num_features = selected.shape[1]
+    pop_size = data.shape[0]                # population size = number of all data examples
+    sam_size = selected.shape[0]            # sample size = number of selected examples
+    pop_counts = np.sum(data, axis=0)       # number of observations in population = occurrences of words all data
+    sam_counts = np.sum(selected, axis=0)   # number of observations in sample = occurrences of words in selected data
 
-    i = 0
-    step = max(int(all_features/100), 1)
+    step = 250
     p_vals = []
 
-    for ns, no in zip(sel, oth):
-        hyper = sp.stats.hypergeom(all_ex, sel_ex, ns+no)
-        p_vals.append(hyper.sf(ns-1))    # P(we select >= ns docs) = 1 - cdf(ns-1)
-        i += 1
-        if i % step == 0:
-            callback(int(i/step))
+    for i, (pc, sc) in enumerate(zip(pop_counts, sam_counts)):
+        hyper = stats.hypergeom(pop_size, pc, sam_size)
+        # since p-value is probability of equal to or "more extreme" than what was actually observed
+        # we calculate it as 1 - cdf(sc-1). sf is survival function defined as 1-cdf.
+        p_vals.append(hyper.sf(sc-1))
+        if callback and i % step == 0:
+            callback(100*i/num_features)
     return p_vals
