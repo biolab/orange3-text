@@ -16,8 +16,8 @@ class OWWordEnrichment(OWWidget):
     priority = 60
 
     # Input/output
-    inputs = [("Selected Data", Table, "set_data_selected"),
-              ("Other Data", Table, "set_data_other")]
+    inputs = [("Data", Table, "set_data"),
+              ("Selected Data", Table, "set_data_selected")]
     want_main_area = True
 
     # Settings
@@ -30,8 +30,10 @@ class OWWordEnrichment(OWWidget):
         super().__init__()
 
         # Init data
+        self.data = None
         self.selected_data = None
-        self.other_data = None
+        self.selected_data_transformed = None   # used for transforming the 'selected data' into the 'data' domain
+
         self.words = []
         self.p_values = []
         self.fdr_values = []
@@ -80,24 +82,26 @@ class OWWordEnrichment(OWWidget):
             self.sig_words.resizeColumnToContents(i)
         self.mainArea.layout().addWidget(self.sig_words)
 
+    def set_data(self, data=None):
+        self.data = data
+
     def set_data_selected(self, data=None):
         self.selected_data = data
-
-    def set_data_other(self, data=None):
-        self.other_data = data
 
     def handleNewSignals(self):
         self.check_data()
 
     def check_data(self):
-        self.error(1)
-        if isinstance(self.selected_data, Table) and \
-                isinstance(self.other_data, Table):
-            if self.selected_data.domain == self.other_data.domain:
+        self.warning(1)
+        if isinstance(self.data, Table) and \
+                isinstance(self.selected_data, Table):
+            self.selected_data_transformed = Table.from_table(self.data.domain, self.selected_data)
+            if self.selected_data_transformed.X.size > 0 and \
+                    not np.isnan(self.selected_data_transformed.X).all():
                 self.apply()
             else:
                 self.clear()
-                self.error(1, 'The domains do not match')
+                self.warning(1, 'No features overlap!')
         else:
             self.clear()
 
@@ -129,8 +133,8 @@ class OWWordEnrichment(OWWidget):
         for i in range(len(self.cols)):
             self.sig_words.resizeColumnToContents(i)
 
-        self.info_all.setText('Cluster words: {}'.format(len(self.selected_data.domain.attributes)))
-        self.info_sel.setText('Selected words: {}'.format(np.count_nonzero(np.sum(self.selected_data.X, axis=0))))
+        self.info_all.setText('Cluster words: {}'.format(len(self.selected_data_transformed.domain.attributes)))
+        self.info_sel.setText('Selected words: {}'.format(np.count_nonzero(np.sum(self.selected_data_transformed.X, axis=0))))
         if not self.filter_by_p and not self.filter_by_fdr:
             self.info_fil.setText('After filtering:')
             self.info_fil.setEnabled(False)
@@ -142,21 +146,18 @@ class OWWordEnrichment(OWWidget):
         self.progressBarSet(p)
 
     def apply(self):
-        if self.selected_data.X.size > 0:
-            self.progressBarInit()
-            self.clear()
-            self.filter_enabled(False)
+        self.clear()
+        self.progressBarInit()
+        self.filter_enabled(False)
 
-            self.words = [i.name for i in self.selected_data.domain.attributes]
-            self.p_values = hypergeom_p_values(self.selected_data.X,
-                                               self.other_data.X,
-                                               callback=self.progress)
-            self.fdr_values = false_discovery_rate(self.p_values)
-            self.filter_and_display()
-            self.filter_enabled(True)
-            self.progressBarFinished()
-        else:
-            self.clear()
+        self.words = [i.name for i in self.selected_data_transformed.domain.attributes]
+        self.p_values = hypergeom_p_values(self.data.X,
+                                           self.selected_data_transformed.X,
+                                           callback=self.progress)
+        self.fdr_values = false_discovery_rate(self.p_values)
+        self.filter_and_display()
+        self.filter_enabled(True)
+        self.progressBarFinished()
 
 
 fp = lambda score: "%0.5f" % score if score > 10e-3 else "%0.1e" % score
