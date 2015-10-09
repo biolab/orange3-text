@@ -1,5 +1,6 @@
 include orangecontrib/text/tutorials/*.ows
 include orangecontrib/text/widgets/icons/*
+include orangecontrib/text/tests/nyt-cache.txt
 
 include requirements.txt
 include README.md

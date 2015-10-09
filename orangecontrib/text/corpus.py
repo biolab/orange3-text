@@ -70,7 +70,7 @@ class Corpus(Table):
             documents.append(' '.join(self.metas[line, indices]))
         self.documents = documents
 
-    def extend_corpus(self, documents, metadata, class_values, meta_vars):
+    def extend_corpus(self, documents, metadata, class_values):
         # TODO check if Domains match!
         self.metas = np.vstack((self.metas, metadata))
         self.documents += documents
@@ -79,7 +79,6 @@ class Corpus(Table):
             if val not in self.domain.class_var.values:
                 self.domain.class_var.add_value(val)
         new_Y = np.array([self.domain.class_var.to_val(cv) for cv in class_values])[:, None]
-        new_Y[np.isnan(new_Y)] = 0
         self._Y = np.vstack((self._Y, new_Y))
 
         self.X = self.W = np.zeros((len(self.documents), 0))
