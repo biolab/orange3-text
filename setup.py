@@ -45,7 +45,6 @@ KEYWORDS = [
 ]
 
 INSTALL_REQUIRES = (
-    'Orange >= 3.1',
     'nltk',
     'scikit-learn',
     'numpy',
