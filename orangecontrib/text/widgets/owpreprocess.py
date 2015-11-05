@@ -36,6 +36,9 @@ def remove_values_from_list(input, val):
     return [x for i, x in enumerate(input) if x == val]
 
 
+WIDGET_TITLES = ['Tokenization', 'Token filtering', 'Stemming']
+
+
 class BaseEditor(QWidget):
     """
     Base widget for editing preprocessor's parameters.
@@ -227,9 +230,7 @@ class TransformationEditor(BaseEditor):
         return {"method": self.__method, "lwcase": self.__use_lowercase}
 
     def __on_chbox_clicked(self):
-        """
-        Whenever user clicks the checkbox.
-        """
+        # Whenever user clicks the checkbox.
         flag = self.lowercase_checkbox.isChecked()
         if flag != self.__use_lowercase:
             self.set_lowercase_flag(self.lowercase_checkbox.isChecked())
@@ -264,7 +265,7 @@ class StopWordEditor(BaseEditor):
     StopWordSources = {
         NoRemoval: None,
         Default: "english",
-        Custom: []
+        Custom: {'recent_sw_files': [], 'loaded_sw_file': []}
     }
     Names = {
         NoRemoval: "None",
@@ -308,6 +309,13 @@ class StopWordEditor(BaseEditor):
         self.browse_button.setSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
         h_box.addWidget(self.browse_button)
 
+        # Reload button
+        reload_button = QPushButton(self)
+        reload_button.clicked.connect(self.__on_reload_button_clicked)
+        reload_button.setIcon(self.style().standardIcon(QtGui.QStyle.SP_BrowserReload))
+        reload_button.setSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
+        h_box.addWidget(reload_button)
+
         layout.addLayout(h_box)
 
         self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
@@ -320,6 +328,7 @@ class StopWordEditor(BaseEditor):
             self.__source = source
             b = self.__group.button(source)
             b.setChecked(True)
+
             self.changed.emit()
 
     def set_parameters(self, params):
@@ -349,7 +358,7 @@ class StopWordEditor(BaseEditor):
 
         if len(self.recent_sw_files) > 0:
             self.set_file_list()
-            self.update_custom_source()
+            self.open_file(self.recent_sw_files[0])
 
     def set_file_list(self):
         self.sw_file_combo.clear()
@@ -373,17 +382,24 @@ class StopWordEditor(BaseEditor):
         if not path:
             return
 
-        new_files = [f for f in self.recent_sw_files if f != path]
-        new_files.insert(0, path)
-        self.recent_sw_files = new_files
+        if path in self.recent_sw_files:
+            self.recent_sw_files.remove(path)
+        self.recent_sw_files.insert(0, path)
         self.set_file_list()
-        self.update_custom_source()
+        self.open_file(path)
+
+    def update_custom_source(self, stop_words=None):
+        self.StopWordSources[self.Custom]['recent_sw_files'] = self.recent_sw_files
+        if stop_words is not None:
+            self.StopWordSources[self.Custom]['loaded_sw_file'] = stop_words
 
     def open_file(self, path):
-        self.current_file_path = path
-
-    def update_custom_source(self):
-        self.StopWordSources[self.Custom] = self.recent_sw_files
+        try:
+            with open(path) as f:     # Read most recent.
+                new_stop_words = f.read().splitlines()  # TODO: strip, zakomentirat sw po zelji
+                self.update_custom_source(new_stop_words)
+        except Exception as err:    # Raise an exception otherwise.
+            self.update_custom_source(err)
 
     def set_recent_sw_files(self, files):
         """
@@ -401,6 +417,17 @@ class StopWordEditor(BaseEditor):
         self.browse_button.setEnabled(browse_flag)
         self.sw_file_combo.setEnabled(browse_flag)
 
+        # If available, load the custom file.
+        self.select_file(0)
+
+    def __on_reload_button_clicked(self):
+        # When the user clicks the reload button.
+        if self.recent_sw_files:
+            self.open_file(self.recent_sw_files[0])
+            self.changed.emit()
+            self.edited.emit()
+
+
     def __on_button_clicked(self):
         # on user 'source' button click
         source = self.__group.checkedId()
@@ -415,12 +442,8 @@ class StopWordEditor(BaseEditor):
         source = params.pop("source", StopWordEditor.NoRemoval)
         used_source = StopWordEditor.StopWordSources[source]
 
-        if isinstance(used_source, list):   # If custom, read the stopwords into a list.
-            try:
-                with open(used_source[0]) as f:     # Read most recent.
-                    used_source = f.read().splitlines()
-            except Exception as err:    # Raise an exception otherwise.
-                used_source = err
+        if isinstance(used_source, dict):   # If custom, use the loaded file.
+            used_source = used_source['loaded_sw_file']
 
         return {"stop_words": used_source}
 
@@ -445,7 +468,7 @@ def icon_path(basename):
 # Mandatory preprocessors.
 DEFAULT_PREPROCESSORS = [
     PreprocessAction(
-        "orangecontrib.text.preprocess.tokenizer", "Tokenization", icon_path("TextPreprocess.svg"),
+        "orangecontrib.text.preprocess.tokenizer", WIDGET_TITLES[0], icon_path("TextPreprocess.svg"),
         "Splits the text into single word tokens.",
         TokenizerEditor
     )
@@ -453,12 +476,12 @@ DEFAULT_PREPROCESSORS = [
 
 PREPROCESSORS = [
     PreprocessAction(
-        "orangecontrib.text.preprocess.stemmer", "Stemming", icon_path("TextPreprocess.svg"),
+        "orangecontrib.text.preprocess.stemmer", WIDGET_TITLES[2], icon_path("TextPreprocess.svg"),
         "Performs the chosen morphological transformation on the text tokens.",
         TransformationEditor
     ),
     PreprocessAction(
-        "orangecontrib.text.preprocess.stopwords", "Token filtering", icon_path("TextPreprocess.svg"),
+        "orangecontrib.text.preprocess.stopwords", WIDGET_TITLES[1], icon_path("TextPreprocess.svg"),
         "Removes stop words from text.",
         StopWordEditor
     )
@@ -845,11 +868,11 @@ class SequenceFlow(QWidget):
         frames = [item.widget() for item in self.layout_iter(layout)
                   if item.widget()]
 
-        if title == "Stop word remover":
+        if title == WIDGET_TITLES[1]:
             # Set the recent files.
             widget.set_recent_sw_files(self.recent_sw_files)
 
-        if title == "Tokenizer":    # Mandatory widget -> Disable removal.
+        if title == WIDGET_TITLES[0]:    # Mandatory widget -> Disable removal.
             frame = SequenceFlow.Frame(widget=widget, title=title, is_closable=False)
         else:
             frame = SequenceFlow.Frame(widget=widget, title=title)
@@ -956,32 +979,6 @@ class SequenceFlow(QWidget):
 
     def dragLeaveEvent(self, event):
         self.__setDropIndicatorAt(None)
-
-    def eventFilter(self, obj, event):
-        if isinstance(obj, SequenceFlow.Frame) and obj.parent() is self:
-            etype = event.type()
-            if etype == QEvent.MouseButtonPress and \
-                    event.button() == Qt.LeftButton:
-                # Is the mouse press on the dock title bar
-                # (assume everything above obj.widget is a title bar)
-                if event.pos().y() < obj.widget().y():
-                    index = self.indexOf(obj.widget())
-                    self.__dragstart = (obj, index, event.pos())
-            elif etype == QEvent.MouseMove and \
-                    event.buttons() & Qt.LeftButton and \
-                    obj is self.__dragstart[0]:
-                _, _, down = self.__dragstart
-                if (down - event.pos()).manhattanLength() >= \
-                        QApplication.startDragDistance():
-                    self.__startInternalDrag(obj, event.pos())
-                    self.__dragstart = None, None, None
-                    return True
-            elif etype == QEvent.MouseButtonRelease and \
-                    event.button() == Qt.LeftButton and \
-                    self.__dragstart[0] is obj:
-                self.__dragstart = None, None, None
-
-        return super().eventFilter(obj, event)
 
     def __setDropIndicatorAt(self, pos):
         # find the index where drop at pos would insert.
@@ -1273,8 +1270,8 @@ class OWPreprocess(OWWidget):
             self._invalidated = True
             QApplication.postEvent(self, QEvent(QEvent.User))
 
-    def handleNewSignals(self):
-        self.apply()
+    #def handleNewSignals(self):
+    #    self.apply()
 
     def customEvent(self, event):
         if event.type() == QEvent.User and self._invalidated:
@@ -1290,13 +1287,16 @@ class OWPreprocess(OWWidget):
         # Build a preprocessor instance with the selected parameters.
         preprocessor = self.build_preproc()
         if not preprocessor:
-            self.error(1, "No tokenizer specified.")
+            self.error(1, "Failed to create a Preprocessor object.")
             return
 
-        # Take the input corpus and append tokens to the metadata.
-        input_data = self.data.documents
-        tokens = preprocessor(input_data)
-        print(tokens)
+        # Pre-process the documents and present feedback via the progress bar.
+        tokens = []
+        self.progressBarInit()
+        for i, document in enumerate(self.data.documents):
+            tokens.append(preprocessor.preprocess_document(document))
+            self.progressBarSet(100.0 * (i/len(self.data.documents)))
+        self.progressBarFinished()
 
         # Update the input corpus with a list of tokens.
         self.data.tokens = tokens
@@ -1329,7 +1329,7 @@ class OWPreprocess(OWWidget):
 
             p.update(pp_info)
 
-        return Preprocessor(**pp_info)
+        return Preprocessor(**p)
 
     @Slot()
     def __update_size_constraint(self):
