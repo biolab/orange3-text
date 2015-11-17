@@ -36,7 +36,7 @@ def remove_values_from_list(input, val):
     return [x for i, x in enumerate(input) if x == val]
 
 
-WIDGET_TITLES = ['Tokenization', 'Token filtering', 'Stemming']
+WIDGET_TITLES = ['Tokenization', 'Token filtering', 'Stemming', 'Token capitalization']
 
 
 class BaseEditor(QWidget):
@@ -158,8 +158,6 @@ class TransformationEditor(BaseEditor):
     """
     # Transformation methods
     NoTrans, PorterStemmer, SnowballStemmer, Lemmatizer = 0, 1, 2, 3
-    # Lowercase flag.
-    __use_lowercase = False
 
     TransformationObjects = {
         NoTrans: None,
@@ -193,7 +191,7 @@ class TransformationEditor(BaseEditor):
             layout.addWidget(rb)
             group.addButton(rb, method)
         group.buttonClicked.connect(self.__on_button_clicked)
-
+        """
         # HLine divider.
         h_line = QFrame()
         h_line.setFrameShape(QFrame.HLine)
@@ -204,7 +202,7 @@ class TransformationEditor(BaseEditor):
         self.lowercase_checkbox = QCheckBox("Lowercase")
         self.lowercase_checkbox.clicked.connect(self.__on_chbox_clicked)
         layout.addWidget(self.lowercase_checkbox)
-
+        """
         self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
 
     def set_method(self, method):
@@ -213,28 +211,30 @@ class TransformationEditor(BaseEditor):
             b = self.__group.button(method)
             b.setChecked(True)
             self.changed.emit()
-
+    """
     def set_lowercase_flag(self, flag):
         if self.__use_lowercase != flag:
             self.__use_lowercase = flag
             self.lowercase_checkbox.setChecked(flag)
             self.changed.emit()
+    """
 
     def set_parameters(self, params):
         method = params.get("method", 1)
-        lwcase = params.get("lwcase", False)
-        self.set_lowercase_flag(lwcase)
+        #lwcase = params.get("lwcase", False)
+        #self.set_lowercase_flag(lwcase)
         self.set_method(method)
 
     def parameters(self):
-        return {"method": self.__method, "lwcase": self.__use_lowercase}
-
+        return {"method": self.__method}#, "lwcase": self.__use_lowercase}
+    """
     def __on_chbox_clicked(self):
         # Whenever user clicks the checkbox.
         flag = self.lowercase_checkbox.isChecked()
         if flag != self.__use_lowercase:
             self.set_lowercase_flag(self.lowercase_checkbox.isChecked())
             self.edited.emit()
+    """
 
     def __on_button_clicked(self):
         # On user 'method' button click.
@@ -249,9 +249,9 @@ class TransformationEditor(BaseEditor):
         Reads the parameters and generates a setting.
         """
         method = params.pop("method", TransformationEditor.PorterStemmer)
-        lwcase = params.pop("lwcase", False)
+        #lwcase = params.pop("lwcase", False)
         used_method = TransformationEditor.TransformationObjects[method]
-        return {"transformation": used_method, "lowercase": lwcase}
+        return {"transformation": used_method}#, "lowercase": lwcase}
 
 
 class StopWordEditor(BaseEditor):
@@ -261,14 +261,12 @@ class StopWordEditor(BaseEditor):
     recent_sw_files = []
 
     # Stop word sources.
-    NoRemoval, Default, Custom = 0, 1, 2
+    Default, Custom = 0, 1
     StopWordSources = {
-        NoRemoval: None,
         Default: "english",
         Custom: {'recent_sw_files': [], 'loaded_sw_file': []}
     }
     Names = {
-        NoRemoval: "None",
         Default: "Default stop words set (English)",
         Custom: "Custom stop words set"
     }
@@ -278,15 +276,15 @@ class StopWordEditor(BaseEditor):
 
     def __init__(self, parent=None, **kwargs):
         BaseEditor.__init__(self, parent, **kwargs)
-        # Default source, should we chose to remove stop words at all.
-        self.__source = StopWordEditor.NoRemoval
+        # Default source.
+        self.__source = StopWordEditor.Default
 
         layout = QVBoxLayout()
         self.setLayout(layout)
 
         # Radio buttons.
         self.__group = group = QButtonGroup(self, exclusive=True)
-        for source in [self.NoRemoval, self.Default, self.Custom]:
+        for source in [self.Default, self.Custom]:
             rb = QRadioButton(
                 self, text=self.Names[source],
                 checked=self.__source == source
@@ -297,6 +295,7 @@ class StopWordEditor(BaseEditor):
 
         # Custom sw browser.
         h_box = QHBoxLayout()
+        h_box.setContentsMargins(20, 0, 0, 0)
 
         self.sw_file_combo = QtGui.QComboBox()
         h_box.addWidget(self.sw_file_combo)
@@ -343,7 +342,7 @@ class StopWordEditor(BaseEditor):
         self.set_source(source_index)
 
         # If custom sw file.
-        if source_index == 2:
+        if source_index == 1:
             self.set_file_list()
 
     def parameters(self):
@@ -396,7 +395,7 @@ class StopWordEditor(BaseEditor):
     def open_file(self, path):
         try:
             with open(path) as f:     # Read most recent.
-                new_stop_words = f.read().splitlines()  # TODO: strip, zakomentirat sw po zelji
+                new_stop_words = [sw.strip() for sw in f.read().splitlines()]
                 self.update_custom_source(new_stop_words)
         except Exception as err:    # Raise an exception otherwise.
             self.update_custom_source(err)
@@ -413,7 +412,7 @@ class StopWordEditor(BaseEditor):
     # END File selection.
 
     def enable_browsing(self, source):
-        browse_flag = source == 2
+        browse_flag = source == 1
         self.browse_button.setEnabled(browse_flag)
         self.sw_file_combo.setEnabled(browse_flag)
 
@@ -439,13 +438,44 @@ class StopWordEditor(BaseEditor):
 
     @staticmethod
     def create_instance(params):
-        source = params.pop("source", StopWordEditor.NoRemoval)
+        source = params.pop("source")
         used_source = StopWordEditor.StopWordSources[source]
 
         if isinstance(used_source, dict):   # If custom, use the loaded file.
             used_source = used_source['loaded_sw_file']
 
         return {"stop_words": used_source}
+
+
+class CasingEditor(BaseEditor):
+    """
+    Editor for orangecontrib.text.preprocess lowercasing.
+    """
+    def __init__(self, parent=None, **kwargs):
+        BaseEditor.__init__(self, parent, **kwargs)
+
+        # Layout.
+        layout = QVBoxLayout()
+        layout.addWidget(QLabel('All characters in tokens, will be lower case.'))
+        self.setLayout(layout)
+
+        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
+
+    def set_method(self):
+        self.changed.emit()
+
+    def set_parameters(self, params):
+        self.set_method()
+
+    def parameters(self):
+        return {'lowercase': True}
+
+    @staticmethod
+    def create_instance(params):
+        """
+        Reads the parameters and generates a setting.
+        """
+        return {'lowercase': True}
 
 
 class PreprocessAction(object):
@@ -484,6 +514,11 @@ PREPROCESSORS = [
         "orangecontrib.text.preprocess.stopwords", WIDGET_TITLES[1], icon_path("TextPreprocess.svg"),
         "Removes stop words from text.",
         StopWordEditor
+    ),
+    PreprocessAction(
+        "orangecontrib.text.preprocess.lowercase", WIDGET_TITLES[3], icon_path("TextPreprocess.svg"),
+        "Lowercases all characters in the tokens.",
+        CasingEditor
     )
 ]
 
@@ -1263,15 +1298,15 @@ class OWPreprocess(OWWidget):
         self.stored_settings = self.save(self.preprocessormodel)
         super().storeSpecificSettings()
 
-    def commit(self):
+    def commit(self, *args, **kwargs):
         # Sync the model into stored_settings on every change commit.
         self.storeSpecificSettings()
         if not self._invalidated:
             self._invalidated = True
             QApplication.postEvent(self, QEvent(QEvent.User))
 
-    #def handleNewSignals(self):
-    #    self.apply()
+    def handleNewSignals(self):
+        self.apply()
 
     def customEvent(self, event):
         if event.type() == QEvent.User and self._invalidated:
@@ -1294,8 +1329,10 @@ class OWPreprocess(OWWidget):
         tokens = []
         self.progressBarInit()
         for i, document in enumerate(self.data.documents):
-            tokens.append(preprocessor.preprocess_document(document))
+            tokens.append(preprocessor._preprocess_document(document))
+            print(tokens[-1])
             self.progressBarSet(100.0 * (i/len(self.data.documents)))
+        print("=================================================================")
         self.progressBarFinished()
 
         # Update the input corpus with a list of tokens.
