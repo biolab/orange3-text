@@ -9,7 +9,7 @@ NAME = 'Orange3-Text'
 VERSION = '0.1.5'
 
 DESCRIPTION = 'Orange3 TextMining add-on.'
-README_FILE = os.path.join(os.path.dirname(__file__), 'README.md')
+README_FILE = os.path.join(os.path.dirname(__file__), 'README.pypi')
 LONG_DESCRIPTION = open(README_FILE).read()
 AUTHOR = 'Bioinformatics Laboratory, FRI UL'
 AUTHOR_EMAIL = 'contact@orange.biolab.si'
