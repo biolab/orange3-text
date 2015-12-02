@@ -4,4 +4,5 @@ include orangecontrib/text/tests/nyt-cache.txt
 
 include requirements.txt
 include README.md
+include README.pypi
 include LICENSE
