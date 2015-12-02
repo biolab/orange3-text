@@ -1,5 +1,5 @@
-import os
 import unittest
+from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.preprocess import Preprocessor, PorterStemmer, SnowballStemmer, Lemmatizer
 
 
@@ -142,3 +142,19 @@ class PreprocessTests(unittest.TestCase):
                          transformation=Lemmatizer, use_twitter_tokenizer=False)
         corpus = p(corpus)[0]
         self.assertEqual(corpus, lemmas)
+
+    def test_full_corpus_preprocess(self):
+        corpus = Corpus.from_file('../datasets/deerwester.tab')
+        p = Preprocessor(lowercase=True, stop_words=None)
+        preprocessed_documents = [
+            ['human', 'machine', 'interface', 'for', 'lab', 'abc', 'computer', 'applications'],
+            ['a', 'survey', 'of', 'user', 'opinion', 'of', 'computer', 'system', 'response', 'time'],
+            ['the', 'eps', 'user', 'interface', 'management', 'system'],
+            ['system', 'and', 'human', 'system', 'engineering', 'testing', 'of', 'eps'],
+            ['relation', 'of', 'user', 'perceived', 'response', 'time', 'to', 'error', 'measurement'],
+            ['the', 'generation', 'of', 'random', 'binary', 'unordered', 'trees'],
+            ['the', 'intersection', 'graph', 'of', 'paths', 'in', 'trees'],
+            ['graph', 'minors', 'iv', 'widths', 'of', 'trees', 'and', 'well', 'quasi', 'ordering'],
+            ['graph', 'minors', 'a', 'survey']
+        ]
+        self.assertEqual(p(corpus), preprocessed_documents)

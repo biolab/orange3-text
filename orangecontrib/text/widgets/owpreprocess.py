@@ -438,7 +438,7 @@ class StopWordEditor(BaseEditor):
 
     @staticmethod
     def create_instance(params):
-        source = params.pop("source")
+        source = params.pop("source", 0)
         used_source = StopWordEditor.StopWordSources[source]
 
         if isinstance(used_source, dict):   # If custom, use the loaded file.
@@ -755,7 +755,7 @@ class Controller(QObject):
         self._model.setData(index, params, ParametersRole)
 
     @Slot()
-    def __edited(self,):
+    def __edited(self):
         widget = self.sender()
         row = self.view.indexOf(widget)
         index = self.model().index(row, 0)
@@ -1330,9 +1330,7 @@ class OWPreprocess(OWWidget):
         self.progressBarInit()
         for i, document in enumerate(self.data.documents):
             tokens.append(preprocessor._preprocess_document(document))
-            print(tokens[-1])
             self.progressBarSet(100.0 * (i/len(self.data.documents)))
-        print("=================================================================")
         self.progressBarFinished()
 
         # Update the input corpus with a list of tokens.
