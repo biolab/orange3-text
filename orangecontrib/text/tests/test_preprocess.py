@@ -1,5 +1,6 @@
+import os
 import unittest
-from orangecontrib.text.corpus import Corpus
+from orangecontrib.text.corpus import Corpus, get_sample_corpora_dir
 from orangecontrib.text.preprocess import Preprocessor, PorterStemmer, SnowballStemmer, Lemmatizer
 
 
@@ -144,7 +145,7 @@ class PreprocessTests(unittest.TestCase):
         self.assertEqual(corpus, lemmas)
 
     def test_full_corpus_preprocess(self):
-        corpus = Corpus.from_file('../datasets/deerwester.tab')
+        corpus = Corpus.from_file(os.path.join(get_sample_corpora_dir(), 'deerwester.tab'))
         p = Preprocessor(lowercase=True, stop_words=None)
         preprocessed_documents = [
             ['human', 'machine', 'interface', 'for', 'lab', 'abc', 'computer', 'applications'],
