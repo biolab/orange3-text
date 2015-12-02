@@ -159,3 +159,24 @@ class PreprocessTests(unittest.TestCase):
             ['graph', 'minors', 'a', 'survey']
         ]
         self.assertEqual(p(corpus), preprocessed_documents)
+
+    def test_faulty_init_parameters(self):
+        # Twitter tokenizer.
+        p = Preprocessor(use_twitter_tokenizer=True)
+        self.assertFalse(p.tokenizer)
+
+        # Stop word source.
+        with self.assertRaises(ValueError):
+            Preprocessor(stop_words='faulty_value')
+        # Transformation.
+        with self.assertRaises(ValueError):
+            Preprocessor(transformation='faulty_value')
+        # Min/Max df.
+        with self.assertRaises(ValueError):
+            Preprocessor(min_df='faulty_value')
+        with self.assertRaises(ValueError):
+            Preprocessor(max_df='faulty_value')
+        with self.assertRaises(ValueError):
+            Preprocessor(min_df=1.5)
+        with self.assertRaises(ValueError):
+            Preprocessor(max_df=1.5)

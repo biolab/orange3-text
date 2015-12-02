@@ -20,7 +20,7 @@ class Preprocessor:
         :type lowercase: boolean
         :param stop_words: Determines whether and what stop words should be removed. Can remove
             default nltk stop words for the English language or stop words provided in a custom list.
-        :type stop_words: 'default', a list or None
+        :type stop_words: 'english', a list or None
         :param min_df: Tokens that appear in exactly or less than 'min_df' documents, will be removed.
             Can be specified either as an actual count of documents or a proportion of the corpus. Assigning
             this parameter when pre-processing a single document, will have no effect.
@@ -51,8 +51,8 @@ class Preprocessor:
         elif stop_words is None:
             self.stop_words = None
         else:
-            raise ValueError("The stop words parameter should be either \'default\', "
-                             "a list containing the stop words or None.")
+            raise ValueError('The stop words parameter should be either "english\", '
+                             'a list containing the stop words or None.')
 
         # Min/Max df.
         # Constant checks whether or not we should use 'df', are quite painful.
@@ -169,8 +169,8 @@ class Preprocessor:
             self.use_df_sw = True
             is_float = isinstance(min_df, float)
             is_int = isinstance(min_df, int)
-            in_range = min_df >= 0.0 or min_df <= 1.0
             if is_float:
+                in_range = 1.0 >= min_df >= 0.0
                 if not in_range:
                     raise ValueError('Parameter min_df is out of range ({}).'.format(min_df))
             elif not is_int:
@@ -180,15 +180,12 @@ class Preprocessor:
             self.use_df_sw = True
             is_float = isinstance(max_df, float)
             is_int = isinstance(max_df, int)
-            in_range = max_df >= 0.0 or max_df <= 1.0
             if is_float:
+                in_range = 1.0 >= max_df >= 0.0
                 if not in_range:
                     raise ValueError('Parameter max_df is out of range ({}).'.format(max_df))
             elif not is_int:
                 raise ValueError('Type "{}" not supported.'.format(max_df))
-
-        if min_df is not None and max_df is not None and min_df >= max_df:
-            raise ValueError('Parameter "min_df", cannot be greater or equal to "max_df".')
 
 
 class Stemmatizer():
