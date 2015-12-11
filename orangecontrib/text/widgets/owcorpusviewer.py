@@ -223,8 +223,8 @@ class OWCorpusViewer(OWWidget):
     # --- MISC ---
     def commit(self):
         if self.output_mask is not None:
-            output_corpus = Corpus.from_table(self.corpus.domain, self.corpus,
-                                              row_indices=self.output_mask)
+            output_corpus = Corpus.from_corpus(self.corpus.domain, self.corpus,
+                                               row_indices=self.output_mask)
             self.send(Output.CORPUS, output_corpus)
 
     def _invalidate_selection(self):

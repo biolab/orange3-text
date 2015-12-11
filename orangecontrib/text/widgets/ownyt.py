@@ -321,13 +321,13 @@ class OWNYT(OWWidget):
             if self.display_error_response(res, error):
                 break
 
-            metas, class_values = _parse_record_json(res["response"]["docs"], self.nyt_api.includes_fields)
+            metas, Y = _parse_record_json(res["response"]["docs"], self.nyt_api.includes_fields)
             docs = []
             for doc in metas:
                 docs.append(" ".join([d for d in doc if d is not None]).strip())
 
             # Update the corpus.
-            self.output_corpus.extend_corpus(docs, metas, class_values)
+            self.output_corpus.extend_corpus(metas, Y)
 
             # Update the info label.
             self.num_retrieved += len(res["response"]["docs"])

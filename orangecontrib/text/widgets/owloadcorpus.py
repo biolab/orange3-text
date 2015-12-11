@@ -131,12 +131,11 @@ class OWLoadCorpus(OWWidget):
 
         try:
             self.corpus = Corpus.from_file(path)
-            for i in self.corpus.used_features:
-                self.used_attrs.append(i)
-            for i in self.corpus.domain.metas:
-                if i not in self.corpus.used_features:
-                    self.unused_attrs.append(i)
-
+            for f in self.corpus.domain.metas:
+                if f in self.corpus.text_features:
+                    self.used_attrs.append(f)
+                else:
+                    self.unused_attrs.append(f)
             self.info_label.setText("Corpus of {} documents.".format(len(self.corpus)))
             self.send(Output.CORPUS, self.corpus)
         except BaseException as err:
@@ -144,5 +143,5 @@ class OWLoadCorpus(OWWidget):
 
     def update_feature_selection(self):
         if self.corpus is not None:
-            self.corpus.regenerate_documents(self.used_attrs)
+            self.corpus.set_text_features(self.used_attrs)
             self.send(Output.CORPUS, self.corpus)
