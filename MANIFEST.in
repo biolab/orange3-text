@@ -1,9 +1,0 @@
-include orangecontrib/text/tutorials/*.ows
-include orangecontrib/text/widgets/icons/*
-include orangecontrib/text/widgets/resources/*
-include orangecontrib/text/tests/nyt-cache.txt
-
-include requirements.txt
-include README.md
-include README.pypi
-include LICENSE
