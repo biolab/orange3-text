@@ -51,12 +51,6 @@ INSTALL_REQUIRES = (
     'gensim',
 )
 
-PACKAGE_DATA = {
-    'orangecontrib.text': ['tutorials/*.ows'],
-    'orangecontrib.text.widgets': ['icons/*'],
-    'orangecontrib.text.tests': ['nyt-cache.txt'],
-}
-
 if 'test' in sys.argv:
     extra_setuptools_args = dict(
         test_suite='orangecontrib.text.tests',
@@ -75,7 +69,7 @@ if __name__ == '__main__':
         url=URL,
         download_url=DOWNLOAD_URL,
         packages=find_packages(),
-        package_data=PACKAGE_DATA,
+        include_package_data=True,
         install_requires=
             INSTALL_REQUIRES + ('smart_open>=1.3.0',),
         dependency_links=(
@@ -84,7 +78,6 @@ if __name__ == '__main__':
         entry_points=ENTRY_POINTS,
         keywords=KEYWORDS,
         namespace_packages=['orangecontrib'],
-        include_package_data=True,
         zip_safe=False,
         **extra_setuptools_args
     )
