@@ -1,23 +1,22 @@
 import os
 
 import numpy as np
-from Orange.data import StringVariable, Table, DiscreteVariable, Domain
+
+from Orange.data import StringVariable, Table
 
 
 def get_sample_corpora_dir():
     path = os.path.dirname(__file__)
-    dir = os.path.join(path, 'datasets')
-    return os.path.realpath(dir)
+    directory = os.path.join(path, 'datasets')
+    return os.path.abspath(directory)
 
 
 class Corpus(Table):
-    """
-        Internal class for storing a corpus of orangecontrib.text.corpus.Corpus.
-    """
+    """Internal class for storing a corpus of orangecontrib.text.corpus.Corpus."""
 
     def __new__(cls, *args, **kwargs):
         """Bypass Table.__new__."""
-        return object.__new__(Corpus)
+        return object.__new__(cls)
 
     def __init__(self, documents, X, Y, metas, domain):
         self.documents = documents
@@ -43,6 +42,15 @@ class Corpus(Table):
 
     @classmethod
     def from_file(cls, filename):
+        if not os.path.exists(filename):        # check the default corpora location
+            abs_path = os.path.join(get_sample_corpora_dir(), filename)
+            if not abs_path.endswith('.tab'):
+                abs_path += '.tab'
+            if not os.path.exists(abs_path):
+                raise FileNotFoundError('File "{}" was not found.'.format(filename))
+            else:
+                filename = abs_path
+
         table = Table.from_file(filename)
         include_ids = []
         first_id = None
@@ -86,3 +94,10 @@ class Corpus(Table):
 
     def __len__(self):
         return len(self.documents)
+
+    def __eq__(self, other):
+        return (self.documents == other.documents and
+                np.array_equal(self.X, other.X) and
+                np.array_equal(self.Y, other.Y) and
+                np.array_equal(self.metas, other.metas) and
+                self.domain == other.domain)
