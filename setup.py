@@ -6,7 +6,7 @@ from setuptools import setup, find_packages
 
 NAME = 'Orange3-Text'
 
-VERSION = '0.1.7'
+VERSION = '0.1.8'
 
 DESCRIPTION = 'Orange3 TextMining add-on.'
 README_FILE = os.path.join(os.path.dirname(__file__), 'README.pypi')
