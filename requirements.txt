@@ -1,3 +1,4 @@
+scipy
 nltk
 scikit-learn
 numpy

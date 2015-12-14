@@ -45,6 +45,7 @@ KEYWORDS = [
 ]
 
 INSTALL_REQUIRES = (
+    'scipy',
     'nltk',
     'scikit-learn',
     'numpy',
