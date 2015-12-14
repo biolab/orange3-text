@@ -70,11 +70,7 @@ if __name__ == '__main__':
         download_url=DOWNLOAD_URL,
         packages=find_packages(),
         include_package_data=True,
-        install_requires=
-            INSTALL_REQUIRES + ('smart_open>=1.3.0',),
-        dependency_links=(
-            'git+https://github.com/piskvorky/smart_open.git@1fe93a2#egg=smart_open-1.3.0',
-        ),
+        install_requires=INSTALL_REQUIRES,
         entry_points=ENTRY_POINTS,
         keywords=KEYWORDS,
         namespace_packages=['orangecontrib'],

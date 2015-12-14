@@ -1,5 +1,7 @@
-Orange Text
-===========
+Orange Text - In Development
+============================
+
+**NOTE: This plug-in currently could NOT be installed. We are working on resolving the issue; until then if curious you can install it [from source](https://github.com/biolab/orange3-text) but beware that it is still in development.**
 
 Orange3 Text extends Orange with common functionality for text mining. It provides access
 to publicly available data, like NY Times, Twitter and PubMed. Further,
