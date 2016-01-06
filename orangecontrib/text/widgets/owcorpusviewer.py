@@ -1,13 +1,14 @@
-from PyQt4 import QtGui
+from itertools import chain
+
 from PyQt4 import QtCore
-from PyQt4.QtGui import *
+from PyQt4 import QtGui
 from PyQt4.QtCore import *
+from PyQt4.QtGui import *
 
 from Orange.widgets import gui
+from Orange.widgets.settings import Setting, ContextSetting
 from Orange.widgets.utils import vartype
 from Orange.widgets.widget import OWWidget
-from Orange.widgets.settings import Setting, ContextSetting
-
 from orangecontrib.text.corpus import Corpus
 
 
@@ -114,8 +115,9 @@ class OWCorpusViewer(OWWidget):
     def load_features(self):
         self.selected_features = []
         if self.corpus is not None:
-            self.features = [(meta.name, vartype(meta)) for meta in self.corpus.domain.metas] + \
-                            [(attr.name, vartype(attr)) for attr in self.corpus.domain.attributes]
+            domain = self.corpus.domain
+            self.features = [(var.name, vartype(var))
+                             for var in chain(domain.variables, domain.metas)]
             self.selected_features = [0]  # Select the first feature.
 
     def load_documents(self):
