@@ -1,12 +1,13 @@
-text
-string
+category	text
+d	string
+class	
 
-Human machine interface for lab abc computer applications
-A survey of user opinion of computer system response time
-The EPS user interface management system
-System and human system engineering testing of EPS
-Relation of user perceived response time to error measurement
-The generation of random binary unordered trees
-The intersection graph of paths in trees
-Graph minors IV Widths of trees and well quasi ordering
-Graph minors A survey
+human-computer interaction	Human machine interface for lab abc computer applications
+human-computer interaction	A survey of user opinion of computer system response time
+human-computer interaction	The EPS user interface management system
+human-computer interaction	System and human system engineering testing of EPS
+human-computer interaction	Relation of user perceived response time to error measurement
+graphs	The generation of random binary unordered trees
+graphs	The intersection graph of paths in trees
+graphs	Graph minors IV Widths of trees and well quasi ordering
+graphs	Graph minors A survey

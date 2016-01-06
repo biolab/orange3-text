@@ -36,10 +36,10 @@ class CorpusTests(unittest.TestCase):
         c2 = Corpus(c.documents, c.X, c.Y, c.metas, c.domain)
         self.assertEqual(c, c2)
 
-    def test_corpus_from_file_just_text(self):
+    def test_corpus_from_file(self):
         c = Corpus.from_file('deerwester')
         self.assertEqual(len(c), 9)
-        self.assertEqual(len(c.domain), 0)
+        self.assertEqual(len(c.domain), 1)
         self.assertEqual(len(c.domain.metas), 1)
         self.assertEqual(c.metas.shape, (9, 1))
 
