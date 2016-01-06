@@ -34,21 +34,18 @@ class LDA:
         dictionary = corpora.Dictionary(self.text)
         corpus = [dictionary.doc2bow(t) for t in self.text]
 
-        lda = models.LdaModel(id2word=dictionary, num_topics=self.num_topics)
+        self.lda = models.LdaModel(id2word=dictionary, num_topics=self.num_topics)
         done = 0
         for i, part in enumerate(chunk_list(corpus, 95)):
-            lda.update(part)
+            self.lda.update(part)
             done += len(part)
             callback(95.0*done/len(corpus))
 
-        corpus = lda[corpus]
-        topics = lda.show_topics(num_topics=-1, num_words=3, formatted=False)
-        names = [', '.join([i[1] for i in t]) for t in topics]
-        names = ['Topic{} ({})'.format(i, n) for i, n in enumerate(names, 1)]
+        corpus = self.lda[corpus]
 
-        self.topic_names = names
+        self.topic_names = ['Topic{} ({})'.format(i, ', '.join(words))
+                            for i, words in enumerate(self.__topics_words(3), 1)]
         self.corpus = corpus
-        self.lda = lda
 
     def insert_topics_into_corpus(self, corp_in):
         """
@@ -78,15 +75,16 @@ class LDA:
         :param lda: gensim LDA model.
         :return: `Orange.data.table.Table`.
         """
-        topics = self.lda.show_topics(num_topics=-1, num_words=MAX_WORDS, formatted=False)
-        if topic_id >= len(topics):
+        words = self.__topics_words(MAX_WORDS)
+        weights = self.__topics_weights(MAX_WORDS)
+        if topic_id >= len(words):
             raise ValueError("Too large topic ID.")
 
-        num_words = max([len(it) for it in topics])
+        num_words = len(words[topic_id])
 
         data = np.zeros((num_words, 2), dtype=object)
-        data[:, 0] = [item[1] for item in topics[topic_id]]
-        data[:, 1] = [item[0] for item in topics[topic_id]]
+        data[:, 0] = words[topic_id]
+        data[:, 1] = weights[topic_id]
 
         metas = [StringVariable(self.topic_names[topic_id]),
                  ContinuousVariable("Topic{}_weights".format(topic_id+1))]
@@ -100,8 +98,21 @@ class LDA:
         return t
 
     def get_top_words_by_id(self, topic_id):
-        topics = self.lda.show_topics(num_topics=-1, num_words=10, formatted=False)
+        topics = self.__topics_words(10)
         if topic_id >= len(topics):
             raise ValueError("Too large topic ID.")
-        return [item[1] for item in topics[topic_id]]
+        return topics[topic_id]
 
+    def __topics_words(self, num_of_words):
+        """ Returns list of list of topic words. """
+        x = self.lda.show_topics(num_topics=-1, num_words=num_of_words, formatted=False)
+        # `show_topics` method return a list of `(topic_number, topic)` tuples,
+        # where `topic` is a list of `(word, probability)` tuples.
+        return [[i[0] for i in topic[1]] for topic in x]
+
+    def __topics_weights(self, num_of_words):
+        """ Returns list of list of topic weights. """
+        topics = self.lda.show_topics(num_topics=-1, num_words=num_of_words, formatted=False)
+        # `show_topics` method return a list of `(topic_number, topic)` tuples,
+        # where `topic` is a list of `(word, probability)` tuples.
+        return [[i[1] for i in t[1]] for t in topics]

@@ -49,7 +49,7 @@ INSTALL_REQUIRES = (
     'nltk',
     'scikit-learn',
     'numpy',
-    'gensim',
+    'gensim>=0.12.3',
 )
 
 if 'test' in sys.argv:
