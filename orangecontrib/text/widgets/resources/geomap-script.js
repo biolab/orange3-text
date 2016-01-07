@@ -34,7 +34,7 @@ function renderMap() {
                 legend: {
                     horizontal: true,
                     labelRender: function(v) {
-                        return v.toString().match(/.+?(\.\d\d)?/)[0];
+                        return Math.round(v * 100 + 0.00001) / 100;
                     }
                 }
             }]
