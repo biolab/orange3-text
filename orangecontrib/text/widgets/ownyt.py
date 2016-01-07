@@ -48,6 +48,10 @@ class OWNYT(OWWidget):
     includes_snippet = Setting(False)
     includes_abstract = Setting(False)
     includes_keywords = Setting(False)
+    includes_type_of_material = Setting(False)
+    includes_web_url = Setting(False)
+    includes_word_count = Setting(False)
+
 
     def __init__(self):
         super().__init__()
@@ -123,18 +127,30 @@ class OWNYT(OWWidget):
         self.headline_chbox = gui.checkBox(self.text_includes_box, self,
                                            "includes_headline", "Headline")
         self.lead_paragraph_chbox = gui.checkBox(self.text_includes_box, self,
-                                                 "includes_lead_paragraph", "Lead Paragraph")
+                                                 "includes_lead_paragraph",
+                                                 "Lead paragraph")
         self.snippet_chbox = gui.checkBox(self.text_includes_box, self,
                                           "includes_snippet", "Snippet")
         self.abstract_chbox = gui.checkBox(self.text_includes_box, self,
                                            "includes_abstract", "Abstract")
         self.keywords_chbox = gui.checkBox(self.text_includes_box, self,
                                            "includes_keywords", "Keywords")
+        self.type_of_material_chbox = gui.checkBox(self.text_includes_box, self,
+                                                   "includes_type_of_material",
+                                                   "Article type")
+        self.web_url_chbox = gui.checkBox(self.text_includes_box, self,
+                                          "includes_web_url", "URL")
+        self.word_count_chbox = gui.checkBox(self.text_includes_box, self,
+                                             "includes_word_count",
+                                             "Word count")
         self.nyt_controls.append(self.headline_chbox)
         self.nyt_controls.append(self.lead_paragraph_chbox)
         self.nyt_controls.append(self.snippet_chbox)
         self.nyt_controls.append(self.abstract_chbox)
         self.nyt_controls.append(self.keywords_chbox)
+        self.nyt_controls.append(self.type_of_material_chbox)
+        self.nyt_controls.append(self.web_url_chbox)
+        self.nyt_controls.append(self.word_count_chbox)
 
         # Run query button.
         self.run_query_button = gui.button(self.controlArea, self, 'Run query',
@@ -215,7 +231,9 @@ class OWNYT(OWWidget):
 
         # Text fields.
         text_includes_params = [self.includes_headline, self.includes_lead_paragraph, self.includes_snippet,
-                                self.includes_abstract, self.includes_keywords]
+                                self.includes_abstract, self.includes_keywords,
+                                self.includes_type_of_material,
+                                self.includes_web_url, self.includes_word_count]
         if True not in text_includes_params:
             self.warning(1, "You must select at least one text field.")
             return

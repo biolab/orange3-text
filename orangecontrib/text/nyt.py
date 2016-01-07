@@ -13,7 +13,8 @@ from orangecontrib.text.corpus import Corpus
 from Orange.canvas.utils import environ
 from Orange.data import Domain, StringVariable, DiscreteVariable
 
-NYT_TEXT_FIELDS = ["headline", "lead_paragraph", "snippet", "abstract", "keywords"]
+NYT_TEXT_FIELDS = ["headline", "lead_paragraph", "snippet", "abstract",
+                   "keywords", "type_of_material", "web_url", "word_count"]
 
 
 def _parse_record_json(records, includes_metadata):
