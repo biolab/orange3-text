@@ -120,7 +120,7 @@ class OWCorpusViewer(OWWidget):
             domain = self.corpus.domain
             self.features = [(var.name, vartype(var))
                              for var in chain(domain.variables, domain.metas)]
-            self.selected_features = [0]  # Select the first feature.
+            self.selected_features = list(range(len(self.features)))  # FIXME: Select features based on ContextSetting
 
     def load_documents(self):
         """ Loads documents into the left scrolling are. """
