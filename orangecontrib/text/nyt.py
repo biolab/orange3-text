@@ -163,9 +163,6 @@ class NYT:
                 warnings.warn("Warning: could not retrieve page {} of specified query.".format(i))
                 continue
             records.extend(data["response"]["docs"])
-            # Trim the records list.
-        if len(records) > max_records:
-            records = records[:(max_records-len(records))]
 
         return _generate_corpus(records, NYT_TEXT_FIELDS)
 
