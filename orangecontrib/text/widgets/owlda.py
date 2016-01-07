@@ -18,8 +18,8 @@ class Output:
 
 class OWLDA(OWWidget):
     # Basic widget info
-    name = "Topic Discovery"
-    description = "Latent Dirichlet Allocation topic model."
+    name = "Topic Modelling"
+    description = "Topic modelling with Latent Dirichlet Allocation."
     icon = "icons/LDA.svg"
     priority = 50
 
