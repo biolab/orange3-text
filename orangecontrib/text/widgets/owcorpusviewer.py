@@ -1,3 +1,4 @@
+import re
 from itertools import chain
 
 from PyQt4 import QtCore
@@ -60,7 +61,8 @@ class OWCorpusViewer(OWWidget):
         # ---- MAIN AREA ----
         # Search
         self.filter_input = gui.lineEdit(self.mainArea, self, '',
-                                         orientation='horizontal', label='Filter:')
+                                         orientation='horizontal',
+                                         label='RegExp Filter:')
         self.filter_input.textChanged.connect(self.filter_input_changed)
 
         h_box = gui.widgetBox(self.mainArea, orientation='horizontal', addSpace=True)
@@ -127,20 +129,15 @@ class OWCorpusViewer(OWWidget):
 
         self.output_mask = []
         self.document_table_model.clear()
-        search_keyword = self.filter_input.text()
-        should_filter = True if search_keyword else False
-        regex = QtCore.QRegExp(search_keyword)
+        search_keyword = self.filter_input.text().strip('|')
+        should_filter = bool(search_keyword)
+        is_match = re.compile(search_keyword, re.IGNORECASE).search
 
         for i, document in enumerate(self.corpus):
             # TODO: remove corpus.documents due to problems with inconsistencies.
             document_contents = self.corpus.documents[i]
 
-            has_hit = not should_filter     # Without a filter, every document 'has a hit'.
-            if should_filter:
-                index = regex.indexIn(document_contents, 0)
-                if index != -1:
-                    has_hit = True
-
+            has_hit = not should_filter or is_match(document_contents)
             if has_hit:
                 item = QStandardItem()
                 item.setData('Document {}'.format(i+1), Qt.DisplayRole)
@@ -184,7 +181,7 @@ class OWCorpusViewer(OWWidget):
         self.update_info_display()
 
     def highlight_document_hits(self):
-        search_keyword = self.filter_input.text()
+        search_keyword = self.filter_input.text().strip('|')
         self.clear_text_highlight()
         if not search_keyword:
             self.update_info_display()
@@ -195,6 +192,7 @@ class OWCorpusViewer(OWWidget):
         text_format.setBackground(QtGui.QBrush(QtGui.QColor('#b3d8fe')))
         # Regular expression to match.
         regex = QtCore.QRegExp(search_keyword)
+        regex.setCaseSensitivity(Qt.CaseInsensitive)
         cursor = self.document_contents.find(regex, 0)
         while cursor.position() != -1:
             cursor.mergeCharFormat(text_format)
