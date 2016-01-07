@@ -39,19 +39,19 @@ class LDA:
         for i, part in enumerate(chunk_list(corpus, 95)):
             self.lda.update(part)
             done += len(part)
-            callback(95.0*done/len(corpus))
+            if callback: callback(95.0*done/len(corpus))
 
         corpus = self.lda[corpus]
 
         self.topic_names = ['Topic{} ({})'.format(i, ', '.join(words))
-                            for i, words in enumerate(self.__topics_words(3), 1)]
+                            for i, words in enumerate(self._topics_words(3), 1)]
         self.corpus = corpus
 
     def insert_topics_into_corpus(self, corp_in):
         """
         Insert topical representation into corpus.
 
-        :param corp_in: Corpus into whic we want to insert topical representations
+        :param corp_in: Corpus into which we want to insert topical representations
         :return: `Orange.data.table.Table`
         """
         matrix = matutils.corpus2dense(self.corpus,
@@ -75,8 +75,8 @@ class LDA:
         :param lda: gensim LDA model.
         :return: `Orange.data.table.Table`.
         """
-        words = self.__topics_words(MAX_WORDS)
-        weights = self.__topics_weights(MAX_WORDS)
+        words = self._topics_words(MAX_WORDS)
+        weights = self._topics_weights(MAX_WORDS)
         if topic_id >= len(words):
             raise ValueError("Too large topic ID.")
 
@@ -98,19 +98,19 @@ class LDA:
         return t
 
     def get_top_words_by_id(self, topic_id):
-        topics = self.__topics_words(10)
+        topics = self._topics_words(10)
         if topic_id >= len(topics):
             raise ValueError("Too large topic ID.")
         return topics[topic_id]
 
-    def __topics_words(self, num_of_words):
+    def _topics_words(self, num_of_words):
         """ Returns list of list of topic words. """
         x = self.lda.show_topics(num_topics=-1, num_words=num_of_words, formatted=False)
         # `show_topics` method return a list of `(topic_number, topic)` tuples,
         # where `topic` is a list of `(word, probability)` tuples.
         return [[i[0] for i in topic[1]] for topic in x]
 
-    def __topics_weights(self, num_of_words):
+    def _topics_weights(self, num_of_words):
         """ Returns list of list of topic weights. """
         topics = self.lda.show_topics(num_topics=-1, num_words=num_of_words, formatted=False)
         # `show_topics` method return a list of `(topic_number, topic)` tuples,
