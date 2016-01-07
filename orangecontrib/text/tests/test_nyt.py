@@ -32,7 +32,7 @@ class MockUrlOpen:
 
         return cm()
 
-    def readall(self):
+    def read(self):
         return self.data[self.current_url]
 
     def getcode(self):
