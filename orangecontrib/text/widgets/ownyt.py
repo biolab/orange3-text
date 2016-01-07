@@ -35,6 +35,7 @@ class OWNYT(OWWidget):
 
     QT_DATE_FORMAT = 'yyyy-MM-dd'
     PY_DATE_FORMAT = '%Y-%m-%d'
+    MIN_DATE = date(1851, 1, 1)
 
     # Settings.
     recent_queries = Setting([])
@@ -93,11 +94,15 @@ class OWNYT(OWWidget):
         # Year box.
         year_box = gui.widgetBox(parameter_box, orientation=0)
 
+        minDate = QDate.fromString(self.MIN_DATE.strftime(self.PY_DATE_FORMAT),
+                                   self.QT_DATE_FORMAT)
         date_from = QDateEdit(QDate.fromString(self.date_from, self.QT_DATE_FORMAT),
                               displayFormat=self.QT_DATE_FORMAT,
+                              minimumDate=minDate,
                               calendarPopup=True)
         date_to = QDateEdit(QDate.fromString(self.date_to, self.QT_DATE_FORMAT),
                             displayFormat=self.QT_DATE_FORMAT,
+                            minimumDate=minDate,
                             calendarPopup=True)
         date_from.dateChanged.connect(
             lambda date: setattr(self, 'date_from', date.toString(self.QT_DATE_FORMAT)))
@@ -221,10 +226,13 @@ class OWNYT(OWWidget):
 
         # Warnings on bad inputs. #
         if date_from is not None:
-            if date_from < date(1851, 1, 1):
-                date_from = date(1851, 1, 1)
-                self.warning(1, "There are no records before the year 1851. "
-                                "Assumed 1851/01/01 as start date for this query.")
+            if date_from < self.MIN_DATE:
+                date_from = self.MIN_DATE
+                self.warning(
+                    1, self.MIN_DATE.strftime(
+                        "There are no records before the year %Y. "
+                        "Assumed " + self.PY_DATE_FORMAT + " as start date "
+                                                           "for this query."))
             if date_to is not None:
                 if date_from > date_to:
                     self.warning(1, "The start date is greater than the end date.")
