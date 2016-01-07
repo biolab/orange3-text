@@ -6,6 +6,7 @@ import warnings
 import datetime
 import numpy as np
 from datetime import date
+from html import unescape
 from urllib import request, parse
 from urllib.error import HTTPError, URLError
 from orangecontrib.text.corpus import Corpus
@@ -13,7 +14,8 @@ from orangecontrib.text.corpus import Corpus
 from Orange.canvas.utils import environ
 from Orange.data import Domain, StringVariable, DiscreteVariable
 
-NYT_TEXT_FIELDS = ["headline", "lead_paragraph", "snippet", "abstract", "keywords"]
+NYT_TEXT_FIELDS = ["headline", "lead_paragraph", "snippet", "abstract",
+                   "keywords", "type_of_material", "web_url", "word_count"]
 
 
 def _parse_record_json(records, includes_metadata):
@@ -26,30 +28,26 @@ def _parse_record_json(records, includes_metadata):
     :return: A list of the corresponding metadata and class values for the instances.
     """
     class_values = []
-    metadata = np.empty((0, len(includes_metadata)+2), dtype=object)    # columns: Text fields + (pub_date + country)
+    metadata = []
     for doc in records:
         metas_row = []
         for field in includes_metadata:
-            if field in doc:
-                field_value = ""
-                if isinstance(doc[field], dict):
-                    field_value = " ".join([val for val in doc[field].values() if val])
-                elif isinstance(doc[field], list):
-                    field_value = " ".join([kw["value"] for kw in doc[field] if kw])
-                else:
-                    if doc[field]:
-                        field_value = doc[field]
-                metas_row.append(field_value)
+            field_value = doc.get(field) or ''
+            if isinstance(field_value, dict):
+                field_value = " ".join([v for v in field_value.values() if v])
+            elif isinstance(field_value, list):
+                field_value = " ".join([kw["value"] for kw in field_value if kw])
+            metas_row.append(unescape(field_value))
         # Add the pub_date.
         metas_row.append(doc.get("pub_date", ""))
         # Add the glocation.
-        metas_row.append(",".join([kw["value"] for kw in doc["keywords"] if kw["name"] == "glocations"]))
+        metas_row.append(", ".join([kw["value"] for kw in doc["keywords"] if kw["name"] == "glocations"]))
 
         # Add the section_name.
-        class_values.append(doc.get("section_name", None))
+        class_values.append(doc.get("section_name", ''))
 
-        metadata = np.vstack((metadata, np.array(metas_row)))
-
+        metadata.append(metas_row)
+    metadata = np.array(metadata, dtype=object)
     return metadata, class_values
 
 
@@ -157,14 +155,11 @@ class NYT:
         records = []
         for i in range(0, num_steps):
             data, cached, err = self._execute_query(i)
-            failure = (data is None) or ('response' not in data) or ('docs' not in data['response'])
+            failure = (data is None) or ('response' not in data) or ('docs' not in data['response']) or err
             if failure:
-                warnings.warn("Warning: could not retrieve page {} of specified query.".format(i))
-                continue
+                warnings.warn("Warning: could not retrieve page {} of results: {}".format(i, err))
+                break
             records.extend(data["response"]["docs"])
-            # Trim the records list.
-        if len(records) > max_records:
-            records = records[:(max_records-len(records))]
 
         return _generate_corpus(records, NYT_TEXT_FIELDS)
 
@@ -246,7 +241,7 @@ class NYT:
             else:
                 try:
                     with request.urlopen(current_query) as connection:
-                        response = connection.readall().decode("utf-8")
+                        response = connection.read().decode("utf-8")
                     query_cache[current_query_key] = response
 
                     response_data = json.loads(response)

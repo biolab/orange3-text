@@ -19,6 +19,7 @@ class OWLoadCorpus(OWWidget):
 
     outputs = [(Output.CORPUS, Corpus)]
     want_main_area = False
+    resizing_enabled = False
 
     dlgFormats = "Only tab files (*.tab)"
 

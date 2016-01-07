@@ -35,6 +35,7 @@ class OWNYT(OWWidget):
 
     QT_DATE_FORMAT = 'yyyy-MM-dd'
     PY_DATE_FORMAT = '%Y-%m-%d'
+    MIN_DATE = date(1851, 1, 1)
 
     # Settings.
     recent_queries = Setting([])
@@ -47,6 +48,10 @@ class OWNYT(OWWidget):
     includes_snippet = Setting(False)
     includes_abstract = Setting(False)
     includes_keywords = Setting(False)
+    includes_type_of_material = Setting(False)
+    includes_web_url = Setting(False)
+    includes_word_count = Setting(False)
+
 
     def __init__(self):
         super().__init__()
@@ -93,11 +98,15 @@ class OWNYT(OWWidget):
         # Year box.
         year_box = gui.widgetBox(parameter_box, orientation=0)
 
+        minDate = QDate.fromString(self.MIN_DATE.strftime(self.PY_DATE_FORMAT),
+                                   self.QT_DATE_FORMAT)
         date_from = QDateEdit(QDate.fromString(self.date_from, self.QT_DATE_FORMAT),
                               displayFormat=self.QT_DATE_FORMAT,
+                              minimumDate=minDate,
                               calendarPopup=True)
         date_to = QDateEdit(QDate.fromString(self.date_to, self.QT_DATE_FORMAT),
                             displayFormat=self.QT_DATE_FORMAT,
+                            minimumDate=minDate,
                             calendarPopup=True)
         date_from.dateChanged.connect(
             lambda date: setattr(self, 'date_from', date.toString(self.QT_DATE_FORMAT)))
@@ -118,18 +127,30 @@ class OWNYT(OWWidget):
         self.headline_chbox = gui.checkBox(self.text_includes_box, self,
                                            "includes_headline", "Headline")
         self.lead_paragraph_chbox = gui.checkBox(self.text_includes_box, self,
-                                                 "includes_lead_paragraph", "Lead Paragraph")
+                                                 "includes_lead_paragraph",
+                                                 "Lead paragraph")
         self.snippet_chbox = gui.checkBox(self.text_includes_box, self,
                                           "includes_snippet", "Snippet")
         self.abstract_chbox = gui.checkBox(self.text_includes_box, self,
                                            "includes_abstract", "Abstract")
         self.keywords_chbox = gui.checkBox(self.text_includes_box, self,
                                            "includes_keywords", "Keywords")
+        self.type_of_material_chbox = gui.checkBox(self.text_includes_box, self,
+                                                   "includes_type_of_material",
+                                                   "Article type")
+        self.web_url_chbox = gui.checkBox(self.text_includes_box, self,
+                                          "includes_web_url", "URL")
+        self.word_count_chbox = gui.checkBox(self.text_includes_box, self,
+                                             "includes_word_count",
+                                             "Word count")
         self.nyt_controls.append(self.headline_chbox)
         self.nyt_controls.append(self.lead_paragraph_chbox)
         self.nyt_controls.append(self.snippet_chbox)
         self.nyt_controls.append(self.abstract_chbox)
         self.nyt_controls.append(self.keywords_chbox)
+        self.nyt_controls.append(self.type_of_material_chbox)
+        self.nyt_controls.append(self.web_url_chbox)
+        self.nyt_controls.append(self.word_count_chbox)
 
         # Run query button.
         self.run_query_button = gui.button(self.controlArea, self, 'Run query',
@@ -210,7 +231,9 @@ class OWNYT(OWWidget):
 
         # Text fields.
         text_includes_params = [self.includes_headline, self.includes_lead_paragraph, self.includes_snippet,
-                                self.includes_abstract, self.includes_keywords]
+                                self.includes_abstract, self.includes_keywords,
+                                self.includes_type_of_material,
+                                self.includes_web_url, self.includes_word_count]
         if True not in text_includes_params:
             self.warning(1, "You must select at least one text field.")
             return
@@ -221,10 +244,13 @@ class OWNYT(OWWidget):
 
         # Warnings on bad inputs. #
         if date_from is not None:
-            if date_from < date(1851, 1, 1):
-                date_from = date(1851, 1, 1)
-                self.warning(1, "There are no records before the year 1851. "
-                                "Assumed 1851/01/01 as start date for this query.")
+            if date_from < self.MIN_DATE:
+                date_from = self.MIN_DATE
+                self.warning(
+                    1, self.MIN_DATE.strftime(
+                        "There are no records before the year %Y. "
+                        "Assumed " + self.PY_DATE_FORMAT + " as start date "
+                                                           "for this query."))
             if date_to is not None:
                 if date_from > date_to:
                     self.warning(1, "The start date is greater than the end date.")
@@ -293,7 +319,7 @@ class OWNYT(OWWidget):
 
             # Display error if failure.
             if self.display_error_response(res, error):
-                return
+                break
 
             metas, class_values = _parse_record_json(res["response"]["docs"], self.nyt_api.includes_fields)
             docs = []
@@ -308,7 +334,7 @@ class OWNYT(OWWidget):
             self.update_info_label()
 
             if not cached:  # Only wait if an actual request was made.
-                sleep(1)
+                sleep(.2)
 
             # Update the progress bar.
             self.progressBarSet(100.0 * (i/num_steps))
@@ -337,11 +363,8 @@ class OWNYT(OWWidget):
 
     def display_error_response(self, res, error):
         failure = (not res) or ('response' not in res) or ('docs' not in res['response'])
-        if failure and error is not None:
-            if isinstance(error, HTTPError):
-                self.error(1, "An error occurred (HTTP {})".format(error.code))
-            elif isinstance(error, URLError):
-                self.error(1, "An error occurred (URL {})".format(error.reason))
+        if error:
+            self.error(1, "An error occurred: {}".format(error))
         return failure
 
     def validate_date(self, input_string):

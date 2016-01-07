@@ -32,7 +32,7 @@ class MockUrlOpen:
 
         return cm()
 
-    def readall(self):
+    def read(self):
         return self.data[self.current_url]
 
     def getcode(self):
@@ -69,8 +69,8 @@ class NYTTests(unittest.TestCase):
         self.assertEqual(len(corpus.documents), 10)
 
     def test_nyt_query_max_records(self):
-        records = self.nyt.run_query('slovenia', max_records=25)
-        self.assertEqual(len(records), 25)
+        records = self.nyt.run_query('slovenia', max_records=30)
+        self.assertEqual(len(records), 30)
 
     def test_nyt_corpus_domain_generation(self):
         corpus = self.nyt.run_query('slovenia')
