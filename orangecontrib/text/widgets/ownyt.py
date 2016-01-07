@@ -30,6 +30,7 @@ class OWNYT(OWWidget):
 
     outputs = [(Output.CORPUS, Corpus)]
     want_main_area = False
+    resizing_enabled = False
 
     # Settings.
     recent_queries = Setting([])
