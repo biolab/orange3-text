@@ -10,6 +10,7 @@ from PyQt4 import QtCore, QtGui
 
 from Orange.widgets import widget, gui, settings
 from Orange.data import Table
+from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.country_codes import \
     CC_EUROPE, INV_CC_EUROPE, SET_CC_EUROPE, \
     CC_WORLD, INV_CC_WORLD, \
@@ -33,7 +34,7 @@ class OWGeoMap(widget.OWWidget):
     priority = 20000
     icon = "icons/GeoMap.svg"
     inputs = [("Data", Table, "on_data")]
-    outputs = [('Data', Table)]
+    outputs = [('Corpus', Corpus)]
 
     want_main_area = False
 
@@ -50,13 +51,13 @@ class OWGeoMap(widget.OWWidget):
         """Called from JavaScript"""
         if not regions:
             self.regions = []
-            return self.send('Data', None)
+            return self.send('Corpus', None)
         self.regions = regions.split(',')
         attr = self.metas[self.selected_attr]
         if attr.is_discrete: return  # TODO, FIXME: make this work for discrete attrs also
         from Orange.data.filter import FilterRegex
         filter = FilterRegex(attr, r'\b{}\b'.format(r'\b|\b'.join(self.regions)), re.IGNORECASE)
-        self.send('Data', self.data._filter_values(filter))
+        self.send('Corpus', self.data._filter_values(filter))
 
     def _create_layout(self):
         box = gui.widgetBox(self.controlArea,
@@ -121,6 +122,8 @@ html, body, #map {{margin:0px;padding:0px;width:100%;height:100%;}}
             self.attr_combo.setCurrentIndex(self.attr_combo.findText(self.metas[self.selected_attr].name))
 
     def on_data(self, data):
+        if data and not isinstance(data, Corpus):
+            data = Corpus.from_table(data.domain, data)
         self.data = data
         self._repopulate_attr_combo(data)
         if not data:
