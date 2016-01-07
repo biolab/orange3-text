@@ -4,8 +4,9 @@ import math
 import numpy as np
 from time import sleep
 from PyQt4.QtGui import *
+from PyQt4.QtCore import QDate
 from PyQt4 import QtCore, QtGui
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from urllib.error import HTTPError, URLError
 
 from Orange.widgets.settings import Setting
@@ -30,12 +31,16 @@ class OWNYT(OWWidget):
 
     outputs = [(Output.CORPUS, Corpus)]
     want_main_area = False
+    resizing_enabled = False
+
+    QT_DATE_FORMAT = 'yyyy-MM-dd'
+    PY_DATE_FORMAT = '%Y-%m-%d'
 
     # Settings.
     recent_queries = Setting([])
     recent_api_keys = Setting([])
-    year_from = Setting("")
-    year_to = Setting("")
+    date_from = Setting((datetime.now().date() - timedelta(365)).strftime(PY_DATE_FORMAT))
+    date_to = Setting(datetime.now().date().strftime(PY_DATE_FORMAT))
     # Text includes checkboxes.
     includes_headline = Setting(True)
     includes_lead_paragraph = Setting(True)
@@ -87,35 +92,25 @@ class OWNYT(OWWidget):
 
         # Year box.
         year_box = gui.widgetBox(parameter_box, orientation=0)
-        # Inputs for years.
-        gui.label(year_box, self, "From")
-        self.year_from_input = gui.lineEdit(year_box, self, "year_from")
-        self.year_from_input.setPlaceholderText("YYYY/MM/DD")
-        self.year_from_input.setMinimumWidth(80)
-        # Calendar button from.
-        open_calendar_button_from = gui.button(year_box, self, '',
-                                               callback=lambda: self.open_calendar(self.year_from_input),
-                                               tooltip="Pick a date using the calendar widget.")
-        open_calendar_button_from.setMaximumSize(open_calendar_button_from.sizeHint())
-        open_calendar_button_from.setIcon(QIcon(_i("calendar.svg")))
-        open_calendar_button_from.setIconSize(QtCore.QSize(16, 16))
-        open_calendar_button_from.setFocusPolicy(QtCore.Qt.NoFocus)
-        open_calendar_button_from.setSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
-        gui.label(year_box, self, "to")
-        self.year_to_input = gui.lineEdit(year_box, self, "year_to")
-        self.year_to_input.setPlaceholderText("YYYY/MM/DD")
-        self.year_to_input.setMinimumWidth(80)
-        # Calendar button to.
-        open_calendar_button_to = gui.button(year_box, self, '',
-                                             callback=lambda: self.open_calendar(self.year_to_input),
-                                             tooltip="Pick a date using the calendar widget.")
-        open_calendar_button_to.setMaximumSize(open_calendar_button_to.sizeHint())
-        open_calendar_button_to.setIcon(QIcon(_i("calendar.svg")))
-        open_calendar_button_to.setIconSize(QtCore.QSize(16, 16))
-        open_calendar_button_to.setFocusPolicy(QtCore.Qt.NoFocus)
 
-        self.nyt_controls.append(self.year_from_input)
-        self.nyt_controls.append(self.year_to_input)
+        date_from = QDateEdit(QDate.fromString(self.date_from, self.QT_DATE_FORMAT),
+                              displayFormat=self.QT_DATE_FORMAT,
+                              calendarPopup=True)
+        date_to = QDateEdit(QDate.fromString(self.date_to, self.QT_DATE_FORMAT),
+                            displayFormat=self.QT_DATE_FORMAT,
+                            calendarPopup=True)
+        date_from.dateChanged.connect(
+            lambda date: setattr(self, 'date_from', date.toString(self.QT_DATE_FORMAT)))
+        date_to.dateChanged.connect(
+            lambda date: setattr(self, 'date_to', date.toString(self.QT_DATE_FORMAT)))
+
+        gui.label(year_box, self, "From:")
+        year_box.layout().addWidget(date_from)
+        gui.label(year_box, self, "to:")
+        year_box.layout().addWidget(date_to)
+
+        self.nyt_controls.append(date_from)
+        self.nyt_controls.append(date_to)
 
         # Text includes box.
         self.text_includes_box = gui.widgetBox(self.controlArea,
@@ -221,8 +216,8 @@ class OWNYT(OWWidget):
             return
 
         # Year span.
-        date_from = self.validate_date(self.year_from)
-        date_to = self.validate_date(self.year_to)
+        date_from = self.validate_date(self.date_from)
+        date_to = self.validate_date(self.date_to)
 
         # Warnings on bad inputs. #
         if date_from is not None:
@@ -350,14 +345,10 @@ class OWNYT(OWWidget):
         return failure
 
     def validate_date(self, input_string):
-        if not input_string or input_string is None:
-            return None  # Nothing to do here.
-
-        format_mapping = {1: "%Y", 2: "%Y/%m", 3: "%Y/%m/%d"}
-        # Check for input formats: YYYY, YYYY/MM or YYYY/MM/DD.
+        if not input_string:
+            return None
         try:
-            f = format_mapping.get(len(input_string.split('/')), '')
-            return datetime.strptime(input_string, f).date()
+            return datetime.strptime(input_string, self.PY_DATE_FORMAT).date()
         except ValueError:
             self.warning(1, "Invalid date interval endpoint format (must be YYYY/MM/DD).")
             return None
@@ -388,11 +379,6 @@ class OWNYT(OWWidget):
     def open_set_api_key_dialog(self):
         api_dlg = APIKeyDialog(self, "New York Times API key")
         api_dlg.exec_()
-
-    def open_calendar(self, widget):
-        cal_dlg = CalendarDialog(self, "to", "Date picker")
-        if cal_dlg.exec_():
-            widget.setText(cal_dlg.picked_date)
 
 
 class APIKeyDialog(QDialog):
@@ -460,34 +446,3 @@ class APIKeyDialog(QDialog):
 
         if len(self.parent.recent_api_keys) > 0:
             self.set_key_list()
-
-
-class CalendarDialog(QDialog):
-
-    picked_date = None
-    source = None
-    parent = None
-
-    def __init__(self, parent, source, windowTitle="Date picker"):
-        super().__init__(parent, windowTitle=windowTitle)
-
-        self.source = source
-        self.parent = parent
-
-        self.setLayout(QVBoxLayout())
-        self.mainArea = gui.widgetBox(self)
-        self.layout().addWidget(self.mainArea)
-
-        self.cal = QtGui.QCalendarWidget(self)
-        self.cal.setGridVisible(True)
-        self.cal.move(20, 20)
-        self.cal.clicked[QtCore.QDate].connect(self.set_date)
-        self.mainArea.layout().addWidget(self.cal)
-
-        # Set the default date.
-        self.picked_date = self.cal.selectedDate().toString('yyyy/MM/dd')
-
-        gui.button(self.mainArea, self, "OK", lambda: QDialog.accept(self))
-
-    def set_date(self, date):
-        self.picked_date = date.toString('yyyy/MM/dd')
