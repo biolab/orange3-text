@@ -48,7 +48,6 @@ def _parse_record_json(records, includes_metadata):
         # Add the section_name.
         class_values.append(doc.get("section_name", None))
 
-        metas_row = [None if v is "" else v for v in metas_row]
         metadata = np.vstack((metadata, np.array(metas_row)))
 
     return metadata, class_values
