@@ -319,7 +319,7 @@ class OWNYT(OWWidget):
 
             # Display error if failure.
             if self.display_error_response(res, error):
-                return
+                break
 
             metas, class_values = _parse_record_json(res["response"]["docs"], self.nyt_api.includes_fields)
             docs = []
@@ -334,7 +334,7 @@ class OWNYT(OWWidget):
             self.update_info_label()
 
             if not cached:  # Only wait if an actual request was made.
-                sleep(1)
+                sleep(.2)
 
             # Update the progress bar.
             self.progressBarSet(100.0 * (i/num_steps))
@@ -363,11 +363,8 @@ class OWNYT(OWWidget):
 
     def display_error_response(self, res, error):
         failure = (not res) or ('response' not in res) or ('docs' not in res['response'])
-        if failure and error is not None:
-            if isinstance(error, HTTPError):
-                self.error(1, "An error occurred (HTTP {})".format(error.code))
-            elif isinstance(error, URLError):
-                self.error(1, "An error occurred (URL {})".format(error.reason))
+        if error:
+            self.error(1, "An error occurred: {}".format(error))
         return failure
 
     def validate_date(self, input_string):

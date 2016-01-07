@@ -155,10 +155,10 @@ class NYT:
         records = []
         for i in range(0, num_steps):
             data, cached, err = self._execute_query(i)
-            failure = (data is None) or ('response' not in data) or ('docs' not in data['response'])
+            failure = (data is None) or ('response' not in data) or ('docs' not in data['response']) or err
             if failure:
-                warnings.warn("Warning: could not retrieve page {} of specified query.".format(i))
-                continue
+                warnings.warn("Warning: could not retrieve page {} of results: {}".format(i, err))
+                break
             records.extend(data["response"]["docs"])
 
         return _generate_corpus(records, NYT_TEXT_FIELDS)
