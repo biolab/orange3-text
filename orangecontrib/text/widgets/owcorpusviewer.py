@@ -224,3 +224,12 @@ class OWCorpusViewer(OWWidget):
 
     def _invalidate_selection(self):
         self.commit()
+
+
+if __name__ == '__main__':
+    app = QApplication([])
+    widget = OWCorpusViewer()
+    widget.show()
+    corpus = Corpus.from_file('bookexcerpts')
+    widget.set_data(corpus)
+    app.exec()
