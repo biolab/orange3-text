@@ -157,20 +157,21 @@ class OWCorpusViewer(OWWidget):
         """ Show the selected document in the right area. """
         self.clear_text_highlight()  # Clear.
 
-        self.document_contents = QTextDocument()    # Using a QTextDocument because it's easier to style.
+        self.document_contents = QTextDocument(undoRedoEnabled=False)
         self.document_contents.setDefaultStyleSheet('td { padding: 5px 15px 15xp 5px; }')
 
-        documents_html = []
+        documents = []
         for index in self.document_table.selectionModel().selectedRows():
-            document = index.data(Qt.UserRole)
-            one_document_html = ''
+            document = ['<table>']
             for feat_index in self.selected_features:
                 meta_name = self.features[feat_index][0]  # 0 - name; 1 - index
-                one_document_html += '<tr title={0}><td><strong>{0}:</strong></td><td>{1}</td></tr>'.format(
-                        meta_name, document[meta_name].value)
-            documents_html.append('<table>{}</table>'.format(one_document_html))
+                document.append(
+                    '<tr><td><strong>{0}:</strong></td><td>{1}</td></tr>'.format(
+                        meta_name, index.data(Qt.UserRole)[meta_name].value))
+            document.append('</table><hr/>')
+            documents.append(document)
 
-        self.document_contents.setHtml('<hr />'.join(documents_html))
+        self.document_contents.setHtml(''.join(chain.from_iterable(documents)))
         self.document_holder.setDocument(self.document_contents)
         self.highlight_document_hits()
 
@@ -194,9 +195,13 @@ class OWCorpusViewer(OWWidget):
         regex = QtCore.QRegExp(search_keyword)
         regex.setCaseSensitivity(Qt.CaseInsensitive)
         cursor = self.document_contents.find(regex, 0)
-        while cursor.position() != -1:
+        prev_position = None
+        cursor.beginEditBlock()
+        while cursor.position() not in (-1, prev_position):
             cursor.mergeCharFormat(text_format)
+            prev_position = cursor.position()
             cursor = self.document_contents.find(regex, cursor.position())
+        cursor.endEditBlock()
 
     def update_info_display(self):
         if self.corpus is not None:
