@@ -21,6 +21,7 @@ Scripting Reference
    :maxdepth: 1
 
    scripting/preprocess.rst
+   scripting/nyt.rst
 
 Indices and tables
 ==================

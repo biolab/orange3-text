@@ -4,4 +4,6 @@ if [ "$(ls -A $HOME/nltk_data)" ]; then
     ls $HOME/nltk_data;
 else
     python -m nltk.downloader wordnet;
+    python -m nltk.downloader stopwords;
+    python -m nltk.downloader punkt;
 fi
