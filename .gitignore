@@ -24,3 +24,6 @@ __pycache__
 # Coverage
 .coverage
 coverage.xml
+
+# Friends transcripts in HTML
+scripts/friendsalltranscripts/
