@@ -2,6 +2,7 @@ import os
 import unittest
 import numpy as np
 
+from Orange.data import Table
 from Orange.data.domain import Domain, StringVariable
 
 from orangecontrib.text.corpus import Corpus
@@ -14,6 +15,12 @@ class CorpusTests(unittest.TestCase):
         self.assertEqual(len(c.domain), 1)
         self.assertEqual(len(c.domain.metas), 1)
         self.assertEqual(c.metas.shape, (140, 1))
+
+        c = Corpus.from_file('deerwester')
+        self.assertEqual(len(c), 9)
+        self.assertEqual(len(c.domain), 1)
+        self.assertEqual(len(c.domain.metas), 1)
+        self.assertEqual(c.metas.shape, (9, 1))
 
     def test_corpus_from_file_abs_path(self):
         c = Corpus.from_file('bookexcerpts')
@@ -33,15 +40,8 @@ class CorpusTests(unittest.TestCase):
 
     def test_corpus_from_init(self):
         c = Corpus.from_file('bookexcerpts')
-        c2 = Corpus(c.documents, c.X, c.Y, c.metas, c.domain)
+        c2 = Corpus(c.X, c.Y, c.metas, c.domain, c.text_features)
         self.assertEqual(c, c2)
-
-    def test_corpus_from_file(self):
-        c = Corpus.from_file('deerwester')
-        self.assertEqual(len(c), 9)
-        self.assertEqual(len(c.domain), 1)
-        self.assertEqual(len(c.domain.metas), 1)
-        self.assertEqual(c.metas.shape, (9, 1))
 
     def test_extend_corpus(self):
         c = Corpus.from_file('bookexcerpts')
@@ -49,7 +49,7 @@ class CorpusTests(unittest.TestCase):
         c_copy = c.copy()
         new_y = [c.domain.class_var.values[int(i)] for i in c.Y]
         new_y[0] = 'teenager'
-        c.extend_corpus(c.documents, c.metas, new_y)
+        c.extend_corpus(c.metas, new_y)
 
         self.assertEqual(len(c), len(c_copy)*2)
         self.assertEqual(c.Y.shape[0], c_copy.Y.shape[0]*2)
@@ -59,14 +59,54 @@ class CorpusTests(unittest.TestCase):
 
     def test_corpus_not_eq(self):
         c = Corpus.from_file('bookexcerpts')
-        c2 = Corpus(c.documents[:-1], c.X, c.Y, c.metas, c.domain)
+        n_doc = c.X.shape[0]
+
+        c2 = Corpus(c.X, c.Y, c.metas, c.domain, [])
         self.assertNotEqual(c, c2)
-        c2 = Corpus(c.documents, np.vstack((c.X, c.X)), c.Y, c.metas, c.domain)
+
+        c2 = Corpus(np.ones((n_doc, 1)), c.Y, c.metas, c.domain, c.text_features)
         self.assertNotEqual(c, c2)
-        c2 = Corpus(c.documents, c.X, np.vstack((c.Y, c.Y)), c.metas, c.domain)
+
+        c2 = Corpus(c.X, np.ones((n_doc, 1)), c.metas, c.domain, c.text_features)
         self.assertNotEqual(c, c2)
-        c2 = Corpus(c.documents, c.X, c.Y, c.metas.T, c.domain)
+
+        broken_metas = np.copy(c.metas)
+        broken_metas[0, 0] = ''
+        c2 = Corpus(c.X, c.Y, broken_metas, c.domain, c.text_features)
         self.assertNotEqual(c, c2)
-        broken_domain = Domain(c.domain.attributes, c.domain.class_var, [StringVariable('text2')])
-        c2 = Corpus(c.documents, c.X, c.Y, c.metas, broken_domain)
+
+        new_meta = [StringVariable('text2')]
+        broken_domain = Domain(c.domain.attributes, c.domain.class_var, new_meta)
+        c2 = Corpus(c.X, c.Y, c.metas, broken_domain, new_meta)
         self.assertNotEqual(c, c2)
+
+    def test_from_table(self):
+        t = Table.from_file('brown-selected')
+        self.assertIsInstance(t, Table)
+
+        c = Corpus.from_table(t.domain, t)
+        self.assertIsInstance(c, Corpus)
+        self.assertEqual(len(t), len(c))
+        np.testing.assert_equal(t.metas, c.metas)
+        self.assertEqual(c.text_features, [t.domain.metas[0]])
+
+    def test_from_corpus(self):
+        c = Corpus.from_file('bookexcerpts')
+        c2 = Corpus.from_corpus(c.domain, c, row_indices=list(range(5)))
+        self.assertEqual(len(c2), 5)
+
+    def test_asserting_errors(self):
+        c = Corpus.from_file('bookexcerpts')
+
+        with self.assertRaises(TypeError):
+            Corpus(1.0, c.Y, c.metas, c.domain, c.text_features)
+
+        too_large_x = np.vstack((c.X, c.X))
+        with self.assertRaises(ValueError):
+            Corpus(too_large_x, c.Y, c.metas, c.domain, c.text_features)
+
+        with self.assertRaises(ValueError):
+            c.set_text_features([StringVariable('foobar')])
+
+        with self.assertRaises(ValueError):
+            c.set_text_features([c.domain.metas[0], c.domain.metas[0]])

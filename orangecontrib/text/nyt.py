@@ -85,7 +85,7 @@ def _generate_corpus(records, required_text_fields):
 
     Y = np.array([class_vars[0].to_val(cv) for cv in class_values])[:, None]
 
-    return Corpus(documents, None, Y, metas, domain)
+    return Corpus(None, Y, metas, domain, meta_vars) # used all features
 
 
 class NYT:

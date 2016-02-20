@@ -2,13 +2,23 @@ import os
 
 import numpy as np
 
-from Orange.data import StringVariable, Table
+from Orange.data import Table
 
 
 def get_sample_corpora_dir():
     path = os.path.dirname(__file__)
     directory = os.path.join(path, 'datasets')
     return os.path.abspath(directory)
+
+
+def _check_arrays(*arrays):
+    for a in arrays:
+        if not (a is None or isinstance(a, np.ndarray)):
+            raise TypeError('Argument {} should be of type np.array or None.'.format(a))
+
+    lengths = set(len(a) for a in arrays if a is not None)
+    if len(lengths) != 1:
+        raise ValueError('Leading dimension mismatch')
 
 
 class Corpus(Table):
@@ -18,85 +28,116 @@ class Corpus(Table):
         """Bypass Table.__new__."""
         return object.__new__(cls)
 
-    def __init__(self, documents, X, Y, metas, domain):
-        self.documents = documents
-        if X is not None:
-            self.X = X
-        else:
-            self.X = np.zeros((len(documents), 0))
-        if Y is not None:
-            self.Y = Y
-        else:
-            self.Y = np.zeros((len(documents), 0))
+    def __init__(self, X, Y, metas, domain, text_features=None):
+        """
+        Args:
+            X (numpy.ndarray): attributes
+            Y (numpy.ndarray): class variables
+            metas (numpy.ndarray): meta attributes; e.g. text
+            domain (Orange.data.domain): the domain for this Corpus
+            text_features (list): meta attributes that are used for
+                text mining. Infer them if None.
+        """
+        _check_arrays(X, Y, metas)
+        n_doc = len(metas)
+
+        self.X = X if X is not None else np.zeros((n_doc, 0))
+        self.Y = Y if Y is not None else np.zeros((n_doc, 0))
+        self.W = np.zeros((n_doc, 0))
         self.metas = metas
-        self.W = np.zeros((len(documents), 0))
         self.domain = domain
+        self.text_features = None    # list of text features for mining
+
+        if text_features is None:
+            self._infer_text_features()
+        else:
+            self.set_text_features(text_features)
+
         Table._init_ids(self)
+
+    def set_text_features(self, feats):
+        """
+        Select which meta-attributes to include when mining text.
+
+        Args:
+            feats (list): list of text features to include.
+        """
+        for f in feats:
+            if f not in self.domain.metas:
+                raise ValueError('Feature "{}" not found in metas.'.format(f))
+        if len(set(feats)) != len(feats):
+            raise ValueError('Text features must be unique.')
+        self.text_features = feats
+
+    def _infer_text_features(self):
+        """
+        Infer which text features to use. If nothing was provided
+        in the file header, use the first text feature.
+        """
+        include_feats = []
+        first = None
+        for attr in self.domain.metas:
+            if attr.is_string:
+                if first is None:
+                    first = attr
+                if attr.attributes.get('include', 'False') == 'True':
+                    include_feats.append(attr)
+        if len(include_feats) == 0 and first:
+            include_feats.append(first)
+        self.set_text_features(include_feats)
+
+    def extend_corpus(self, metadata, Y):
+        self.metas = np.vstack((self.metas, metadata))
+
+        cv = self.domain.class_var
+        for val in set(Y):
+            if val not in cv.values:
+                cv.add_value(val)
+        new_Y = np.array([cv.to_val(i) for i in Y])[:, None]
+        self._Y = np.vstack((self._Y, new_Y))
+
+        self.X = self.W = np.zeros((len(self), 0))
+        Table._init_ids(self)
+
+    @property
+    def documents(self):
+        """
+        Returns a list of strings representing documents.
+        Each documents is created by joining selected text features.
+        """
+        indices = [self.domain.metas.index(f) for f in self.text_features]
+        return [' '.join(map(str, i)) for i in self.metas[:, indices]]
 
     @classmethod
     def from_table(cls, domain, source, row_indices=...):
-        c = super().from_table(domain, source, row_indices)
-        c.documents = source.documents
-        c._Y = c._Y.astype(np.float64)
-        return c
+        t = super().from_table(domain, source, row_indices)
+        return Corpus(t.X, t.Y, t.metas, t.domain, None)
 
     @classmethod
-    def from_file(cls, filename):
-        if not os.path.exists(filename):        # check the default corpora location
+    def from_corpus(cls, domain, source, row_indices=...):
+        c = cls.from_table(domain, source, row_indices)
+        c.text_features = source.text_features
+        return c
+
+    @staticmethod
+    def from_file(filename, wrapper=None):
+        if not os.path.exists(filename):    # check the default location
             abs_path = os.path.join(get_sample_corpora_dir(), filename)
             if not abs_path.endswith('.tab'):
                 abs_path += '.tab'
             if not os.path.exists(abs_path):
-                raise FileNotFoundError('File "{}" was not found.'.format(filename))
+                raise FileNotFoundError('File "{}" not found.'.format(filename))
             else:
                 filename = abs_path
 
-        table = Table.from_file(filename)
-        include_ids = []
-        first_id = None
-        for i, attr in enumerate(table.domain.metas):
-            if isinstance(attr, StringVariable):
-                if first_id is None:
-                    first_id = i
-                if attr.attributes.get('include', 'False') == 'True':
-                    include_ids.append(i)
-        if len(include_ids) == 0:
-            include_ids.append(first_id)
-
-        documents = []
-        for line in range(table.metas.shape[0]):
-            documents.append(' '.join(table.metas[line, include_ids]))
-
-        corp = cls(documents, table.X, table.Y, table.metas, table.domain)
-        corp.used_features = [f for i, f in enumerate(table.domain.metas) if i in include_ids]
-        return corp
-
-    def regenerate_documents(self, selected_features):
-        documents = []
-        indices = [self.domain.metas.index(f) for f in selected_features]
-        for line in range(self.metas.shape[0]):
-            documents.append(' '.join(self.metas[line, indices]))
-        self.documents = documents
-
-    def extend_corpus(self, documents, metadata, class_values):
-        # TODO check if Domains match!
-        self.metas = np.vstack((self.metas, metadata))
-        self.documents += documents
-
-        for val in set(class_values):
-            if val not in self.domain.class_var.values:
-                self.domain.class_var.add_value(val)
-        new_Y = np.array([self.domain.class_var.to_val(cv) for cv in class_values])[:, None]
-        self._Y = np.vstack((self._Y, new_Y))
-
-        self.X = self.W = np.zeros((len(self.documents), 0))
-        Table._init_ids(self)
+        table = Table.from_file(filename, wrapper)
+        return Corpus(table.X, table.Y, table.metas, table.domain, None)
 
     def __len__(self):
-        return len(self.documents)
+        return len(self.metas)
 
     def __eq__(self, other):
-        return (self.documents == other.documents and
+        return (self.text_features == other.text_features and
                 np.array_equal(self.X, other.X) and
                 np.array_equal(self.Y, other.Y) and
                 np.array_equal(self.metas, other.metas) and
