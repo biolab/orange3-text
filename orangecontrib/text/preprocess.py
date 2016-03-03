@@ -90,5 +90,9 @@ class Stemmatizer():
         else:
             raise ValueError("Type {} not supported.".format(type(data)))
 
+    def __str__(self):
+        return self.name
+
+
 Stemmer = Stemmatizer(PorterStemmer().stem, name='Stemmer')
 Lemmatizer = Stemmatizer(WordNetLemmatizer().lemmatize, name='Lemmatizer')

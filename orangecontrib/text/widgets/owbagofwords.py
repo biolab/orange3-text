@@ -94,7 +94,7 @@ class OWBagOfWords(OWWidget):
                               "TF-IDF performed: {}\n" \
                               "Normalization: {}"\
                     .format(self.preprocessor.incl_punct, self.preprocessor.lowercase,
-                            self.preprocessor.transformation.name,
+                            str(self.preprocessor.transformation),
                             self.preprocessor.stop_words, self.use_tfidf,
                             self._normalization_options[self.normalization_type])
                 self.pp_info_label.setText(pp_info_tag)
