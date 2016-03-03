@@ -90,5 +90,5 @@ class Stemmatizer():
         else:
             raise ValueError("Type {} not supported.".format(type(data)))
 
-Stemmer = Stemmatizer(PorterStemmer().stem, 'Stemmer')
-Lemmatizer = Stemmatizer(WordNetLemmatizer().lemmatize, 'Lemmatizer')
+Stemmer = Stemmatizer(PorterStemmer().stem, name='Stemmer')
+Lemmatizer = Stemmatizer(WordNetLemmatizer().lemmatize, name='Lemmatizer')
