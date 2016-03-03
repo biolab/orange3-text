@@ -65,6 +65,9 @@ class OWPreprocess(OWWidget):
         # TODO change this to custom stopwords
         if self.remove_stpwrds:
             sw = 'english'
+        else:
+            sw = None
+
         pp = Preprocessor(incl_punct=self.include_punctuation, trans=self.transformation,
                           lowercase=self.lowercase, stop_words=sw)
         self.send(Output.PREPROCESSOR, pp)
