@@ -17,8 +17,10 @@ def _check_arrays(*arrays):
             raise TypeError('Argument {} should be of type np.array or None.'.format(a))
 
     lengths = set(len(a) for a in arrays if a is not None)
-    if len(lengths) != 1:
+    if len(lengths) > 1:
         raise ValueError('Leading dimension mismatch')
+
+    return lengths.pop() if len(lengths) else 0
 
 
 class Corpus(Table):
@@ -28,7 +30,7 @@ class Corpus(Table):
         """Bypass Table.__new__."""
         return object.__new__(cls)
 
-    def __init__(self, X, Y, metas, domain, text_features=None):
+    def __init__(self, X=None, Y=None, metas=None, domain=None, text_features=None):
         """
         Args:
             X (numpy.ndarray): attributes
@@ -38,19 +40,18 @@ class Corpus(Table):
             text_features (list): meta attributes that are used for
                 text mining. Infer them if None.
         """
-        _check_arrays(X, Y, metas)
-        n_doc = len(metas)
+        n_doc = _check_arrays(X, Y, metas)
 
         self.X = X if X is not None else np.zeros((n_doc, 0))
         self.Y = Y if Y is not None else np.zeros((n_doc, 0))
+        self.metas = metas if metas is not None else np.zeros((n_doc, 0))
         self.W = np.zeros((n_doc, 0))
-        self.metas = metas
         self.domain = domain
         self.text_features = None    # list of text features for mining
 
-        if text_features is None:
+        if domain and text_features is None:
             self._infer_text_features()
-        else:
+        elif domain:
             self.set_text_features(text_features)
 
         Table._init_ids(self)
@@ -119,8 +120,8 @@ class Corpus(Table):
         c.text_features = source.text_features
         return c
 
-    @staticmethod
-    def from_file(filename, wrapper=None):
+    @classmethod
+    def from_file(cls, filename, wrapper=None):
         if not os.path.exists(filename):    # check the default location
             abs_path = os.path.join(get_sample_corpora_dir(), filename)
             if not abs_path.endswith('.tab'):
@@ -131,7 +132,13 @@ class Corpus(Table):
                 filename = abs_path
 
         table = Table.from_file(filename, wrapper)
-        return Corpus(table.X, table.Y, table.metas, table.domain, None)
+        return cls(table.X, table.Y, table.metas, table.domain, None)
+
+    def copy(self):
+        """Return a copy of the table."""
+        c = self.__class__(self.X, self.Y, self.metas, self.domain, self.text_features)
+        c.ensure_copy()
+        return c
 
     def __len__(self):
         return len(self.metas)
