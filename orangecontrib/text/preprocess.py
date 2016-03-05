@@ -57,16 +57,21 @@ class Preprocessor:
             raise ValueError("Type '{}' not supported.".format(type(data)))
 
 
-class Stemmatizer():
+class Stemmatizer:
     """
         A common class for stemming and lemmatization.
     """
     def __init__(self, trans, lowercase=True, name='Stemmatizer'):
         """
             :param trans: The method that will perform transformation on the tokens.
+            :type trans: Callable (function or method)
             :param name: The name of the transformation object.
+            :type name: str
             :return: :class: `orangecontrib.text.preprocess.Stemmatizer`
         """
+        if not hasattr(trans, '__call__'):
+            raise ValueError("Trans must be callable")
+
         self.trans = trans
         self.name = name
         self.lowercase = lowercase
