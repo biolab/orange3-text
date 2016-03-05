@@ -4,3 +4,7 @@ scikit-learn
 numpy
 gensim
 setuptools-git
+newspaper
+os
+tldextract
+enchant
