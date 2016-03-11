@@ -3,7 +3,7 @@ from PyQt4 import QtCore, QtGui
 from Orange.widgets.widget import OWWidget
 from Orange.widgets.settings import Setting
 from Orange.widgets import gui
-from orangecontrib.text.preprocess import Preprocessor
+from orangecontrib.text.preprocess import Preprocessor, Stemmer, Lemmatizer
 
 
 class Output:
@@ -22,6 +22,7 @@ class OWPreprocess(OWWidget):
     lowercase = Setting(True)
     remove_stpwrds = Setting(True)
     transformation_opt = Setting(["(none)", "Stemmer", "Lemmatizer"])
+    transformation_obj = [None, Stemmer, Lemmatizer]
 
     def __init__(self):
         super().__init__()
@@ -48,10 +49,7 @@ class OWPreprocess(OWWidget):
         self.apply()
 
     def select_transformation(self, n):
-        if n > 0:
-            self.transformation = self.transformation_opt[n]
-        else:
-            self.transformation = None
+        self.transformation = self.transformation_obj[n]
 
     def fill_transformation_options(self):
         self.trans_combo.clear()
@@ -65,6 +63,9 @@ class OWPreprocess(OWWidget):
         # TODO change this to custom stopwords
         if self.remove_stpwrds:
             sw = 'english'
+        else:
+            sw = None
+
         pp = Preprocessor(incl_punct=self.include_punctuation, trans=self.transformation,
                           lowercase=self.lowercase, stop_words=sw)
         self.send(Output.PREPROCESSOR, pp)
