@@ -1,7 +1,10 @@
 import unittest
 
-from orangecontrib.text.corpus import Corpus, get_sample_corpora_dir
-from orangecontrib.text.preprocess import Preprocessor, PorterStemmer, SnowballStemmer, Lemmatizer
+from nltk.tokenize import word_tokenize
+
+from orangecontrib.text.corpus import Corpus
+from orangecontrib.text.preprocess import (Preprocessor, PorterStemmer,
+                                           SnowballStemmer, Lemmatizer)
 
 
 class PreprocessTests(unittest.TestCase):
@@ -11,7 +14,7 @@ class PreprocessTests(unittest.TestCase):
 
     def setUp(self):
         self.TEST_CORPUS = Corpus.from_file('deerwester')
-        self.TEST_LIST = [entry.metas for entry in self.TEST_CORPUS]
+        self.TEST_LIST = [entry.metas[0] for entry in self.TEST_CORPUS]
 
     def test_tokenize(self):
         correct = [
@@ -329,7 +332,7 @@ class PreprocessTests(unittest.TestCase):
     def test_faulty_init_parameters(self):
         # Twitter tokenizer.
         p = Preprocessor()
-        self.assertFalse(p.tokenizer)
+        self.assertEqual(p.tokenizer, word_tokenize)
 
         # Stop word source.
         with self.assertRaises(ValueError):
