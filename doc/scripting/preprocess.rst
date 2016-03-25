@@ -3,5 +3,5 @@ Preprocessor
 ============
 
 .. autoclass:: orangecontrib.text.preprocess.Preprocessor
-
-.. automethod:: orangecontrib.text.preprocess.Preprocessor.__init__
+   :members:
+   :special-members: __init__

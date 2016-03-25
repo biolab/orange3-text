@@ -20,7 +20,10 @@ Scripting Reference
 .. toctree::
    :maxdepth: 1
 
+   scripting/corpus.rst
+   scripting/lda.rst
    scripting/preprocess.rst
+   scripting/nyt.rst
 
 Indices and tables
 ==================
