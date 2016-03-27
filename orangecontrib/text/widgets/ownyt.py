@@ -322,9 +322,6 @@ class OWNYT(OWWidget):
                 break
 
             metas, Y = _parse_record_json(res["response"]["docs"], self.nyt_api.includes_fields)
-            docs = []
-            for doc in metas:
-                docs.append(" ".join([d for d in doc if d is not None]).strip())
 
             # Update the corpus.
             self.output_corpus.extend_corpus(metas, Y)
