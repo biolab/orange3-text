@@ -37,3 +37,7 @@ This data set originates from the paper about Latent Semantic Analysis [1].
 
 [1] Deerwester, S., Dumais, S. T., Furnas, G. W., Landauer, T. K., & Harshman, R. (1990). Indexing by Latent Semantic
     Analysis. Journal of the American Society for Information Science, 41(6), 391–407.
+-----------------------------------------------------------------------------------------------------------------------
+Dataset: Friends Transcripts
+
+Transcripts from the Friends series. Originating from http://home.versatel.nl/friendspic0102/
