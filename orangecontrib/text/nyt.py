@@ -37,7 +37,7 @@ def _parse_record_json(records, includes_metadata):
                 field_value = " ".join([v for v in field_value.values() if v])
             elif isinstance(field_value, list):
                 field_value = " ".join([kw["value"] for kw in field_value if kw])
-            metas_row.append(unescape(field_value))
+            metas_row.append(unescape(field_value) if isinstance(field_value, str) else field_value)
         # Add the pub_date.
         metas_row.append(doc.get("pub_date", ""))
         # Add the glocation.

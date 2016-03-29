@@ -65,6 +65,8 @@ class OWWordCloud(widget.OWWidget):
     ]
     outputs = [('Corpus', Corpus)]
 
+    graph_name = 'webview'
+
     selected_words = settings.ContextSetting(SelectedWords('whatevar (?)'))
     words_color = settings.Setting(True)
     words_tilt = settings.Setting(0)
@@ -269,7 +271,8 @@ def main():
     w = OWWordCloud()
     w.on_topics_change(table)
     domain = Domain([], metas=[StringVariable('text')])
-    data = Corpus.from_numpy(domain, X=np.zeros((1, 0)), metas=np.array([[' '.join(words.flat)]]))
+    data = Corpus(None, None, np.array([[' '.join(words.flat)]]), domain)
+    # data = Corpus.from_numpy(domain, X=np.zeros((1, 0)), metas=np.array([[' '.join(words.flat)]]))
     w.on_corpus_change(data)
     w.show()
     app.exec()
