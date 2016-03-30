@@ -1,4 +1,7 @@
 # coding: utf-8
+from urllib.parse import urljoin
+from urllib.request import pathname2url
+
 from collections import defaultdict, Counter
 from os import path
 from math import pi as PI
@@ -80,7 +83,7 @@ class OWGeoMap(widget.OWWidget):
 <html>
 <head>
 <meta charset="utf-8">
-<base href="file://{}/"/>
+<base href="{}/"/>
 <style>
 html, body, #map {{margin:0px;padding:0px;width:100%;height:100%;}}
 </style>
@@ -89,7 +92,7 @@ html, body, #map {{margin:0px;padding:0px;width:100%;height:100%;}}
 <body>
 <div id="map"></div>
 </body>
-</html>'''.format(path.abspath(path.dirname(__file__)))
+</html>'''.format(urljoin('file:', pathname2url(path.abspath(path.dirname(__file__)))))
         self.webview = gui.WebviewWidget(self.controlArea, self, debug=True)
         self.webview.setHtml(html)
         for script in ('jquery-2.1.4.min.js',
