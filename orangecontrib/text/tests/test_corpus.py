@@ -95,6 +95,17 @@ class CorpusTests(unittest.TestCase):
         c2 = Corpus.from_corpus(c.domain, c, row_indices=list(range(5)))
         self.assertEqual(len(c2), 5)
 
+    def test_infer_text_features(self):
+        c = Corpus.from_file('friends-transcripts')
+        tf = c.text_features
+        self.assertEqual(len(tf), 1)
+        self.assertEqual(tf[0].name, 'Quote')
+
+        c = Corpus.from_file('deerwester')
+        tf = c.text_features
+        self.assertEqual(len(tf), 1)
+        self.assertEqual(tf[0].name, 'text')
+
     def test_asserting_errors(self):
         c = Corpus.from_file('bookexcerpts')
 
