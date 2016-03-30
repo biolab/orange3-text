@@ -49,9 +49,9 @@ class Corpus(Table):
         self.domain = domain
         self.text_features = None    # list of text features for mining
 
-        if domain and text_features is None:
+        if domain is not None and text_features is None:
             self._infer_text_features()
-        elif domain:
+        elif domain is not None:
             self.set_text_features(text_features)
 
         Table._init_ids(self)
