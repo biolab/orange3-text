@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
-if [ "$(ls -A $HOME/nltk_data)" ]; then
-    echo "Using cached NLTK data containing folders:";
-    ls $HOME/nltk_data;
-else
-    python -m nltk.downloader wordnet;
-fi
+data=( "wordnet" )
+
+for d in "${data[@]}"
+do
+    python -m nltk.downloader $d;
+done
+
+echo "Contents of NLTK data folder:"
+ls $HOME/nltk_data;
