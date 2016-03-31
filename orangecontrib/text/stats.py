@@ -9,19 +9,24 @@ _c = [1.0]
 for m in range(2, 100000):
     _c.append(_c[-1] + 1.0/m)
 
+
 def is_sorted(l):
     return all(l[i] <= l[i+1] for i in range(len(l)-1))
+
 
 def false_discovery_rate(p_values, dependent=False, m=None, ordered=False):
     """
     `False Discovery Rate <http://en.wikipedia.org/wiki/False_discovery_rate>`_ correction on a list of p-values.
 
-    :param p_values: a list of p-values.
-    :param dependent: use correction for dependent hypotheses (default False).
-    :param m: number of hypotheses tested (default ``len(p_values)``).
-    :param ordered: prevent sorting of p-values if they are already sorted (default False).
-    """
+    Args:
+        p_values: a list of p-values.
+        dependent: use correction for dependent hypotheses.
+        m: number of hypotheses tested (default ``len(p_values)``).
+        ordered: prevent sorting of p-values if they are already sorted.
 
+    Returns: A list of corrected p-values.
+
+    """
     if not ordered:
         ordered = is_sorted(p_values)
 
@@ -62,12 +67,15 @@ def hypergeom_p_values(data, selected, callback=None):
     Calculates p_values using Hypergeometric distribution for two numpy arrays.
     Works on a matrices containing zeros and ones. All other values are truncated to zeros and ones.
 
-    :param data: all examples in rows, theirs features in columns
-    :type data: numpy.array
-    :param selected: selected examples in rows, theirs features in columns
-    :type selected: numpy.array
-    :return: p-values for features
+    Args:
+        data (numpy.array): all examples in rows, theirs features in columns.
+        selected (numpy.array): selected examples in rows, theirs features in columns.
+        callback: callback function used for printing progress.
+
+    Returns: p-values for features
+
     """
+
     if data.shape[1] != selected.shape[1]:
         raise ValueError("Number of columns does not match.")
 
