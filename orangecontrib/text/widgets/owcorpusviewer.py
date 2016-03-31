@@ -133,10 +133,7 @@ class OWCorpusViewer(OWWidget):
         should_filter = bool(search_keyword)
         is_match = re.compile(search_keyword, re.IGNORECASE).search
 
-        for i, document in enumerate(self.corpus):
-            # TODO: remove corpus.documents due to problems with inconsistencies.
-            document_contents = self.corpus.documents[i]
-
+        for i, (document, document_contents) in enumerate(zip(self.corpus, self.corpus.documents)):
             has_hit = not should_filter or is_match(document_contents)
             if has_hit:
                 item = QStandardItem()

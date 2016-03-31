@@ -44,13 +44,10 @@ KEYWORDS = [
     'orange3 add-on',
 ]
 
-INSTALL_REQUIRES = (
-    'scipy',
-    'nltk',
-    'scikit-learn',
-    'numpy',
-    'gensim>=0.12.3',
-)
+INSTALL_REQUIRES = sorted(set(
+    line.partition('#')[0].strip()
+    for line in open(os.path.join(os.path.dirname(__file__), 'requirements.txt'))
+) - {''})
 
 if 'test' in sys.argv:
     extra_setuptools_args = dict(

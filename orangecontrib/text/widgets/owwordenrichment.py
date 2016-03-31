@@ -16,8 +16,8 @@ class OWWordEnrichment(OWWidget):
     priority = 60
 
     # Input/output
-    inputs = [("Data", Table, "set_data"),
-              ("Selected Data", Table, "set_data_selected")]
+    inputs = [("Selected Data", Table, "set_data_selected"),
+              ("Data", Table, "set_data"),]
     want_main_area = True
 
     # Settings

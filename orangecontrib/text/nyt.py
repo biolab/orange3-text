@@ -27,6 +27,7 @@ def _parse_record_json(records, includes_metadata):
     :type includes_metadata: list
     :return: A list of the corresponding metadata and class values for the instances.
     """
+    IGNORED_FIELDS = {'content_kicker', 'kicker', 'print_headline'}     # the garbage fields next to headline
     class_values = []
     metadata = []
     for doc in records:
@@ -34,7 +35,7 @@ def _parse_record_json(records, includes_metadata):
         for field in includes_metadata:
             field_value = doc.get(field) or ''
             if isinstance(field_value, dict):
-                field_value = " ".join([v for v in field_value.values() if v])
+                field_value = " ".join([v for k, v in field_value.items() if v and k not in IGNORED_FIELDS])
             elif isinstance(field_value, list):
                 field_value = " ".join([kw["value"] for kw in field_value if kw])
             metas_row.append(unescape(field_value) if isinstance(field_value, str) else field_value)
@@ -73,9 +74,6 @@ def _generate_corpus(records, required_text_fields):
     :return: :class: `orangecontrib.text.corpus.Corpus`
     """
     metas, class_values = _parse_record_json(records, required_text_fields)
-    documents = []
-    for doc in metas:
-        documents.append(" ".join([d for d in doc if d is not None]).strip())
 
     # Create domain.
     meta_vars = [StringVariable.make(field) for field in required_text_fields]

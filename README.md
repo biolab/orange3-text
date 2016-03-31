@@ -32,9 +32,9 @@ Python's site-packages directory), run
 Usage
 -----
 
-After the installation, the widget from this add-on is registered with Orange. To run Orange from the terminal,
+After the installation, the widgets from this add-on are registered with Orange. To run Orange from the terminal,
 use
 
     python3 -m Orange.canvas
 
-Text Mining widgets are in the toolbox bar under Text Mining section.
+new widgets are in the toolbox bar under Text Mining section.
