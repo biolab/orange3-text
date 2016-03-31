@@ -1,11 +1,8 @@
-Orange Text - In Development
-============================
+Orange3 Text
+============
 
-**NOTE: This plug-in currently could NOT be installed. We are working on resolving the issue; until then if curious you can install it [from source](https://github.com/biolab/orange3-text) but beware that it is still in development.**
-
-Orange3 Text extends Orange with common functionality for text mining. It provides access
-to publicly available data, like NY Times, Twitter and PubMed. Further,
-it provides tools for preprocessing, constructing vector spaces (like
-bag-of-words, topic modeling and word2vec) and visualizations like word cloud
-end geo map. All features can be combined with powerful data mining techniques
-from the Orange data mining framework.
+Orange add-on for text mining. It provides access to publicly available data,
+like NY Times, Twitter and PubMed. Further, it provides tools for preprocessing,
+constructing vector spaces (like bag-of-words, topic modeling and word2vec) and
+visualizations like word cloud end geo map. All features can be combined with
+powerful data mining techniques from the Orange data mining framework.
