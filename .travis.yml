@@ -27,6 +27,7 @@ before_cache:   # prevent logs from caching
 before_install:
     - pip install -U setuptools pip wheel
     - pip install codecov
+    - pip install newspaper3k
 
 install:
     - travis_wait pip install -r requirements.txt
