@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-data=( "wordnet" )
+data=( "wordnet" "stopwords" "punkt" )
 
 for d in "${data[@]}"
 do
