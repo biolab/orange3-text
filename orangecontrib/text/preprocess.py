@@ -21,7 +21,7 @@ class Preprocessor:
         Args:
             lowercase (Optional[bool]): If set, transform the tokens to lower
                 case, before returning them.
-            stop_words (Optional[str, list]) : Determines whether and what
+            stop_words (Optional[str, list]): Determines whether and what
                 stop words should be removed. Can remove language specific stop
                 words, supported by the NLTK or stop words provided in a custom
                 list.
@@ -74,9 +74,8 @@ class Preprocessor:
         elif stop_words is None:
             self.stop_words = set()
         else:
-            raise ValueError('The stop words parameter should be either '
-                             '"english", a list containing the stop words '
-                             'or None.')
+            raise ValueError('The stop words parameter should be either a string,'
+                             'a list containing the stop words or None.')
 
         # Min/Max df.
         # Constant checks whether or not we should use 'df', are quite painful.
@@ -132,7 +131,7 @@ class Preprocessor:
 
         # ---- DETERMINE DF STOP WORDS ---- #
         if self.use_df_sw:  # DF parameters were specified.
-            self._get_corpus_specific_stopwords(tokens)
+            self._get_corpus_specific_stopwords(tokens, self.lowercase)
 
         # ---- PRE-PROCESS DOCUMENTS ---- #
         pp_tokens = []
@@ -157,12 +156,14 @@ class Preprocessor:
             return input_data
         return pp_tokens
 
-    def _get_corpus_specific_stopwords(self, corpus_tokens):
+    def _get_corpus_specific_stopwords(self, corpus_tokens, lowercase):
         # Calculates the corpus specific stop words.
         document_frequencies = {}
         # 1.) Calculate the document frequency for individual tokens.
         for document in corpus_tokens:
             for token in set(document):
+                if lowercase:
+                    token = token.lower()
                 document_frequencies[token] = document_frequencies.get(
                         token, 0
                 ) + 1

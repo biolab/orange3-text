@@ -124,31 +124,31 @@ class PreprocessTests(unittest.TestCase):
         p = Preprocessor(min_df=2, max_df=4)
         result = p(self.TEST_CORPUS)
         correct = [
-            ['interface', 'computer'],
+            ['human', 'interface', 'computer'],
             ['a', 'survey', 'user', 'computer', 'system', 'response', 'time'],
             ['the', 'eps', 'user', 'interface', 'system'],
-            ['system', 'and', 'system', 'eps'],
-            ['relation', 'user', 'response', 'time'],
+            ['system', 'and', 'human', 'system', 'eps'],
+            ['user', 'response', 'time'],
             ['the', 'trees'],
-            ['the', 'trees'],
-            ['minors', 'iv', 'widths', 'trees', 'and'],
-            ['minors', 'a', 'survey']
+            ['the', 'graph', 'trees'],
+            ['graph', 'minors', 'trees', 'and'],
+            ['graph', 'minors', 'a', 'survey']
         ]
         self.assertEqual(result.tokens, correct)
 
     def test_preprocess_corpus_float_df(self):
-        p = Preprocessor(min_df=0.2, max_df=0.5)
+        p = Preprocessor(min_df=0.2, max_df=0.5, lowercase=True)
         result = p(self.TEST_CORPUS)
         correct = [
-            ['interface', 'computer'],
+            ['human', 'interface', 'computer'],
             ['a', 'survey', 'user', 'computer', 'system', 'response', 'time'],
             ['the', 'eps', 'user', 'interface', 'system'],
-            ['system', 'and', 'system', 'eps'],
-            ['relation', 'user', 'response', 'time'],
+            ['system', 'and', 'human', 'system', 'eps'],
+            ['user', 'response', 'time'],
             ['the', 'trees'],
-            ['the', 'trees'],
-            ['minors', 'iv', 'widths', 'trees', 'and'],
-            ['minors', 'a', 'survey']
+            ['the', 'graph', 'trees'],
+            ['graph', 'minors', 'trees', 'and'],
+            ['graph', 'minors', 'a', 'survey']
         ]
         self.assertEqual(result.tokens, correct)
 

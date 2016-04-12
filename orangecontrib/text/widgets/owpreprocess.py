@@ -642,7 +642,6 @@ class OWPreprocess(OWWidget):
             self.progress_bar = progress_bar
             output = preprocessor(self.corpus)
         self.progress_bar = None
-        print(output.tokens)
         self.send(Output.PP_CORPUS, output)
 
     def assemble_preprocessor(self):
@@ -656,7 +655,6 @@ class OWPreprocess(OWWidget):
             if pp.enabled:
                 pp_settings.update(pp.get_pp_setting())
         pp_settings['callback'] = self.document_finished
-        print('PP settings:', pp_settings)
         try:
             preprocessor = Preprocessor(**pp_settings)
         except Exception as e:
