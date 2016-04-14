@@ -32,6 +32,7 @@ class OWBagOfWords(OWWidget):
     want_main_area = False
 
     # Settings
+    autocommit = Setting(False)
     use_tfidf = Setting(False)
 
     def __init__(self):
@@ -39,42 +40,78 @@ class OWBagOfWords(OWWidget):
 
         self.corpus = None
 
+        # Info box.
+        info_box = gui.widgetBox(
+                self.controlArea,
+                'Info',
+        )
+        bow_info = 'No info available.'
+        self.info_label = gui.label(info_box, self, bow_info)
+
         # TF-IDF.
         tfidf_box = gui.widgetBox(
                 self.controlArea,
-                'TF-IDF',
-                addSpace=False
+                'Settings',
         )
 
-        self.tfidf_chbox = gui.checkBox(
+        self.tfidf_checkbox = gui.checkBox(
                 tfidf_box,
                 self,
                 'use_tfidf',
                 'Use TF-IDF'
         )
-        self.tfidf_chbox.stateChanged.connect(self._tfidf_changed)
+        self.tfidf_checkbox.stateChanged.connect(self.tfidf_changed)
 
-        gui.button(
+        gui.auto_commit(
                 self.controlArea,
                 self,
-                '&Apply',
-                callback=self.apply,
-                default=True
+                'autocommit',
+                'Commit',
+                box=False
         )
 
     def set_data(self, data):
         self.corpus = data
-        if self.corpus is not None:
-            self.apply()
+        self.commit()
+
+    def commit(self):
+        self.apply()
 
     def apply(self):
+        self.error(0, '')
         if self.corpus is not None:
-            bag_of_words = BagOfWords()
-            self.corpus = bag_of_words(self.corpus)
-            self.send(Output.CORPUS, self.corpus)
+            # BoW uses 4 steps ATM.
+            # Update this when a better solution is available.
+            with self.progressBar(4) as progress_bar:
 
-    def _tfidf_changed(self):
-        pass
+                bag_of_words = BagOfWords(
+                        progress_callback=progress_bar.advance,
+                        error_callback=self.show_errors
+                )
+                self.corpus = bag_of_words(
+                        self.corpus,
+                        use_tfidf=self.use_tfidf
+                )
+
+                self.update_info(bag_of_words.vocabulary)
+                self.send(Output.CORPUS, self.corpus)
+
+    def show_errors(self, error):
+        self.error(0, '')
+        self.error(0, str(error))
+
+    def update_info(self, new_vocabulary):
+        if new_vocabulary is None:
+            new_info = 'No info available.'
+        else:
+            new_info = '{} documents.\n{} unique tokens.'.format(
+                new_vocabulary.num_docs,
+                len(new_vocabulary),
+            )
+        self.info_label.setText(new_info)
+
+    def tfidf_changed(self):
+        self.commit()
 
 if __name__ == '__main__':
     app = QApplication([])

@@ -1,60 +1,58 @@
 import warnings
 
+import numpy as np
+
 from gensim import corpora, matutils
 from gensim.models.tfidfmodel import TfidfModel
-from nltk.tokenize import word_tokenize
+
+from orangecontrib.text.preprocess import Preprocessor
 
 
 class BagOfWords():
 
-    def __init__(self, error_callback=None):
+    def __init__(self, progress_callback=None, error_callback=None):
+        self.progress_callback = progress_callback
         self.error_callback = error_callback
+        self.vocabulary = None
 
-    def __call__(self, corpus):
+    def __call__(self, corpus, use_tfidf=False):
         if corpus is None:
             raise ValueError(
                     'Cannot compute Bag of Words without an input corpus.'
             )
 
-        try:
-            has_tokens = not corpus.tokens is None
-        except:
-            has_tokens = False
-
+        has_tokens = hasattr(corpus, 'tokens') and corpus.tokens is not None
         if not has_tokens:  # Perform default pre-processing.
-            # TODO: Use this code, when Preprocessor update is merged.
-            # preprocessor = Preprocessor(lowercase=False)
-            # corpus = preprocessor(corpus)
+            preprocessor = Preprocessor()
+            corpus = preprocessor(corpus)
 
-            # Temporary pre-processing.
-            corpus.tokens = [
-                word_tokenize(document)
-                for document
-                in corpus.documents
-            ]
+        self.check_progress()  # Step 1
 
-        try:
-            dictionary = corpora.Dictionary(
-                    corpus.tokens,
-                    prune_at=float('Inf')
-            )
-            frequencies = [dictionary.doc2bow(i) for i in corpus.tokens]
-            X = matutils.corpus2dense(
-                    frequencies,
-                    num_terms=len(dictionary.keys()),
-                    dtype=int
-            ).T
+        dictionary = corpora.Dictionary(corpus.tokens, prune_at=np.inf)
+        self.vocabulary = dictionary
 
-            tfidf = TfidfModel(corpus)
+        # Term frequencies.
+        bag_of_words = [dictionary.doc2bow(i) for i in corpus.tokens]
 
-            corpus.update_attributes(X, dictionary)
-        except Exception as e:
-            warnings.warn(
-                    'An exception occurred ({0}).'.format(e),
-                    RuntimeWarning
-            )
-            if self.error_callback:
-                self.error_callback(e)
-            return
+        self.check_progress()  # Step 2
+
+        if use_tfidf:
+            tfidf_model = TfidfModel(bag_of_words)
+            bag_of_words = tfidf_model[bag_of_words]
+
+        self.check_progress()  # Step 3
+
+        X = matutils.corpus2dense(
+                bag_of_words,
+                num_terms=len(dictionary.keys()),
+                dtype=np.float64
+        ).T
+
+        corpus.update_attributes(X, dictionary)
+        self.check_progress()  # Step 4
 
         return corpus
+
+    def check_progress(self):
+        if self.progress_callback:
+            self.progress_callback()
