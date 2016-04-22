@@ -152,7 +152,7 @@ class Preprocessor:
                 self.callback()
 
         if is_corpus:
-            input_data.tokens = pp_tokens
+            input_data.store_tokens(pp_tokens)
             return input_data
         return pp_tokens
 

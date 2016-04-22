@@ -48,6 +48,7 @@ class Corpus(Table):
         self.W = np.zeros((n_doc, 0))
         self.domain = domain
         self.text_features = None    # list of text features for mining
+        self._tokens = None
 
         if domain is not None and text_features is None:
             self._infer_text_features()
@@ -135,6 +136,25 @@ class Corpus(Table):
         """
         indices = [self.domain.metas.index(f) for f in self.text_features]
         return [' '.join(map(str, i)) for i in self.metas[:, indices]]
+
+    def store_tokens(self, tokens):
+        """
+        Args:
+            tokens (list): List of lists containing tokens.
+        """
+        self._tokens = tokens
+
+    @property
+    def tokens(self):
+        """
+        Return a list of lists containing tokens. If tokens are not yet
+        present, run default preprocessor and save tokens.
+        """
+        if self._tokens is None:
+            from orangecontrib.text.preprocess import Preprocessor
+            p = Preprocessor()
+            self._tokens = p(self.documents)
+        return self._tokens
 
     @classmethod
     def from_table(cls, domain, source, row_indices=...):
