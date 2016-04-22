@@ -1,18 +1,17 @@
 # coding: utf-8
-from os import path
+from collections import Counter
 from math import pi as PI
+from os import path
 
 import numpy as np
-
 from PyQt4 import QtCore, QtGui
 from PyQt4.QtCore import Qt
 from PyQt4.QtGui import QItemSelection, QItemSelectionModel
 
 from Orange.widgets import widget, gui, settings
 from Orange.widgets.utils.itemmodels import PyTableModel
-from orangecontrib.text.topics import Topics
 from orangecontrib.text.corpus import Corpus
-from orangecontrib.text.preprocess import Preprocessor
+from orangecontrib.text.topics import Topics
 
 
 class SelectedWords(set):
@@ -24,13 +23,12 @@ class SelectedWords(set):
 
     def _update_filter(self):
         filter = set()
-        if self.widget.bow is not None:
-            for word in self:
-                index = self.widget.PREPROCESS.cv.vocabulary_.get(word)
-                if index is None: continue
-                filter |= set(self.widget.bow[:, index].nonzero()[0])
+        if self.widget.corpus is not None:
+            for i, doc in enumerate(self.widget.corpus.tokens):
+                if any(i in doc for i in self):
+                    filter.add(i)
         if filter:
-            self.widget.send(Output.CORPUS, self.widget.corpus[sorted(filter), :])
+            self.widget.send(Output.CORPUS, self.widget.corpus[list(filter), :])
         else:
             self.widget.send(Output.CORPUS, None)
 
@@ -79,10 +77,9 @@ class OWWordCloud(widget.OWWidget):
         self.documents_info_str = ''
         self.selected_words = SelectedWords(self)
         self.webview = None
-        self.bow = None  # bag-of-words, obviously
         self.topics = None
         self.corpus = None
-        self.PREPROCESS = Preprocessor()
+        self.corpus_counter = None
         self._create_layout()
 
     @QtCore.pyqtSlot(str, result=str)
@@ -188,7 +185,6 @@ span.selected {color:red !important}
         self.webview.evalJS('OPTIONS["list"] = {};'.format(self.wordlist))
         self.webview.evalJS('redrawWordCloud();')
 
-
     def _repopulate_wordcloud(self, words, weights):
         N_BEST = 200
         words, weights = words[:N_BEST], weights[:N_BEST]
@@ -211,8 +207,8 @@ span.selected {color:red !important}
     def on_topics_change(self, data):
         self.topics = data
         self.topic_info.setVisible(bool(data))
-        if not data and self.corpus:  # Topics aren't, but raw corpus is avaiable
-            return self._count_words_in_corpus()
+        if not data and self.corpus:  # Topics aren't, but raw corpus is available
+            return self._apply_corpus()
         metas = data.domain.metas if data else []
         try:
             col = next(i for i,var in enumerate(metas) if var.is_string)
@@ -232,39 +228,23 @@ span.selected {color:red !important}
 
         self._repopulate_wordcloud(words, weights)
 
-    def _get_text_column(self):
-        col = None
-        try:
-            # Take the first string meta variable
-            col = next(i for i,var in enumerate(self.corpus.domain.metas) if var.is_string)
-            # But prefer any that has name 'text'
-            col = next(i for i,var in enumerate(self.corpus.domain.metas)
-                       if var.is_string and var.name == 'text')
-        except (StopIteration, AttributeError): pass
-        return col
-
-    def _bag_of_words_from_corpus(self):
-        self.bow = None
-        col = self._get_text_column()
-        if col is None: return 0, 0
-        texts = self.corpus.metas[:, col]
-        self.bow = self.PREPROCESS.cv.fit_transform(texts).tocsc()
-        return self.bow.shape
-
-    def _count_words_in_corpus(self):
-        col = self._get_text_column()
-        if col is None: return
-        words = self.PREPROCESS.cv.get_feature_names()
-        freqs = np.array(self.bow.sum(axis=0))[0]
-        self._repopulate_wordcloud(words, freqs)
+    def _apply_corpus(self):
+        counts = self.corpus_counter.most_common()
+        words, freq = zip(*counts) if counts else ([], [])
+        self._repopulate_wordcloud(words, freq)
 
     def on_corpus_change(self, data):
         self.corpus = data
-        n_docs, n_words = self._bag_of_words_from_corpus()
+
+        self.corpus_counter = Counter()
+        if data is not None:
+            self.corpus_counter = Counter(w for doc in data.tokens for w in doc)
+            n_docs, n_words = len(data), len(self.corpus_counter)
+
         self.documents_info_str = ('{} documents with {} words'.format(n_docs, n_words)
-                                   if n_docs else '(no documents on input)')
+                                   if data else '(no documents on input)')
         if not self.topics:
-            self._count_words_in_corpus()
+            self._apply_corpus()
 
 
 def main():
