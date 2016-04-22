@@ -2,7 +2,7 @@ import os
 
 import numpy as np
 
-from Orange.data import Table
+from Orange.data import Table, Domain, ContinuousVariable
 
 
 def get_sample_corpora_dir():
@@ -99,6 +99,23 @@ class Corpus(Table):
 
         self.X = self.W = np.zeros((len(self), 0))
         Table._init_ids(self)
+
+    def update_attributes(self, X, dictionary):
+        """
+        Adds X to the corpus and updates its domain accordingly.
+        """
+        self.X = np.hstack((self.X, X))
+
+        dict_key_count = len(sorted(dictionary.keys()))
+        features = [dictionary[key] for key in range(dict_key_count)]
+        new_attr = self.domain.attributes
+        new_attr += tuple([ContinuousVariable.make(f) for f in features])
+        new_domain = Domain(
+                attributes=new_attr,
+                class_vars=self.domain.class_vars,
+                metas=self.domain.metas
+        )
+        self.domain = new_domain
 
     @property
     def documents(self):
