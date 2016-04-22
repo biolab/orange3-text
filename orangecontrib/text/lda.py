@@ -5,6 +5,7 @@ from Orange.data.table import Table
 from Orange.data.domain import Domain, ContinuousVariable, StringVariable
 from orangecontrib.text.topics import Topics
 
+
 def chunk_list(l, num):
     num = min(len(l), num)
     avg = len(l) / float(num)
@@ -35,11 +36,10 @@ class LDA:
         corpus = [dictionary.doc2bow(t) for t in self.text]
 
         self.lda = models.LdaModel(id2word=dictionary, num_topics=self.num_topics)
-        done = 0
-        for i, part in enumerate(chunk_list(corpus, 95)):
+        for i, part in enumerate(chunk_list(corpus, 100)):
             self.lda.update(part)
-            done += len(part)
-            if callback: callback(95.0*done/len(corpus))
+            if callback:
+                callback(len(part))
 
         corpus = self.lda[corpus]
 
