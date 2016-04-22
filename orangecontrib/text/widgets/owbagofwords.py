@@ -32,7 +32,7 @@ class OWBagOfWords(OWWidget):
     want_main_area = False
 
     # Settings
-    autocommit = Setting(False)
+    autocommit = Setting(True)
     use_tfidf = Setting(False)
 
     def __init__(self):

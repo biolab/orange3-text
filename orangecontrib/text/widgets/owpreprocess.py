@@ -563,7 +563,7 @@ class OWPreprocess(OWWidget):
     inputs = [(Input.CORPUS, Corpus, 'set_data')]
     outputs = [(Output.PP_CORPUS, Corpus)]
 
-    autocommit = settings.Setting(False)
+    autocommit = settings.Setting(True)
     # Persistent data for each module is stored here.
     persistent_data_tokenizer = settings.Setting({})
     persistent_data_casing = settings.Setting({})
