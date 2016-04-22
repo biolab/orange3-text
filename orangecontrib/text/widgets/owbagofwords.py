@@ -88,13 +88,13 @@ class OWBagOfWords(OWWidget):
                         progress_callback=progress_bar.advance,
                         error_callback=self.show_errors
                 )
-                self.corpus = bag_of_words(
+                bow_corpus = bag_of_words(
                         self.corpus,
                         use_tfidf=self.use_tfidf
                 )
 
                 self.update_info(bag_of_words.vocabulary)
-                self.send(Output.CORPUS, self.corpus)
+                self.send(Output.CORPUS, bow_corpus)
 
     def show_errors(self, error):
         self.error(0, '')

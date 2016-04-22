@@ -88,6 +88,14 @@ class Corpus(Table):
         self.set_text_features(include_feats)
 
     def extend_corpus(self, metadata, Y):
+        """
+        Append documents to corpus.
+
+        Args:
+            metadata (numpy.ndarray): Meta data
+            Y (numpy.ndarray): Class variables
+        """
+
         self.metas = np.vstack((self.metas, metadata))
 
         cv = self.domain.class_var
@@ -100,16 +108,18 @@ class Corpus(Table):
         self.X = self.W = np.zeros((len(self), 0))
         Table._init_ids(self)
 
-    def update_attributes(self, X, dictionary):
+    def extend_attributes(self, X, feature_names):
         """
-        Adds X to the corpus and updates its domain accordingly.
+        Append features to corpus.
+
+        Args:
+            X (numpy.ndarray): Features to append
+            feature_names (list): List of string containing feature names
         """
         self.X = np.hstack((self.X, X))
 
-        dict_key_count = len(sorted(dictionary.keys()))
-        features = [dictionary[key] for key in range(dict_key_count)]
         new_attr = self.domain.attributes
-        new_attr += tuple([ContinuousVariable.make(f) for f in features])
+        new_attr += tuple(ContinuousVariable.make(f) for f in feature_names)
         new_domain = Domain(
                 attributes=new_attr,
                 class_vars=self.domain.class_vars,

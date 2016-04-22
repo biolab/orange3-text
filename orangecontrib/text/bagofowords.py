@@ -48,10 +48,12 @@ class BagOfWords():
                 dtype=np.float64
         ).T
 
-        corpus.update_attributes(X, dictionary)
+        bow_corpus = corpus.copy()
+        feats = [v for k, v in sorted(dictionary.items())]
+        bow_corpus.extend_attributes(X, feats)
         self.check_progress()  # Step 4
 
-        return corpus
+        return bow_corpus
 
     def check_progress(self):
         if self.progress_callback:
