@@ -70,6 +70,7 @@ class Corpus(Table):
         if len(set(feats)) != len(feats):
             raise ValueError('Text features must be unique.')
         self.text_features = feats
+        self._tokens = None     # invalidate tokens
 
     def _infer_text_features(self):
         """
@@ -108,6 +109,8 @@ class Corpus(Table):
 
         self.X = self.W = np.zeros((len(self), 0))
         Table._init_ids(self)
+
+        self._tokens = None     # invalidate tokens
 
     def extend_attributes(self, X, feature_names):
         """
