@@ -2,7 +2,7 @@ Orange3 Text
 ============
 
 [![Build Status](https://travis-ci.org/biolab/orange3-text.svg?branch=master)](https://travis-ci.org/biolab/orange3-text)
-[![codecov.io](http://codecov.io/github/biolab/orange3-text/coverage.svg?branch=master)](http://codecov.io/github/biolab/orange3-text?branch=master)
+[![codecov](https://codecov.io/gh/biolab/orange3-text/branch/master/graph/badge.svg)](https://codecov.io/gh/biolab/orange3-text)
 [![Documentation Status](https://readthedocs.org/projects/orange3-text/badge/?version=latest)](http://orange3-text.readthedocs.org/en/latest/?badge=latest)
 
 Orange3 Text extends [Orange3](http://orange.biolab.si), a data mining software
