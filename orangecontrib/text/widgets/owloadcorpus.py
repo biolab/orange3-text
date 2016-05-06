@@ -11,6 +11,7 @@ from orangecontrib.text.corpus import Corpus, get_sample_corpora_dir
 class Output:
     CORPUS = "Corpus"
 
+
 class OWLoadCorpus(OWWidget):
     name = "Corpus"
     description = "Load a corpus of text documents, (optionally) tagged with categories."
@@ -131,13 +132,9 @@ class OWLoadCorpus(OWWidget):
 
         try:
             self.corpus = Corpus.from_file(path)
-            for f in self.corpus.domain.metas:
-                if f in self.corpus.text_features:
-                    self.used_attrs.append(f)
-                else:
-                    self.unused_attrs.append(f)
             self.info_label.setText("Corpus of {} documents.".format(len(self.corpus)))
-            self.send(Output.CORPUS, self.corpus)
+            self.used_attrs.extend(self.corpus.text_features)
+            self.unused_attrs.extend([f for f in self.corpus.domain.metas if f not in self.corpus.text_features])
         except BaseException as err:
             self.error(1, str(err))
 
