@@ -1,13 +1,15 @@
 # coding: utf-8
-from collections import OrderedDict
 from os import path
 from math import pi as PI
 
 import numpy as np
 
 from PyQt4 import QtCore, QtGui
+from PyQt4.QtCore import Qt
+from PyQt4.QtGui import QItemSelection, QItemSelectionModel
 
 from Orange.widgets import widget, gui, settings
+from Orange.widgets.utils.itemmodels import PyTableModel
 from orangecontrib.text.topics import Topics
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.preprocess import Preprocessor
@@ -48,7 +50,7 @@ class SelectedWords(set):
         super().clear()
         self._update_webview()
         self._update_filter()
-        self.widget.table.clearSelection()
+        self.widget.tableview.clearSelection()
 
 
 class Output:
@@ -89,13 +91,21 @@ class OWWordCloud(widget.OWWidget):
         if not word:
             self.selected_words.clear()
             return ''
+        selection = QItemSelection()
+        for i, row in enumerate(self.tablemodel):
+            for j, val in enumerate(row):
+                if val == word:
+                    index = self.tablemodel.index(i, j)
+                    selection.select(index, index)
         if word not in self.selected_words:
             self.selected_words.add(word)
-            self.table.selectRowsWhere(1, word)
+            self.tableview.selectionModel().select(
+                selection, QItemSelectionModel.Select | QItemSelectionModel.Rows)
             return 'selected'
         else:
             self.selected_words.remove(word)
-            self.table.deselectRowsWhere(1, word)
+            self.tableview.selectionModel().select(
+                selection, QItemSelectionModel.Deselect | QItemSelectionModel.Rows)
             return ''
 
     def _new_webview(self):
@@ -135,21 +145,28 @@ span.selected {color:red !important}
         gui.button(box, None, 'Regenerate word cloud', callback=self.on_cloud_pref_change)
 
         box = gui.widgetBox(self.controlArea, 'Words && weights')
-        self.table = gui.TableWidget(box,
-                                     col_labels=['Weight', 'Word'],
-                                     multi_selection=True,
-                                     select_rows=True)
 
-        def _selection_changed(selected, deselected):
-            for index in deselected.indexes():
-                data = self.table.rowData(index.row())
-                self.selected_words.remove(data)
-            for index in selected.indexes():
-                data = self.table.rowData(index.row())
-                self.selected_words.add(data)
-            self.cloud_reselect()
+        class TableView(gui.TableView):
+            def __init__(self, parent):
+                super().__init__(parent)
+                self._parent = parent
 
-        self.table.selectionChanged = _selection_changed
+            def selectionChanged(self, selected, deselected):
+                super().selectionChanged(selected, deselected)
+                parent = self._parent
+                for index in deselected.indexes():
+                    data = parent.tablemodel[index.row()][1]
+                    self._parent.selected_words.remove(data)
+                for index in selected.indexes():
+                    data = parent.tablemodel[index.row()][1]
+                    self._parent.selected_words.add(data)
+                parent.cloud_reselect()
+
+        view = self.tableview = TableView(self)
+        model = self.tablemodel = PyTableModel()
+        model.setHorizontalHeaderLabels(['Weight', 'Word'])
+        view.setModel(model)
+        box.layout().addWidget(view)
 
     def cloud_reselect(self):
         self.webview.evalJS('selectWords();')
@@ -176,10 +193,10 @@ span.selected {color:red !important}
         N_BEST = 200
         words, weights = words[:N_BEST], weights[:N_BEST]
         # Repopulate table
-        self.table.clear()
+        self.tablemodel.clear()
         for word, weight in zip(words, weights):
-            self.table.addRow((weight, word), data=word)
-        self.table.sortByColumn(0, QtCore.Qt.DescendingOrder)
+            self.tablemodel.append([weight, word])
+        self.tableview.sortByColumn(0, Qt.DescendingOrder)
         # Reset wordcloud
         mean = np.mean(weights)
         MIN_SIZE, MEAN_SIZE, MAX_SIZE = 8, 18, 40
