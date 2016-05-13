@@ -35,18 +35,15 @@ def _mesh_headings_to_class(mesh_headings):
     We take the first mesh heading and extract it to use as a class.
 
     Args:
-        mesh_headings (str): The string containing all the mesh headings.
+        mesh_headings (list): The list containing all the mesh headings.
 
     Returns:
         str: The class value.
     """
     # e.g. heading1/heading2,heading3/*heading4
-    try:
-        regex = re.compile(r'^(.\w*?)\W')
-        class_mesh_groups = regex.search(mesh_headings[0])
-        return class_mesh_groups.groups()[0]
-    except:
-        return None
+    regex = re.compile(r'^(.\w*?)\W')
+    class_mesh_groups = regex.search(mesh_headings[0])
+    return class_mesh_groups.groups()[0]
 
 
 def _date_to_iso(date):
@@ -63,30 +60,23 @@ def _date_to_iso(date):
         'summer': 'Jun',
     }
 
-    for date_format in possible_date_formats:
-        try:
-            return datetime.strptime(date, date_format).date().isoformat()
-        except Exception:
-            continue  # Try the next format.
-
     date = date.lower()
     # Seasons to their respective months.
     for season, month in season_mapping.items():
         date = date.replace(season, month)
-    try:  # Try month range (e.g. Jan-Mar).
-        date = date.split('-')[0]  # 2015 Sep-Dec --> 2015 Sep
-        return datetime.strptime(
-                date,
-                possible_date_formats[1]
-        ).date().isoformat()
-    except Exception:
-        warnings.warn(
-                'Could not parse "{}" into a date.'.format(
-                    date
-                ),
-                RuntimeWarning
-        )
-        return None
+    date = date.split('-')[0]  # 2015 Sep-Dec --> 2015 Sep
+
+    for date_format in possible_date_formats:
+        try:
+            return datetime.strptime(date, date_format).date().isoformat()
+        except ValueError:
+            continue  # Try the next format.
+
+    warnings.warn(
+            'Could not parse "{}" into a date.'.format(date),
+            RuntimeWarning
+    )
+    return None
 
 
 def _records_to_corpus_entries(records, includes_metadata):
@@ -96,13 +86,13 @@ def _records_to_corpus_entries(records, includes_metadata):
         records (list): A list of dictionaries that hold record data.
         includes_metadata (list): A list of tuples, where the
             elements hold the names and tags of the metadata fields that we
-            wish to extract from the xml.
+            wish to extract.
 
     Returns:
         list, list: Metadata and class values. Metadata is an array of size
             n*m, where n is the number of article records contained within
             'data' and m is the number of metadata fields we've chosen to
-            extract from the xml. The variable class_values is a list, where
+            extract. The variable class_values is a list, where
             the elements are class values for each article instance.
     """
     class_values = []
