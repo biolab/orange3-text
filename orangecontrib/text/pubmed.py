@@ -41,11 +41,7 @@ def _mesh_headings_to_class(mesh_headings):
         str: The class value.
     """
     # e.g. heading1/heading2,heading3/*heading4
-    return mesh_headings[0].split('/')[0].replace('*', '').lower()
-
-    # regex = re.compile(r'^(.\w*?)\W')
-    # class_mesh_groups = regex.search(mesh_headings[0])
-    # return class_mesh_groups.groups()[0]
+    return mesh_headings[0].split('/')[0].split(' ')[0].replace('*', '').lower()
 
 
 def _date_to_iso(date):
@@ -146,7 +142,7 @@ def _corpus_from_records(records, includes_metadata):
 
 
 class Pubmed:
-    ESEARCH_DEFAULT_RECORD_COUNT = '100000'
+    MAX_RECORDS = 100000
     MAX_BATCH_SIZE = 1000
 
     def __init__(self, email, progress_callback=None, error_callback=None):
@@ -223,7 +219,7 @@ class Pubmed:
                     maxdate=pub_date_end,
                     datetype='pdat',
                     usehistory='y',
-                    retmax=self.ESEARCH_DEFAULT_RECORD_COUNT
+                    retmax=self.MAX_RECORDS
             )
         except IOError as e:
             warnings.warn(
@@ -264,7 +260,7 @@ class Pubmed:
                     db='pubmed',
                     term=query,
                     usehistory='y',
-                    retmax=self.ESEARCH_DEFAULT_RECORD_COUNT
+                    retmax=self.MAX_RECORDS
             )
         except IOError as e:
             warnings.warn(

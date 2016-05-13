@@ -3,6 +3,7 @@ import re
 
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtGui import *
+from PyQt4.QtCore import Qt
 from validate_email import validate_email
 
 from Orange.widgets import gui
@@ -32,7 +33,7 @@ class Output:
 
 class OWPubmed(OWWidget):
     name = 'Pubmed'
-    description = 'Load data from the Pubmed api.'
+    description = 'Fetch data from Pubmed.'
     icon = 'icons/Pubmed.svg'
     priority = 20
 
@@ -49,9 +50,9 @@ class OWPubmed(OWWidget):
     num_records = Setting(1000)
 
     # Text includes checkboxes.
-    includes_authors = Setting(False)
-    includes_title = Setting(False)
-    includes_mesh = Setting(False)
+    includes_authors = Setting(True)
+    includes_title = Setting(True)
+    includes_mesh = Setting(True)
     includes_abstract = Setting(True)
 
     def __init__(self):
@@ -66,7 +67,7 @@ class OWPubmed(OWWidget):
         # To hold all the controls. Makes access easier.
         self.pubmed_controls = []
 
-        h_box = gui.widgetBox(self.controlArea, orientation='horizontal')
+        h_box = gui.hBox(self.controlArea)
         label = gui.label(h_box, self, 'Email:')
         label.setMaximumSize(label.sizeHint())
         # Drop-down for recent emails.
@@ -84,13 +85,13 @@ class OWPubmed(OWWidget):
 
         # Author
         self.author_input = gui.lineEdit(regular_search_box, self, 'author',
-                                         'Author:', orientation='horizontal')
+                                         'Author:', orientation=Qt.Horizontal)
         self.pubmed_controls.append(self.author_input)
         # Pub. date from.
-        h_box = gui.widgetBox(regular_search_box, orientation='horizontal')
+        h_box = gui.hBox(regular_search_box)
         self.pub_date_from_input = gui.lineEdit(h_box, self, 'pub_date_from',
                                                 'Published from',
-                                                orientation='horizontal')
+                                                orientation=Qt.Horizontal)
         self.pub_date_from_input.setPlaceholderText('YYYY/MM/DD')
         self.pub_date_from_input.setMaximumSize(self.pub_date_from_input
                                                 .sizeHint())
@@ -109,7 +110,7 @@ class OWPubmed(OWWidget):
                                                 QtGui.QSizePolicy.Fixed)
         # Pub. date to.
         self.pub_date_to_input = gui.lineEdit(h_box, self, 'pub_date_to',
-                                              'and', orientation='horizontal')
+                                              'and', orientation=Qt.Horizontal)
         self.pub_date_to_input.setPlaceholderText('YYYY/MM/DD')
         self.pub_date_to_input.setMaximumSize(self.pub_date_to_input
                                               .sizeHint())
@@ -130,7 +131,7 @@ class OWPubmed(OWWidget):
         self.pubmed_controls.append(self.pub_date_to_input)
 
         # Keywords.
-        h_box = gui.widgetBox(regular_search_box, orientation='horizontal')
+        h_box = gui.hBox(regular_search_box)
         label = gui.label(h_box, self, 'Query:')
         label.setMaximumSize(label.sizeHint())
         self.keyword_combo = QComboBox(h_box)
@@ -143,7 +144,7 @@ class OWPubmed(OWWidget):
         # --- Advanced search ---
         advanced_search_box = gui.widgetBox(self.controlArea, addSpace=True)
         # Advanced search query.
-        h_box = gui.widgetBox(advanced_search_box, orientation='horizontal')
+        h_box = gui.hBox(advanced_search_box)
         self.advanced_query_input = QTextEdit(h_box)
         h_box.layout().addWidget(self.advanced_query_input)
         self.pubmed_controls.append(self.advanced_query_input)
@@ -156,7 +157,7 @@ class OWPubmed(OWWidget):
         # Search info label.
         self.search_info_label = gui.label(
                 self.controlArea, self,
-                'Number of retrievable records for this search query: /')
+                'Number of records found: /')
 
         # Search for records button.
         self.run_search_button = gui.button(
@@ -177,21 +178,21 @@ class OWPubmed(OWWidget):
         # Text includes box.
         text_includes_box = gui.widgetBox(self.controlArea,
                                           'Text includes', addSpace=True)
-        self.authors_chbox = gui.checkBox(text_includes_box, self,
+        self.authors_checkbox = gui.checkBox(text_includes_box, self,
                                           'includes_authors', 'Authors')
-        self.title_chbox = gui.checkBox(text_includes_box, self,
+        self.title_checkbox = gui.checkBox(text_includes_box, self,
                                         'includes_title', 'Article title')
-        self.mesh_chbox = gui.checkBox(text_includes_box, self,
+        self.mesh_checkbox = gui.checkBox(text_includes_box, self,
                                        'includes_mesh', 'Mesh headings')
-        self.abstract_chbox = gui.checkBox(text_includes_box, self,
+        self.abstract_checkbox = gui.checkBox(text_includes_box, self,
                                            'includes_abstract', 'Abstract')
-        self.pubmed_controls.append(self.authors_chbox)
-        self.pubmed_controls.append(self.title_chbox)
-        self.pubmed_controls.append(self.mesh_chbox)
-        self.pubmed_controls.append(self.abstract_chbox)
+        self.pubmed_controls.append(self.authors_checkbox)
+        self.pubmed_controls.append(self.title_checkbox)
+        self.pubmed_controls.append(self.mesh_checkbox)
+        self.pubmed_controls.append(self.abstract_checkbox)
 
         # Num. records.
-        h_box = gui.widgetBox(self.controlArea, orientation=0)
+        h_box = gui.hBox(self.controlArea)
         label = gui.label(h_box, self, 'Retrieve')
         label.setMaximumSize(label.sizeHint())
         self.num_records_input = gui.spin(h_box, self, 'num_records',
@@ -208,8 +209,7 @@ class OWPubmed(OWWidget):
                 self,
                 'Retrieve records',
                 callback=self.retrieve_records,
-                tooltip='Performs a search for articles that fit the '
-                        'specified parameters.')
+                tooltip='Retrieves the specified documents.')
         self.pubmed_controls.append(self.retrieve_records_button)
 
         # Num. retrieved records info label.
@@ -270,19 +270,19 @@ class OWPubmed(OWWidget):
 
             # If no keywords, alert that the query is too vague.
             if not terms:
-                self.warning(0, 'Please specify the keywords for this query.')
+                self.warning(0, 'Please specify the query.')
                 self.run_search_button.setEnabled(True)
                 self.retrieve_records_button.setEnabled(True)
                 return
 
             # Check date formatting.
-            pdate_from_flag = self.pub_date_from and not eval_date(
+            date_from_invalid = self.pub_date_from and not eval_date(
                     self.pub_date_from
             )
             pdate_to_flag = self.pub_date_to and not eval_date(
                     self.pub_date_to
             )
-            if pdate_from_flag or pdate_to_flag:
+            if date_from_invalid or pdate_to_flag:
                 self.warning(0, 'Please specify dates with digits in '
                                 'YYYY/MM/DD format.')
                 self.run_search_button.setEnabled(True)
@@ -321,14 +321,6 @@ class OWPubmed(OWWidget):
         self.update_search_info()
 
     def retrieve_records(self):
-        """
-        Retrieves the records that were queried with '_search_for_records()'.
-        If retrieval was successful, generates a corpus with the text fields as
-        meta attributes.
-        :param num_records: The number of records to retrieve.
-        :type num_records: int
-        :return: orangecontrib.text.corpus.Corpus
-        """
         self.warning(0)
         self.error(0)
         if self.pubmed_api is None:
@@ -373,11 +365,11 @@ class OWPubmed(OWWidget):
     def update_search_info(self):
         self.search_info_label.setText(
                 'Number of retrievable records for this search query: {} '
-                    .format(min(100000, self.pubmed_api.search_record_count))
+                    .format(min(self.pubmed_api.MAX_RECORDS, self.pubmed_api.search_record_count))
         )
         self.max_records_label.setText(
                 'records from {}.'
-                    .format(min(100000, self.pubmed_api.search_record_count))
+                    .format(min(self.pubmed_api.MAX_RECORDS, self.pubmed_api.search_record_count))
         )
         self.max_records_label.setMaximumSize(self.max_records_label
                                               .sizeHint())
