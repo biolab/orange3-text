@@ -41,9 +41,11 @@ def _mesh_headings_to_class(mesh_headings):
         str: The class value.
     """
     # e.g. heading1/heading2,heading3/*heading4
-    regex = re.compile(r'^(.\w*?)\W')
-    class_mesh_groups = regex.search(mesh_headings[0])
-    return class_mesh_groups.groups()[0]
+    return mesh_headings[0].split('/')[0].replace('*', '').lower()
+
+    # regex = re.compile(r'^(.\w*?)\W')
+    # class_mesh_groups = regex.search(mesh_headings[0])
+    # return class_mesh_groups.groups()[0]
 
 
 def _date_to_iso(date):
@@ -101,13 +103,17 @@ def _records_to_corpus_entries(records, includes_metadata):
     for row_num, record in enumerate(records):
         fields = [
                 _join_if_list(record.get(field_key, ''))
-                for field_name, field_key
+                for _, field_key
                 in includes_metadata
             ]
         fields[-1] = _date_to_iso(fields[-1])
         metadata[row_num] = np.array(fields)[None, :]
 
-        class_values.append(_mesh_headings_to_class(record.get('MH')))
+        mesh_headings = record.get('MH')
+        if mesh_headings is not None:
+            mesh_headings = _mesh_headings_to_class(mesh_headings)
+        class_values.append(mesh_headings)
+
     return metadata, class_values
 
 
@@ -126,33 +132,17 @@ def _corpus_from_records(records, includes_metadata):
             includes_metadata=includes_metadata
     )
     meta_vars = [
-        StringVariable.make(field_name)
-        for field_name, field_key
-        in includes_metadata
+        StringVariable.make(field_name) for field_name, _ in includes_metadata
     ]
     class_vars = [
-        DiscreteVariable(
-                'section_name',
-                values=list(set(class_values))
-        )
+        DiscreteVariable('section_name', values=list(set(class_values)))
     ]
-    domain = Domain(
-            [],
-            class_vars=class_vars,
-            metas=meta_vars
-    )
+    domain = Domain([], class_vars=class_vars, metas=meta_vars)
 
-    Y = np.array([class_vars[0].to_val(cv)
-                  for cv
-                  in class_values])[:, None]
-    Y[np.isnan(Y)] = 0
+    Y = np.array([class_vars[0].to_val(cv) for cv in class_values])[:, None]
+    Y[np.isnan(Y)] = np.nan
 
-    return Corpus(
-            None,
-            Y,
-            meta_values,
-            domain
-    )
+    return Corpus(None, Y, meta_values, domain)
 
 
 class Pubmed:
@@ -163,7 +153,6 @@ class Pubmed:
         if not validate_email(email):
             raise ValueError('{} is not a valid email address.'.format(email))
 
-        self.email = email
         Entrez.email = email
 
         self.record_id_list = None  # Ids of the records available.
