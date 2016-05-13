@@ -146,8 +146,8 @@ def _corpus_from_records(records, includes_metadata):
 
 
 class Pubmed:
-
-    DEFAULT_BATCH_SIZE = 1000
+    ESEARCH_DEFAULT_RECORD_COUNT = '100000'
+    MAX_BATCH_SIZE = 1000
 
     def __init__(self, email, progress_callback=None, error_callback=None):
         if not validate_email(email):
@@ -165,13 +165,9 @@ class Pubmed:
 
         self.cache_path = None
         cache_folder = os.path.join(environ.buffer_dir, 'pubmedcache')
-        try:
-            if not os.path.exists(cache_folder):
-                os.makedirs(cache_folder)
-            self.cache_path = os.path.join(cache_folder, 'query_cache')
-        except:
-            warnings.warn('Could not assemble Pubmed query cache path',
-                          RuntimeWarning)
+        if not os.path.exists(cache_folder):
+            os.makedirs(cache_folder)
+        self.cache_path = os.path.join(cache_folder, 'query_cache')
 
     def _search_for_records(self, terms=[], authors=[],
                             pub_date_start=None, pub_date_end=None):
@@ -227,9 +223,9 @@ class Pubmed:
                     maxdate=pub_date_end,
                     datetype='pdat',
                     usehistory='y',
-                    retmax='100000'
+                    retmax=self.ESEARCH_DEFAULT_RECORD_COUNT
             )
-        except Exception as e:
+        except IOError as e:
             warnings.warn(
                 'An exception occurred ({0}).'.format(e),
                 RuntimeWarning
@@ -268,9 +264,9 @@ class Pubmed:
                     db='pubmed',
                     term=query,
                     usehistory='y',
-                    retmax='100000'
+                    retmax=self.ESEARCH_DEFAULT_RECORD_COUNT
             )
-        except Exception as e:
+        except IOError as e:
             warnings.warn(
                 'An exception occurred ({0}).'.format(e),
                 RuntimeWarning
@@ -349,7 +345,7 @@ class Pubmed:
                 as a corpus.
         """
         corpus = None
-        batch_size = min(self.DEFAULT_BATCH_SIZE, num_records)
+        batch_size = min(self.MAX_BATCH_SIZE, num_records)
         cached_data = []  # Later on, construct the corpus from this.
         new_records = []  # Must download.
 
@@ -366,32 +362,30 @@ class Pubmed:
                     record = query_cache.get(rec_id)
                     if record is not None:
                         cached_data.append(record)
-                        continue
-
-                    new_records.append(rec_id)
+                    else:
+                        new_records.append(rec_id)
                 query_cache.close()
         else:
             new_records = self.record_id_list
 
         cached_data_size = len(cached_data)
         if self.progress_callback:  # Advance the callback accordingly.
-            for _ in itertools.repeat(None, int(cached_data_size/batch_size)):
+            for _ in range(int(cached_data_size/batch_size)):
                 self.progress_callback()
 
+        if cached_data_size > 0:  # Some records were cached.
+            # Create a starting corpus.
+            corpus = _corpus_from_records(
+                    cached_data,
+                    includes_metadata
+            )
         # --- Retrieve missing/new ---
         if len(new_records) > 0:
-            if cached_data_size > 0:  # Some records were cached.
-                # Create a starting corpus.
-                corpus = _corpus_from_records(
-                        cached_data,
-                        includes_metadata
-                )
-
             try:
                 post_handle = Entrez.epost('pubmed', id=','.join(new_records))
                 post_results = Entrez.read(post_handle)
                 post_handle.close()
-            except Exception as e:
+            except IOError as e:
                 warnings.warn(
                     'An exception occurred ({0}).'.format(e),
                     RuntimeWarning
@@ -431,12 +425,7 @@ class Pubmed:
                             meta_values,
                             class_values
                     )
-            return corpus
-        else:  # No new records, create a corpus from cached ones.
-            return _corpus_from_records(
-                    cached_data,
-                    includes_metadata
-            )
+        return corpus
 
     def download_records(self, terms=[], authors=[],
                          pub_date_start=None, pub_date_end=None,

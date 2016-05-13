@@ -351,7 +351,7 @@ class OWPubmed(OWWidget):
             if field_name
         ]
 
-        batch_size = min(Pubmed.DEFAULT_BATCH_SIZE, self.num_records)
+        batch_size = min(Pubmed.MAX_BATCH_SIZE, self.num_records)
         with self.progressBar(self.num_records/batch_size) as progress:
             self.progress = progress
             self.output_corpus = self.pubmed_api._retrieve_records(
