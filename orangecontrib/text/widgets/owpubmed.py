@@ -309,7 +309,7 @@ class OWPubmed(OWWidget):
                 self.run_search_button.setEnabled(True)
                 self.retrieve_records_button.setEnabled(True)
                 return
-            error = self.pubmed_api._search_for_records_advanced(query)
+            error = self.pubmed_api._search_for_records(advanced_query=query)
 
             if error is not None:
                 self.warning(0, str(error))

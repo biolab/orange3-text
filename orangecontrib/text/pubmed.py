@@ -166,7 +166,8 @@ class Pubmed:
         self.cache_path = os.path.join(cache_folder, 'query_cache')
 
     def _search_for_records(self, terms=[], authors=[],
-                            pub_date_start=None, pub_date_end=None):
+                            pub_date_start=None, pub_date_end=None,
+                            advanced_query=None):
         """Executes a search for PubMed records.
 
         Results of the search, like QueryKey, WebEnv and Count are stored as
@@ -180,47 +181,50 @@ class Pubmed:
             pub_date_end (str): The end of the publish date chronological
                 interval.
         """
-        search_terms = []
 
-        argument_checks = [
-            {
-                'argument': authors,
-                'error': '{} is not a valid data type for the field "authors".'
-                    .format(type(authors)),
-                'conjunction': ' AND ',
-                'field': 'Author',
-            },
-            {
-                'argument': terms,
-                'error': '{} is not a valid data type for the field "terms".'
-                    .format(type(terms)),
-                'conjunction': ' OR ',
-                'field': 'All fields',
-            },
-        ]
+        query_dict = {
+            'db': 'pubmed',
+            'usehistory': 'y',
+            'retmax': self.MAX_RECORDS
+        }
 
-        for check in argument_checks:
-            if not isinstance(check.get('argument'), list):
-                raise ValueError(check.get('error'))
-            arguments_list = ['{}[{}]'.format(arg, check.get('field'))
-                              for arg in check.get('argument')]
-            arguments = check.get('conjunction').join(arguments_list)
-            if arguments:
-                search_terms.append('({})'.format(arguments))
+        if advanced_query is not None:
+            query_dict.update({'term': advanced_query})
+        else:
+            search_terms = []
+            argument_checks = [
+                (authors, 'Author', ' AND ',
+                 '{} is not a valid data type for the field "authors".'.format(
+                         type(authors)
+                 )),
+                (terms, 'All fields', ' OR ',
+                 '{} is not a valid data type for the field "terms".'.format(
+                         type(terms)
+                 )),
+            ]
+
+            for argument, field, conjunction, error in argument_checks:
+                if not isinstance(argument, list):
+                    raise ValueError(error)
+                arguments_list = [
+                    '{}[{}]'.format(arg, field) for arg in argument
+                    ]
+                arguments = conjunction.join(arguments_list)
+                if arguments:
+                    search_terms.append('({})'.format(arguments))
+
+            query_dict.update({
+                'term': ' AND '.join(search_terms),
+                'mindate': pub_date_start,
+                'maxdate': pub_date_end,
+                'datetype': 'pdat',
+            })
 
         # The 'retmax' parameter determines the maximum number of record ids
         # we want returned, where 100000 is the maximum. Setting it to maximum
         # will therefore return all available record ids.
         try:
-            search_handle = Entrez.esearch(
-                    db='pubmed',
-                    term=' AND '.join(search_terms),
-                    mindate=pub_date_start,
-                    maxdate=pub_date_end,
-                    datetype='pdat',
-                    usehistory='y',
-                    retmax=self.MAX_RECORDS
-            )
+            search_handle = Entrez.esearch(**query_dict)
         except IOError as e:
             warnings.warn(
                 'An exception occurred ({0}).'.format(e),
@@ -231,45 +235,6 @@ class Pubmed:
             return
 
         # Read into a dictionary.
-        search_results = Entrez.read(search_handle)
-        search_handle.close()
-
-        # Store data from this search.
-        self.record_id_list = search_results.get('IdList')
-        self.search_record_count = int(search_results.get('Count'))
-        self.search_record_web_env = search_results.get('WebEnv')
-        self.search_record_query_key = search_results.get('QueryKey')
-
-    def _search_for_records_advanced(self, query):
-        """Executes a advanced/custom search for PubMed records.
-
-        The query is in the same format as the one assembled on the PubMed
-        website. Results of the search, like QueryKey, WebEnv and Count are
-        stored as parameters of this class's instance.
-
-        Args:
-            query (str): The advanced query string.
-        """
-        if not query:
-            warnings.warn('Cannot run PubMed query on empty input.',
-                          RuntimeWarning)
-            return
-
-        try:
-            search_handle = Entrez.esearch(
-                    db='pubmed',
-                    term=query,
-                    usehistory='y',
-                    retmax=self.MAX_RECORDS
-            )
-        except IOError as e:
-            warnings.warn(
-                'An exception occurred ({0}).'.format(e),
-                RuntimeWarning
-            )
-            if self.error_callback:
-                self.error_callback(e)
-            return
         search_results = Entrez.read(search_handle)
         search_handle.close()
 
