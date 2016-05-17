@@ -1,9 +1,10 @@
 import os
 import re
+from datetime import date
 
 from PyQt4 import QtGui, QtCore
+from PyQt4.QtCore import Qt, QDate
 from PyQt4.QtGui import *
-from PyQt4.QtCore import Qt
 from validate_email import validate_email
 
 from Orange.widgets import gui
@@ -39,6 +40,10 @@ class OWPubmed(OWWidget):
 
     outputs = [(Output.CORPUS, Corpus)]
     want_main_area = False
+
+    QT_DATE_FORMAT = 'yyyy-MM-dd'
+    PY_DATE_FORMAT = '%Y-%m-%d'
+    MIN_DATE = date(1851, 1, 1)
 
     # Settings.
     recent_emails = Setting([])
@@ -87,48 +92,36 @@ class OWPubmed(OWWidget):
         self.author_input = gui.lineEdit(regular_search_box, self, 'author',
                                          'Author:', orientation=Qt.Horizontal)
         self.pubmed_controls.append(self.author_input)
-        # Pub. date from.
-        h_box = gui.hBox(regular_search_box)
-        self.pub_date_from_input = gui.lineEdit(h_box, self, 'pub_date_from',
-                                                'Published from',
-                                                orientation=Qt.Horizontal)
-        self.pub_date_from_input.setPlaceholderText('YYYY/MM/DD')
-        self.pub_date_from_input.setMaximumSize(self.pub_date_from_input
-                                                .sizeHint())
-        # Calendar button from.
-        open_calendar_button_from = gui.button(
-                h_box, self, '',
-                callback=lambda: self.open_calendar(self.pub_date_from_input),
-                tooltip='Pick a date using the calendar widget.'
-        )
-        open_calendar_button_from.setMaximumSize(open_calendar_button_from
-                                                 .sizeHint())
-        open_calendar_button_from.setIcon(QIcon(_i('calendar.svg')))
-        open_calendar_button_from.setIconSize(QtCore.QSize(16, 16))
-        open_calendar_button_from.setFocusPolicy(QtCore.Qt.NoFocus)
-        open_calendar_button_from.setSizePolicy(QtGui.QSizePolicy.Fixed,
-                                                QtGui.QSizePolicy.Fixed)
-        # Pub. date to.
-        self.pub_date_to_input = gui.lineEdit(h_box, self, 'pub_date_to',
-                                              'and', orientation=Qt.Horizontal)
-        self.pub_date_to_input.setPlaceholderText('YYYY/MM/DD')
-        self.pub_date_to_input.setMaximumSize(self.pub_date_to_input
-                                              .sizeHint())
-        # Calendar button to.
-        open_calendar_button_to = gui.button(
-                h_box, self, '',
-                callback=lambda: self.open_calendar(self.pub_date_to_input),
-                tooltip='Pick a date using the calendar widget.')
-        open_calendar_button_to.setMaximumSize(open_calendar_button_from
-                                               .sizeHint())
-        open_calendar_button_to.setIcon(QIcon(_i('calendar.svg')))
-        open_calendar_button_to.setIconSize(QtCore.QSize(16, 16))
-        open_calendar_button_to.setFocusPolicy(QtCore.Qt.NoFocus)
-        open_calendar_button_to.setSizePolicy(QtGui.QSizePolicy.Fixed,
-                                              QtGui.QSizePolicy.Fixed)
 
-        self.pubmed_controls.append(self.pub_date_from_input)
-        self.pubmed_controls.append(self.pub_date_to_input)
+        h_box = gui.hBox(regular_search_box)
+        year_box = gui.widgetBox(h_box, orientation=Qt.Horizontal)
+        min_date = QDate.fromString(
+                self.MIN_DATE.strftime(self.PY_DATE_FORMAT),
+                self.QT_DATE_FORMAT
+        )
+        date_from = QDateEdit(
+                QDate.fromString(self.pub_date_from, self.QT_DATE_FORMAT),
+                displayFormat=self.QT_DATE_FORMAT,
+                minimumDate=min_date,
+                calendarPopup=True
+        )
+        date_to = QDateEdit(
+                QDate.fromString(self.pub_date_to, self.QT_DATE_FORMAT),
+                displayFormat=self.QT_DATE_FORMAT,
+                minimumDate=min_date,
+                calendarPopup=True
+        )
+        date_from.dateChanged.connect(
+            lambda date: setattr(self, 'date_from',
+                                 date.toString(self.QT_DATE_FORMAT)))
+        date_to.dateChanged.connect(
+            lambda date: setattr(self, 'date_to',
+                                 date.toString(self.QT_DATE_FORMAT)))
+
+        gui.label(year_box, self, 'From:')
+        year_box.layout().addWidget(date_from)
+        gui.label(year_box, self, 'to:')
+        year_box.layout().addWidget(date_to)
 
         # Keywords.
         h_box = gui.hBox(regular_search_box)
