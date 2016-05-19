@@ -357,17 +357,22 @@ class OWPubmed(OWWidget):
 
     def update_search_info(self):
         self.search_info_label.setText(
-                'Number of retrievable records for this search query: {} '
-                    .format(min(self.pubmed_api.MAX_RECORDS, self.pubmed_api.search_record_count))
+                'Number of retrievable records for '
+                'this search query: {} '.format(
+                        min(self.pubmed_api.MAX_RECORDS,
+                            self.pubmed_api.search_record_count)
+                )
         )
         self.max_records_label.setText(
-                'records from {}.'
-                    .format(min(self.pubmed_api.MAX_RECORDS, self.pubmed_api.search_record_count))
+                'records from {}.'.format(
+                        min(self.pubmed_api.MAX_RECORDS,
+                            self.pubmed_api.search_record_count)
+                )
         )
         self.max_records_label.setMaximumSize(self.max_records_label
                                               .sizeHint())
-        self.num_records = min(self.num_records,
-                               self.pubmed_api.search_record_count)
+        self.num_records_input.setMaximum(self.pubmed_api.search_record_count)
+        self.num_records = self.pubmed_api.search_record_count
 
     def update_retrieval_info(self):
         self.retrieval_info_label.setText(
