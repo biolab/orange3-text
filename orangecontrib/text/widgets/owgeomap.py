@@ -146,7 +146,7 @@ html, body, #map {{margin:0px;padding:0px;width:100%;height:100%;}}
                               Map.EUROPE: (INV_CC_EUROPE, CC_EUROPE)} [map_code]
         # Set country counts in JS
         data = defaultdict(int)
-        for cc in self.cc_counts:
+        for cc in getattr(self, 'cc_counts', ()):
             key = inv_cc_map.get(cc, cc)
             if key in cc_map:
                 data[key] += self.cc_counts[cc]
