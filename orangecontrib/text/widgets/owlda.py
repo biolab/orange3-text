@@ -26,8 +26,7 @@ class OWLDA(OWWidget):
     settingsHandler = DomainContextHandler()
 
     # Input/output
-    inputs = [("Corpus", Corpus, "set_data"),
-              ("Preprocessor", Preprocessor, "set_preprocessor")]
+    inputs = [("Corpus", Corpus, "set_data")]
     outputs = [(Output.DATA, Table),
                (Output.TOPICS, Topics)]
     want_main_area = True
@@ -40,7 +39,6 @@ class OWLDA(OWWidget):
 
         self.lda = None
         self.corpus = None
-        self.preprocessor = Preprocessor()
 
         # Info.
         info_box = gui.widgetBox(self.controlArea, "Info")
@@ -73,13 +71,6 @@ class OWLDA(OWWidget):
         self.mainArea.layout().addWidget(self.topic_desc)
 
         self.refresh_gui()
-
-    def set_preprocessor(self, data):
-        if data is None:
-            self.preprocessor = Preprocessor()
-        else:
-            self.preprocessor = data
-        self.apply()
 
     def set_data(self, data=None):
         self.corpus = data
@@ -128,13 +119,11 @@ class OWLDA(OWWidget):
             self.commit.setEnabled(False)
             self.enabled(False)
 
-            preprocessed = self.preprocessor(self.corpus.documents)
-
-            self.progressBarInit()
-            self.lda = LDA(preprocessed, num_topics=self.num_topics, callback=self.progress)
-            table = self.lda.insert_topics_into_corpus(self.corpus)
-            self.update_topics()
-            self.progressBarFinished()
+            with self.progressBar(len(self.corpus)) as bar:
+                self.lda = LDA(self.corpus.tokens, num_topics=self.num_topics,
+                               callback=bar.advance)
+                table = self.lda.insert_topics_into_corpus(self.corpus)
+                self.update_topics()
 
             self.send(Output.DATA, table)
             self.send_topic_by_id(0)

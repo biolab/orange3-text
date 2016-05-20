@@ -48,6 +48,7 @@ class Corpus(Table):
         self.W = np.zeros((n_doc, 0))
         self.domain = domain
         self.text_features = None    # list of text features for mining
+        self._tokens = None
 
         if domain is not None and text_features is None:
             self._infer_text_features()
@@ -69,6 +70,7 @@ class Corpus(Table):
         if len(set(feats)) != len(feats):
             raise ValueError('Text features must be unique.')
         self.text_features = feats
+        self._tokens = None     # invalidate tokens
 
     def _infer_text_features(self):
         """
@@ -88,6 +90,14 @@ class Corpus(Table):
         self.set_text_features(include_feats)
 
     def extend_corpus(self, metadata, Y):
+        """
+        Append documents to corpus.
+
+        Args:
+            metadata (numpy.ndarray): Meta data
+            Y (numpy.ndarray): Class variables
+        """
+
         self.metas = np.vstack((self.metas, metadata))
 
         cv = self.domain.class_var
@@ -100,16 +110,20 @@ class Corpus(Table):
         self.X = self.W = np.zeros((len(self), 0))
         Table._init_ids(self)
 
-    def update_attributes(self, X, dictionary):
+        self._tokens = None     # invalidate tokens
+
+    def extend_attributes(self, X, feature_names):
         """
-        Adds X to the corpus and updates its domain accordingly.
+        Append features to corpus.
+
+        Args:
+            X (numpy.ndarray): Features to append
+            feature_names (list): List of string containing feature names
         """
         self.X = np.hstack((self.X, X))
 
-        dict_key_count = len(sorted(dictionary.keys()))
-        features = [dictionary[key] for key in range(dict_key_count)]
         new_attr = self.domain.attributes
-        new_attr += tuple([ContinuousVariable.make(f) for f in features])
+        new_attr += tuple(ContinuousVariable.make(f) for f in feature_names)
         new_domain = Domain(
                 attributes=new_attr,
                 class_vars=self.domain.class_vars,
@@ -125,6 +139,25 @@ class Corpus(Table):
         """
         indices = [self.domain.metas.index(f) for f in self.text_features]
         return [' '.join(map(str, i)) for i in self.metas[:, indices]]
+
+    def store_tokens(self, tokens):
+        """
+        Args:
+            tokens (list): List of lists containing tokens.
+        """
+        self._tokens = tokens
+
+    @property
+    def tokens(self):
+        """
+        Return a list of lists containing tokens. If tokens are not yet
+        present, run default preprocessor and save tokens.
+        """
+        if self._tokens is None:
+            from orangecontrib.text.preprocess import Preprocessor
+            p = Preprocessor()
+            self._tokens = p(self.documents)
+        return self._tokens
 
     @classmethod
     def from_table(cls, domain, source, row_indices=...):
