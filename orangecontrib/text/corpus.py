@@ -1,4 +1,5 @@
 import os
+from itertools import chain
 
 import numpy as np
 
@@ -65,8 +66,8 @@ class Corpus(Table):
             feats (list): list of text features to include.
         """
         for f in feats:
-            if f not in self.domain.metas:
-                raise ValueError('Feature "{}" not found in metas.'.format(f))
+            if f not in chain(self.domain.variables, self.domain.metas):
+                raise ValueError('Feature "{}" not found.'.format(f))
         if len(set(feats)) != len(feats):
             raise ValueError('Text features must be unique.')
         self.text_features = feats
