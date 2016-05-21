@@ -8,13 +8,13 @@ from PyQt4.QtGui import *
 
 from Orange.widgets import gui
 from Orange.widgets.settings import Setting, ContextSetting
-from Orange.widgets.utils import vartype
 from Orange.widgets.widget import OWWidget
+from Orange.data import Table
 from orangecontrib.text.corpus import Corpus
 
 
 class Input:
-    CORPUS = "Corpus"
+    DATA = 'Data'
 
 
 class Output:
@@ -27,18 +27,20 @@ class OWCorpusViewer(OWWidget):
     icon = "icons/CorpusViewer.svg"
     priority = 30
 
-    inputs = [(Input.CORPUS, Corpus, 'set_data')]
+    inputs = [(Input.DATA, Table, 'set_data')]
     outputs = [(Output.CORPUS, Corpus)]
 
     # Settings.
     selected_document = ContextSetting(0)
-    selected_features = ContextSetting([0])
+    search_features = ContextSetting([0])   # features included in search
+    display_features = ContextSetting([0])  # features for display
     autocommit = Setting(True)
 
     def __init__(self):
         super().__init__()
 
         self.corpus = None              # Corpus
+        self.corpus_docs = None         # Documents generated from Corpus
         self.output_mask = None         # Output corpus indices
         self.document_contents = None   # QTextDocument
         self.document_holder = None     # QTextEdit
@@ -49,11 +51,18 @@ class OWCorpusViewer(OWWidget):
         filter_result_box = gui.widgetBox(self.controlArea, 'Info')
         self.info_all = gui.label(filter_result_box, self, 'All documents:')
         self.info_fil = gui.label(filter_result_box, self, 'After filtering:')
-        # Feature selection.
-        self.feature_listbox = gui.listBox(
-            self.controlArea, self, 'selected_features', 'features',
+
+        # Search features
+        self.search_listbox = gui.listBox(
+            self.controlArea, self, 'search_features', 'features',
             selectionMode=QtGui.QListView.ExtendedSelection,
-            box='Displayed features', callback=self.load_documents,)
+            box='Search features', callback=self.regenerate_documents,)
+
+        # Display features
+        self.display_listbox = gui.listBox(
+            self.controlArea, self, 'display_features', 'features',
+            selectionMode=QtGui.QListView.ExtendedSelection,
+            box='Display features', callback=self.show_document, )
 
         # Auto-commit box.
         gui.auto_commit(self.controlArea, self, 'autocommit', 'Send data', 'Auto send is on')
@@ -63,7 +72,7 @@ class OWCorpusViewer(OWWidget):
         self.filter_input = gui.lineEdit(self.mainArea, self, '',
                                          orientation='horizontal',
                                          label='RegExp Filter:')
-        self.filter_input.textChanged.connect(self.filter_input_changed)
+        self.filter_input.textChanged.connect(self.refresh_search)
 
         h_box = gui.widgetBox(self.mainArea, orientation='horizontal', addSpace=True)
         h_box.layout().setSpacing(0)
@@ -94,37 +103,46 @@ class OWCorpusViewer(OWWidget):
         self.reset_widget()  # Clear any old data.
         if data is not None:
             self.corpus = data
+            if isinstance(data, Table):
+                self.corpus = Corpus.from_table(data.domain, data)
             self.load_features()
-            self.load_documents()
-            self.update_info_display()
+            self.regenerate_documents()
             # Send the corpus to output.
             self.send(Output.CORPUS, self.corpus)
 
     def reset_widget(self):
         # Corpus.
         self.corpus = None
+        self.corpus_docs = None
         self.output_mask = None
         # Widgets.
-        self.feature_listbox.clear()
+        self.search_listbox.clear()
+        self.display_listbox.clear()
         self.document_holder.clear()
         self.filter_input.clear()
         self.update_info_display()
         # Models/vars.
         self.features.clear()
-        self.selected_features.clear()
+        self.search_features.clear()
+        self.display_features.clear()
         self.document_table_model.clear()
+        # Warnings.
+        self.warning(0)
+        self.warning(1)
 
     def load_features(self):
-        self.selected_features = []
+        self.search_features = []
+        self.display_features = []
         if self.corpus is not None:
             domain = self.corpus.domain
-            self.features = [(var.name, vartype(var))
-                             for var in chain(domain.variables, domain.metas)]
-            self.selected_features = list(range(len(self.features)))  # FIXME: Select features based on ContextSetting
+            self.features = list(chain(domain.variables, domain.metas))
+            # FIXME: Select features based on ContextSetting
+            self.search_features = list(range(len(self.features)))
+            self.display_features = list(range(len(self.features)))
 
     def load_documents(self):
-        """ Loads documents into the left scrolling are. """
-        if not self.corpus:
+        """ Loads documents into the left scrolling area. """
+        if not self.corpus or not self.corpus_docs:
             return
 
         self.output_mask = []
@@ -133,7 +151,7 @@ class OWCorpusViewer(OWWidget):
         should_filter = bool(search_keyword)
         is_match = re.compile(search_keyword, re.IGNORECASE).search
 
-        for i, (document, document_contents) in enumerate(zip(self.corpus, self.corpus.documents)):
+        for i, (document, document_contents) in enumerate(zip(self.corpus, self.corpus_docs)):
             has_hit = not should_filter or is_match(document_contents)
             if has_hit:
                 item = QStandardItem()
@@ -152,6 +170,9 @@ class OWCorpusViewer(OWWidget):
 
     def show_document(self):
         """ Show the selected document in the right area. """
+        self.warning(1)
+        if len(self.display_features) == 0 and self.corpus is not None:
+            self.warning(1, 'No features selected for display.')
         self.clear_text_highlight()  # Clear.
 
         self.document_contents = QTextDocument(undoRedoEnabled=False)
@@ -160,8 +181,8 @@ class OWCorpusViewer(OWWidget):
         documents = []
         for index in self.document_table.selectionModel().selectedRows():
             document = ['<table>']
-            for feat_index in self.selected_features:
-                meta_name = self.features[feat_index][0]  # 0 - name; 1 - index
+            for feat_index in self.display_features:
+                meta_name = self.features[feat_index].name
                 document.append(
                     '<tr><td><strong>{0}:</strong></td><td>{1}</td></tr>'.format(
                         meta_name, index.data(Qt.UserRole)[meta_name].value))
@@ -173,7 +194,17 @@ class OWCorpusViewer(OWWidget):
         self.highlight_document_hits()
 
     # --- WIDGET SEARCH ---
-    def filter_input_changed(self):
+    def regenerate_documents(self):
+        self.corpus_docs = None
+        self.warning(0)
+        if self.corpus is not None:
+            feats = [self.features[i] for i in self.search_features]
+            if len(feats) == 0:
+                self.warning(0, 'No features included in search.')
+            self.corpus_docs = self.corpus.documents_from_features(feats)
+            self.refresh_search()
+
+    def refresh_search(self):
         self.load_documents()
         self.highlight_document_hits()
         self.update_info_display()

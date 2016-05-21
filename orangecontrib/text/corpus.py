@@ -24,7 +24,7 @@ def _check_arrays(*arrays):
 
 
 class Corpus(Table):
-    """Internal class for storing a corpus of orangecontrib.text.corpus.Corpus."""
+    """Internal class for storing a corpus."""
 
     def __new__(cls, *args, **kwargs):
         """Bypass Table.__new__."""
@@ -134,11 +134,30 @@ class Corpus(Table):
     @property
     def documents(self):
         """
-        Returns a list of strings representing documents.
-        Each documents is created by joining selected text features.
+        Returns: a list of strings representing documents — created by joining
+            selected text features.
         """
-        indices = [self.domain.metas.index(f) for f in self.text_features]
-        return [' '.join(map(str, i)) for i in self.metas[:, indices]]
+        return self.documents_from_features(self.text_features)
+
+    def documents_from_features(self, feats):
+        """
+        Args:
+            feats (list): A list fo features to join.
+
+        Returns: a list of strings constructed by joining feats.
+        """
+        # create a Table where feats are in metas
+        data = Table(Domain([], [], [i.name for i in feats],
+                            source=self.domain), self)
+
+        # map DiscreteVariables to values
+        text = data.metas.astype(object)
+        for col, f in enumerate(data.domain.metas):
+            if f.is_discrete:
+                for row, val in enumerate(text[:, col]):
+                    text[row, col] = f.values[int(val)]
+
+        return [' '.join(map(str, i)) for i in text]
 
     def store_tokens(self, tokens):
         """
