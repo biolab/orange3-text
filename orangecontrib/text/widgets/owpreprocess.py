@@ -599,8 +599,8 @@ class OWPreprocess(OWWidget):
         # Load the previous states.
         persistent_data = [
             self.persistent_data_tokenizer,
-            self.persistent_data_casing,
             self.persistent_data_stemmer,
+            self.persistent_data_casing,
             self.persistent_data_filter,
         ]
         for ModuleClass, ModuleData in zip(PREPROCESSOR_MODULES,
