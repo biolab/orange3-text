@@ -113,18 +113,25 @@ class Corpus(Table):
 
         self._tokens = None     # invalidate tokens
 
-    def extend_attributes(self, X, feature_names):
+    def extend_attributes(self, X, feature_names, var_attrs=None):
         """
         Append features to corpus.
 
         Args:
             X (numpy.ndarray): Features to append
             feature_names (list): List of string containing feature names
+            var_attrs (dict): Additional attributes appended to variable.attributes.
         """
         self.X = np.hstack((self.X, X))
 
         new_attr = self.domain.attributes
-        new_attr += tuple(ContinuousVariable.make(f) for f in feature_names)
+
+        for f in feature_names:
+            var = ContinuousVariable.make(f)
+            if isinstance(var_attrs, dict):
+                var.attributes.update(var_attrs)
+            new_attr += (var, )
+
         new_domain = Domain(
                 attributes=new_attr,
                 class_vars=self.domain.class_vars,
