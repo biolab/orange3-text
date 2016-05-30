@@ -171,7 +171,7 @@ class Corpus(Table):
         return c
 
     @classmethod
-    def from_file(cls, filename, wrapper=None):
+    def from_file(cls, filename):
         if not os.path.exists(filename):    # check the default location
             abs_path = os.path.join(get_sample_corpora_dir(), filename)
             if not abs_path.endswith('.tab'):
@@ -181,7 +181,7 @@ class Corpus(Table):
             else:
                 filename = abs_path
 
-        table = Table.from_file(filename, wrapper)
+        table = Table.from_file(filename)
         return cls(table.X, table.Y, table.metas, table.domain, None)
 
     def copy(self):
