@@ -6,8 +6,9 @@ from PyQt4.QtGui import (QWidget, QLabel, QHBoxLayout, QVBoxLayout,
                          QComboBox, QPushButton, QStyle, QApplication,
                          QFileDialog, QLineEdit, QCheckBox)
 from nltk.corpus import stopwords
+from nltk.downloader import Downloader
 
-from Orange.widgets import gui, settings
+from Orange.widgets import gui, settings, widget
 from Orange.widgets.widget import OWWidget
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.preprocess import (PorterStemmer as PS,
@@ -570,6 +571,13 @@ class OWPreprocess(OWWidget):
     persistent_data_stemmer = settings.Setting({})
     persistent_data_filter = settings.Setting({})
     preprocessors = []  # Pre-processing modules for the current run.
+
+    UserAdviceMessages = [
+        widget.Message(
+            "Some preprocessing methods require data (like word relationships, stop words, "
+            "punctuation rules etc.) from the NLTK package. This data, if you didn't have it "
+            "already, was downloaded to: {}".format(Downloader().default_download_dir()),
+            "nltk_data")]
 
     def __init__(self, parent=None):
         super().__init__(parent)

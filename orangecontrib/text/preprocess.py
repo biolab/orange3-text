@@ -1,3 +1,4 @@
+import nltk
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 from nltk.stem.porter import PorterStemmer
@@ -5,6 +6,10 @@ from nltk.stem.snowball import SnowballStemmer
 from nltk.tokenize import word_tokenize
 
 from orangecontrib.text.corpus import Corpus
+
+# Ensure NLTK data is present
+NLTK_DATA = ["wordnet",  "stopwords",  "punkt"]
+nltk.download(NLTK_DATA)
 
 
 class Preprocessor:
