@@ -1,4 +1,5 @@
 import re
+import sre_constants
 from itertools import chain
 
 from PyQt4 import QtCore
@@ -70,11 +71,11 @@ class OWCorpusViewer(OWWidget):
         # ---- MAIN AREA ----
         # Search
         self.filter_input = gui.lineEdit(self.mainArea, self, '',
-                                         orientation='horizontal',
+                                         orientation=Qt.Horizontal,
                                          label='RegExp Filter:')
         self.filter_input.textChanged.connect(self.refresh_search)
 
-        h_box = gui.widgetBox(self.mainArea, orientation='horizontal', addSpace=True)
+        h_box = gui.widgetBox(self.mainArea, orientation=Qt.Horizontal, addSpace=True)
         h_box.layout().setSpacing(0)
 
         # Document list.
@@ -147,11 +148,15 @@ class OWCorpusViewer(OWWidget):
         if not self.corpus or not self.corpus_docs:
             return
 
+        search_keyword = self.filter_input.text().strip('|')
+        try:
+            is_match = re.compile(search_keyword, re.IGNORECASE).search
+        except sre_constants.error:
+            return
+
+        should_filter = bool(search_keyword)
         self.output_mask = []
         self.document_table_model.clear()
-        search_keyword = self.filter_input.text().strip('|')
-        should_filter = bool(search_keyword)
-        is_match = re.compile(search_keyword, re.IGNORECASE).search
 
         for i, (document, document_contents) in enumerate(zip(self.corpus, self.corpus_docs)):
             has_hit = not should_filter or is_match(document_contents)
