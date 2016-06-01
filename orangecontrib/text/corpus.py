@@ -1,4 +1,5 @@
 import os
+from itertools import chain
 
 import numpy as np
 
@@ -24,7 +25,7 @@ def _check_arrays(*arrays):
 
 
 class Corpus(Table):
-    """Internal class for storing a corpus of orangecontrib.text.corpus.Corpus."""
+    """Internal class for storing a corpus."""
 
     def __new__(cls, *args, **kwargs):
         """Bypass Table.__new__."""
@@ -65,8 +66,8 @@ class Corpus(Table):
             feats (list): list of text features to include.
         """
         for f in feats:
-            if f not in self.domain.metas:
-                raise ValueError('Feature "{}" not found in metas.'.format(f))
+            if f not in chain(self.domain.variables, self.domain.metas):
+                raise ValueError('Feature "{}" not found.'.format(f))
         if len(set(feats)) != len(feats):
             raise ValueError('Text features must be unique.')
         self.text_features = feats
@@ -112,18 +113,25 @@ class Corpus(Table):
 
         self._tokens = None     # invalidate tokens
 
-    def extend_attributes(self, X, feature_names):
+    def extend_attributes(self, X, feature_names, var_attrs=None):
         """
         Append features to corpus.
 
         Args:
             X (numpy.ndarray): Features to append
             feature_names (list): List of string containing feature names
+            var_attrs (dict): Additional attributes appended to variable.attributes.
         """
         self.X = np.hstack((self.X, X))
 
         new_attr = self.domain.attributes
-        new_attr += tuple(ContinuousVariable.make(f) for f in feature_names)
+
+        for f in feature_names:
+            var = ContinuousVariable.make(f)
+            if isinstance(var_attrs, dict):
+                var.attributes.update(var_attrs)
+            new_attr += (var, )
+
         new_domain = Domain(
                 attributes=new_attr,
                 class_vars=self.domain.class_vars,
@@ -134,11 +142,30 @@ class Corpus(Table):
     @property
     def documents(self):
         """
-        Returns a list of strings representing documents.
-        Each documents is created by joining selected text features.
+        Returns: a list of strings representing documents — created by joining
+            selected text features.
         """
-        indices = [self.domain.metas.index(f) for f in self.text_features]
-        return [' '.join(map(str, i)) for i in self.metas[:, indices]]
+        return self.documents_from_features(self.text_features)
+
+    def documents_from_features(self, feats):
+        """
+        Args:
+            feats (list): A list fo features to join.
+
+        Returns: a list of strings constructed by joining feats.
+        """
+        # create a Table where feats are in metas
+        data = Table(Domain([], [], [i.name for i in feats],
+                            source=self.domain), self)
+
+        # map DiscreteVariables to values
+        text = data.metas.astype(object)
+        for col, f in enumerate(data.domain.metas):
+            if f.is_discrete:
+                for row, val in enumerate(text[:, col]):
+                    text[row, col] = f.values[int(val)]
+
+        return [' '.join(map(str, i)) for i in text]
 
     def store_tokens(self, tokens):
         """

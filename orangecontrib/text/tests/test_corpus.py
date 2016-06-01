@@ -1,5 +1,7 @@
 import os
 import unittest
+from itertools import chain
+
 import numpy as np
 
 from Orange.data import Table
@@ -105,6 +107,27 @@ class CorpusTests(unittest.TestCase):
         tf = c.text_features
         self.assertEqual(len(tf), 1)
         self.assertEqual(tf[0].name, 'text')
+
+    def test_documents(self):
+        c = Corpus.from_file('bookexcerpts')
+        docs = c.documents
+        types = set(type(i) for i in docs)
+
+        self.assertEqual(len(docs), len(c))
+        self.assertEqual(len(types), 1)
+        self.assertIn(str, types)
+
+    def test_documents_from_features(self):
+        c = Corpus.from_file('bookexcerpts')
+        docs = c.documents_from_features([c.domain.class_var])
+        types = set(type(i) for i in docs)
+
+        self.assertTrue(all(
+            [sum(cls in doc for cls in c.domain.class_var.values) == 1
+             for doc in docs]))
+        self.assertEqual(len(docs), len(c))
+        self.assertEqual(len(types), 1)
+        self.assertIn(str, types)
 
     def test_asserting_errors(self):
         c = Corpus.from_file('bookexcerpts')

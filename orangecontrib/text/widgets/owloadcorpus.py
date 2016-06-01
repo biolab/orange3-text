@@ -1,4 +1,6 @@
 import os
+from itertools import chain
+
 from PyQt4 import QtGui
 
 from Orange.widgets.settings import Setting
@@ -134,7 +136,9 @@ class OWLoadCorpus(OWWidget):
             self.corpus = Corpus.from_file(path)
             self.info_label.setText("Corpus of {} documents.".format(len(self.corpus)))
             self.used_attrs.extend(self.corpus.text_features)
-            self.unused_attrs.extend([f for f in self.corpus.domain.metas if f not in self.corpus.text_features])
+            self.unused_attrs.extend([f for f in chain(self.corpus.domain.variables,
+                                                       self.corpus.domain.metas)
+                                      if f not in self.corpus.text_features])
         except BaseException as err:
             self.error(1, str(err))
 
