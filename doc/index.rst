@@ -3,8 +3,8 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to Orange3 Text Mining's documentation!
-===============================================
+Welcome to Orange3 Text Mining documentation!
+=============================================
 
 Widgets
 -------
@@ -12,7 +12,15 @@ Widgets
 .. toctree::
    :maxdepth: 1
 
-   widgets/preprocess.rst
+   widgets/corpus.rst
+   widgets/nytimes.rst
+   widgets/corpusviewer.rst
+   widgets/preprocesstext.rst
+   widgets/bagofwords.rst
+   widgets/topicmodelling.rst
+   widgets/wordenrichment.rst
+   widgets/wordcloud.rst
+   widgets/geomap.rst
 
 Scripting Reference
 -------------------

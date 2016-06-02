@@ -34,6 +34,10 @@ ENTRY_POINTS = {
         #    orangecontrib/text/widgets/__init__.py
         'Text Mining = orangecontrib.text.widgets',
     ),
+
+    # Register widget help
+    "orange.canvas.help": (
+        'html-index = orangecontrib.text.widgets:WIDGET_HELP_PATH',),
 }
 
 KEYWORDS = [
