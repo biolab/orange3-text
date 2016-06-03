@@ -164,7 +164,7 @@ class Corpus(Table):
         for col, f in enumerate(data.domain.metas):
             if f.is_discrete:
                 for row, val in enumerate(text[:, col]):
-                    text[row, col] = f.values[int(val)]
+                    text[row, col] = '' if np.isnan(val) else f.values[int(val)]
 
         return [' '.join(map(str, i)) for i in text]
 

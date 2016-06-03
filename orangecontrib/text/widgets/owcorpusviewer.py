@@ -1,4 +1,5 @@
 import re
+import numpy as np
 import sre_constants
 from itertools import chain
 
@@ -190,9 +191,13 @@ class OWCorpusViewer(OWWidget):
             document = ['<table>']
             for feat_index in self.display_features:
                 meta_name = self.features[feat_index].name
+                meta_value = index.data(Qt.UserRole)[meta_name].value
+                if isinstance(meta_value, float) and np.isnan(meta_value):
+                    meta_value = ''
+
                 document.append(
                     '<tr><td><strong>{0}:</strong></td><td>{1}</td></tr>'.format(
-                        meta_name, index.data(Qt.UserRole)[meta_name].value))
+                        meta_name, meta_value))
             document.append('</table><hr/>')
             documents.append(document)
 
