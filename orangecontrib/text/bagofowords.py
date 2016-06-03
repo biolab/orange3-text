@@ -34,7 +34,7 @@ class BagOfWords():
 
         self.check_progress()  # Step 3
 
-        X = matutils.corpus2dense(
+        X = matutils.corpus2csc(
                 bag_of_words,
                 num_terms=len(self.dictionary.keys()),
                 dtype=np.float64

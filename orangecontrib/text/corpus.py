@@ -3,6 +3,7 @@ import copy
 from itertools import chain
 
 import numpy as np
+from scipy.sparse import issparse, hstack
 from gensim import corpora
 
 from Orange.data import Table, Domain, ContinuousVariable
@@ -16,10 +17,10 @@ def get_sample_corpora_dir():
 
 def _check_arrays(*arrays):
     for a in arrays:
-        if not (a is None or isinstance(a, np.ndarray)):
-            raise TypeError('Argument {} should be of type np.array or None.'.format(a))
+        if not (a is None or isinstance(a, np.ndarray) or issparse(a)):
+            raise TypeError('Argument {} should be of type np.array, sparse or None.'.format(a))
 
-    lengths = set(len(a) for a in arrays if a is not None)
+    lengths = set(a.shape[0] for a in arrays if a is not None)
     if len(lengths) > 1:
         raise ValueError('Leading dimension mismatch')
 
@@ -126,7 +127,7 @@ class Corpus(Table):
             feature_names (list): List of string containing feature names
             var_attrs (dict): Additional attributes appended to variable.attributes.
         """
-        self.X = np.hstack((self.X, X))
+        self.X = hstack((self.X, X)).tocsr() if self.X.size else X
 
         new_attr = self.domain.attributes
 
