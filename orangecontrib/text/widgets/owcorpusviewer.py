@@ -189,10 +189,12 @@ class OWCorpusViewer(OWWidget):
         for index in self.document_table.selectionModel().selectedRows():
             document = ['<table>']
             for feat_index in self.display_features:
-                meta_name = self.features[feat_index].name
+                feature = self.features[feat_index]
+                value = index.data(Qt.UserRole)[feature.name]
+
                 document.append(
                     '<tr><td><strong>{0}:</strong></td><td>{1}</td></tr>'.format(
-                        meta_name, index.data(Qt.UserRole)[meta_name].value))
+                        feature.name, value))
             document.append('</table><hr/>')
             documents.append(document)
 
