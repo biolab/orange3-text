@@ -50,6 +50,7 @@ class Corpus(Table):
         self.domain = domain
         self.text_features = None    # list of text features for mining
         self._tokens = None
+        self.attributes = {}
 
         if domain is not None and text_features is None:
             self._infer_text_features()
