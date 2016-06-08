@@ -5,8 +5,6 @@ import numpy as np
 from gensim import corpora, matutils
 from gensim.models.tfidfmodel import TfidfModel
 
-from orangecontrib.text.preprocess import Preprocessor
-
 
 class BagOfWords():
 
@@ -20,11 +18,6 @@ class BagOfWords():
             raise ValueError(
                     'Cannot compute Bag of Words without an input corpus.'
             )
-
-        has_tokens = hasattr(corpus, 'tokens') and corpus.tokens is not None
-        if not has_tokens:  # Perform default pre-processing.
-            preprocessor = Preprocessor()
-            corpus = preprocessor(corpus)
 
         self.check_progress()  # Step 1
 

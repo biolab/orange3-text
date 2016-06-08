@@ -182,9 +182,8 @@ class Corpus(Table):
         present, run default preprocessor and save tokens.
         """
         if self._tokens is None:
-            from orangecontrib.text.preprocess import Preprocessor
-            p = Preprocessor()
-            self._tokens = p(self.documents)
+            from orangecontrib.text.preprocess import base_preprocessor
+            base_preprocessor(self)
         return self._tokens
 
     @classmethod
