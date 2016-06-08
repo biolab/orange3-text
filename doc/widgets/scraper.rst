@@ -1,7 +1,8 @@
-Preprocess
-==========
+================
+Article Scraper
+================
 
-.. figure:: icons/Scraper.svg
+.. figure:: icons/Scraper.png
 
 Gets the Article, Date, Title, Author from the URL
 

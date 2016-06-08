@@ -52,17 +52,11 @@ def _get_info(url):
                 scraped_data=row  #no need to get the data again, if acraped details are already there in the cache
                 break
                   
-    if(is_cached == False) :          # if not cached, get the data
+    if not is_cached :          # if not cached, get the data
         article = Article(url)
         try:
             article.download()
-        except:
-            pass
-        try:
             article.parse()
-        except:
-            pass
-        try:
             article.nlp()
         except:
             pass
@@ -71,7 +65,7 @@ def _get_info(url):
         text = ' '.join(text.split()) # remove white spaces
         title = article.title if article.title else ""
         title = ' '.join(title.split())  # remove white spaces
-        authors = str(', '.join(article.authors))   
+        authors = ', '.join(article.authors)   
         authors = authors if authors else ""
         pub_date = _date_to_str(article.publish_date) if article.publish_date else ""
         web_url= article.url if article.url else ""

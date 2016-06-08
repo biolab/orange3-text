@@ -43,8 +43,4 @@ class NewspaperTests(unittest.TestCase):
     def test_get_info(self):   #checks whether article, title, date, author, url are same
         scraped_data, is_cached = _get_info(mock_urllib.url)
         self.assertEqual(scraped_data , mock_urllib.data)
-
-    def test_newspaper_result_caching(self):
-        scraped_data, is_cached = _get_info(mock_urllib.url)
         self.assertTrue(is_cached)
-        
