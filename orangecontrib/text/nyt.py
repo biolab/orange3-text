@@ -12,7 +12,7 @@ from urllib.error import HTTPError, URLError
 from orangecontrib.text.corpus import Corpus
 
 from Orange.canvas.utils import environ
-from Orange.data import Domain, StringVariable, DiscreteVariable
+from Orange.data import Domain, StringVariable, DiscreteVariable, TimeVariable
 
 NYT_TEXT_FIELDS = ["headline", "lead_paragraph", "snippet", "abstract",
                    "keywords", "type_of_material", "web_url", "word_count"]
@@ -30,6 +30,8 @@ def _parse_record_json(records, includes_metadata):
     IGNORED_FIELDS = {'content_kicker', 'kicker', 'print_headline'}     # the garbage fields next to headline
     class_values = []
     metadata = []
+    tv = TimeVariable()
+
     for doc in records:
         metas_row = []
         for field in includes_metadata:
@@ -40,7 +42,7 @@ def _parse_record_json(records, includes_metadata):
                 field_value = " ".join([kw["value"] for kw in field_value if kw])
             metas_row.append(unescape(field_value) if isinstance(field_value, str) else field_value)
         # Add the pub_date.
-        metas_row.append(doc.get("pub_date", ""))
+        metas_row.append(tv.parse(doc.get("pub_date", "")))
         # Add the glocation.
         metas_row.append(", ".join([kw["value"] for kw in doc["keywords"] if kw["name"] == "glocations"]))
 
@@ -77,7 +79,7 @@ def _generate_corpus(records, required_text_fields):
 
     # Create domain.
     meta_vars = [StringVariable.make(field) for field in required_text_fields]
-    meta_vars += [StringVariable.make("pub_date"), StringVariable.make("country")]
+    meta_vars += [TimeVariable.make("pub_date"), StringVariable.make("country")]
     class_vars = [DiscreteVariable("section_name", values=list(set(class_values)))]
     domain = Domain([], class_vars=class_vars, metas=meta_vars)
 
