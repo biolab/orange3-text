@@ -163,6 +163,11 @@ class Corpus(Table):
         data = Table(Domain([], [], [i.name for i in feats],
                             source=self.domain), self)
 
+        # When we use only features coming from sparse X data.metas is sparse.
+        # Transform it to dense.
+        if issparse(data.metas):
+            data.metas = data.metas.toarray()
+
         return [' '.join(f.str_val(val) for f, val in zip(data.domain.metas, row))
                 for row in data.metas]
 

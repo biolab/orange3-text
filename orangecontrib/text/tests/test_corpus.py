@@ -1,9 +1,11 @@
 import os
 import unittest
-from itertools import chain
+from distutils.version import LooseVersion
 
 import numpy as np
+from scipy.sparse import csr_matrix
 
+import Orange
 from Orange.data import Table
 from Orange.data.domain import Domain, StringVariable
 
@@ -128,6 +130,31 @@ class CorpusTests(unittest.TestCase):
         self.assertEqual(len(docs), len(c))
         self.assertEqual(len(types), 1)
         self.assertIn(str, types)
+
+    @unittest.skipIf(LooseVersion(Orange.__version__) < LooseVersion('3.3.6'),
+                     'Not supported in versions of Orange below 3.3.6')
+    def test_documents_from_sparse_features(self):
+        t = Table.from_file('brown-selected')
+        c = Corpus.from_table(t.domain, t)
+        c.X = csr_matrix(c.X)
+
+        # docs from X, Y and metas
+        docs = c.documents_from_features([t.domain.attributes[0], t.domain.class_var, t.domain.metas[0]])
+        self.assertEqual(len(docs), len(t))
+        for first_attr, class_val, meta_attr, d in zip(t.X[:, 0], c.Y, c.metas[:, 0], docs):
+            first_attr = c.domain.attributes[0].str_val(first_attr)
+            class_val = c.domain.class_var.str_val(class_val)
+            meta_attr = c.domain.metas[0].str_val(meta_attr)
+            self.assertIn(class_val, d)
+            self.assertIn(first_attr, d)
+            self.assertIn(meta_attr, d)
+
+        # docs only from sparse X
+        docs = c.documents_from_features([t.domain.attributes[0]])
+        self.assertEqual(len(docs), len(t))
+        for first_attr, d in zip(t.X[:, 0], docs):
+            first_attr = c.domain.attributes[0].str_val(first_attr)
+            self.assertIn(first_attr, d)
 
     def test_asserting_errors(self):
         c = Corpus.from_file('bookexcerpts')
