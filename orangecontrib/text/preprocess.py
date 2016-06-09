@@ -3,7 +3,7 @@ from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 from nltk.stem.porter import PorterStemmer
 from nltk.stem.snowball import SnowballStemmer
-from nltk.tokenize import word_tokenize
+from nltk.tokenize import word_tokenize, RegexpTokenizer, TweetTokenizer
 
 from orangecontrib.text.corpus import Corpus
 
@@ -21,7 +21,7 @@ class Preprocessor:
     """
     def __init__(self, lowercase=True, stop_words=None,
                  min_df=None, max_df=None, transformation=None,
-                 use_twitter_tokenizer=False, callback=None):
+                 tokenizer='default', callback=None):
         """
         Args:
             lowercase (Optional[bool]): If set, transform the tokens to lower
@@ -43,8 +43,8 @@ class Preprocessor:
             transformation (Optional[`orangecontrib.text
                 .preprocess.Stemmatizer`]): Name of the morphological
                 transformation method to be performed on the tokens.
-            use_twitter_tokenizer (Optional[bool]): Determines the use of
-                either the Twitter or default word tokenizer.
+            tokenizer (Optional[str]): Determines which tokenizer should be
+                used in the process.
             callback (Callable (function or method)): The callback that should
                 be performed when a single document is finished pre-processing.
 
@@ -57,9 +57,18 @@ class Preprocessor:
                 of expected values/types.
         """
         # Tokenizer.
-        self.tokenizer = word_tokenize
-        if use_twitter_tokenizer:
-            self.tokenizer = None   # TODO: Change when twitter is available.
+        if tokenizer == 'default':
+            self.tokenizer = word_tokenize
+        elif tokenizer == 'no_punct':
+            self.tokenizer = RegexpTokenizer(r'\w+').tokenize
+        elif tokenizer == 'twitter':
+            self.tokenizer = TweetTokenizer().tokenize
+        else:
+            raise ValueError(
+                    'Unknown value for parameter tokenizer (got "{}")'.format(
+                        tokenizer
+                    )
+            )
 
         # Lowercase.
         self.lowercase = lowercase

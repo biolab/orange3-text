@@ -1,6 +1,6 @@
 import unittest
 
-from nltk.tokenize import word_tokenize
+from nltk.tokenize import word_tokenize, RegexpTokenizer, TweetTokenizer
 
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.preprocess import (Preprocessor, PorterStemmer,
@@ -330,10 +330,6 @@ class PreprocessTests(unittest.TestCase):
         self.assertEqual(result, lemmas)
 
     def test_faulty_init_parameters(self):
-        # Twitter tokenizer.
-        p = Preprocessor()
-        self.assertEqual(p.tokenizer, word_tokenize)
-
         # Stop word source.
         with self.assertRaises(ValueError):
             Preprocessor(stop_words='faulty_value')
@@ -349,3 +345,37 @@ class PreprocessTests(unittest.TestCase):
             Preprocessor(min_df=1.5)
         with self.assertRaises(ValueError):
             Preprocessor(max_df=1.5)
+
+    def test_tokenizer_choice(self):
+        test_sentence = 'The quick #brown fox jumps over the lazy dog :-)'
+        default_tokens = [
+            'the', 'quick', '#', 'brown', 'fox', 'jumps', 'over', 'the',
+            'lazy', 'dog', ':', '-', ')'
+        ]
+        no_punct_tokens = [
+            'the', 'quick', 'brown', 'fox', 'jumps', 'over','the', 'lazy',
+            'dog'
+        ]
+        tweet_tokens = [
+            'the', 'quick', '#brown', 'fox', 'jumps', 'over', 'the', 'lazy',
+            'dog', ':-)'
+        ]
+
+        p = Preprocessor(tokenizer='default')
+        self.assertEqual(type(p.tokenizer), type(word_tokenize))
+        tokens = p(test_sentence)
+        self.assertEqual(tokens[0], default_tokens)
+
+        p = Preprocessor(tokenizer='no_punct')
+        self.assertEqual(type(p.tokenizer),
+                         type(RegexpTokenizer(r'\w+').tokenize))
+        tokens = p(test_sentence)
+        self.assertEqual(tokens[0], no_punct_tokens)
+
+        p = Preprocessor(tokenizer='twitter')
+        self.assertEqual(type(p.tokenizer), type(TweetTokenizer().tokenize))
+        tokens = p(test_sentence)
+        self.assertEqual(tokens[0], tweet_tokens)
+
+        with self.assertRaises(ValueError):
+            Preprocessor(tokenizer='unsupported_value')

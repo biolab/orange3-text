@@ -157,13 +157,15 @@ class TokenizerModule(PreprocessorModule):
         'method': 0,
     }
 
-    NLTKTokenizer, TwitterTokenizer = 0, 1
+    NLTKTokenizer, NLTKPunctTokenizer, TwitterTokenizer = 0, 1, 2
     tokenizer_values = {
-        NLTKTokenizer: False,
-        TwitterTokenizer: True
+        NLTKTokenizer: 'default',
+        NLTKPunctTokenizer: 'no_punct',
+        TwitterTokenizer: 'twitter'
     }
     tokenizer_names = {
         NLTKTokenizer: 'NLTK tokenizer',
+        NLTKPunctTokenizer: 'NLTK tokenizer (no punctuation)',
         TwitterTokenizer: 'Twitter tokenizer',
     }
 
@@ -177,11 +179,12 @@ class TokenizerModule(PreprocessorModule):
         )
 
         self.group = QButtonGroup(self, exclusive=True)
-        for method in [self.NLTKTokenizer, self.TwitterTokenizer]:
+        for method in [
+            self.NLTKTokenizer,
+            self.NLTKPunctTokenizer,
+            self.TwitterTokenizer,
+        ]:
             rb = QRadioButton(self, text=self.tokenizer_names[method])
-            if method == self.TwitterTokenizer:
-                # Disable until the Twitter tokenizer is available.
-                rb.setEnabled(False)
             self.add_to_content_area(rb)
             self.group.addButton(rb, method)
         self.group.buttonClicked.connect(self.group_button_clicked)
@@ -206,8 +209,7 @@ class TokenizerModule(PreprocessorModule):
 
     def get_pp_setting(self):
         return {
-            'use_twitter_tokenizer': self.tokenizer_values.get(
-                    self.tokenizer_method)
+            'tokenizer': self.tokenizer_values.get(self.tokenizer_method)
         }
 
 
