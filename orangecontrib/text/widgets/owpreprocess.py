@@ -185,9 +185,6 @@ class TokenizerModule(PreprocessorModule):
             self.TwitterTokenizer,
         ]:
             rb = QRadioButton(self, text=self.tokenizer_names[method])
-            if method == self.TwitterTokenizer:
-                # Disable until the Twitter tokenizer is available.
-                rb.setEnabled(False)
             self.add_to_content_area(rb)
             self.group.addButton(rb, method)
         self.group.buttonClicked.connect(self.group_button_clicked)

@@ -3,7 +3,7 @@ from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 from nltk.stem.porter import PorterStemmer
 from nltk.stem.snowball import SnowballStemmer
-from nltk.tokenize import word_tokenize, RegexpTokenizer
+from nltk.tokenize import word_tokenize, RegexpTokenizer, TweetTokenizer
 
 from orangecontrib.text.corpus import Corpus
 
@@ -62,7 +62,13 @@ class Preprocessor:
         elif tokenizer == 'no_punct':
             self.tokenizer = RegexpTokenizer(r'\w+').tokenize
         elif tokenizer == 'twitter':
-            self.tokenizer = None   # TODO: Change when twitter is available.
+            self.tokenizer = TweetTokenizer().tokenize
+        else:
+            raise ValueError(
+                    'Unknown value for parameter tokenizer (got "{}")'.format(
+                        tokenizer
+                    )
+            )
 
         # Lowercase.
         self.lowercase = lowercase
