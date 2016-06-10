@@ -4,6 +4,7 @@ from itertools import chain
 from PyQt4 import QtGui, QtCore
 
 from PyQt4.QtGui import QComboBox, QDialog
+from datetime import date, datetime, timedelta
 
 from Orange.widgets import gui
 from Orange.widgets.settings import Setting
@@ -12,7 +13,8 @@ from Orange.widgets.widget import OWWidget
 from orangecontrib.text import twitter
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.language_codes import lang2code
-from orangecontrib.text.widgets.utils import ComboBox, ListEdit, CheckListLayout
+from orangecontrib.text.widgets.utils import (ComboBox, ListEdit, CheckListLayout,
+                                              DateInterval)
 
 
 class APICredentialsDialog(QDialog):
@@ -126,7 +128,7 @@ class OWTwitter(OWWidget):
     """
     Attributes:
         key (twitter.Credentials): Twitter API key/secret holder
-        api (twitter.TwitterAPI): Twitter API obj
+        api (twitter.TwitterAPI): Twitter API object.
     """
     name = "Twitter"
     description = "Load tweets from the Twitter API."
@@ -184,6 +186,9 @@ class OWTwitter(OWWidget):
     ]
     corpus_variables = Setting([val for _, val in attributes[:3]])
 
+    date_interval = Setting((datetime.now().date() - timedelta(365),
+                             datetime.now().date()))
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.key = self.recent_api_keys[0] if self.recent_api_keys else None
@@ -219,6 +224,14 @@ class OWTwitter(OWWidget):
         mode.addItem('Content & Author')
         layout.addWidget(QtGui.QLabel('Search by:'), row, 0, 1, self.label_width)
         layout.addWidget(mode, row, self.label_width, 1, self.widgets_width)
+
+        # Time interval
+        row += 1
+        interval = DateInterval(self, 'date_interval',
+                                min_date=date(2006, 3, 21), max_date=datetime.now().date(),
+                                from_label='since', to_label='until')
+        layout.addWidget(QtGui.QLabel('Date:'), row, 0, 1, self.label_width)
+        layout.addWidget(interval, row, self.label_width, 1, self.widgets_width)
 
         # Language
         row += 1
@@ -281,7 +294,6 @@ class OWTwitter(OWWidget):
 
     @QtCore.pyqtSlot()
     @require('api', MISSED_KEY, MISSED_KEY_MESSAGE)
-    @require('word_list', MISSED_QUERY, MISSED_QUERY_MESSAGE)
     def search(self):
         if not self.api.running:
             if not self.advance:
@@ -289,8 +301,10 @@ class OWTwitter(OWWidget):
             self.search_button.setText("Stop")
             word_list = self.word_list if self.mode in [self.CONTENT, self.CONTENT_AUTHOR] else []
             authors = self.word_list if self.mode in [self.AUTHOR, self.CONTENT_AUTHOR] else []
+
             self.api.search(max_tweets=self.max_tweets if self.limited_search else None,
-                            word_list=word_list, authors=authors, lang=self.language or None)
+                            word_list=word_list, authors=authors, lang=self.language,
+                            since=self.date_interval[0], until=self.date_interval[1])
         else:
             self.api.disconnect()
             self.search_button.setText("Search")

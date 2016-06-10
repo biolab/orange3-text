@@ -4,10 +4,8 @@ from collections import OrderedDict
 import numpy as np
 import tweepy
 
-from orangecontrib.text.corpus import Corpus
-
 from Orange import data
-from orangecontrib.text.language_codes import code2lang
+from orangecontrib.text.corpus import Corpus
 
 __all__ = ['Credentials', 'TwitterAPI']
 
@@ -112,8 +110,8 @@ class TwitterAPI:
     def tweets(self):
         return self.container.values()
 
-    def search(self, *, word_list=None, authors=None, max_tweets=None, lang=None):
-        """ Search for tweets with the given criteria. """
+    @staticmethod
+    def build_query(word_list=None, authors=None, since=None, until=None):
         if authors is None:
             authors = []
 
@@ -122,6 +120,19 @@ class TwitterAPI:
 
         query = " OR ".join(['"{}"'.format(q) for q in word_list] +
                             ['from:{}'.format(user) for user in authors])
+        if since:
+            query += ' since:' + since.strftime('%Y-%m-%d')
+        if until:
+            query += ' until:' + until.strftime('%Y-%m-%d')
+
+        return query
+
+    def search(self, *, word_list=None, authors=None, max_tweets=None, lang=None,
+               since=None, until=None):
+        """ Search for tweets with the given criteria. """
+        query = self.build_query(word_list=word_list, authors=authors,
+                                 since=since, until=until)
+
         self.task = SearchTask(self, q=query, lang=lang, max_tweets=max_tweets)
         self.history.append(self.task)
         self.task.start()
