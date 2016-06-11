@@ -1,32 +1,41 @@
 import unittest
+from unittest import mock
 import os
 
 import pickle
 from itertools import chain
 
+import json
+
+import tweepy
+from datetime import date, datetime, timedelta
+
 from orangecontrib.text import twitter
 from orangecontrib.text.corpus import Corpus
 
 
-def get_valid_credentials():
+def get_credentials():
     key = os.environ.get('TWITTER_KEY', '')
     secret = os.environ.get('TWITTER_SECRET', '')
     if key and secret:
         return twitter.Credentials(key, secret)
+    return twitter.Credentials('key', 'secret')
+
+
+NO_CREDENTIALS = os.environ.get('TWITTER_KEY', None) is None
+CREDENTIALS_MSG = "No twitter api credentials have been found."
 
 
 class TestCredentials(unittest.TestCase):
 
+    @unittest.skipIf(NO_CREDENTIALS, CREDENTIALS_MSG)
     def test_valid(self):
-        credentials = get_valid_credentials()
-        if credentials is None:
-            self.skipTest("Credentials have not been provided.")
-        else:
-            self.assertTrue(credentials.valid)
+        credentials = get_credentials()
+        self.assertTrue(credentials.valid)
 
     def test_check_bad(self):
         key = twitter.Credentials('bad key', 'wrong secret')
-        self.assertFalse(key.check())
+        self.assertFalse(key.valid)
 
     def test_equal(self):
         key1 = twitter.Credentials('key1', 'secret1')
@@ -45,22 +54,23 @@ class TestCredentials(unittest.TestCase):
         self.assertEqual(key1, key2)
 
 
+class MyCursor:
+    def __init__(self, *args, **kwargs):
+        self.statuses = tweepy.Status.parse_list(
+            None, json.load(open(os.path.join(os.path.dirname(__file__), 'tweets.json'))))
+        self.kwargs = kwargs
+        self.args = args
+
+    def items(self, count):
+        return self.statuses[:count]
+
+
+@mock.patch('tweepy.Cursor', MyCursor)
 class TestTwitterAPI(unittest.TestCase):
 
     def setUp(self):
-        self.credentials = get_valid_credentials()
-        if self.credentials is None:
-            self.skipTest("Valid credentials has not provided.")
-
+        self.credentials = get_credentials()
         self.api = twitter.TwitterAPI(self.credentials)
-
-    def test_search(self):
-        self.api.search(word_list=['hello'], max_tweets=5, lang='en')
-        self.api.join()
-        self.assertEqual(len(self.api.container), 5)
-        for tweet in self.api.tweets:
-            self.assertIn('hello', tweet['text'].lower())
-            self.assertEqual('en', tweet['lang'])
 
     def test_search_callbacks(self):
         self.checker = 0
@@ -82,23 +92,6 @@ class TestTwitterAPI(unittest.TestCase):
         api.search(word_list=['hello'], max_tweets=2, lang='en')
         api.join()
         self.assertEqual(self.checker, 4)
-
-        def on_error(error):
-            self.assertEqual(self.checker, 4)
-            self.checker += 1
-
-        api = twitter.TwitterAPI(twitter.Credentials('bad', 'credentials'),
-                                 on_error=on_error)
-
-        api.search(word_list=['hello'], max_tweets=2, lang='en')
-        api.join()
-        self.assertEqual(self.checker, 5)
-
-    def test_search_disconnect(self):
-        self.api.search(word_list=['hello'], max_tweets=50, lang='en')
-        self.api.disconnect()
-        self.api.join()
-        self.assertLess(len(self.api.container), 20)
 
     def test_create_corpus(self):
         self.api.search(word_list=['hello'], max_tweets=5)
@@ -125,13 +118,6 @@ class TestTwitterAPI(unittest.TestCase):
         self.api.reset()
         self.assertEqual(len(self.api.container), 0)
 
-    def test_running(self):
-        self.assertFalse(self.api.running)
-        self.api.search(word_list=['hello'], max_tweets=5)
-        self.assertTrue(self.api.running)
-        self.api.disconnect()
-        self.assertFalse(self.api.running)
-
     def test_report(self):
         self.api.search(word_list=['hello'], max_tweets=5)
         self.api.join()
@@ -146,3 +132,85 @@ class TestTwitterAPI(unittest.TestCase):
         point = twitter.coordinates_geoJSON({'coordinates': [10, 10]})
         self.assertEqual(point[0], 10)
         self.assertEqual(point[1], 10)
+
+    def test_build_query(self):
+        # https://dev.twitter.com/rest/public/search
+
+        query = self.api.build_query(word_list=['hello', 'world'])
+        self.assertIn('hello', query)
+        self.assertIn('world', query)
+
+        query = self.api.build_query(authors=['johndoe'])
+        self.assertIn('from:johndoe', query)
+
+        query = self.api.build_query(since=date(2016, 10, 9))
+        self.assertIn('since:2016-10-09', query)
+
+        query = self.api.build_query(until=date(2016, 10, 9))
+        self.assertIn('until:2016-10-09', query)
+
+
+@unittest.skipIf(NO_CREDENTIALS, CREDENTIALS_MSG)
+class TestSearch(unittest.TestCase):
+    def setUp(self):
+        self.credentials = get_credentials()
+        self.api = twitter.TwitterAPI(self.credentials)
+
+    def test_contains(self):
+        self.api.search(word_list=['hello'], max_tweets=5, lang='en')
+        self.api.join()
+        self.assertEqual(len(self.api.container), 5)
+        for tweet in self.api.tweets:
+            self.assertIn('hello', tweet['text'].lower())
+            self.assertEqual('en', tweet['lang'])
+
+    def test_since(self):
+        since = datetime.now()-timedelta(1)
+        self.api.search(authors=['nasa'], max_tweets=5, lang='en',
+                        since=since.date())
+        self.api.join()
+        self.assertGreater(len(self.api.tweets), 0)
+        for tweet in self.api.tweets:
+            self.assertLess(since.timestamp(), tweet['created_at'])
+
+    def test_until(self):
+        until = datetime.now()-timedelta(1)
+        self.api.search(word_list=['hello'], max_tweets=5, lang='en',
+                        until=until.date())
+        self.api.join()
+        for tweet in self.api.tweets:
+            self.assertGreater(until.timestamp(), tweet['created_at'])
+
+    def test_authors(self):
+        self.api.reset()
+        self.api.search(authors=['nasa', 'bbc'], max_tweets=50)
+        self.api.join()
+        for tweet in self.api.tweets:
+            self.assertTrue(('nasa' in tweet['author_name'].lower()) or
+                            ('bbc' in tweet['author_name'].lower()))
+
+    def test_error(self):
+        self.checker = 0
+
+        def on_error(error):
+            self.checker += 1
+
+        api = twitter.TwitterAPI(twitter.Credentials('bad', 'credentials'),
+                                 on_error=on_error)
+
+        api.search(word_list=['hello'], max_tweets=2, lang='en')
+        api.join()
+        self.assertEqual(self.checker, 1)
+
+    def test_running(self):
+        self.assertFalse(self.api.running)
+        self.api.search(word_list=['hello'], max_tweets=5)
+        self.assertTrue(self.api.running)
+        self.api.disconnect()
+        self.assertFalse(self.api.running)
+
+    def test_search_disconnect(self):
+        self.api.search(word_list=['hello'], max_tweets=50, lang='en')
+        self.api.disconnect()
+        self.api.join()
+        self.assertLess(len(self.api.container), 20)
