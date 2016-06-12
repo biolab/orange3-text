@@ -105,7 +105,7 @@ def _records_to_corpus_entries(records, includes_metadata):
         fields[-1] = _date_to_iso(fields[-1])
         metadata[row_num] = np.array(fields)[None, :]
 
-        mesh_headings = record.get('MH')
+        mesh_headings = record.get('MH', record.get('OT'))
         if mesh_headings is not None:
             mesh_headings = _mesh_headings_to_class(mesh_headings)
         class_values.append(mesh_headings)
