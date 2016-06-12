@@ -1,8 +1,6 @@
 import os
-import re
 import shelve
 import warnings
-import itertools
 from datetime import datetime
 
 import numpy as np
@@ -14,19 +12,22 @@ from Orange.canvas.utils import environ
 from Orange.data import StringVariable, DiscreteVariable, TimeVariable, Domain
 from orangecontrib.text.corpus import Corpus
 
+BASE_ENTRY_URL = 'http://www.ncbi.nlm.nih.gov/pubmed/?term='
+
+PUBMED_FIELD_AUTHORS = 'authors'
+PUBMED_FIELD_TITLE = 'article_title'
+PUBMED_FIELD_HEADINGS = 'mesh_headings'
+PUBMED_FIELD_ABSTRACT = 'abstract'
+PUBMED_FIELD_URL = 'url'
+PUBMED_FIELD_DATE = 'pub_date'
 PUBMED_TEXT_FIELDS = [
-    ('authors', 'FAU'),
-    ('article_title', 'TI'),
-    ('mesh_headings', 'MH'),
-    ('abstract', 'AB'),
-    ('pub_date', 'DP'),
+    (PUBMED_FIELD_AUTHORS, 'FAU'),
+    (PUBMED_FIELD_TITLE, 'TI'),
+    (PUBMED_FIELD_HEADINGS, 'MH'),
+    (PUBMED_FIELD_ABSTRACT, 'AB'),
+    (PUBMED_FIELD_URL, 'PMID'),
+    (PUBMED_FIELD_DATE, 'DP'),
 ]
-
-
-def _join_if_list(value):
-    if isinstance(value, list):
-        return ' '.join(value)
-    return value
 
 
 def _mesh_headings_to_class(mesh_headings):
@@ -67,7 +68,9 @@ def _date_to_iso(date):
     time_var = TimeVariable()
     for date_format in possible_date_formats:
         try:
-            date_string = datetime.strptime(date, date_format).date().isoformat()
+            date_string = datetime.strptime(
+                    date, date_format
+            ).date().isoformat()
             return time_var.parse(date_string)
         except ValueError:
             continue  # Try the next format.
@@ -99,12 +102,20 @@ def _records_to_corpus_entries(records, includes_metadata):
     metadata = np.empty((len(records), len(includes_metadata)), dtype=object)
 
     for row_num, record in enumerate(records):
-        fields = [
-                _join_if_list(record.get(field_key, ''))
-                for _, field_key
-                in includes_metadata
-            ]
-        fields[-1] = _date_to_iso(fields[-1])
+        fields = []
+
+        for field_name, field_key in includes_metadata:
+            field_value = record.get(field_key, '')
+
+            if isinstance(field_value, list):
+                fields.append(' '.join(field_value))
+            elif field_name == PUBMED_FIELD_URL:
+                fields.append('{}{}'.format(BASE_ENTRY_URL, field_value))
+            elif field_name == PUBMED_FIELD_DATE:
+                fields.append(_date_to_iso(field_value))
+            else:
+                fields.append(field_value)
+
         metadata[row_num] = np.array(fields)[None, :]
 
         mesh_headings = record.get('MH', record.get('OT'))
@@ -149,7 +160,7 @@ def _corpus_from_records(records, includes_metadata):
 
 class Pubmed:
     MAX_RECORDS = 100000
-    MAX_BATCH_SIZE = 1000
+    MAX_BATCH_SIZE = 100
 
     def __init__(self, email, progress_callback=None, error_callback=None):
         if not validate_email(email):
@@ -167,6 +178,7 @@ class Pubmed:
 
         self.cache_path = None
         cache_folder = os.path.join(environ.buffer_dir, 'pubmedcache')
+        print(cache_folder)
         if not os.path.exists(cache_folder):
             os.makedirs(cache_folder)
         self.cache_path = os.path.join(cache_folder, 'query_cache')

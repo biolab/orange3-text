@@ -40,6 +40,7 @@ class OWPubmed(OWWidget):
 
     outputs = [(Output.CORPUS, Corpus)]
     want_main_area = False
+    resizing_enabled = False
 
     QT_DATE_FORMAT = 'yyyy-MM-dd'
     PY_DATE_FORMAT = '%Y-%m-%d'
@@ -59,6 +60,7 @@ class OWPubmed(OWWidget):
     includes_title = Setting(True)
     includes_mesh = Setting(True)
     includes_abstract = Setting(True)
+    includes_url = Setting(True)
 
     def __init__(self):
         super().__init__()
@@ -134,6 +136,8 @@ class OWPubmed(OWWidget):
         self.keyword_combo.activated[int].connect(self.select_keywords)
         self.pubmed_controls.append(self.keyword_combo)
 
+        regular_search_box.setMaximumSize(regular_search_box.sizeHint())
+
         # --- Advanced search ---
         advanced_search_box = gui.widgetBox(self.controlArea, addSpace=True)
         # Advanced search query.
@@ -179,10 +183,13 @@ class OWPubmed(OWWidget):
                                        'includes_mesh', 'Mesh headings')
         self.abstract_checkbox = gui.checkBox(text_includes_box, self,
                                            'includes_abstract', 'Abstract')
+        self.url_checkbox = gui.checkBox(text_includes_box, self,
+                                         'includes_url', 'URL')
         self.pubmed_controls.append(self.authors_checkbox)
         self.pubmed_controls.append(self.title_checkbox)
         self.pubmed_controls.append(self.mesh_checkbox)
         self.pubmed_controls.append(self.abstract_checkbox)
+        self.pubmed_controls.append(self.url_checkbox)
 
         # Num. records.
         h_box = gui.hBox(self.controlArea)
@@ -327,6 +334,7 @@ class OWPubmed(OWWidget):
             self.includes_title,
             self.includes_mesh,
             self.includes_abstract,
+            self.includes_url,
             True,  # Publication date field; included always.
         ]
         required_text_fields = [
