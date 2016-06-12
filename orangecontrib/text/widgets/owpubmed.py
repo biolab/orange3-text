@@ -136,7 +136,8 @@ class OWPubmed(OWWidget):
         self.keyword_combo.activated[int].connect(self.select_keywords)
         self.pubmed_controls.append(self.keyword_combo)
 
-        regular_search_box.setMaximumSize(regular_search_box.sizeHint())
+        tab_height = regular_search_box.sizeHint()
+        regular_search_box.setMaximumSize(tab_height)
 
         # --- Advanced search ---
         advanced_search_box = gui.widgetBox(self.controlArea, addSpace=True)
@@ -144,6 +145,7 @@ class OWPubmed(OWWidget):
         h_box = gui.hBox(advanced_search_box)
         self.advanced_query_input = QTextEdit(h_box)
         h_box.layout().addWidget(self.advanced_query_input)
+        self.advanced_query_input.setMaximumSize(tab_height)
         self.pubmed_controls.append(self.advanced_query_input)
 
         gui.createTabPage(self.search_tabs, 'Regular search',
