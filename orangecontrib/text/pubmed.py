@@ -11,7 +11,7 @@ from Bio import Medline
 from validate_email import validate_email
 
 from Orange.canvas.utils import environ
-from Orange.data import StringVariable, DiscreteVariable, Domain
+from Orange.data import StringVariable, DiscreteVariable, TimeVariable, Domain
 from orangecontrib.text.corpus import Corpus
 
 PUBMED_TEXT_FIELDS = [
@@ -64,9 +64,11 @@ def _date_to_iso(date):
         date = date.replace(season, month)
     date = date.split('-')[0]  # 2015 Sep-Dec --> 2015 Sep
 
+    time_var = TimeVariable()
     for date_format in possible_date_formats:
         try:
-            return datetime.strptime(date, date_format).date().isoformat()
+            date_string = datetime.strptime(date, date_format).date().isoformat()
+            return time_var.parse(date_string)
         except ValueError:
             continue  # Try the next format.
 
@@ -74,7 +76,7 @@ def _date_to_iso(date):
             'Could not parse "{}" into a date.'.format(date),
             RuntimeWarning
     )
-    return None
+    return np.nan
 
 
 def _records_to_corpus_entries(records, includes_metadata):
@@ -127,9 +129,13 @@ def _corpus_from_records(records, includes_metadata):
             records,
             includes_metadata=includes_metadata
     )
-    meta_vars = [
-        StringVariable.make(field_name) for field_name, _ in includes_metadata
-    ]
+    meta_vars = []
+    for field_name, _ in includes_metadata:
+        if field_name == 'pub_date':
+            meta_vars.append(TimeVariable(field_name))
+        else:
+            meta_vars.append(StringVariable.make(field_name))
+
     class_vars = [
         DiscreteVariable('section_name', values=list(set(class_values)))
     ]
