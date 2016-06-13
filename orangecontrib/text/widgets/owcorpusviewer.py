@@ -11,6 +11,7 @@ from Orange.widgets import gui
 from Orange.widgets.settings import Setting, ContextSetting
 from Orange.widgets.widget import OWWidget
 from Orange.data import Table
+from Orange.data.domain import filter_visible
 from orangecontrib.text.corpus import Corpus
 
 
@@ -136,9 +137,7 @@ class OWCorpusViewer(OWWidget):
         self.display_features = []
         if self.corpus is not None:
             domain = self.corpus.domain
-            self.features = list(filter(
-                lambda x: not x.attributes.get('bow_feature', False),
-                chain(domain.variables, domain.metas)))
+            self.features = list(filter_visible(chain(domain.variables, domain.metas)))
             # FIXME: Select features based on ContextSetting
             self.search_features = list(range(len(self.features)))
             self.display_features = list(range(len(self.features)))
