@@ -31,7 +31,7 @@ class BaseTokenizer:
 
 class WordPunctTokenizer(BaseTokenizer):
     tokenizer = tokenize.WordPunctTokenizer()
-    name = 'Word & punctuation'
+    name = 'Word & Punctuation'
 
 
 class PunktSentenceTokenizer(BaseTokenizer):
