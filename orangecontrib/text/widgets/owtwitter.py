@@ -186,7 +186,7 @@ class OWTwitter(OWWidget):
     ]
     corpus_variables = Setting([val for _, val in attributes[:3]])
 
-    date_interval = Setting((datetime.now().date() - timedelta(365),
+    date_interval = Setting((datetime.now().date() - timedelta(10),
                              datetime.now().date()))
 
     def __init__(self, *args, **kwargs):
@@ -228,7 +228,8 @@ class OWTwitter(OWWidget):
         # Time interval
         row += 1
         interval = DateInterval(self, 'date_interval',
-                                min_date=date(2006, 3, 21), max_date=datetime.now().date(),
+                                min_date=datetime.now().date()-timedelta(10),
+                                max_date=datetime.now().date(),
                                 from_label='since', to_label='until')
         layout.addWidget(QtGui.QLabel('Date:'), row, 0, 1, self.label_width)
         layout.addWidget(interval, row, self.label_width, 1, self.widgets_width)
@@ -302,12 +303,16 @@ class OWTwitter(OWWidget):
             word_list = self.word_list if self.mode in [self.CONTENT, self.CONTENT_AUTHOR] else []
             authors = self.word_list if self.mode in [self.AUTHOR, self.CONTENT_AUTHOR] else []
 
-            self.api.search(max_tweets=self.max_tweets if self.limited_search else None,
+            self.api.search(max_tweets=self.max_tweets if self.limited_search else 0,
                             word_list=word_list, authors=authors, lang=self.language,
                             since=self.date_interval[0], until=self.date_interval[1])
         else:
             self.api.disconnect()
             self.search_button.setText("Search")
+
+    def update_tweets_info(self):
+        tweet_count = len(self.api.container) if self.api else 0
+        self.tweets_count_label.setText(self.tweets_info.format(tweet_count))
 
     @QtCore.pyqtSlot()
     def on_start(self):
@@ -319,14 +324,14 @@ class OWTwitter(OWWidget):
 
     @QtCore.pyqtSlot(int)
     def on_progress(self, progress):
-        tweet_count = len(self.api.container) if self.api else 0
-        self.tweets_count_label.setText(self.tweets_info.format(tweet_count))
+        self.update_tweets_info()
         if self._tweet_count:
             self.progressBarSet(progress / self._tweet_count * 100)
 
     @QtCore.pyqtSlot()
     def on_finish(self):
         self.send_corpus()
+        self.update_tweets_info()
         self.search_button.setText('Search')
         self.search_button.setEnabled(True)
         if self._tweet_count:
@@ -347,6 +352,7 @@ class OWTwitter(OWWidget):
 
     def reset(self):
         self.api.reset()
+        self.update_tweets_info()
         self.send_corpus()
 
     def send_report(self):
