@@ -355,6 +355,7 @@ class OWTwitter(OWWidget):
         self.update_tweets_info()
         self.send_corpus()
 
+    @require('api', MISSED_KEY, MISSED_KEY_MESSAGE)
     def send_report(self):
         for task in self.api.history:
             self.report_items(task.report())
