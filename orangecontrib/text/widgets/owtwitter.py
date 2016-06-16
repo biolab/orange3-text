@@ -171,7 +171,7 @@ class OWTwitter(OWWidget):
         ('Content', ('text',)),
         ('Date', ('created_at',)),
         ('Language', ('lang',)),
-        ('In Reply Ro', 'in_reply_to_user_id'),
+        ('In Reply To', 'in_reply_to_user_id'),
         ('Number of Likes', ('favorite_count',)),
         ('Number of Retweets', ('retweet_count',)),
         ('Coordinates', ('coordinates_longitude', 'coordinates_latitude', 'place')),
