@@ -70,6 +70,7 @@ class OWPubmed(OWWidget):
         self.progress = None
         self.email_is_valid = False
         self.record_count = 0
+        self.download_running = False
 
         # To hold all the controls. Makes access easier.
         self.pubmed_controls = []
@@ -325,10 +326,23 @@ class OWPubmed(OWWidget):
     def retrieve_records(self):
         self.warning(0)
         self.error(0)
+
         if self.pubmed_api is None:
             return
 
+        if self.download_running:
+            self.download_running = False
+            self.run_search_button.setEnabled(True)
+            self.retrieve_records_button.setText('Retrieve records')
+            self.pubmed_api.stop_retrieving()
+            return
+
+        self.download_running = True
+        self.run_search_button.setEnabled(False)
         self.output_corpus = None  # Clear the old records.
+
+        # Change the button label.
+        self.retrieve_records_button.setText('Stop retrieving')
 
         # Text fields.
         text_includes_params = [
@@ -356,9 +370,13 @@ class OWPubmed(OWWidget):
 
         self.send(Output.CORPUS, self.output_corpus)
         self.update_retrieval_info()
+        self.run_search_button.setEnabled(True)
 
-    def api_progress_callback(self):
-        self.progress.advance()
+    def api_progress_callback(self, start_at=None):
+        if start_at is not None:
+            self.progress.count = start_at
+        else:
+            self.progress.advance()
 
     def api_error_callback(self, error):
         self.error(0, str(error))

@@ -175,6 +175,7 @@ class Pubmed:
 
         self.progress_callback = progress_callback
         self.error_callback = error_callback
+        self.stop_signal = False
 
         self.cache_path = None
         cache_folder = os.path.join(environ.buffer_dir, 'pubmedcache')
@@ -349,8 +350,7 @@ class Pubmed:
 
         cached_data_size = len(cached_data)
         if self.progress_callback:  # Advance the callback accordingly.
-            for _ in range(int(cached_data_size/batch_size)):
-                self.progress_callback()
+            self.progress_callback(int(cached_data_size/batch_size))
 
         if cached_data_size > 0:  # Some records were cached.
             # Create a starting corpus.
@@ -378,6 +378,10 @@ class Pubmed:
 
             # Fetch the records.
             for start in range(0, num_records, batch_size):
+                if self.stop_signal:
+                    self.stop_signal = False
+                    break
+
                 try:
                     records = self._retrieve_record_batch(
                             start, batch_size
@@ -425,3 +429,6 @@ class Pubmed:
         """
         self._search_for_records(terms, authors, pub_date_start, pub_date_end)
         return self._retrieve_records(num_records, use_cache=use_cache)
+
+    def stop_retrieving(self):
+        self.stop_signal = True
