@@ -468,15 +468,13 @@ class OWPreprocess(OWWidget):
             self.apply()
 
     def apply(self):
-        with self.progressBar(len(self.corpus)*2) as progress_bar:
-            self.progress_bar = progress_bar
-            output = self.preprocessor(self.corpus)
-        self.progress_bar = None
+        self.progressBarInit()
+        output = self.preprocessor(self.corpus)
+        self.progressBarFinished()
         self.send(Output.PP_CORPUS, output)
 
-    def document_finished(self):
-        if self.progress_bar is not None:
-            self.progress_bar.advance()
+    def on_progress(self, progress):
+        self.progressBarSet(progress)
 
     @Slot()
     def settings_invalidated(self):
