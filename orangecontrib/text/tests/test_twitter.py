@@ -8,7 +8,8 @@ from itertools import chain
 import json
 
 import tweepy
-from datetime import date, datetime, timedelta
+from datetime import date
+import time
 
 from orangecontrib.text import twitter
 from orangecontrib.text.corpus import Corpus
@@ -56,6 +57,7 @@ class TestCredentials(unittest.TestCase):
 
 class MyCursor:
     def __init__(self, *args, **kwargs):
+        time.sleep(.05)
         self.statuses = tweepy.Status.parse_list(
             None, json.load(open(os.path.join(os.path.dirname(__file__), 'tweets.json'))))
         self.kwargs = kwargs
@@ -150,57 +152,11 @@ class TestTwitterAPI(unittest.TestCase):
         self.assertIn('until:2016-10-09', query)
 
 
-@unittest.skipIf(NO_CREDENTIALS, CREDENTIALS_MSG)
+@mock.patch('tweepy.Cursor', MyCursor)
 class TestSearch(unittest.TestCase):
     def setUp(self):
         self.credentials = get_credentials()
         self.api = twitter.TwitterAPI(self.credentials)
-
-    def test_contains(self):
-        self.api.search(word_list=['hello'], max_tweets=5, lang='en')
-        self.api.join()
-        self.assertEqual(len(self.api.container), 5)
-        for tweet in self.api.tweets:
-            self.assertIn('hello', tweet['text'].lower())
-            self.assertEqual('en', tweet['lang'])
-
-    def test_since(self):
-        since = datetime.now()-timedelta(1)
-        self.api.search(authors=['nasa'], max_tweets=5, lang='en',
-                        since=since.date())
-        self.api.join()
-        self.assertGreater(len(self.api.tweets), 0)
-        for tweet in self.api.tweets:
-            self.assertLess(since.timestamp(), tweet['created_at'])
-
-    def test_until(self):
-        until = datetime.now()-timedelta(1)
-        self.api.search(word_list=['hello'], max_tweets=5, lang='en',
-                        until=until.date())
-        self.api.join()
-        for tweet in self.api.tweets:
-            self.assertGreater(until.timestamp(), tweet['created_at'])
-
-    def test_authors(self):
-        self.api.reset()
-        self.api.search(authors=['nasa', 'bbc'], max_tweets=50)
-        self.api.join()
-        for tweet in self.api.tweets:
-            self.assertTrue(('nasa' in tweet['author_name'].lower()) or
-                            ('bbc' in tweet['author_name'].lower()))
-
-    def test_error(self):
-        self.checker = 0
-
-        def on_error(error):
-            self.checker += 1
-
-        api = twitter.TwitterAPI(twitter.Credentials('bad', 'credentials'),
-                                 on_error=on_error)
-
-        api.search(word_list=['hello'], max_tweets=2, lang='en')
-        api.join()
-        self.assertEqual(self.checker, 1)
 
     def test_running(self):
         self.assertFalse(self.api.running)
@@ -210,7 +166,7 @@ class TestSearch(unittest.TestCase):
         self.assertFalse(self.api.running)
 
     def test_search_disconnect(self):
-        self.api.search(word_list=['hello'], max_tweets=50, lang='en')
+        self.api.search(word_list=['hello'], max_tweets=20, lang='en')
         self.api.disconnect()
         self.api.join()
-        self.assertLess(len(self.api.container), 20)
+        self.assertLess(len(self.api.container), 10)
