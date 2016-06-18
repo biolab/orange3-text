@@ -478,3 +478,9 @@ class CalendarDialog(QDialog):
 
     def set_date(self, date):
         self.picked_date = date.toString('yyyy/MM/dd')
+
+if __name__ == '__main__':
+    app = QApplication([])
+    widget = OWPubmed()
+    widget.show()
+    app.exec()
