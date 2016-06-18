@@ -153,7 +153,6 @@ def _corpus_from_records(records, includes_metadata):
     domain = Domain([], class_vars=class_vars, metas=meta_vars)
 
     Y = np.array([class_vars[0].to_val(cv) for cv in class_values])[:, None]
-    Y[np.isnan(Y)] = np.nan
 
     return Corpus(None, Y, meta_values, domain)
 
@@ -179,7 +178,7 @@ class Pubmed:
 
         self.cache_path = None
         cache_folder = os.path.join(environ.buffer_dir, 'pubmedcache')
-        print(cache_folder)
+
         if not os.path.exists(cache_folder):
             os.makedirs(cache_folder)
         self.cache_path = os.path.join(cache_folder, 'query_cache')

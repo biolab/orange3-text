@@ -7,16 +7,10 @@ import numpy as np
 
 from orangecontrib.text.pubmed import (
     Pubmed, PUBMED_TEXT_FIELDS,
-    _join_if_list, _mesh_headings_to_class,
+    _mesh_headings_to_class,
     _date_to_iso, _corpus_from_records,
     _records_to_corpus_entries
 )
-
-
-class MockOSPath:
-    @staticmethod
-    def exists(path):
-        raise Exception()
 
 
 class MockEntrezHandle:
@@ -53,25 +47,24 @@ class MockEntrez:
 
     # Exception mocking.
     def esearch_exception(self, db, term, **keywds):
-        raise Exception
+        raise IOError
 
     def efetch_exception(self, db, **keywds):
         raise Exception
 
     def epost_exception(self, db, **keywds):
-        raise Exception
+        raise IOError
 
 
 CACHE = os.path.join(os.path.dirname(__file__), 'pubmed-cache.txt')
 mock_entrez = MockEntrez(CACHE)
-mock_os_path = MockOSPath()
 
 
 def error_callback(exception):
     return
 
 
-def progress_callback():
+def progress_callback(progress=None):
     return
 
 
@@ -85,30 +78,12 @@ class PubmedTests(unittest.TestCase):
                 error_callback=error_callback
         )
 
-    @patch('os.path.exists', mock_os_path.exists)
     def test_pubmed_object_creation(self):
         self.assertRaises(
-                Exception,
-                Pubmed,
-                'faulty_email'
-        )
-
-        self.assertWarns(
-            RuntimeWarning,
+            ValueError,
             Pubmed,
-            self.EMAIL,
+            'faulty_email'
         )
-
-    def test_join_if_list(self):
-        not_list_input = 'test_value'
-        list_input = [
-            'test',
-            'value',
-            'here',
-        ]
-
-        self.assertEqual(_join_if_list(not_list_input), not_list_input)
-        self.assertEqual(_join_if_list(list_input), 'test value here')
 
     def test_mesh_headings_to_class(self):
         input_headings = [
@@ -127,10 +102,10 @@ class PubmedTests(unittest.TestCase):
         ]
 
         correct_results = [
-            '2015-11-01',
-            '2015-01-01',
-            '2015-09-01',
-            '2015-09-01',
+            1446336000.0,
+            1420070400.0,
+            1441065600.0,
+            1441065600.0,
         ]
 
         for date, result in zip(input_dates, correct_results):
@@ -143,7 +118,7 @@ class PubmedTests(unittest.TestCase):
             _date_to_iso,
             unexpected_input,
         )
-        self.assertEqual(_date_to_iso(unexpected_input), None)
+        self.assertEqual(type(_date_to_iso(unexpected_input)), type(np.nan))
 
 
     def test_record_to_corpus(self):
@@ -154,6 +129,7 @@ class PubmedTests(unittest.TestCase):
                 'MH': ['heading1/heading2'],
                 'AB': 'Mock abstract',
                 'DP': '2015 Sep',
+                'PMID': 1,
             },
         ]
 
@@ -163,7 +139,8 @@ class PubmedTests(unittest.TestCase):
                 'Mock title',
                 'heading1/heading2',
                 'Mock abstract',
-                '2015-09-01'
+                'http://www.ncbi.nlm.nih.gov/pubmed/?term=1',
+                1441065600.0
             ]
         ])
         correct_classes = np.array([
@@ -209,27 +186,6 @@ class PubmedTests(unittest.TestCase):
                 authors=None,
                 pub_date_start=pub_date_start,
                 pub_date_end=pub_date_end
-        )
-
-    @patch('Bio.Entrez.esearch', mock_entrez.esearch)
-    @patch('Bio.Entrez.read', mock_entrez.read)
-    def test_pubmed_search_records_advanced(self):
-        test_query = 'orchid[All Fields] AND ' \
-                     '("2011/07/07"[PDAT] : "2014/07/07"[PDAT])'
-
-        self.pubmed._search_for_records_advanced(test_query)
-
-        # The only certain check is to make sure we got all the parameters.
-        self.assertIsNotNone(self.pubmed.record_id_list)
-        self.assertIsNotNone(self.pubmed.search_record_count)
-        self.assertIsNotNone(self.pubmed.search_record_web_env)
-        self.assertIsNotNone(self.pubmed.search_record_query_key)
-
-        # Faulty input check.
-        self.assertWarns(
-            RuntimeWarning,
-            self.pubmed._search_for_records_advanced,
-            '',
         )
 
     @patch('Bio.Entrez.esearch', mock_entrez.esearch)
@@ -383,16 +339,6 @@ class PubmedTests(unittest.TestCase):
             authors=authors,
             pub_date_start=pub_date_start,
             pub_date_end=pub_date_end
-        )
-
-        # Advanced search exception.
-        test_query = 'orchid[All Fields] AND ' \
-                     '("2011/07/07"[PDAT] : "2014/07/07"[PDAT])'
-
-        self.assertWarns(
-            RuntimeWarning,
-            self.pubmed._search_for_records_advanced,
-            test_query
         )
 
     @patch('Bio.Entrez.esearch', mock_entrez.esearch)
