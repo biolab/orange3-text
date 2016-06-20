@@ -31,12 +31,12 @@ class PreprocessTests(unittest.TestCase):
                 return string[:-1]
         p = Preprocessor(transformers=StripStringTransformer())
 
-        self.assertEqual(p(self.corpus).tokens, [[doc[:-1] for doc in self.corpus.documents]])
+        self.assertEqual(p(self.corpus).tokens, [[doc[:-1]] for doc in self.corpus.documents])
 
         p = Preprocessor(transformers=[StripStringTransformer(),
                                        preprocess.LowercaseTransformer()])
 
-        self.assertEqual(p(self.corpus).tokens, [[doc[:-1].lower() for doc in self.corpus.documents]])
+        self.assertEqual(p(self.corpus).tokens, [[doc[:-1].lower()] for doc in self.corpus.documents])
 
         self.assertRaises(TypeError, Preprocessor, string_transformers=1)
 
@@ -58,7 +58,7 @@ class PreprocessTests(unittest.TestCase):
         p = Preprocessor(normalizer=CapTokenNormalizer())
 
         self.assertEqual(p(self.corpus).tokens,
-                         [[sent.capitalize() for sent in self.corpus.documents]])
+                         [[sent.capitalize()] for sent in self.corpus.documents])
 
     def test_token_filter(self):
         class SpaceTokenizer(preprocess.BaseTokenizer):

@@ -110,23 +110,20 @@ class LexiconFilter(BaseTokenFilter, WordListMixin):
 class FrequencyFilter(LexiconFilter):
     name = 'Document frequency'
 
-    def __init__(self, corpus=None, min_df=0., max_df=1., keep_n=None):
+    def __init__(self, min_df=0., max_df=1., keep_n=None):
         super().__init__()
-        self._corpus = corpus or []
+        self._corpus_len = 0
         self._keep_n = keep_n
         self._max_df = max_df
         self._min_df = min_df
 
-    @property
-    def corpus(self):
-        return self._corpus
-
-    @corpus.setter
-    def corpus(self, value):
-        self._corpus = value
-        dictionary = corpora.Dictionary(getattr(value, 'tokens', value))
+    def fit_filter(self, corpus):
+        self._corpus_len = len(corpus)
+        tokens = getattr(corpus, 'tokens', corpus)
+        dictionary = corpora.Dictionary(tokens)
         dictionary.filter_extremes(self.min_df, self.max_df, self.keep_n)
         self._word_list = dictionary.token2id.keys()
+        return self(tokens), dictionary
 
     @property
     def keep_n(self):
@@ -140,7 +137,7 @@ class FrequencyFilter(LexiconFilter):
     @property
     def max_df(self):
         if isinstance(self._max_df, int):
-            return self._max_df / len(self.corpus) if self.corpus else 1.
+            return self._max_df / self._corpus_len if self._corpus_len else 1.
         else:
             return self._max_df
 
@@ -152,7 +149,7 @@ class FrequencyFilter(LexiconFilter):
     @property
     def min_df(self):
         if isinstance(self._min_df, float):
-            return int(len(self.corpus) * self._min_df)
+            return int(self._corpus_len * self._min_df) or 1
         else:
             return self._min_df
 

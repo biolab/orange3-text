@@ -1,3 +1,4 @@
+from orangecontrib.text.preprocess import FrequencyFilter
 
 __all__ = ['Preprocessor']
 
@@ -28,31 +29,49 @@ class Preprocessor:
         self.normalizer = normalizer
 
     def __call__(self, corpus):
-        documents = corpus.documents
-        for i, transformer in enumerate(self.transformers):
-            documents = list(map(transformer, documents))
-            self.on_progress((i+1) * 25 / len(self.transformers))
-        self.on_progress(25)
-
-        if self.tokenizer:
-            tokens = list(map(self.tokenizer, documents))
-        else:
-            tokens = [documents]
-        self.on_progress(50)
-
-        if self.normalizer:
-            tokens = list(map(self.normalizer, tokens))
-        self.on_progress(75)
-
-        for i, filter in enumerate(self.filters):
-            # some filters may need the corpus
-            filter.corpus = tokens
-            tokens = filter(tokens)
-            self.on_progress(75 + (i+1) * 25 / len(self.filters))
-
+        self.progress = 1
+        self._len = len(corpus) / 80
+        tokens = list(map(self.process_document, corpus.documents))
+        corpus.store_tokens(tokens)
+        self.on_progress(80)
+        tokens, dictionary = self.freq_filter.fit_filter(corpus)
         corpus.store_tokens(tokens)
         self.on_progress(100)
         return corpus
+
+    @property
+    def filters(self):
+        return self._filters
+
+    @filters.setter
+    def filters(self, filters):
+        self._filters = []
+        self.freq_filter = FrequencyFilter()
+
+        for f in filters:
+            if isinstance(f, FrequencyFilter):
+                self.freq_filter = f
+            else:
+                self._filters.append(f)
+
+    def process_document(self, document):
+        for i, transformer in enumerate(self.transformers):
+            document = transformer.transform(document)
+
+        if self.tokenizer:
+            tokens = self.tokenizer(document)
+        else:
+            tokens = [document]
+
+        if self.normalizer:
+            tokens = list(map(self.normalizer, tokens))
+
+        for i, filter in enumerate(self.filters):
+            tokens = filter(tokens)
+
+        self.progress += 1
+        self.on_progress(self.progress / self._len)
+        return tokens
 
     def on_progress(self, progress):
         if self._on_progress:
@@ -65,6 +84,6 @@ class Preprocessor:
         return (
             ('Transformers', ', '.join(str(tr) for tr in self.transformers)),
             ('Tokenizer', str(self.tokenizer)),
-            ('Filters', ', '.join(str(f) for f in self.filters)),
+            ('Filters', ', '.join(str(f) for f in self.filters + [self.freq_filter])),
             ('Normalizer', str(self.normalizer)),
         )
