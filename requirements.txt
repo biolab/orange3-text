@@ -9,3 +9,4 @@ setuptools-git
 Orange3
 tweepy
 beautifulsoup4
+simhash
