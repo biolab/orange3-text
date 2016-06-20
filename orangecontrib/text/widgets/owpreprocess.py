@@ -1,4 +1,5 @@
 import os
+
 from PyQt4 import QtGui, QtCore
 
 from PyQt4.QtCore import (pyqtSignal as Signal, pyqtSlot as Slot)
@@ -38,7 +39,7 @@ class PreprocessorModule(gui.OWComponent, QWidget):
     attribute = NotImplemented
     methods = NotImplemented
     single_method = True
-    toggle_enabled = False
+    toggle_enabled = True
     enabled = settings.Setting(True)
     disabled_value = None
 
@@ -127,14 +128,10 @@ class PreprocessorModule(gui.OWComponent, QWidget):
     @value.setter
     def value(self, value):
         setattr(self.preprocessor, self.attribute, value)
-        self.notify_on_change()
+        self.change_signal.emit()
 
     def setup_method_layout(self):
         raise NotImplementedError
-
-    def notify_on_change(self):
-        # Emits signals corresponding to the changes done.
-        self.change_signal.emit()
 
     def on_toggle(self):
         # Activated when the widget is enabled/disabled.
@@ -182,7 +179,6 @@ class SingleMethodModule(PreprocessorModule):
 
 
 class MultipleMethodModule(PreprocessorModule):
-    toggle_enabled = True
     disabled_value = []
     checked = settings.Setting([])
 
@@ -217,6 +213,8 @@ class TokenizerModule(SingleMethodModule):
     REGEXP = 3
     pattern = settings.Setting('\w+')
 
+    method_index = settings.Setting(REGEXP)
+
     def __init__(self, master):
         super().__init__(master)
 
@@ -226,19 +224,21 @@ class TokenizerModule(SingleMethodModule):
         line_edit.editingFinished.connect(self.pattern_changed)
         self.method_layout.addWidget(label, self.REGEXP, 1)
         self.method_layout.addWidget(line_edit, self.REGEXP, 2)
+        self.pattern_changed()
 
     def pattern_changed(self):
-        self.methods[self.REGEXP].pattern = self.pattern
-        if self.REGEXP == self.method_index:
-            self.notify_on_change()
+        if self.methods[self.REGEXP].pattern != self.pattern:
+            self.methods[self.REGEXP].pattern = self.pattern
+
+            if self.REGEXP == self.method_index:
+                self.change_signal.emit()
 
 
 class NormalizationModule(SingleMethodModule):
     attribute = 'normalizer'
     title = 'Normalization'
     toggle_enabled = True
-
-    method_index = 0
+    enabled = settings.Setting(False)
 
     methods = [
         preprocess.PorterStemmer,
@@ -261,9 +261,11 @@ class NormalizationModule(SingleMethodModule):
         self.method_layout.addWidget(box, self.SNOWBALL, 2)
 
     def change_language(self):
-        self.methods[self.SNOWBALL].language = self.snowball_language
-        if self.method_index == self.SNOWBALL:
-            self.notify_on_change()
+        if self.methods[self.SNOWBALL].language != self.snowball_language:
+            self.methods[self.SNOWBALL].language = self.snowball_language
+
+            if self.method_index == self.SNOWBALL:
+                self.change_signal.emit()
 
 
 class TransformationModule(MultipleMethodModule):
@@ -275,6 +277,7 @@ class TransformationModule(MultipleMethodModule):
         preprocess.StripAccentsTransformer,
         preprocess.HtmlTransformer,
     ]
+    checked = settings.Setting([0])
 
 
 class FilteringModule(MultipleMethodModule):
@@ -284,8 +287,8 @@ class FilteringModule(MultipleMethodModule):
     methods = [
         preprocess.StopwordsFilter,
         preprocess.LexiconFilter,
-        preprocess.FrequencyFilter,
     ]
+    checked = settings.Setting([0])
     STOPWORDS = 0
     LEXICON = 1
     FREQUENCY = 2
@@ -300,78 +303,106 @@ class FilteringModule(MultipleMethodModule):
     max_df = settings.Setting(1.)
     keep_n = settings.Setting(10**5)
     use_keep_n = settings.Setting(False)
+    use_df = settings.Setting(False)
 
     def __init__(self, master):
         super().__init__(master)
+        self.frequency_filter = preprocess.FrequencyFilter()
+        self.preprocessor.freq_filter = self.frequency_filter
 
         box = widgets.ComboBox(self, 'stopwords_language',
-                               items=preprocess.StopwordsFilter.supported_languages)
-        box.currentIndexChanged.connect(self.notify_on_change)
+                               items=[None] + preprocess.StopwordsFilter.supported_languages)
+        box.currentIndexChanged.connect(self.stopwords_changed)
+        self.stopwords_changed()
         self.method_layout.addWidget(box, self.STOPWORDS, 1)
 
         box = widgets.FileWidget(self.recent_sw_files,
                                  dialog_title='Open a stop words source',
                                  dialog_format=self.dlgFormats,
                                  callback=self.read_stopwords_file)
+        box.select(0)
+
         self.method_layout.addWidget(box, self.STOPWORDS, 2, 1, 1)
 
         box = widgets.FileWidget(self.recent_lexicon_files,
                                  dialog_title='Open a lexicon words source',
                                  dialog_format=self.dlgFormats,
                                  callback=self.read_lexicon_file)
+        box.select(0)
         self.method_layout.addWidget(box, self.LEXICON, 2, 1, 1)
 
         row = self.FREQUENCY
+        cb = QCheckBox(self.textify(preprocess.FrequencyFilter.name))
+        cb.setChecked(self.use_df)
+        cb.stateChanged.connect(self.use_df_changed)
+        self.method_layout.addWidget(cb, row, 0)
         range_widget = widgets.RangeWidget(self, ('min_df', 'max_df'),
                                            minimum=0., maximum=1., step=0.05,
                                            allow_absolute=True)
+        range_widget.setToolTip('Use either absolute or relative frequency.')
         range_widget.editingFinished.connect(self.df_changed)
+        self.df_changed()
         self.method_layout.addWidget(range_widget, row, 1, 1, 1)
 
-        # row += 1
-        keep_layout = QHBoxLayout()
-        keep_layout.addWidget(QLabel('Keep most frequent tokens:'))
-        check, spin = gui.spin(self.contents, self, 'keep_n',
-                               minv=10, maxv=10**6,
-                               checked='use_keep_n', checkCallback=self.keep_n_changed)
+        row += 1
+        cb = gui.checkBox(self.contents, self, 'use_keep_n', 'Keep most frequent tokens:',
+                          box=False, callback=self.use_keep_n_changed)
+        cb.setToolTip('Keeps n tokens that occurs in more document.')
+        self.method_layout.addWidget(cb, row, 0)
+
+        spin = gui.spin(self.contents, self, 'keep_n', box=False, minv=1, maxv=10**6)
         spin.editingFinished.connect(self.keep_n_changed)
-        keep_layout.addWidget(check)
-        keep_layout.addWidget(spin)
-        keep_layout.addStretch()
-        self.method_layout.addLayout(keep_layout, row, 2, 1, 3)
+        self.use_keep_n_changed()
+        self.method_layout.addWidget(spin, row, 1, 1, 1)
+
+    def update_value(self):
+        super().update_value()
+        self.preprocessor.freq_filter = self.frequency_filter
 
     def stopwords_changed(self):
-        self.methods[self.STOPWORDS].language = self.stopwords_language
-        if self.STOPWORDS in self.checked:
-            self.notify_on_change()
+        if self.methods[self.STOPWORDS].language != self.stopwords_language:
+            self.methods[self.STOPWORDS].language = self.stopwords_language
+            if self.STOPWORDS in self.checked:
+                self.change_signal.emit()
 
-    def df_changed(self):
-        self.methods[self.FREQUENCY].min_df = self.min_df
-        self.methods[self.FREQUENCY].max_df = self.max_df
-        if self.FREQUENCY in self.checked:
-            self.notify_on_change()
+    def use_df_changed(self):
+        self.use_df = not self.use_df
+        self.df_changed(False)
+        self.change_signal.emit()
 
-    def keep_n_changed(self):
-        if self.use_keep_n:
-            self.methods[self.FREQUENCY].keep_n = self.keep_n
+    def df_changed(self, notify=True):
+        if self.use_df:
+            self.frequency_filter.min_df = self.min_df
+            self.frequency_filter.max_df = self.max_df
         else:
-            self.methods[self.FREQUENCY].keep_n = None
-        if self.FREQUENCY in self.checked:
-            self.notify_on_change()
+            self.frequency_filter.min_df = 0.
+            self.frequency_filter.max_df = 1.
+
+        if notify and self.use_df:
+            self.change_signal.emit()
+
+    def use_keep_n_changed(self):
+        self.keep_n_changed(False)
+        self.change_signal.emit()
+
+    def keep_n_changed(self, notify=True):
+        if self.use_keep_n:
+            self.frequency_filter.keep_n = self.keep_n
+        else:
+            self.frequency_filter.keep_n = None
+
+        if notify and self.use_keep_n:
+            self.change_signal.emit()
 
     def read_stopwords_file(self, path):
-        with open(path, 'rt') as f:
-            words = [line.strip() for line in f]
-            self.methods[self.STOPWORDS].word_list = words
-        if self.STOPWORDS in self.methods:
-            self.notify_on_change()
+        self.methods[self.STOPWORDS].from_file(path)
+        if self.STOPWORDS in self.checked:
+            self.change_signal.emit()
 
     def read_lexicon_file(self, path):
-        with open(path, 'rt') as f:
-            words = [line.strip() for line in f]
-            self.methods[self.LEXICON].lexicon = words
-        if self.LEXICON in self.methods:
-            self.notify_on_change()
+        self.methods[self.LEXICON].from_file(path)
+        if self.LEXICON in self.checked:
+            self.change_signal.emit()
 
 
 class OWPreprocess(OWWidget):
@@ -418,8 +449,8 @@ class OWPreprocess(OWWidget):
         info_box = gui.widgetBox(self.controlArea, 'Info')
         info_box.setFixedWidth(self.control_area_width)
         self.controlArea.layout().addStretch()
-        self.info_label = gui.label(info_box, self,
-                                    'No input corpus detected.')
+        self.info_label = gui.label(info_box, self, '')
+        self.update_info()
 
         # -- PIPELINE --
         frame = QFrame()
@@ -449,18 +480,19 @@ class OWPreprocess(OWWidget):
         commit_button.setFixedWidth(self.control_area_width - 5)
 
         self.buttonsArea.layout().addWidget(commit_button)
-        self.progress_bar = None  # Progress bar initialization.
 
     def set_data(self, data=None):
         self.corpus = data
-        self.update_info()
         self.commit()
 
-    def update_info(self):
-        if self.corpus is not None:
-            info = 'Document count: {}'.format(len(self.corpus))
+    def update_info(self, corpus=None):
+        if corpus is not None:
+            info = 'Document count: {}\n' \
+                   'Total tokens: {}\n'\
+                   'Unique tokens: {}'\
+                   .format(len(corpus), sum(map(len, corpus.tokens)), len(corpus.dictionary))
         else:
-            info = 'No input corpus detected.'
+            info = 'No output corpus.'
         self.info_label.setText(info)
 
     def commit(self):
@@ -472,6 +504,7 @@ class OWPreprocess(OWWidget):
         output = self.preprocessor(self.corpus)
         self.progressBarFinished()
         self.send(Output.PP_CORPUS, output)
+        self.update_info(output)
 
     def on_progress(self, progress):
         self.progressBarSet(progress)
