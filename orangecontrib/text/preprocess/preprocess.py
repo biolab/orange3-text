@@ -28,8 +28,12 @@ class Preprocessor:
         self.filters = filters or []
         self.normalizer = normalizer
 
+        self.progress = 0
+        self._report_frequency = 1
+
     def __call__(self, corpus):
         self.progress = 1
+        self._report_frequency = len(corpus) // 80 or 1
         self._len = len(corpus) / 80
         tokens = list(map(self.process_document, corpus.documents))
         corpus.store_tokens(tokens)
@@ -55,22 +59,23 @@ class Preprocessor:
                 self._filters.append(f)
 
     def process_document(self, document):
-        for i, transformer in enumerate(self.transformers):
+        for transformer in self.transformers:
             document = transformer.transform(document)
 
         if self.tokenizer:
-            tokens = self.tokenizer(document)
+            tokens = self.tokenizer.tokenize(document)
         else:
             tokens = [document]
 
         if self.normalizer:
-            tokens = list(map(self.normalizer, tokens))
+            tokens = self.normalizer(tokens)
 
-        for i, filter in enumerate(self.filters):
+        for filter in self.filters:
             tokens = filter(tokens)
 
         self.progress += 1
-        self.on_progress(self.progress / self._len)
+        if self.progress % self._report_frequency == 0:
+            self.on_progress(self.progress / self._len)
         return tokens
 
     def on_progress(self, progress):
