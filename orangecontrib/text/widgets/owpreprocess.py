@@ -168,6 +168,7 @@ class SingleMethodModule(PreprocessorModule):
         for i, method in enumerate(self.methods):
             rb = QRadioButton(self, text=self.textify(method.name))
             rb.setChecked(i == self.method_index)
+            rb.setToolTip(getattr(method, 'tooltip', ''))
             self.group.addButton(rb, i)
             self.method_layout.addWidget(rb, i, 0)
 
@@ -190,6 +191,7 @@ class MultipleMethodModule(PreprocessorModule):
             cb = QCheckBox(self.textify(method.name))
             cb.setChecked(i in self.checked)
             cb.stateChanged.connect(self.update_value)
+            cb.setToolTip(getattr(method, 'tooltip', ''))
             self.method_layout.addWidget(cb)
             self.buttons.append(cb)
 
@@ -280,6 +282,10 @@ class TransformationModule(MultipleMethodModule):
     checked = settings.Setting([0])
 
 
+class DummyKeepN:
+    name = 'Keep top tokens by document frequency'
+
+
 class FilteringModule(MultipleMethodModule):
     attribute = 'filters'
     title = 'Filtering'
@@ -287,11 +293,14 @@ class FilteringModule(MultipleMethodModule):
     methods = [
         preprocess.StopwordsFilter,
         preprocess.LexiconFilter,
+        preprocess.FrequencyFilter,
+        DummyKeepN,
     ]
     checked = settings.Setting([0])
     STOPWORDS = 0
     LEXICON = 1
     FREQUENCY = 2
+    KEEP_N = 3
     dlgFormats = 'Only text files (*.txt)'
 
     stopwords_language = settings.Setting('english')
@@ -307,8 +316,6 @@ class FilteringModule(MultipleMethodModule):
 
     def __init__(self, master):
         super().__init__(master)
-        self.frequency_filter = preprocess.FrequencyFilter()
-        self.preprocessor.freq_filter = self.frequency_filter
 
         box = widgets.ComboBox(self, 'stopwords_language',
                                items=[None] + preprocess.StopwordsFilter.supported_languages)
@@ -331,33 +338,39 @@ class FilteringModule(MultipleMethodModule):
         box.select(0)
         self.method_layout.addWidget(box, self.LEXICON, 2, 1, 1)
 
-        row = self.FREQUENCY
-        cb = QCheckBox(self.textify(preprocess.FrequencyFilter.name))
-        cb.setChecked(self.use_df)
-        cb.stateChanged.connect(self.use_df_changed)
-        self.method_layout.addWidget(cb, row, 0)
         range_widget = widgets.RangeWidget(self, ('min_df', 'max_df'),
                                            minimum=0., maximum=1., step=0.05,
                                            allow_absolute=True)
-        range_widget.setToolTip('Use either absolute or relative frequency.')
+        range_widget.setToolTip(preprocess.FrequencyFilter.tooltip)
         range_widget.editingFinished.connect(self.df_changed)
-        self.df_changed()
-        self.method_layout.addWidget(range_widget, row, 1, 1, 1)
-
-        row += 1
-        cb = gui.checkBox(self.contents, self, 'use_keep_n', 'Keep most frequent tokens:',
-                          box=False, callback=self.use_keep_n_changed)
-        cb.setToolTip('Keeps n tokens that occurs in more document.')
-        self.method_layout.addWidget(cb, row, 0)
+        self.method_layout.addWidget(range_widget, self.FREQUENCY, 1, 1, 1)
 
         spin = gui.spin(self.contents, self, 'keep_n', box=False, minv=1, maxv=10**6)
         spin.editingFinished.connect(self.keep_n_changed)
-        self.use_keep_n_changed()
-        self.method_layout.addWidget(spin, row, 1, 1, 1)
+        self.method_layout.addWidget(spin, self.KEEP_N, 1, 1, 1)
 
-    def update_value(self):
-        super().update_value()
-        self.preprocessor.freq_filter = self.frequency_filter
+    @property
+    def frequency_filter(self):
+        return self.methods[self.FREQUENCY]
+
+    def get_value(self):
+        self.checked = [i for i, button in enumerate(self.buttons) if button.isChecked()]
+        checked = self.checked[:]
+        if self.FREQUENCY in self.checked:
+            self.frequency_filter.min_df = self.min_df
+            self.frequency_filter.max_df = self.max_df
+        else:
+            checked.append(self.FREQUENCY)
+            self.frequency_filter.min_df = 0.
+            self.frequency_filter.max_df = 1.
+
+        if self.KEEP_N in checked:
+            checked.pop(checked.index(self.KEEP_N))
+            self.frequency_filter.keep_n = self.keep_n
+        else:
+            self.frequency_filter.keep_n = None
+
+        return [self.methods[i] for i in checked]
 
     def stopwords_changed(self):
         if self.methods[self.STOPWORDS].language != self.stopwords_language:
@@ -365,33 +378,15 @@ class FilteringModule(MultipleMethodModule):
             if self.STOPWORDS in self.checked:
                 self.change_signal.emit()
 
-    def use_df_changed(self):
-        self.use_df = not self.use_df
-        self.df_changed(False)
-        self.change_signal.emit()
-
-    def df_changed(self, notify=True):
-        if self.use_df:
+    def df_changed(self):
+        if self.FREQUENCY in self.checked:
             self.frequency_filter.min_df = self.min_df
             self.frequency_filter.max_df = self.max_df
-        else:
-            self.frequency_filter.min_df = 0.
-            self.frequency_filter.max_df = 1.
-
-        if notify and self.use_df:
             self.change_signal.emit()
 
-    def use_keep_n_changed(self):
-        self.keep_n_changed(False)
-        self.change_signal.emit()
-
-    def keep_n_changed(self, notify=True):
-        if self.use_keep_n:
+    def keep_n_changed(self):
+        if self.KEEP_N in self.checked:
             self.frequency_filter.keep_n = self.keep_n
-        else:
-            self.frequency_filter.keep_n = None
-
-        if notify and self.use_keep_n:
             self.change_signal.emit()
 
     def read_stopwords_file(self, path):
