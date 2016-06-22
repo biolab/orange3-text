@@ -39,7 +39,7 @@ class Preprocessor:
         corpus.store_tokens(tokens)
         self.on_progress(80)
         tokens, dictionary = self.freq_filter.fit_filter(corpus)
-        corpus.store_tokens(tokens)
+        corpus.store_tokens(tokens, dictionary)
         self.on_progress(100)
         return corpus
 

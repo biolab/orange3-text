@@ -2,6 +2,7 @@ import os
 from itertools import chain
 
 import numpy as np
+from gensim import corpora
 
 from Orange.data import Table, Domain, ContinuousVariable
 
@@ -50,6 +51,7 @@ class Corpus(Table):
         self.domain = domain
         self.text_features = None    # list of text features for mining
         self._tokens = None
+        self._dictionary = None
         self.attributes = {}
 
         if domain is not None and text_features is None:
@@ -168,12 +170,13 @@ class Corpus(Table):
 
         return [' '.join(map(str, i)) for i in text]
 
-    def store_tokens(self, tokens):
+    def store_tokens(self, tokens, dictionary=None):
         """
         Args:
             tokens (list): List of lists containing tokens.
         """
         self._tokens = tokens
+        self._dictionary = dictionary or corpora.Dictionary(self.tokens)
 
     @property
     def tokens(self):
@@ -182,9 +185,19 @@ class Corpus(Table):
         present, run default preprocessor and save tokens.
         """
         if self._tokens is None:
-            from orangecontrib.text.preprocess import base_preprocessor
-            base_preprocessor(self)
+            self._apply_base_preprocessor()
         return self._tokens
+
+    def _apply_base_preprocessor(self):
+        from orangecontrib.text.preprocess import base_preprocessor
+        corpus = base_preprocessor(self)
+        self.store_tokens(corpus.tokens, corpus.dictionary)
+
+    @property
+    def dictionary(self):
+        if self._dictionary is None:
+            self._apply_base_preprocessor()
+        return self._dictionary
 
     @classmethod
     def from_table(cls, domain, source, row_indices=...):
