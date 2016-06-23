@@ -11,7 +11,7 @@ class BagOfWords():
     def __init__(self, progress_callback=None, error_callback=None):
         self.progress_callback = progress_callback
         self.error_callback = error_callback
-        self.vocabulary = None
+        self.dictionary = None
 
     def __call__(self, corpus, use_tfidf=False):
         if corpus is None:
@@ -21,11 +21,10 @@ class BagOfWords():
 
         self.check_progress()  # Step 1
 
-        dictionary = corpora.Dictionary(corpus.tokens, prune_at=np.inf)
-        self.vocabulary = dictionary
+        self.dictionary = corpus.dictionary
 
         # Term frequencies.
-        bag_of_words = [dictionary.doc2bow(i) for i in corpus.tokens]
+        bag_of_words = [self.dictionary.doc2bow(i) for i in corpus.tokens]
 
         self.check_progress()  # Step 2
 
@@ -37,12 +36,12 @@ class BagOfWords():
 
         X = matutils.corpus2dense(
                 bag_of_words,
-                num_terms=len(dictionary.keys()),
+                num_terms=len(self.dictionary.keys()),
                 dtype=np.float64
         ).T
 
         bow_corpus = corpus.copy()
-        feats = [v for k, v in sorted(dictionary.items())]
+        feats = [v for k, v in sorted(self.dictionary.items())]
         bow_corpus.extend_attributes(X, feats, var_attrs={'bow_feature': True})
         self.check_progress()  # Step 4
 

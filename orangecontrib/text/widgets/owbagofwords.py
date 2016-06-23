@@ -93,7 +93,7 @@ class OWBagOfWords(OWWidget):
                         use_tfidf=self.use_tfidf
                 )
 
-                self.update_info(bag_of_words.vocabulary)
+                self.update_info(bag_of_words.dictionary)
                 self.send(Output.CORPUS, bow_corpus)
 
     def show_errors(self, error):
