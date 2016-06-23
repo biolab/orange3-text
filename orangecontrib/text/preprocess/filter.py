@@ -109,6 +109,7 @@ class LexiconFilter(BaseTokenFilter, WordListMixin):
 
 class FrequencyFilter(LexiconFilter):
     name = 'Document frequency'
+    tooltip = 'Use either absolute or relative frequency.'
 
     def __init__(self, min_df=0., max_df=1., keep_n=None):
         super().__init__()
