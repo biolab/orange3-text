@@ -1,6 +1,7 @@
 import os
 import shelve
 import warnings
+from time import sleep
 from datetime import datetime
 
 import numpy as np
@@ -159,7 +160,7 @@ def _corpus_from_records(records, includes_metadata):
 
 class Pubmed:
     MAX_RECORDS = 100000
-    MAX_BATCH_SIZE = 100
+    MAX_BATCH_SIZE = 1000
 
     def __init__(self, email, progress_callback=None, error_callback=None):
         if not validate_email(email):
@@ -233,8 +234,8 @@ class Pubmed:
 
             query_dict.update({
                 'term': ' AND '.join(search_terms),
-                'mindate': pub_date_start,
-                'maxdate': pub_date_end,
+                'mindate': pub_date_start.replace('-', '/'),
+                'maxdate': pub_date_end.replace('-', '/'),
                 'datetype': 'pdat',
             })
 
@@ -282,7 +283,6 @@ class Pubmed:
             raise ValueError(  # Perform a search first!
                     'No WebEnv or QueryKey data in this PubMed class instance.'
             )
-
         fetch_handle = Entrez.efetch(
                 db='pubmed',
                 rettype='medline',
@@ -293,20 +293,20 @@ class Pubmed:
                 query_key=self.search_record_query_key
         )
 
-        data = list(Medline.parse(fetch_handle))
-        fetch_handle.close()
-
+        data = Medline.parse(fetch_handle)
+        records = []
         with shelve.open(self.cache_path) as query_cache:
             for record in data:
                 id_key = record.get('PMID')
                 if id_key is not None:
                     query_cache[id_key] = record
+                    records.append(record)
             query_cache.close()
-
+        fetch_handle.close()
         if self.progress_callback:
             self.progress_callback()
 
-        return data
+        return records
 
     def _retrieve_records(self, num_records,
                           includes_metadata=PUBMED_TEXT_FIELDS,
@@ -382,9 +382,8 @@ class Pubmed:
                     break
 
                 try:
-                    records = self._retrieve_record_batch(
-                            start, batch_size
-                    )
+                    records = self._retrieve_record_batch(start, batch_size)
+                    sleep(.5)
                 except Exception as e:
                     warnings.warn(
                         'An exception occurred ({0}).'.format(e),

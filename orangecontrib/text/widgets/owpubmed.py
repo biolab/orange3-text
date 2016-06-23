@@ -21,13 +21,6 @@ def _i(name, icon_path='icons'):
     return os.path.join(widget_path, icon_path, name)
 
 
-def eval_date(date):
-    if not date:
-        return True
-    pattern = re.compile('\d{4}/\d{2}/\d{2}')
-    return pattern.match(date)
-
-
 class Output:
     CORPUS = 'Corpus'
 
@@ -102,29 +95,32 @@ class OWPubmed(OWWidget):
                 self.MIN_DATE.strftime(self.PY_DATE_FORMAT),
                 self.QT_DATE_FORMAT
         )
-        date_from = QDateEdit(
+        self.date_from = QDateEdit(
                 QDate.fromString(self.pub_date_from, self.QT_DATE_FORMAT),
                 displayFormat=self.QT_DATE_FORMAT,
                 minimumDate=min_date,
                 calendarPopup=True
         )
-        date_to = QDateEdit(
+        self.date_to = QDateEdit(
                 QDate.fromString(self.pub_date_to, self.QT_DATE_FORMAT),
                 displayFormat=self.QT_DATE_FORMAT,
                 minimumDate=min_date,
                 calendarPopup=True
         )
-        date_from.dateChanged.connect(
-            lambda date: setattr(self, 'date_from',
+        self.date_to.setDate(QDate(date.today()))
+        self.date_from.dateChanged.connect(
+            lambda date: setattr(self, 'pub_date_from',
                                  date.toString(self.QT_DATE_FORMAT)))
-        date_to.dateChanged.connect(
-            lambda date: setattr(self, 'date_to',
+        self.date_to.dateChanged.connect(
+            lambda date: setattr(self, 'pub_date_to',
                                  date.toString(self.QT_DATE_FORMAT)))
+        self.pubmed_controls.append(self.date_from)
+        self.pubmed_controls.append(self.date_to)
 
         gui.label(year_box, self, 'From:')
-        year_box.layout().addWidget(date_from)
+        year_box.layout().addWidget(self.date_from)
         gui.label(year_box, self, 'to:')
-        year_box.layout().addWidget(date_to)
+        year_box.layout().addWidget(self.date_to)
 
         # Keywords.
         h_box = gui.hBox(regular_search_box)
@@ -271,31 +267,9 @@ class OWPubmed(OWWidget):
             terms = self.keyword_combo.currentText().split()
             authors = self.author_input.text().split()
 
-            # If no keywords, alert that the query is too vague.
-            if not terms:
-                self.warning(0, 'Please specify the query.')
-                self.run_search_button.setEnabled(True)
-                self.retrieve_records_button.setEnabled(True)
-                return
-
-            # Check date formatting.
-            date_from_invalid = self.pub_date_from and not eval_date(
-                    self.pub_date_from
+            error = self.pubmed_api._search_for_records(
+                    terms, authors, self.pub_date_from, self.pub_date_to
             )
-            pdate_to_flag = self.pub_date_to and not eval_date(
-                    self.pub_date_to
-            )
-            if date_from_invalid or pdate_to_flag:
-                self.warning(0, 'Please specify dates with digits in '
-                                'YYYY/MM/DD format.')
-                self.run_search_button.setEnabled(True)
-                self.retrieve_records_button.setEnabled(True)
-                return
-
-            error = self.pubmed_api._search_for_records(terms,
-                                                        authors,
-                                                        self.pub_date_from,
-                                                        self.pub_date_to)
             if error is not None:
                 self.warning(0, str(error))
                 return
@@ -367,6 +341,8 @@ class OWPubmed(OWWidget):
                     self.num_records,
                     required_text_fields
             )
+        self.retrieve_records_button.setText('Retrieve records')
+        self.download_running = False
 
         self.send(Output.CORPUS, self.output_corpus)
         self.update_retrieval_info()
@@ -397,18 +373,22 @@ class OWPubmed(OWWidget):
         )
         self.max_records_label.setMaximumSize(self.max_records_label
                                               .sizeHint())
+
         self.num_records_input.setMaximum(max_records_count)
-        self.num_records_input.setValue(max_records_count)
-        self.num_records = self.pubmed_api.search_record_count
+        # self.num_records_input.setValue(self.num_records)
+        # self.num_records = self.pubmed_api.search_record_count
 
     def update_retrieval_info(self):
+        document_count = 0
+        if self.output_corpus is not None:
+            document_count = len(self.output_corpus)
+
         self.retrieval_info_label.setText(
-                'Number of records retrieved: {} '.format(
-                        len(self.output_corpus)
-                )
+                'Number of records retrieved: {} '.format(document_count)
         )
-        self.retrieval_info_label.setMaximumSize(self.retrieval_info_label
-                                                 .sizeHint())
+        self.retrieval_info_label.setMaximumSize(
+                self.retrieval_info_label.sizeHint()
+        )
 
     def select_email(self, n):
         if n < len(self.recent_emails):
