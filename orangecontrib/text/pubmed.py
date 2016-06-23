@@ -319,24 +319,25 @@ class Pubmed:
         cached_data = []  # Later on, construct the corpus from this.
         new_records = []  # Must download.
 
-        if use_cache:
-            with shelve.open(self.cache_path) as query_cache:
-                # --- Retrieve cached ---
-                # case 1: [all cached]
-                # case 2: [all new]
-                # case 3: [cached + new]
-                for rec_id in self.record_id_list:
-                    if (len(cached_data) + len(new_records)) == num_records:
-                        break  # Capped.
+        # if use_cache:
+        with shelve.open(self.cache_path) as query_cache:
+            # --- Retrieve cached ---
+            # case 1: [all cached]
+            # case 2: [all new]
+            # case 3: [cached + new]
+            for rec_id in self.record_id_list:
+                if (len(cached_data) + len(new_records)) == num_records:
+                    break  # Capped.
 
+                if use_cache:
                     record = query_cache.get(rec_id)
                     if record is not None:
                         cached_data.append(record)
                     else:
                         new_records.append(rec_id)
-                query_cache.close()
-        else:
-            new_records = self.record_id_list
+                else:
+                    new_records.append(rec_id)
+            query_cache.close()
 
         cached_data_size = len(cached_data)
         if cached_data_size > 0:
