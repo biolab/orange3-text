@@ -1,7 +1,6 @@
 import os
 import shelve
 import warnings
-from time import sleep
 from datetime import datetime
 
 import numpy as np
@@ -283,6 +282,7 @@ class Pubmed:
             raise ValueError(  # Perform a search first!
                     'No WebEnv or QueryKey data in this PubMed class instance.'
             )
+
         fetch_handle = Entrez.efetch(
                 db='pubmed',
                 rettype='medline',
@@ -294,17 +294,8 @@ class Pubmed:
         )
 
         data = Medline.parse(fetch_handle)
-        records = []
-        with shelve.open(self.cache_path) as query_cache:
-            for record in data:
-                id_key = record.get('PMID')
-                if id_key is not None:
-                    query_cache[id_key] = record
-                    records.append(record)
-            query_cache.close()
+        records = [record for record in data]
         fetch_handle.close()
-        if self.progress_callback:
-            self.progress_callback()
 
         return records
 
@@ -348,15 +339,13 @@ class Pubmed:
             new_records = self.record_id_list
 
         cached_data_size = len(cached_data)
-        if self.progress_callback:  # Advance the callback accordingly.
+        if cached_data_size > 0:
+            # Advance the callback accordingly.
             self.progress_callback(int(cached_data_size/batch_size))
 
-        if cached_data_size > 0:  # Some records were cached.
             # Create a starting corpus.
-            corpus = _corpus_from_records(
-                    cached_data,
-                    includes_metadata
-            )
+            corpus = _corpus_from_records(cached_data, includes_metadata)
+
         # --- Retrieve missing/new ---
         if len(new_records) > 0:
             try:
@@ -376,14 +365,13 @@ class Pubmed:
             self.search_record_query_key = post_results['QueryKey']
 
             # Fetch the records.
-            for start in range(0, num_records, batch_size):
+            for start in range(0, len(new_records), batch_size):
                 if self.stop_signal:
                     self.stop_signal = False
                     break
 
                 try:
                     records = self._retrieve_record_batch(start, batch_size)
-                    sleep(.5)
                 except Exception as e:
                     warnings.warn(
                         'An exception occurred ({0}).'.format(e),
@@ -392,20 +380,29 @@ class Pubmed:
                     if self.error_callback:
                         self.error_callback(e)
                     return
+
+                # Add the entries to shelve.
+                with shelve.open(self.cache_path) as query_cache:
+                    for record in records:
+                        id_key = record.get('PMID')
+                        if id_key is not None:
+                            query_cache[id_key] = record
+                    query_cache.close()
+
+                # Advance progress.
+                if self.progress_callback:
+                    self.progress_callback()
+
                 meta_values, class_values = _records_to_corpus_entries(
                         records,
                         includes_metadata=includes_metadata
                 )
+
                 if corpus is None:
-                    corpus = _corpus_from_records(
-                            records,
-                            includes_metadata
-                    )
+                    corpus = _corpus_from_records(records, includes_metadata)
                 else:  # Update the corpus.
-                    corpus.extend_corpus(
-                            meta_values,
-                            class_values
-                    )
+                    corpus.extend_corpus(meta_values, class_values)
+
         return corpus
 
     def download_records(self, terms=[], authors=[],

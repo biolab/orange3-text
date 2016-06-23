@@ -107,7 +107,9 @@ class OWPubmed(OWWidget):
                 minimumDate=min_date,
                 calendarPopup=True
         )
-        self.date_to.setDate(QDate(date.today()))
+        # Only set to today if no previous setting is available.
+        if self.pub_date_to == '':
+            self.date_to.setDate(QDate(date.today()))
         self.date_from.dateChanged.connect(
             lambda date: setattr(self, 'pub_date_from',
                                  date.toString(self.QT_DATE_FORMAT)))
@@ -245,6 +247,7 @@ class OWPubmed(OWWidget):
             self.email_combo.setFocus()
 
     def run_search(self):
+        self.error(0)
         self.warning(0)
         self.run_search_button.setEnabled(False)
         self.retrieve_records_button.setEnabled(False)
@@ -375,8 +378,7 @@ class OWPubmed(OWWidget):
                                               .sizeHint())
 
         self.num_records_input.setMaximum(max_records_count)
-        # self.num_records_input.setValue(self.num_records)
-        # self.num_records = self.pubmed_api.search_record_count
+        self.retrieve_records_button.setFocus()
 
     def update_retrieval_info(self):
         document_count = 0
