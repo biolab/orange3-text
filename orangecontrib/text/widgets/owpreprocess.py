@@ -29,6 +29,32 @@ class Output:
     PP_CORPUS = 'Corpus'
 
 
+class OnOffButton(QtGui.QPushButton):
+    stateChanged = QtCore.pyqtSignal()
+
+    def __init__(self, enabled=True, on_button='on_button.png', off_button='off_button.png', size=(26, 26), *__args):
+        super().__init__(*__args)
+        self.on_icon = QtGui.QIcon(_i(on_button))
+        self.off_icon = QtGui.QIcon(_i(off_button))
+        self.setFlat(True)
+        self.setIconSize(QtCore.QSize(*size))
+        self.setStyleSheet('border:none')
+        self.state = enabled
+        self.clicked.connect(self.change_state)
+        self.update_icon()
+
+    def change_state(self):
+        self.state = not self.state
+        self.update_icon()
+        self.stateChanged.emit()
+
+    def update_icon(self):
+        self.setIcon(self.on_icon if self.state else self.off_icon)
+
+    def sizeHint(self):
+        return QtCore.QSize(26, 26)
+
+
 class PreprocessorModule(gui.OWComponent, QWidget):
     """The base widget for the pre-processing modules."""
 
@@ -95,26 +121,10 @@ class PreprocessorModule(gui.OWComponent, QWidget):
         self.contents.layout().addLayout(self.method_layout)
 
         if self.toggle_enabled:
-            self.toggle_module_switch = QCheckBox()
-            switch_icon_on_resource = _i('on_button.png')
-            switch_icon_off_resource = _i('off_button.png')
-            style_sheet = '''
-            QCheckBox::indicator {
-                width: 23px;
-                height: 23px;
-            }
-            QCheckBox::indicator:checked {
-                image: url(%s);
-            }
-            QCheckBox::indicator:unchecked {
-                image: url(%s);
-            }
-            ''' % (switch_icon_on_resource, switch_icon_off_resource)
-            self.toggle_module_switch.setStyleSheet(style_sheet)
-            self.toggle_module_switch.setChecked(self.enabled)
-            self.toggle_module_switch.stateChanged.connect(self.on_toggle)
-            self.titleArea.addWidget(self.toggle_module_switch)
-
+            self.on_off_button = OnOffButton(enabled=self.enabled)
+            self.on_off_button.stateChanged.connect(self.on_toggle)
+            self.on_off_button.setContentsMargins(0, 0, 0, 0)
+            self.titleArea.addWidget(self.on_off_button)
             self.display_widget()
 
     @staticmethod
