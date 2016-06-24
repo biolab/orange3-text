@@ -144,5 +144,5 @@ class OWLoadCorpus(OWWidget):
 
     def update_feature_selection(self):
         if self.corpus is not None:
-            self.corpus.set_text_features(self.used_attrs)
+            self.corpus.set_text_features(list(self.used_attrs))
             self.send(Output.CORPUS, self.corpus)
