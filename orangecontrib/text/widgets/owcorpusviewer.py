@@ -11,6 +11,7 @@ from Orange.widgets import gui
 from Orange.widgets.settings import Setting, ContextSetting
 from Orange.widgets.widget import OWWidget
 from Orange.data import Table
+from Orange.data.domain import filter_visible
 from orangecontrib.text.corpus import Corpus
 
 
@@ -104,7 +105,7 @@ class OWCorpusViewer(OWWidget):
         self.reset_widget()  # Clear any old data.
         if data is not None:
             self.corpus = data
-            if isinstance(data, Table):
+            if type(data) is Table:
                 self.corpus = Corpus.from_table(data.domain, data)
             self.load_features()
             self.regenerate_documents()
@@ -136,9 +137,7 @@ class OWCorpusViewer(OWWidget):
         self.display_features = []
         if self.corpus is not None:
             domain = self.corpus.domain
-            self.features = list(filter(
-                lambda x: not x.attributes.get('bow_feature', False),
-                chain(domain.variables, domain.metas)))
+            self.features = list(filter_visible(chain(domain.variables, domain.metas)))
             # FIXME: Select features based on ContextSetting
             self.search_features = list(range(len(self.features)))
             self.display_features = list(range(len(self.features)))
@@ -189,10 +188,12 @@ class OWCorpusViewer(OWWidget):
         for index in self.document_table.selectionModel().selectedRows():
             document = ['<table>']
             for feat_index in self.display_features:
-                meta_name = self.features[feat_index].name
+                feature = self.features[feat_index]
+                value = index.data(Qt.UserRole)[feature.name]
+
                 document.append(
                     '<tr><td><strong>{0}:</strong></td><td>{1}</td></tr>'.format(
-                        meta_name, index.data(Qt.UserRole)[meta_name].value))
+                        feature.name, value))
             document.append('</table><hr/>')
             documents.append(document)
 

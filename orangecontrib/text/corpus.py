@@ -161,14 +161,8 @@ class Corpus(Table):
         data = Table(Domain([], [], [i.name for i in feats],
                             source=self.domain), self)
 
-        # map DiscreteVariables to values
-        text = data.metas.astype(object)
-        for col, f in enumerate(data.domain.metas):
-            if f.is_discrete:
-                for row, val in enumerate(text[:, col]):
-                    text[row, col] = f.values[int(val)]
-
-        return [' '.join(map(str, i)) for i in text]
+        return [' '.join(f.str_val(val) for f, val in zip(data.domain.metas, row))
+                for row in data.metas]
 
     def store_tokens(self, tokens, dictionary=None):
         """

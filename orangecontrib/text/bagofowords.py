@@ -42,7 +42,8 @@ class BagOfWords():
 
         bow_corpus = corpus.copy()
         feats = [v for k, v in sorted(self.dictionary.items())]
-        bow_corpus.extend_attributes(X, feats, var_attrs={'bow_feature': True})
+        bow_corpus.extend_attributes(X, feats, var_attrs={'hidden': True})
+
         self.check_progress()  # Step 4
 
         return bow_corpus
