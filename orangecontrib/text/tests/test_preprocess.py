@@ -1,381 +1,331 @@
+import tempfile
 import unittest
 
-from nltk.tokenize import word_tokenize, RegexpTokenizer, TweetTokenizer
+import itertools
+import nltk
+from gensim import corpora
 
+from orangecontrib.text import preprocess
 from orangecontrib.text.corpus import Corpus
-from orangecontrib.text.preprocess import (Preprocessor, PorterStemmer,
-                                           SnowballStemmer, Lemmatizer)
+from orangecontrib.text.preprocess import Preprocessor
+
+
+def counted(f):
+    def wrapped(*args, **kwargs):
+        wrapped.calls += 1
+        return f(*args, **kwargs)
+    wrapped.calls = 0
+    return wrapped
 
 
 class PreprocessTests(unittest.TestCase):
-    TEST_STRING = 'Human machine interface for lab abc computer applications'
-    TEST_LIST = None
-    TEST_CORPUS = None
+    sentence = "Human machine interface for lab abc computer applications"
 
     def setUp(self):
-        self.TEST_CORPUS = Corpus.from_file('deerwester')
-        self.TEST_LIST = [entry.metas[0] for entry in self.TEST_CORPUS]
+        self.corpus = Corpus.from_file('deerwester')
 
-    def test_tokenize(self):
-        correct = [
-            ['human', 'machine', 'interface', 'for', 'lab', 'abc',
-             'computer', 'applications'],
-            ['a', 'survey', 'of', 'user', 'opinion', 'of', 'computer',
-             'system', 'response', 'time'],
-            ['the', 'eps', 'user', 'interface', 'management', 'system'],
-            ['system', 'and', 'human', 'system', 'engineering', 'testing',
-             'of', 'eps'],
-            ['relation', 'of', 'user', 'perceived', 'response', 'time',
-             'to', 'error', 'measurement'],
-            ['the', 'generation', 'of', 'random', 'binary', 'unordered',
-             'trees'],
-            ['the', 'intersection', 'graph', 'of', 'paths', 'in', 'trees'],
-            ['graph', 'minors', 'iv', 'widths', 'of', 'trees', 'and',
-             'well', 'quasi', 'ordering'],
-            ['graph', 'minors', 'a', 'survey']
-        ]
+    def test_string_processor(self):
+        class StripStringTransformer(preprocess.BaseTransformer):
+            @classmethod
+            def transform(cls, string):
+                return string[:-1]
+        p = Preprocessor(transformers=StripStringTransformer())
 
-        # String.
-        p = Preprocessor(lowercase=False)
-        self.assertEqual(
-            p(self.TEST_STRING),
-            [
-                [
-                    'Human',
-                    'machine',
-                    'interface',
-                    'for',
-                    'lab',
-                    'abc',
-                    'computer',
-                    'applications',
-                ]
-            ]
-        )
+        self.assertEqual(p(self.corpus).tokens, [[doc[:-1]] for doc in self.corpus.documents])
 
-        # List.
-        p = Preprocessor()
-        self.assertEqual(
-            p(self.TEST_LIST),
-            correct
-        )
+        p = Preprocessor(transformers=[StripStringTransformer(),
+                                       preprocess.LowercaseTransformer()])
 
-        # Corpus.
-        p = Preprocessor()
-        self.assertEqual(
-            p(self.TEST_CORPUS).tokens,
-            correct
-        )
+        self.assertEqual(p(self.corpus).tokens, [[doc[:-1].lower()] for doc in self.corpus.documents])
 
-    def test_preprocess_sentence_stopwords(self):
-        # No stop words.
-        p = Preprocessor()
-        result = p(self.TEST_STRING)
-        correct = [
-            [
-                'human',
-                'machine',
-                'interface',
-                'for',
-                'lab',
-                'abc',
-                'computer',
-                'applications'
-            ]
-        ]
-        self.assertEqual(result, correct)
+        self.assertRaises(TypeError, Preprocessor, string_transformers=1)
 
-        # English stop words.
-        p = Preprocessor(stop_words='english')
-        result = p(self.TEST_STRING)
-        correct = [
-            [
-                'human',
-                'machine',
-                'interface',
-                'lab',
-                'abc',
-                'computer',
-                'applications'
-            ]
-        ]
-        self.assertEqual(result, correct)
+    def test_tokenizer(self):
+        class SpaceTokenizer(preprocess.BaseTokenizer):
+            @classmethod
+            def tokenize(cls, string):
+                return string.split()
+        p = Preprocessor(tokenizer=SpaceTokenizer())
 
-        # Custom stop words.
-        custom_stop_words = [
-            'abc',
-            'applications',
-            'computer',
-            'for',
-        ]
-        p = Preprocessor(stop_words=custom_stop_words)
-        result = p(self.TEST_STRING)
-        correct = [
-            [
-                'human',
-                'machine',
-                'interface',
-                'lab'
-            ]
-        ]
-        self.assertEqual(result, correct)
+        self.assertEqual(p(self.corpus).tokens,
+                         [sent.split() for sent in self.corpus.documents])
 
-    def test_preprocess_corpus_int_df(self):
-        p = Preprocessor(min_df=2, max_df=4)
-        result = p(self.TEST_CORPUS)
-        correct = [
-            ['human', 'interface', 'computer'],
-            ['a', 'survey', 'user', 'computer', 'system', 'response', 'time'],
-            ['the', 'eps', 'user', 'interface', 'system'],
-            ['system', 'and', 'human', 'system', 'eps'],
-            ['user', 'response', 'time'],
-            ['the', 'trees'],
-            ['the', 'graph', 'trees'],
-            ['graph', 'minors', 'trees', 'and'],
-            ['graph', 'minors', 'a', 'survey']
-        ]
-        self.assertEqual(result.tokens, correct)
+    def test_token_normalizer(self):
+        class CapTokenNormalizer(preprocess.BaseNormalizer):
+            @classmethod
+            def normalize(cls, token):
+                return token.capitalize()
+        p = Preprocessor(normalizer=CapTokenNormalizer())
 
-    def test_preprocess_corpus_float_df(self):
-        p = Preprocessor(min_df=0.2, max_df=0.5, lowercase=True)
-        result = p(self.TEST_CORPUS)
-        correct = [
-            ['human', 'interface', 'computer'],
-            ['a', 'survey', 'user', 'computer', 'system', 'response', 'time'],
-            ['the', 'eps', 'user', 'interface', 'system'],
-            ['system', 'and', 'human', 'system', 'eps'],
-            ['user', 'response', 'time'],
-            ['the', 'trees'],
-            ['the', 'graph', 'trees'],
-            ['graph', 'minors', 'trees', 'and'],
-            ['graph', 'minors', 'a', 'survey']
-        ]
-        self.assertEqual(result.tokens, correct)
+        self.assertEqual(p(self.corpus).tokens,
+                         [[sent.capitalize()] for sent in self.corpus.documents])
 
-    def test_porter_stemmer(self):
-        words = [
-            'caresses',
-            'flies',
-            'dies',
-            'mules',
-            'denied',
-            'died',
-            'agreed',
-            'owned',
-            'humbled',
-            'sized',
-            'meeting',
-            'stating',
-            'siezing',
-            'itemization',
-            'sensational',
-            'traditional',
-            'reference',
-            'colonizer',
-            'plotted',
-        ]
-        stems = [
-            'caress',
-            'fli',
-            'die',
-            'mule',
-            'deni',
-            'die',
-            'agre',
-            'own',
-            'humbl',
-            'size',
-            'meet',
-            'state',
-            'siez',
-            'item',
-            'sensat',
-            'tradit',
-            'refer',
-            'colon',
-            'plot'
-        ]
+    def test_token_filter(self):
+        class SpaceTokenizer(preprocess.BaseTokenizer):
+            @classmethod
+            def tokenize(cls, string):
+                return string.split()
 
-        for w, s in zip(PorterStemmer(words), stems):
-            self.assertEqual(w, s)
+        class LengthFilter(preprocess.BaseTokenFilter):
+            @classmethod
+            def check(cls, token):
+                return len(token) < 4
 
-    def test_porter_sentence(self):
-        corpus = [
-            'Caresses flies dies mules denied died agreed owned humbled sized.'
-        ]
-        stemmed = [
-            'caress',
-            'fli',
-            'die',
-            'mule',
-            'deni',
-            'die',
-            'agre',
-            'own',
-            'humbl',
-            'size',
-            '.'
-        ]
+        p = Preprocessor(tokenizer=SpaceTokenizer(), filters=LengthFilter())
+        self.assertEqual(p(self.corpus).tokens,
+                         [[token for token in doc.split() if len(token) < 4]
+                          for doc in self.corpus.documents])
 
-        p = Preprocessor(transformation=PorterStemmer)
-        result = p(corpus)[0]
-        self.assertEqual(result, stemmed)
 
-    def test_snowball_stemmer(self):
-        words = [
-            'caresses',
-            'flies',
-            'dies',
-            'mules',
-            'denied',
-            'died',
-            'agreed',
-            'owned',
-            'humbled',
-            'sized',
-            'meeting',
-            'stating',
-            'siezing',
-            'itemization',
-            'sensational',
-            'traditional',
-            'reference',
-            'colonizer',
-            'plotted'
-        ]
-        stems = [
-            'caress',
-            'fli',
-            'die',
-            'mule',
-            'deni',
-            'die',
-            'agre',
-            'own',
-            'humbl',
-            'size',
-            'meet',
-            'state',
-            'siez',
-            'item',
-            'sensat',
-            'tradit',
-            'refer',
-            'colon',
-            'plot'
-        ]
+class TransformationTests(unittest.TestCase):
+    def test_call(self):
 
-        for w, s in zip(SnowballStemmer(words), stems):
-            self.assertEqual(w, s)
+        class ReverseStringTransformer(preprocess.BaseTransformer):
+            name = "Reverse"
 
-    def test_snowball_sentence(self):
-        corpus = [
-            'Caresses flies dies mules denied died agreed owned humbled sized.'
-        ]
-        stemmed = [
-            'caress',
-            'fli',
-            'die',
-            'mule',
-            'deni',
-            'die',
-            'agre',
-            'own',
-            'humbl',
-            'size',
-            '.'
-        ]
+            def transform(self, string):
+                return string[::-1]
 
-        p = Preprocessor(transformation=SnowballStemmer)
-        result = p(corpus)[0]
-        self.assertEqual(result, stemmed)
+        transformer = ReverseStringTransformer()
 
-    def test_wordnet_lemmatizer(self):
-        words = [
-            'dogs',
-            'churches',
-            'aardwolves',
-            'abaci',
-            'hardrock'
-        ]
-        lemas = [
-            'dog',
-            'church',
-            'aardwolf',
-            'abacus',
-            'hardrock'
-        ]
+        self.assertEqual(transformer('abracadabra'), 'arbadacarba')
+        self.assertEqual(transformer(['abra', 'cadabra']), ['arba', 'arbadac'])
 
-        for w, s in zip(Lemmatizer(words), lemas):
-            self.assertEqual(w, s)
+        self.assertRaises(TypeError, transformer, 1)
 
-    def test_wordnet_lemmatizer_sentence(self):
-        corpus = [
-            'Pursued brightness insightful blessed lies held timelessly minds.'
-        ]
-        lemmas = [
-            'pursued',
-            'brightness',
-            'insightful',
-            'blessed',
-            'lie',
-            'held',
-            'timelessly',
-            'mind',
-            '.'
-        ]
+    def test_str(self):
+        class ReverseStringTransformer(preprocess.BaseTransformer):
+            name = 'reverse'
 
-        p = Preprocessor(transformation=Lemmatizer,)
-        result = p(corpus)[0]
-        self.assertEqual(result, lemmas)
+            def transform(self, string):
+                return string[::-1]
 
-    def test_faulty_init_parameters(self):
-        # Stop word source.
-        with self.assertRaises(ValueError):
-            Preprocessor(stop_words='faulty_value')
-        # Transformation.
-        with self.assertRaises(ValueError):
-            Preprocessor(transformation='faulty_value')
-        # Min/Max df.
-        with self.assertRaises(ValueError):
-            Preprocessor(min_df='faulty_value')
-        with self.assertRaises(ValueError):
-            Preprocessor(max_df='faulty_value')
-        with self.assertRaises(ValueError):
-            Preprocessor(min_df=1.5)
-        with self.assertRaises(ValueError):
-            Preprocessor(max_df=1.5)
+        transformer = ReverseStringTransformer()
 
-    def test_tokenizer_choice(self):
-        test_sentence = 'The quick #brown fox jumps over the lazy dog :-)'
-        default_tokens = [
-            'the', 'quick', '#', 'brown', 'fox', 'jumps', 'over', 'the',
-            'lazy', 'dog', ':', '-', ')'
-        ]
-        no_punct_tokens = [
-            'the', 'quick', 'brown', 'fox', 'jumps', 'over','the', 'lazy',
-            'dog'
-        ]
-        tweet_tokens = [
-            'the', 'quick', '#brown', 'fox', 'jumps', 'over', 'the', 'lazy',
-            'dog', ':-)'
-        ]
+        self.assertIn('reverse', str(transformer))
 
-        p = Preprocessor(tokenizer='default')
-        self.assertEqual(type(p.tokenizer), type(word_tokenize))
-        tokens = p(test_sentence)
-        self.assertEqual(tokens[0], default_tokens)
+    def test_lowercase(self):
+        transformer = preprocess.LowercaseTransformer()
+        self.assertEqual(transformer.transform('Abra'), 'abra')
+        self.assertEqual(transformer.transform('\u00C0bra'), '\u00E0bra')
 
-        p = Preprocessor(tokenizer='no_punct')
-        self.assertEqual(type(p.tokenizer),
-                         type(RegexpTokenizer(r'\w+').tokenize))
-        tokens = p(test_sentence)
-        self.assertEqual(tokens[0], no_punct_tokens)
+    def test_strip_accents(self):
+        transformer = preprocess.StripAccentsTransformer()
+        self.assertEqual(transformer.transform('Abra'), 'Abra')
+        self.assertEqual(transformer.transform('\u00C0bra'), 'Abra')
 
-        p = Preprocessor(tokenizer='twitter')
-        self.assertEqual(type(p.tokenizer), type(TweetTokenizer().tokenize))
-        tokens = p(test_sentence)
-        self.assertEqual(tokens[0], tweet_tokens)
+    def test_html(self):
+        transformer = preprocess.HtmlTransformer()
+        self.assertEqual(transformer('<p>abra<b>cadabra</b><p>'), 'abracadabra')
 
-        with self.assertRaises(ValueError):
-            Preprocessor(tokenizer='unsupported_value')
+
+class TokenNormalizerTests(unittest.TestCase):
+
+    def setUp(self):
+        self.stemmer = nltk.PorterStemmer().stem
+
+    def test_str(self):
+        stemmer = preprocess.PorterStemmer()
+        self.assertIn('porter', str(stemmer).lower())
+
+        stemmer = preprocess.SnowballStemmer('french')
+        self.assertIn('french', str(stemmer).lower())
+
+    def test_call(self):
+        word = "Testing"
+        tokens = ["Testing", "tokenized", "Sentence"]
+        stemmer = preprocess.PorterStemmer()
+        self.assertEqual(stemmer(word), self.stemmer(word))
+        self.assertEqual(stemmer(tokens),
+                         [self.stemmer(token) for token in tokens])
+
+    def test_function(self):
+        stemmer = preprocess.BaseNormalizer()
+        stemmer.normalizer = lambda x: x[:-1]
+        self.assertEqual(stemmer.normalize('token'), 'toke')
+
+    def test_snowball(self):
+        stemmer = preprocess.SnowballStemmer()
+        stemmer.language = 'french'
+        token = 'voudrais'
+        self.assertEqual(stemmer(token), nltk.SnowballStemmer(language='french').stem(token))
+
+    def test_porter_with_bad_input(self):
+        stemmer = preprocess.PorterStemmer()
+        self.assertRaises(TypeError, stemmer, 10)
+
+    def test_lookup_normalize(self):
+        dln = preprocess.DictionaryLookupNormalizer(dictionary={'aka': 'also known as'})
+        self.assertEqual(dln.normalize('aka'), 'also known as')
+
+    def test_on_change(self):
+        snowball = preprocess.SnowballStemmer()
+        snowball.on_change = counted(snowball.on_change)
+        snowball.language = 'french'
+        self.assertEqual(snowball.on_change.calls, 1)
+
+        dictionary = preprocess.DictionaryLookupNormalizer({})
+        dictionary.on_change = counted(dictionary.on_change)
+        dictionary.dictionary = {'a': 'b'}
+        self.assertEqual(snowball.on_change.calls, 1)
+
+
+class FilteringTests(unittest.TestCase):
+
+    def setUp(self):
+        self.corpus = Corpus.from_file('deerwester')
+
+    def test_str(self):
+        f = preprocess.StopwordsFilter('french')
+        self.assertIn('french', str(f).lower())
+
+        f = preprocess.FrequencyFilter(keep_n=None)
+        self.assertNotIn('none', str(f).lower())
+        f.max_df = .5
+        self.assertIn('0.5', str(f))
+        f.max_df = .2
+        self.assertIn('0.2', str(f))
+
+        f = preprocess.LexiconFilter()
+        self.assertIn('lexicon', str(f).lower())
+
+    def test_call(self):
+        class DigitsFilter(preprocess.BaseTokenFilter):
+            def check(self, token):
+                return not token.isdigit()
+
+        df = DigitsFilter()
+
+        self.assertEqual(df([]), [])
+        self.assertEqual(df(['a', '1']), ['a'])
+        self.assertEqual(df([['a', '1']]), [['a']])
+
+    def test_stopwords(self):
+        filter = preprocess.StopwordsFilter('english')
+
+        self.assertFalse(filter.check('a'))
+        self.assertTrue(filter.check('filter'))
+
+    def test_lexicon(self):
+        filter = preprocess.LexiconFilter(['filter'])
+        self.assertFalse(filter.check('false'))
+        self.assertTrue(filter.check('filter'))
+
+    def test_keep_n(self):
+        ff = preprocess.FrequencyFilter(keep_n=5)
+        p = Preprocessor(tokenizer=preprocess.RegexpTokenizer(r'\w+'),
+                         filters=[ff])
+        processed = p(self.corpus)
+        self.assertEqual(len(set(itertools.chain(*processed.tokens))), 5)
+
+    def test_min_df(self):
+        ff = preprocess.FrequencyFilter(min_df=.5)
+        p = Preprocessor(tokenizer=preprocess.RegexpTokenizer(r'\w+'),
+                         filters=[ff])
+        processed = p(self.corpus)
+        size = len(processed.documents)
+        self.assertFrequencyRange(processed, size * .5, size)
+
+        ff.min_df = 2
+        processed = p(self.corpus)
+        size = len(processed.documents)
+        self.assertFrequencyRange(processed, 2, size)
+
+    def test_max_df(self):
+        ff = preprocess.FrequencyFilter(max_df=.3)
+        p = Preprocessor(tokenizer=preprocess.RegexpTokenizer(r'\w+'),
+                         filters=[ff])
+        size = len(self.corpus.documents)
+
+        corpus = p(self.corpus)
+        self.assertFrequencyRange(corpus, 1, size * .3)
+
+        ff.max_df = 2
+        corpus = p(self.corpus)
+        self.assertFrequencyRange(corpus, 1, 2)
+
+    def test_on_change(self):
+        df_filter = preprocess.FrequencyFilter()
+        df_filter.on_change = counted(df_filter.on_change)
+
+        df_filter.min_df = .2
+        self.assertEqual(df_filter.on_change.calls, 1)
+
+        df_filter.max_df = .5
+        self.assertEqual(df_filter.on_change.calls, 2)
+
+        df_filter.keep_n = 100
+        self.assertEqual(df_filter.on_change.calls, 3)
+        self.assertEqual(df_filter.keep_n, 100)
+
+        stopwords = preprocess.StopwordsFilter()
+        stopwords.on_change = counted(stopwords.on_change)
+        stopwords.language = 'french'
+        self.assertEqual(stopwords.on_change.calls, 1)
+
+        lexicon = preprocess.LexiconFilter()
+        lexicon.on_change = counted(stopwords.on_change)
+        lexicon.lexicon = ['a', 'b', 'c']
+        self.assertEqual(lexicon.on_change.calls, 1)
+
+    def assertFrequencyRange(self, corpus, min_fr, max_fr):
+        dictionary = corpora.Dictionary(corpus.tokens)
+        self.assertTrue(all(min_fr <= fr <= max_fr
+                            for fr in dictionary.dfs.values()))
+
+    def test_word_list(self):
+        lexicon = preprocess.LexiconFilter()
+        f = tempfile.NamedTemporaryFile()
+        f.write(b'hello\nworld\n')
+        f.flush()
+        lexicon.from_file(f.name)
+        self.assertIn('hello', lexicon.lexicon)
+        self.assertIn('world', lexicon.lexicon)
+
+
+class TokenizerTests(unittest.TestCase):
+    def test_call(self):
+        class DashTokenizer(preprocess.BaseTokenizer):
+            @classmethod
+            def tokenize(cls, string):
+                return string.split('-')
+
+        tokenizer = DashTokenizer()
+        self.assertEqual(list(tokenizer('dashed-sentence')), ['dashed', 'sentence'])
+        self.assertEqual(list(tokenizer(['1-2-3', '-'])), [['1', '2', '3'], ['', '']])
+
+        self.assertRaises(TypeError, tokenizer, 1)
+
+    def test_tokenizer_instance(self):
+        class WhitespaceTokenizer(preprocess.BaseTokenizer):
+            tokenizer = nltk.WhitespaceTokenizer()
+            name = 'whitespace'
+
+        tokenizer = WhitespaceTokenizer()
+
+        sent = "Test \t tokenizer"
+        self.assertEqual(tokenizer.tokenize(sent),
+                         nltk.WhitespaceTokenizer().tokenize(sent))
+
+    def test_call_with_bad_input(self):
+        tokenizer = preprocess.RegexpTokenizer(pattern='\w+')
+        self.assertRaises(TypeError, tokenizer.tokenize, 1)
+        self.assertRaises(TypeError, tokenizer.tokenize, ['1', 2])
+
+    def test_valid_regexp(self):
+        self.assertTrue(preprocess.RegexpTokenizer.validate_regexp('\w+'))
+
+    def test_invalid_regex(self):
+        for expr in ['\\', '[', ')?']:
+            self.assertFalse(preprocess.RegexpTokenizer.validate_regexp(expr))
+
+    def test_on_change(self):
+        tokenizer = preprocess.RegexpTokenizer(pattern=r'\w+')
+        tokenizer.on_change = counted(tokenizer.on_change)
+        tokenizer.pattern = r'\S+'
+        self.assertEqual(tokenizer.on_change.calls, 1)
+        self.assertEqual(tokenizer.pattern, r'\S+')
+
+    def test_str(self):
+        tokenizer = preprocess.RegexpTokenizer(pattern=r'\S+')
+        self.assertIn('\S+', str(tokenizer))

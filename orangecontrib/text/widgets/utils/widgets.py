@@ -1,6 +1,9 @@
-from PyQt4.QtGui import QTextEdit, QComboBox, QWidget
-from PyQt4 import QtGui, QtCore
-from datetime import date
+import os
+
+from PyQt4.QtGui import (QComboBox, QWidget, QHBoxLayout, QPushButton, QStyle,
+                         QSizePolicy, QFileDialog, QLineEdit, QDoubleSpinBox,
+                         QSpinBox, QTextEdit)
+from PyQt4 import QtCore, QtGui
 
 
 class ListEdit(QTextEdit):
@@ -128,3 +131,247 @@ class DateInterval(QWidget):
         setattr(self.master, self.attribute, self.value)
         self.from_widget.setMaximumDate(self.to_widget.date())
         self.to_widget.setMinimumDate(self.from_widget.date())
+
+
+class FileWidget(QWidget):
+    default_size = (12, 20)
+    empty_file = '(none)'
+    start_path = os.path.expanduser('~/')
+    loading_error_signal = QtCore.pyqtSignal(str)
+    pathChanged = QtCore.pyqtSignal(str)
+
+    def __init__(self, recent=None, icon_size=None,
+                 dialog_title='', dialog_format='',
+                 callback=None):
+        super().__init__()
+        self.dialog_title = dialog_title
+        self.dialog_format = dialog_format
+        self.recent_files = recent if recent is not None else []
+        if self.empty_file not in self.recent_files:
+            self.recent_files.append(self.empty_file)
+        self.callback = callback
+
+        icon_size = icon_size or self.default_size
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+
+        self.file_combo = QComboBox()
+        self.file_combo.setMinimumWidth(200)
+        self.file_combo.activated[int].connect(self.select)
+        self.update_combo()
+        layout.addWidget(self.file_combo)
+
+        self.browse_button = QPushButton()
+        self.browse_button.setFocusPolicy(QtCore.Qt.NoFocus)
+        self.browse_button.clicked.connect(self.browse)
+        self.browse_button.setIcon(self.style()
+                                   .standardIcon(QStyle.SP_DirOpenIcon))
+        self.browse_button.setIconSize(QtCore.QSize(*icon_size))
+        self.browse_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        layout.addWidget(self.browse_button)
+
+        self.reload_button = QPushButton()
+        self.reload_button.setFocusPolicy(QtCore.Qt.NoFocus)
+        self.reload_button.clicked.connect(self.reload)
+        self.reload_button.setIcon(self.style()
+                                   .standardIcon(QStyle.SP_BrowserReload))
+        self.reload_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.reload_button.setIconSize(QtCore.QSize(*icon_size))
+        layout.addWidget(self.reload_button)
+
+    def update_combo(self):
+        self.file_combo.clear()
+        for file in self.recent_files:
+            self.file_combo.addItem(os.path.split(file)[1])
+
+    def select(self, n):
+        if n < len(self.recent_files):
+            name = self.recent_files[n]
+            del self.recent_files[n]
+            self.recent_files.insert(0, name)
+
+        if len(self.recent_files) > 0:
+            self.update_combo()
+            self.open_file(self.recent_files[0])
+
+    def browse(self):
+        path = QFileDialog().getOpenFileName(self, self.dialog_title,
+                                             self.start_path, self.dialog_format)
+        if not path:
+            return
+
+        if path in self.recent_files:
+            self.recent_files.remove(path)
+        self.recent_files.insert(0, path)
+        self.update_combo()
+        self.open_file(path)
+
+    def reload(self):
+        if self.recent_files:
+            self.select(0)
+
+    def open_file(self, path):
+        if path == self.empty_file:
+            self.pathChanged.emit('')
+        else:
+            self.pathChanged.emit(path)
+
+        try:
+            if self.callback:
+                self.callback(path if path != self.empty_file else None)
+        except (OSError, IOError):
+            self.loading_error_signal.emit('Could not open "{}".'
+                                           .format(path))
+
+
+class ValidatedLineEdit(QLineEdit):
+
+    invalid_input_signal = QtCore.pyqtSignal(str)
+
+    def __init__(self, master, attr, validator, *args):
+        super().__init__(*args)
+        self.master = master
+        self.attr = attr
+        self.validator = validator
+
+        self.setText(getattr(master, attr))
+        self.on_change()
+        self.textChanged.connect(self.on_change)
+
+    def on_change(self):
+        if self.validator(self.text()):
+            self.setStyleSheet("QLineEdit { border : 1px solid gray;}")
+            self.synchronize()
+        else:
+            self.setStyleSheet("QLineEdit { border : 2px solid red;}")
+            self.invalid_input_signal.emit("Invalid '{}' value.".format(self.attr))
+
+    def synchronize(self):
+        setattr(self.master, self.attr, self.text())
+
+
+class AbsoluteRelativeSpinBox(QWidget):
+
+    editingFinished = QtCore.pyqtSignal()
+    valueChanged = QtCore.pyqtSignal()
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args)
+        layout = QtGui.QStackedLayout(self)
+
+        self.double_spin = QDoubleSpinBox()
+        self.double_spin.valueChanged.connect(self.double_value_changed)
+        self.double_spin.editingFinished.connect(self.double_editing_finished)
+        layout.addWidget(self.double_spin)
+
+        self.int_spin = QSpinBox()
+        self.int_spin.setMaximum(10**4)
+        self.int_spin.valueChanged.connect(self.int_value_changed)
+        self.int_spin.editingFinished.connect(self.int_editing_finished)
+        layout.addWidget(self.int_spin)
+
+        self.setValue(kwargs.get('value', 0.))
+
+    def double_value_changed(self):
+        if self.double_spin.value() > 1:
+            self.layout().setCurrentIndex(1)
+            self.int_spin.setValue(self.double_spin.value())
+
+        self.valueChanged.emit()
+
+    def double_editing_finished(self):
+        if self.double_spin.value() <= 1.:
+            self.editingFinished.emit()
+
+    def int_value_changed(self):
+        if self.int_spin.value() == 0:
+            self.layout().setCurrentIndex(0)
+            self.double_spin.setValue(1. - self.double_spin.singleStep())
+        # There is no need to emit valueChanged signal.
+
+    def int_editing_finished(self):
+        if self.int_spin.value() > 0:
+            self.editingFinished.emit()
+
+    def value(self):
+        return self.int_spin.value() or self.double_spin.value()
+
+    def setValue(self, value):
+        if isinstance(value, int):
+            self.layout().setCurrentIndex(1)
+            self.int_spin.setValue(value)
+        else:
+            self.layout().setCurrentIndex(0)
+            self.double_spin.setValue(value)
+
+    def setSingleStep(self, step):
+        if isinstance(step, float):
+            self.double_spin.setSingleStep(step)
+        else:
+            self.int_spin.setSingleStep(step)
+
+
+class RangeWidget(QWidget):
+
+    valueChanged = QtCore.pyqtSignal()
+    editingFinished = QtCore.pyqtSignal()
+
+    def __init__(self, master, attribute, minimum=0., maximum=1., step=.05,
+                 min_label=None, max_label=None, allow_absolute=False, *args):
+        super().__init__(*args)
+        self.allow_absolute_values = allow_absolute
+        self.master = master
+        self.attribute = attribute
+        self.min = minimum
+        self.max = maximum
+        self.step = step
+
+        self.min_label = min_label
+        self.max_label = max_label
+        a, b = self.master_value()
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+
+        if self.allow_absolute_values:
+            SpinBox = AbsoluteRelativeSpinBox
+        else:
+            SpinBox = QDoubleSpinBox
+
+        self.min_spin = SpinBox(value=a)
+        self.min_spin.setSingleStep(self.step)
+        layout.addWidget(self.min_spin)
+
+        self.max_spin = SpinBox(value=b)
+        self.max_spin.setSingleStep(self.step)
+        layout.addWidget(self.max_spin)
+
+        self.min_spin.valueChanged.connect(self.valueChanged)
+        self.min_spin.editingFinished.connect(self.synchronize)
+        self.max_spin.valueChanged.connect(self.valueChanged)
+        self.max_spin.editingFinished.connect(self.synchronize)
+
+    def synchronize(self):
+        a, b = self.value()
+        if isinstance(self.attribute, str):
+            setattr(self.master, self.attribute, (a, b))
+        else:
+            setattr(self.master, self.attribute[0], a)
+            setattr(self.master, self.attribute[1], b)
+        self.set_range()
+        self.editingFinished.emit()
+
+    def master_value(self):
+        if isinstance(self.attribute, str):
+            return getattr(self.master, self.attribute)
+        return (getattr(self.master, self.attribute[0]),
+                getattr(self.master, self.attribute[1]))
+
+    def value(self):
+        return self.min_spin.value(), self.max_spin.value()
+
+    def set_range(self):
+        if not self.allow_absolute_values:
+            a, b = self.value
+            self.min_dspin.setRange(self.min, b)
+            self.max_spin.setRange(a, self.max)
