@@ -3,6 +3,7 @@ from itertools import chain
 
 from PyQt4 import QtGui
 
+from Orange.data.io import FileFormat
 from Orange.widgets.settings import Setting
 from Orange.widgets.widget import OWWidget
 from Orange.widgets import gui
@@ -24,7 +25,12 @@ class OWLoadCorpus(OWWidget):
     want_main_area = False
     resizing_enabled = False
 
-    dlgFormats = "Only tab files (*.tab)"
+    dlgFormats = (
+        "All readable files ({});;".format(
+            '*' + ' *'.join(FileFormat.readers.keys())) +
+        ";;".join("{} (*{})".format(f.DESCRIPTION, ' *'.join(f.EXTENSIONS))
+                  for f in sorted(set(FileFormat.readers.values()),
+                                  key=list(FileFormat.readers.values()).index)))
 
     recent_files = Setting(["(none)"])
 
