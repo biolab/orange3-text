@@ -37,7 +37,7 @@ class OWPubmed(OWWidget):
 
     QT_DATE_FORMAT = 'yyyy-MM-dd'
     PY_DATE_FORMAT = '%Y-%m-%d'
-    MIN_DATE = date(1851, 1, 1)
+    MIN_DATE = date(1800, 1, 1)
 
     # Settings.
     recent_emails = Setting([])
@@ -95,6 +95,12 @@ class OWPubmed(OWWidget):
                 self.MIN_DATE.strftime(self.PY_DATE_FORMAT),
                 self.QT_DATE_FORMAT
         )
+
+        if not self.pub_date_from:
+            self.pub_date_from = self.MIN_DATE.strftime(self.PY_DATE_FORMAT)
+        if not self.pub_date_to:
+            self.pub_date_to = date.today().strftime(self.PY_DATE_FORMAT)
+
         self.date_from = QDateEdit(
                 QDate.fromString(self.pub_date_from, self.QT_DATE_FORMAT),
                 displayFormat=self.QT_DATE_FORMAT,
@@ -107,9 +113,7 @@ class OWPubmed(OWWidget):
                 minimumDate=min_date,
                 calendarPopup=True
         )
-        # Only set to today if no previous setting is available.
-        if self.pub_date_to == '':
-            self.date_to.setDate(QDate(date.today()))
+
         self.date_from.dateChanged.connect(
             lambda date: setattr(self, 'pub_date_from',
                                  date.toString(self.QT_DATE_FORMAT)))
@@ -337,7 +341,7 @@ class OWPubmed(OWWidget):
             if field_name
         ]
 
-        batch_size = min(Pubmed.MAX_BATCH_SIZE, self.num_records)
+        batch_size = min(Pubmed.MAX_BATCH_SIZE, self.num_records) + 1
         with self.progressBar(self.num_records/batch_size) as progress:
             self.progress = progress
             self.output_corpus = self.pubmed_api._retrieve_records(

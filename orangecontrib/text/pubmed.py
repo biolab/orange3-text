@@ -54,6 +54,7 @@ def _date_to_iso(date):
 
     season_mapping = {
         'fall': 'Sep',
+        'autumn': 'Sep',
         'winter': 'Dec',
         'spring': 'Mar',
         'summer': 'Jun',
@@ -79,7 +80,7 @@ def _date_to_iso(date):
             'Could not parse "{}" into a date.'.format(date),
             RuntimeWarning
     )
-    return np.nan
+    return time_var.parse(np.nan)
 
 
 def _records_to_corpus_entries(records, includes_metadata):
