@@ -147,6 +147,7 @@ class FileWidget(QWidget):
         self.dialog_title = dialog_title
         self.dialog_format = dialog_format
         self.recent_files = recent if recent is not None else []
+        self._check_files_exist()
         if self.empty_file not in self.recent_files:
             self.recent_files.append(self.empty_file)
         self.callback = callback
@@ -223,6 +224,14 @@ class FileWidget(QWidget):
         except (OSError, IOError):
             self.loading_error_signal.emit('Could not open "{}".'
                                            .format(path))
+
+    def _check_files_exist(self):
+        to_remove = [
+            file for file in self.recent_files
+            if not os.path.exists(file)
+        ]
+        for file in to_remove:
+            self.recent_files.remove(file)
 
 
 class ValidatedLineEdit(QLineEdit):
