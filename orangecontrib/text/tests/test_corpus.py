@@ -156,6 +156,37 @@ class CorpusTests(unittest.TestCase):
             first_attr = c.domain.attributes[0].str_val(first_attr)
             self.assertIn(first_attr, d)
 
+    def test_getitem(self):
+        c = Corpus.from_file('bookexcerpts')
+
+        # without preprocessing
+        self.assertEqual(len(c[:, :]), len(c))
+
+        # run default preprocessing
+        c.tokens
+
+        sel = c[:, :]
+        self.assertEqual(sel, c)
+
+        sel = c[0]
+        self.assertEqual(len(sel), 1)
+        self.assertEqual(len(sel._tokens), 1)
+        np.testing.assert_equal(sel._tokens, np.array([c._tokens[0]]))
+        self.assertEqual(sel._dictionary, c._dictionary)
+
+        sel = c[0:5]
+        self.assertEqual(len(sel), 5)
+        self.assertEqual(len(sel._tokens), 5)
+        np.testing.assert_equal(sel._tokens, c._tokens[0:5])
+        self.assertEqual(sel._dictionary, c._dictionary)
+
+        ind = [3, 4, 5, 6]
+        sel = c[ind]
+        self.assertEqual(len(sel), len(ind))
+        self.assertEqual(len(sel._tokens), len(ind))
+        np.testing.assert_equal(sel._tokens, c._tokens[ind])
+        self.assertEqual(sel._dictionary, c._dictionary)
+
     def test_asserting_errors(self):
         c = Corpus.from_file('bookexcerpts')
 
@@ -171,3 +202,7 @@ class CorpusTests(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             c.set_text_features([c.domain.metas[0], c.domain.metas[0]])
+
+        c.tokens    # preprocess
+        with self.assertRaises(TypeError):
+            c[..., 0]
