@@ -136,19 +136,33 @@ class DateInterval(QWidget):
 class FileWidget(QWidget):
     default_size = (12, 20)
     empty_file = '(none)'
-    start_path = os.path.expanduser('~/')
+    start_dir = os.path.expanduser('~/')
     loading_error_signal = QtCore.pyqtSignal(str)
     pathChanged = QtCore.pyqtSignal(str)
 
     def __init__(self, recent=None, icon_size=None,
                  dialog_title='', dialog_format='',
-                 callback=None):
+                 callback=None, directory_aliases=None,
+                 allow_empty=True, show_labels=False):
+        """ Creates a widget with combo box for recent files and Browse and Reload buttons.
+
+        Args:
+            recent (List[str]): List of recent files.
+            icon_size (int, int): The size of buttons' icons.
+            dialog_title (str): The title of an open file dialog.
+            dialog_format (str): Formats for file dialog.
+            callback (callable): A function that accepts filepath as the only argument.
+            directory_aliases (dict): An {alias: dir} dictionary for fast directories' access.
+            allow_empty (bool): Whether empty path is allowed.
+            show_labels (bool): Whether to show text along with the buttons' icons.
+        """
         super().__init__()
         self.dialog_title = dialog_title
         self.dialog_format = dialog_format
+        self.directory_aliases = directory_aliases or {}
+        self.allow_empty = allow_empty
         self.recent_files = recent if recent is not None else []
-        if self.empty_file not in self.recent_files:
-            self.recent_files.append(self.empty_file)
+        self._check_files_exist()
         self.callback = callback
 
         icon_size = icon_size or self.default_size
@@ -162,7 +176,7 @@ class FileWidget(QWidget):
         self.update_combo()
         layout.addWidget(self.file_combo)
 
-        self.browse_button = QPushButton()
+        self.browse_button = QPushButton('Browse' if show_labels else '')
         self.browse_button.setFocusPolicy(QtCore.Qt.NoFocus)
         self.browse_button.clicked.connect(self.browse)
         self.browse_button.setIcon(self.style()
@@ -171,7 +185,7 @@ class FileWidget(QWidget):
         self.browse_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         layout.addWidget(self.browse_button)
 
-        self.reload_button = QPushButton()
+        self.reload_button = QPushButton('Reload' if show_labels else '')
         self.reload_button.setFocusPolicy(QtCore.Qt.NoFocus)
         self.reload_button.clicked.connect(self.reload)
         self.reload_button.setIcon(self.style()
@@ -185,19 +199,31 @@ class FileWidget(QWidget):
         for file in self.recent_files:
             self.file_combo.addItem(os.path.split(file)[1])
 
+        if self.allow_empty or not self.recent_files:
+            self.file_combo.addItem(self.empty_file)
+
+        for alias in self.directory_aliases.keys():
+            self.file_combo.addItem(alias)
+
     def select(self, n):
+        name = self.file_combo.currentText()
         if n < len(self.recent_files):
             name = self.recent_files[n]
             del self.recent_files[n]
             self.recent_files.insert(0, name)
+        elif name == self.empty_file:
+            self.open_file(None)
+        elif name in self.directory_aliases:
+            self.browse(self.directory_aliases[name])
 
         if len(self.recent_files) > 0:
             self.update_combo()
             self.open_file(self.recent_files[0])
 
-    def browse(self):
+    def browse(self, start_dir=None):
+        start_dir = start_dir if start_dir else self.start_dir
         path = QFileDialog().getOpenFileName(self, self.dialog_title,
-                                             self.start_path, self.dialog_format)
+                                             start_dir, self.dialog_format)
         if not path:
             return
 
@@ -211,11 +237,8 @@ class FileWidget(QWidget):
         if self.recent_files:
             self.select(0)
 
-    def open_file(self, path):
-        if path == self.empty_file:
-            self.pathChanged.emit('')
-        else:
-            self.pathChanged.emit(path)
+    def open_file(self, path=None):
+        self.pathChanged.emit(path)
 
         try:
             if self.callback:
@@ -223,6 +246,14 @@ class FileWidget(QWidget):
         except (OSError, IOError):
             self.loading_error_signal.emit('Could not open "{}".'
                                            .format(path))
+
+    def _check_files_exist(self):
+        to_remove = [
+            file for file in self.recent_files
+            if not os.path.exists(file)
+        ]
+        for file in to_remove:
+            self.recent_files.remove(file)
 
 
 class ValidatedLineEdit(QLineEdit):

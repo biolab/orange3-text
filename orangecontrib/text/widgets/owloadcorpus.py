@@ -1,7 +1,4 @@
-import os
 from itertools import chain
-
-from PyQt4 import QtGui
 
 from Orange.data.io import FileFormat
 from Orange.widgets.settings import Setting
@@ -9,6 +6,7 @@ from Orange.widgets.widget import OWWidget
 from Orange.widgets import gui
 from Orange.widgets.data.owselectcolumns import VariablesListItemModel, VariablesListItemView
 from orangecontrib.text.corpus import Corpus, get_sample_corpora_dir
+from orangecontrib.text.widgets.utils import widgets
 
 
 class Output:
@@ -32,35 +30,20 @@ class OWLoadCorpus(OWWidget):
                   for f in sorted(set(FileFormat.readers.values()),
                                   key=list(FileFormat.readers.values()).index)))
 
-    recent_files = Setting(["(none)"])
+    recent_files = Setting([])
 
     def __init__(self):
         super().__init__()
 
         self.corpus = None
 
-        # Refresh recent files
-        self.recent_files = [fn for fn in self.recent_files
-                             if os.path.exists(fn)]
-
         # Browse file box
         fbox = gui.widgetBox(self.controlArea, "Corpus file", orientation=0)
-
-        # Drop-down for recent files
-        self.file_combo = QtGui.QComboBox(fbox)
-        self.file_combo.setMinimumWidth(300)
-        fbox.layout().addWidget(self.file_combo)
-        self.file_combo.activated[int].connect(self.select_file)
-
-        # Browse button
-        browse = gui.button(fbox, self, 'Browse', callback=self.browse_file)
-        browse.setIcon(self.style().standardIcon(QtGui.QStyle.SP_DirOpenIcon))
-        browse.setSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
-
-        # Reload button
-        reload = gui.button(fbox, self, "Reload", callback=self.reload, default=True)
-        reload.setIcon(self.style().standardIcon(QtGui.QStyle.SP_BrowserReload))
-        reload.setSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
+        widget = widgets.FileWidget(self.recent_files, icon_size=(16, 16), callback=self.open_file,
+                                    directory_aliases={"Browse documentation corpora ...": get_sample_corpora_dir()},
+                                    dialog_format=self.dlgFormats, dialog_title='Open Orange Document Corpus',
+                                    allow_empty=False, show_labels=True)
+        fbox.layout().addWidget(widget)
 
         # Corpus info
         ibox = gui.widgetBox(self.controlArea, "Corpus info", addSpace=True)
@@ -87,68 +70,31 @@ class OWLoadCorpus(OWWidget):
         self.unused_attrs_view.setModel(self.unused_attrs)
         ibox.layout().addWidget(self.unused_attrs_view)
 
-        # Load the most recent file
-        self.set_file_list()
-        if len(self.recent_files) > 0:
-            self.open_file(self.recent_files[0])
-
-    def set_file_list(self):
-        self.file_combo.clear()
-        if not self.recent_files:
-            self.file_combo.addItem("(none)")
-        for file in self.recent_files:
-            if file == "(none)":
-                self.file_combo.addItem("(none)")
-            else:
-                self.file_combo.addItem(os.path.split(file)[1])
-        self.file_combo.addItem("Browse documentation corpora ...")
-
-    def reload(self):
-        if self.recent_files:
-            return self.open_file(self.recent_files[0])
-
-    def select_file(self, n):
-        if n < len(self.recent_files) :
-            name = self.recent_files[n]
-            del self.recent_files[n]
-            self.recent_files.insert(0, name)
-        elif n:
-            self.browse_file(True)
-
-        if len(self.recent_files) > 0:
-            self.set_file_list()
-            self.open_file(self.recent_files[0])
-
-    def browse_file(self, demos_loc=False):
-        start_file = os.path.expanduser("~/")
-        if demos_loc:
-            start_file = get_sample_corpora_dir()
-        filename = QtGui.QFileDialog.getOpenFileName(
-            self, 'Open Orange Document Corpus', start_file, self.dlgFormats)
-        if not filename:
-            return
-        if filename in self.recent_files:
-            self.recent_files.remove(filename)
-        self.recent_files.insert(0, filename)
-        self.set_file_list()
-        self.open_file(filename)
-
     def open_file(self, path):
         self.error(1, '')
         self.used_attrs[:] = []
         self.unused_attrs[:] = []
-
-        try:
-            self.corpus = Corpus.from_file(path)
-            self.info_label.setText("Corpus of {} documents.".format(len(self.corpus)))
-            self.used_attrs.extend(self.corpus.text_features)
-            self.unused_attrs.extend([f for f in chain(self.corpus.domain.variables,
-                                                       self.corpus.domain.metas)
-                                      if f not in self.corpus.text_features])
-        except BaseException as err:
-            self.error(1, str(err))
+        if path:
+            try:
+                self.corpus = Corpus.from_file(path)
+                self.info_label.setText("Corpus of {} documents.".format(len(self.corpus)))
+                self.used_attrs.extend(self.corpus.text_features)
+                self.unused_attrs.extend([f for f in chain(self.corpus.domain.variables,
+                                                           self.corpus.domain.metas)
+                                          if f not in self.corpus.text_features])
+            except BaseException as err:
+                self.error(1, str(err))
 
     def update_feature_selection(self):
         if self.corpus is not None:
             self.corpus.set_text_features(list(self.used_attrs))
             self.send(Output.CORPUS, self.corpus)
+
+
+if __name__ == '__main__':
+    from PyQt4.QtGui import QApplication
+    app = QApplication([])
+    widget = OWLoadCorpus()
+    widget.show()
+    app.exec()
+    widget.saveSettings()
