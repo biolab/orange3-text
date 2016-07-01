@@ -6,7 +6,6 @@ from Orange.widgets import gui
 from Orange.data import Table
 from Orange.widgets.data.contexthandlers import DomainContextHandler
 from orangecontrib.text.corpus import Corpus
-from orangecontrib.text.preprocess import Preprocessor
 from orangecontrib.text.lda import LDA
 from orangecontrib.text.topics import Topics
 
@@ -17,7 +16,6 @@ class Output:
 
 
 class OWLDA(OWWidget):
-    # Basic widget info
     name = "Topic Modelling"
     description = "Topic modelling with Latent Dirichlet Allocation."
     icon = "icons/LDA.svg"
@@ -142,3 +140,13 @@ class LDATreeWidgetItem(QtGui.QTreeWidgetItem):
 
         self.setText(0, '{:d}'.format(topic_id+1))
         self.setText(1, ', '.join(words))
+
+
+if __name__ == '__main__':
+    from PyQt4.QtGui import QApplication
+    app = QApplication([])
+    widget = OWLDA()
+    widget.set_data(Corpus.from_file('bookexcerpts'))
+    widget.show()
+    app.exec()
+    widget.saveSettings()
