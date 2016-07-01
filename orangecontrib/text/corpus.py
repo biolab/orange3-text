@@ -1,5 +1,6 @@
 import os
 import copy
+from numbers import Integral
 from itertools import chain
 
 import numpy as np
@@ -176,7 +177,7 @@ class Corpus(Table):
         Args:
             tokens (list): List of lists containing tokens.
         """
-        self._tokens = tokens
+        self._tokens = np.array(tokens)
         self._dictionary = dictionary or corpora.Dictionary(self.tokens)
 
     @property
@@ -233,11 +234,28 @@ class Corpus(Table):
         c._dictionary = copy.copy(self._dictionary)
         return c
 
+    def __getitem__(self, key):
+        c = super().__getitem__(key)
+
+        if self._tokens is not None:    # retain preprocessing
+            if isinstance(key, tuple):  # get row selection
+                key = key[0]
+            if isinstance(key, Integral):
+                c._tokens = np.array([self._tokens[key]])
+            elif isinstance(key, list) or isinstance(key, np.ndarray) or isinstance(key, slice):
+                c._tokens = self._tokens[key]
+            else:
+                raise TypeError('Indexing by type {} not supported.'.format(type(key)))
+            c._dictionary = self._dictionary
+        return c
+
     def __len__(self):
         return len(self.metas)
 
     def __eq__(self, other):
         return (self.text_features == other.text_features and
+                self._dictionary == other._dictionary and
+                np.array_equal(self._tokens, other._tokens) and
                 np.array_equal(self.X, other.X) and
                 np.array_equal(self.Y, other.Y) and
                 np.array_equal(self.metas, other.metas) and

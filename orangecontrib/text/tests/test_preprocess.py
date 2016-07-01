@@ -4,6 +4,7 @@ import unittest
 import itertools
 import nltk
 from gensim import corpora
+import numpy as np
 
 from orangecontrib.text import preprocess
 from orangecontrib.text.corpus import Corpus
@@ -31,12 +32,14 @@ class PreprocessTests(unittest.TestCase):
                 return string[:-1]
         p = Preprocessor(transformers=StripStringTransformer())
 
-        self.assertEqual(p(self.corpus).tokens, [[doc[:-1]] for doc in self.corpus.documents])
+        np.testing.assert_equal(p(self.corpus).tokens,
+                                np.array([[doc[:-1]] for doc in self.corpus.documents]))
 
         p = Preprocessor(transformers=[StripStringTransformer(),
                                        preprocess.LowercaseTransformer()])
 
-        self.assertEqual(p(self.corpus).tokens, [[doc[:-1].lower()] for doc in self.corpus.documents])
+        np.testing.assert_equal(p(self.corpus).tokens,
+                                np.array([[doc[:-1].lower()] for doc in self.corpus.documents]))
 
         self.assertRaises(TypeError, Preprocessor, string_transformers=1)
 
@@ -47,8 +50,8 @@ class PreprocessTests(unittest.TestCase):
                 return string.split()
         p = Preprocessor(tokenizer=SpaceTokenizer())
 
-        self.assertEqual(p(self.corpus).tokens,
-                         [sent.split() for sent in self.corpus.documents])
+        np.testing.assert_equal(p(self.corpus).tokens,
+                         np.array([sent.split() for sent in self.corpus.documents]))
 
     def test_token_normalizer(self):
         class CapTokenNormalizer(preprocess.BaseNormalizer):
@@ -57,8 +60,8 @@ class PreprocessTests(unittest.TestCase):
                 return token.capitalize()
         p = Preprocessor(normalizer=CapTokenNormalizer())
 
-        self.assertEqual(p(self.corpus).tokens,
-                         [[sent.capitalize()] for sent in self.corpus.documents])
+        np.testing.assert_equal(p(self.corpus).tokens,
+                                np.array([[sent.capitalize()] for sent in self.corpus.documents]))
 
     def test_token_filter(self):
         class SpaceTokenizer(preprocess.BaseTokenizer):
@@ -72,9 +75,9 @@ class PreprocessTests(unittest.TestCase):
                 return len(token) < 4
 
         p = Preprocessor(tokenizer=SpaceTokenizer(), filters=LengthFilter())
-        self.assertEqual(p(self.corpus).tokens,
-                         [[token for token in doc.split() if len(token) < 4]
-                          for doc in self.corpus.documents])
+        np.testing.assert_equal(p(self.corpus).tokens,
+                         np.array([[token for token in doc.split() if len(token) < 4]
+                                   for doc in self.corpus.documents]))
 
 
 class TransformationTests(unittest.TestCase):
