@@ -2,6 +2,7 @@ import os
 from numbers import Integral
 from itertools import chain
 
+import nltk
 import numpy as np
 from scipy.sparse import issparse, hstack
 from gensim import corpora
@@ -54,6 +55,7 @@ class Corpus(Table):
         self.text_features = None    # list of text features for mining
         self._tokens = None
         self._dictionary = None
+        self.ngram_range = (1, 1)
         self.attributes = {}
 
         if domain is not None and text_features is None:
@@ -182,7 +184,7 @@ class Corpus(Table):
     @property
     def tokens(self):
         """
-        Return a list of lists containing tokens. If tokens are not yet
+        np.ndarray: Return a list of lists containing tokens. If tokens are not yet
         present, run default preprocessor and save tokens.
         """
         if self._tokens is None:
@@ -196,6 +198,9 @@ class Corpus(Table):
 
     @property
     def dictionary(self):
+        """
+        corpora.Dictionary: A token to id mapper.
+        """
         if self._dictionary is None:
             self._apply_base_preprocessor()
         return self._dictionary
@@ -225,12 +230,27 @@ class Corpus(Table):
         table = Table.from_file(filename)
         return cls(table.X, table.Y, table.metas, table.domain, None)
 
+    def ngrams_iterator(self, join_with=' '):
+        if join_with is None:
+            return (list(chain(*(nltk.ngrams(doc, n)
+                    for n in range(self.ngram_range[0], self.ngram_range[1]+1))))
+                    for doc in self.tokens)
+        else:
+            return (list(chain(*((join_with.join(ngram) for ngram in nltk.ngrams(doc, n))
+                    for n in range(self.ngram_range[0], self.ngram_range[1]+1))))
+                    for doc in self.tokens)
+
+    @property
+    def ngrams(self):
+        return self.ngrams_iterator(join_with=' ')
+
     def copy(self):
         """Return a copy of the table."""
         c = self.__class__(self.X, self.Y, self.metas, self.domain, self.text_features)
         c.ensure_copy()
         c._tokens = self._tokens
         c._dictionary = self._dictionary
+        c.ngram_range = self.ngram_range
         return c
 
     def __getitem__(self, key):
@@ -258,4 +278,5 @@ class Corpus(Table):
                 np.array_equal(self.X, other.X) and
                 np.array_equal(self.Y, other.Y) and
                 np.array_equal(self.metas, other.metas) and
-                self.domain == other.domain)
+                self.domain == other.domain and
+                self.ngram_range == other.ngram_range)
