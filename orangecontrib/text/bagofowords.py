@@ -1,8 +1,11 @@
+from functools import partial
+from collections import OrderedDict
+
 import nltk
 import numpy as np
+from sklearn.preprocessing import normalize
+from gensim import corpora, matutils, models
 from simhash import Simhash
-
-from sklearn.feature_extraction import text
 
 from orangecontrib.text.corpus import Corpus
 
@@ -10,69 +13,88 @@ from orangecontrib.text.corpus import Corpus
 __all__ = ['CountVectorizer', 'TfidfVectorizer', 'SimhashVectorizer']
 
 
-class SklearnVectorizerMixin:
-
-    def fit(self, data, y=None):
-        if isinstance(data, Corpus):
-            return super().fit(data.tokens, y)
-        return super().fit(data, y)
-
-    def fit_transform(self, corpus, y=None):
-        if isinstance(corpus, Corpus):
-            matrix = super().fit_transform(corpus.tokens, y)
-            return self.__extend_corpus(corpus, matrix)
-        return super().fit_transform(corpus, y)
-
-    def transform(self, corpus):
-        if isinstance(corpus, Corpus):
-            matrix = super().transform(corpus.tokens)
-            return self.__extend_corpus(corpus, matrix)
-        return super().transform(corpus)
-
-    def __extend_corpus(self, corpus, matrix):
-        new_corpus = corpus.copy()
-        new_corpus.extend_attributes(matrix, sorted(self.vocabulary_.keys()),
-                                     var_attrs={'hidden': True})
-        return new_corpus
-
-
-class CountVectorizer(SklearnVectorizerMixin, text.CountVectorizer):
+class CountVectorizer:
     name = 'Count Vectorizer'
 
-    def __init__(self, binary=False, ngram_range=(1, 1)):
-        super().__init__(input='content', encoding='utf-8',
-                         decode_error='strict', strip_accents=None,
-                         lowercase=False, preprocessor=lambda x: x, tokenizer=lambda x: x,
-                         stop_words=None, token_pattern=r"(?u)\b\w\w+\b",
-                         ngram_range=ngram_range, analyzer='word',
-                         max_df=1.0, min_df=1, max_features=None,
-                         vocabulary=None, binary=binary, dtype=np.int64)
+    def __init__(self, binary=False):
+        self.binary = binary
+
+    def transform(self, corpus):
+        corpus = corpus.copy()
+        dic = corpora.Dictionary(corpus.ngrams_iterator(join_with=' '), prune_at=None)
+        X = matutils.corpus2csc(map(dic.doc2bow, corpus.ngrams_iterator(' '))).T
+
+        if self.binary:
+            X[X > 1] = 1
+
+        order = np.argsort([dic[i] for i in range(len(dic))])
+        corpus.extend_attributes(X[:, order],
+                                 feature_names=(dic[i] for i in order),
+                                 var_attrs={'hidden': True})
+        return corpus
 
     def report(self):
-        return (('N-gram range', self.ngram_range),
-                ('Binary', self.binary))
+        return ('Binary', self.binary),
 
 
-class TfidfVectorizer(SklearnVectorizerMixin, text.TfidfVectorizer):
+class TfidfVectorizer:
     name = 'Tfidf Vectorizer'
 
-    def __init__(self, binary=False, norm='l2', use_idf=True, smooth_idf=True,
-                 sublinear_tf=False, ngram_range=(1, 1)):
-        super().__init__(input='content', encoding='utf-8',
-                         decode_error='strict', strip_accents=None, lowercase=False,
-                         preprocessor=lambda x: x, tokenizer=lambda x: x, analyzer='word',
-                         stop_words=None, token_pattern=r"(?u)\b\w\w+\b",
-                         ngram_range=ngram_range, max_df=1.0, min_df=1,
-                         max_features=None, vocabulary=None, binary=binary,
-                         dtype=np.int64, norm=norm, use_idf=use_idf, smooth_idf=smooth_idf,
-                         sublinear_tf=sublinear_tf)
+    IDENTITY = 'Identity'
+    SMOOTH = 'Smooth'
+    BINARY = 'Binary'
+    SUBLINEAR = 'Sublinear'
+    NONE = '(None)'
+    L1 = 'L1 (Sum of elements)'
+    L2 = 'L2 (Euclidean)'
+
+    norms = OrderedDict((
+        (NONE, None),
+        (L1, partial(normalize, norm='l1')),
+        (L2, partial(normalize, norm='l2')),
+    ))
+
+    wlocals = OrderedDict((
+        (IDENTITY, lambda x: x),
+        (BINARY, lambda x: int(x > 0)),
+        (SUBLINEAR, lambda x: 1 + np.log(x)),
+    ))
+
+    wglobals = OrderedDict((
+        (IDENTITY, lambda idf, D: idf),
+        (SMOOTH, lambda idf, D: idf + 1),
+    ))
+
+    def __init__(self, norm=NONE, wlocal=IDENTITY, wglobal=IDENTITY):
+        self.norm = norm
+        self.wlocal = wlocal
+        self.wglobal = wglobal
+
+    def transform(self, corpus):
+        result = corpus.copy()
+
+        corpus = list(result.ngrams_iterator(join_with=' '))
+        dic = corpora.Dictionary(corpus, prune_at=None)
+        corpus = [dic.doc2bow(doc) for doc in corpus]
+        model = models.TfidfModel(corpus, normalize=False,
+                                  wlocal=self.wlocals[self.wlocal],
+                                  wglobal=self.wglobals[self.wglobal])
+
+        X = matutils.corpus2csc(model[corpus], dtype=np.float).T
+        norm = self.norms[self.norm]
+        if norm:
+            X = norm(X)
+
+        order = np.argsort([dic[i] for i in range(len(dic))])
+        result.extend_attributes(X[:, order],
+                                 feature_names=(dic[i] for i in order),
+                                 var_attrs={'hidden': True})
+        return result
 
     def report(self):
-        return (('N-gram range', self.ngram_range),
-                ('Binary', self.binary),
-                ('Use idf', self.use_idf),
-                ('Smooth idf', self.smooth_idf),
-                ('Sublinear tf', self.sublinear_tf))
+        return (('Norm', self.norm),
+                ('Tf transformation', self.wlocal),
+                ('Idf transformation', self.wglobal))
 
 
 class SimhashVectorizer:
