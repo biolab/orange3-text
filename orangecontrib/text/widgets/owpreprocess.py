@@ -487,7 +487,7 @@ class OWPreprocess(OWWidget):
         self.buttonsArea.layout().addWidget(commit_button)
 
     def set_data(self, data=None):
-        self.corpus = data
+        self.corpus = data.copy() if data else None
         self.commit()
 
     def update_info(self, corpus=None):
@@ -506,7 +506,7 @@ class OWPreprocess(OWWidget):
 
     def apply(self):
         self.progressBarInit()
-        output = self.preprocessor(self.corpus)
+        output = self.preprocessor(self.corpus, inplace=True)
         self.progressBarFinished()
         self.send(Output.PP_CORPUS, output)
         self.update_info(output)
