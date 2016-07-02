@@ -31,7 +31,10 @@ class Preprocessor:
         self.progress = 0
         self._report_frequency = 1
 
-    def __call__(self, corpus):
+    def __call__(self, corpus, inplace=True):
+        if not inplace:
+            corpus = corpus.copy()
+
         self.progress = 1
         self._report_frequency = len(corpus) // 80 or 1
         self._len = len(corpus) / 80

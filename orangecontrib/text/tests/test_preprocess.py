@@ -79,6 +79,20 @@ class PreprocessTests(unittest.TestCase):
                          np.array([[token for token in doc.split() if len(token) < 4]
                                    for doc in self.corpus.documents]))
 
+    def test_inplace(self):
+        p = Preprocessor(tokenizer=preprocess.RegexpTokenizer('\w'))
+        corpus = p(self.corpus, inplace=True)
+        self.assertIs(corpus, self.corpus)
+
+        corpus = p(self.corpus, inplace=False)
+        self.assertIsNot(corpus, self.corpus)
+        self.assertEqual(corpus, self.corpus)
+
+        p = Preprocessor(tokenizer=preprocess.RegexpTokenizer('\w+'))
+        corpus = p(self.corpus, inplace=False)
+        self.assertIsNot(corpus, self.corpus)
+        self.assertNotEqual(corpus, self.corpus)
+
 
 class TransformationTests(unittest.TestCase):
     def test_call(self):
