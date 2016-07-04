@@ -9,6 +9,7 @@ import Orange
 from Orange.data import Table
 from Orange.data.domain import Domain, StringVariable
 
+from orangecontrib.text import preprocess
 from orangecontrib.text.corpus import Corpus
 
 
@@ -206,3 +207,17 @@ class CorpusTests(unittest.TestCase):
         c.tokens    # preprocess
         with self.assertRaises(TypeError):
             c[..., 0]
+
+    def test_copy(self):
+        corpus = Corpus.from_file('deerwester')
+
+        p = preprocess.Preprocessor(tokenizer=preprocess.RegexpTokenizer('\w+\s}'))
+        copied = corpus.copy()
+        p(copied, inplace=True)
+        self.assertIsNot(copied, corpus)
+        self.assertNotEqual(copied, corpus)
+
+        p(corpus, inplace=True)
+        copied = corpus.copy()
+        self.assertIsNot(copied, corpus)
+        self.assertEqual(copied, corpus)

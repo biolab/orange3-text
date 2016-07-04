@@ -1,5 +1,4 @@
 import os
-import copy
 from numbers import Integral
 from itertools import chain
 
@@ -230,8 +229,8 @@ class Corpus(Table):
         """Return a copy of the table."""
         c = self.__class__(self.X, self.Y, self.metas, self.domain, self.text_features)
         c.ensure_copy()
-        c._tokens = copy.copy(self._tokens)
-        c._dictionary = copy.copy(self._dictionary)
+        c._tokens = self._tokens
+        c._dictionary = self._dictionary
         return c
 
     def __getitem__(self, key):
