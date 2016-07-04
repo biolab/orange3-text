@@ -12,6 +12,7 @@ Welcome to Orange3 Text Mining documentation!
 
    widgets/corpus
    widgets/nytimes
+   widgets/guardian
    widgets/twitter
    widgets/wikipedia
    widgets/pubmed
@@ -32,6 +33,7 @@ Welcome to Orange3 Text Mining documentation!
    scripting/preprocess.rst
    scripting/twitter.rst
    scripting/nyt.rst
+   scripting/guardian.rst
    scripting/wikipedia.rst
    scripting/topicmodeling.rst
    scripting/tag.rst
