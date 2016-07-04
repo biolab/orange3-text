@@ -21,7 +21,14 @@ class ListEdit(QTextEdit):
 
     def synchronize(self):
         if self.master and self.attr:
-            setattr(self.master, self.attr, self.toPlainText().split('\n'))
+            setattr(self.master, self.attr, self.value())
+
+    def value(self):
+        return self.text.split('\n') if self.text else []
+
+    @property
+    def text(self):
+        return self.toPlainText().strip()
 
 
 class CheckListLayout(QtGui.QGroupBox):

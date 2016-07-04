@@ -152,7 +152,7 @@ class OWTwitter(OWWidget):
 
     CONTENT, AUTHOR, CONTENT_AUTHOR = 0, 1, 2
     recent_api_keys = Setting([])
-    word_list = Setting('')
+    word_list = Setting([])
     mode = Setting(0)
     limited_search = Setting(True)
     max_tweets = Setting(100)
@@ -301,8 +301,8 @@ class OWTwitter(OWWidget):
             if not self.advance:
                 self.api.reset()
             self.search_button.setText("Stop")
-            word_list = self.word_list if self.mode in [self.CONTENT, self.CONTENT_AUTHOR] else []
-            authors = self.word_list if self.mode in [self.AUTHOR, self.CONTENT_AUTHOR] else []
+            word_list = self.word_list if self.mode in [self.CONTENT, self.CONTENT_AUTHOR] else None
+            authors = self.word_list if self.mode in [self.AUTHOR, self.CONTENT_AUTHOR] else None
 
             self.api.search(max_tweets=self.max_tweets if self.limited_search else 0,
                             word_list=word_list, authors=authors, lang=self.language,
