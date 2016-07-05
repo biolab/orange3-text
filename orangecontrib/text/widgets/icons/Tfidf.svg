@@ -1,0 +1,15 @@
+<svg width="400" height="400" xmlns="http://www.w3.org/2000/svg">
+    <g>
+        <title>background</title>
+        <rect fill="none" id="canvas_background" height="402" width="402" y="-1" x="-1"/>
+        <g display="none" overflow="visible" y="0" x="0" height="100%" width="100%" id="canvasGrid">
+            <rect fill="url(#gridpattern)" stroke-width="0" y="0" x="0" height="100%" width="100%"/>
+        </g>
+    </g>
+    <g>
+        <title>text</title>
+        <text style="cursor: move;" stroke="#222" transform="matrix(61.571741247130376,0,0,55.57409235354316,-3382.0476089690246,-4606.194414969205) "
+              xml:space="preserve" text-anchor="start" font-family="'Shadows Into Light', serif"
+              font-size="2" id="svg_1" y="87.2" x="55" stroke-width="0" fill="#333">TF·IDF</text>
+    </g>
+</svg>
