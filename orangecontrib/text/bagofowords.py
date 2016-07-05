@@ -23,6 +23,9 @@ class BagOfWords():
 
         self.dictionary = corpus.dictionary
 
+        if len(self.dictionary) == 0:
+            return corpus
+
         # Term frequencies.
         bag_of_words = [self.dictionary.doc2bow(i) for i in corpus.tokens]
 
