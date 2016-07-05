@@ -346,3 +346,8 @@ class TokenizerTests(unittest.TestCase):
     def test_str(self):
         tokenizer = preprocess.RegexpTokenizer(pattern=r'\S+')
         self.assertIn('\S+', str(tokenizer))
+
+    def test_skip_empty_strings(self):
+        tokenizer = preprocess.RegexpTokenizer(pattern=r'[^h ]*')
+        tokens = tokenizer('whatever')
+        self.assertNotIn('', tokens)
