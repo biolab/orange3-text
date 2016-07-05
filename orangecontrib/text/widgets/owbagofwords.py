@@ -3,7 +3,7 @@ from PyQt4.QtGui import QApplication, QVBoxLayout
 from Orange.widgets import gui
 from Orange.widgets import settings
 
-from orangecontrib.text import bagofowords
+from orangecontrib.text.vectorization import CountVectorizer
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.widgets.utils import owbasevectorizer
 
@@ -14,7 +14,7 @@ class OWBagOfWords(owbasevectorizer.OWBaseVectorizer):
     icon = 'icons/BagOfWords.svg'
     priority = 40
 
-    Method = bagofowords.CountVectorizer
+    Method = CountVectorizer
 
     binary = settings.Setting(False)
 

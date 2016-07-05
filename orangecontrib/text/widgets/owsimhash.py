@@ -2,7 +2,7 @@ from PyQt4.QtGui import QApplication, QFormLayout
 
 from Orange.widgets import gui
 from Orange.widgets import settings
-from orangecontrib.text import bagofowords
+from orangecontrib.text.vectorization import SimhashVectorizer
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.widgets.utils import owbasevectorizer
 
@@ -13,7 +13,7 @@ class OWSimhash(owbasevectorizer.OWBaseVectorizer):
     icon = 'icons/Simhash.svg'
     priority = 44
 
-    Method = bagofowords.SimhashVectorizer
+    Method = SimhashVectorizer
 
     f = settings.Setting(64)
     shingle_len = settings.Setting(10)
@@ -22,7 +22,7 @@ class OWSimhash(owbasevectorizer.OWBaseVectorizer):
         layout = QFormLayout()
 
         spin = gui.spin(self, self, 'f', minv=1,
-                        maxv=bagofowords.SimhashVectorizer.max_f)
+                        maxv=SimhashVectorizer.max_f)
         spin.editingFinished.connect(self.on_change)
         layout.addRow('Simhash size:', spin)
 

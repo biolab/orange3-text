@@ -1,8 +1,7 @@
 from PyQt4.QtGui import QApplication, QGridLayout, QLabel
 
-from Orange.widgets import gui
 from Orange.widgets import settings
-from orangecontrib.text.bagofowords import TfidfVectorizer
+from orangecontrib.text.vectorization import TfidfVectorizer
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.widgets.utils import widgets
 from orangecontrib.text.widgets.utils import owbasevectorizer
