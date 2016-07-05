@@ -17,7 +17,7 @@ class BaseTokenizer:
         return self.tokenize_sents(sent)
 
     def tokenize(self, string):
-        return self.tokenizer.tokenize(string)
+        return list(filter(lambda x: x != '', self.tokenizer.tokenize(string)))
 
     def tokenize_sents(self, strings):
         return [self.tokenize(string) for string in strings]
