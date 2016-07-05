@@ -303,14 +303,16 @@ class FilteringModule(MultipleMethodModule):
     methods = [
         preprocess.StopwordsFilter,
         preprocess.LexiconFilter,
+        preprocess.RegexpFilter,
         preprocess.FrequencyFilter,
         DummyKeepN,
     ]
     checked = settings.Setting([0])
     STOPWORDS = 0
     LEXICON = 1
-    FREQUENCY = 2
-    KEEP_N = 3
+    REGEXP = 2
+    FREQUENCY = 3
+    KEEP_N = 4
     dlgFormats = 'Only text files (*.txt)'
 
     stopwords_language = settings.Setting('english')
@@ -318,6 +320,7 @@ class FilteringModule(MultipleMethodModule):
     recent_sw_files = settings.Setting([])
     recent_lexicon_files = settings.Setting([])
 
+    pattern = settings.Setting('\.|,|:|!|\?')
     min_df = settings.Setting(0.)
     max_df = settings.Setting(1.)
     keep_n = settings.Setting(10**5)
@@ -338,7 +341,6 @@ class FilteringModule(MultipleMethodModule):
                                  dialog_format=self.dlgFormats,
                                  callback=self.read_stopwords_file)
         box.select(0)
-
         self.method_layout.addWidget(box, self.STOPWORDS, 2, 1, 1)
 
         box = widgets.FileWidget(self.recent_lexicon_files,
@@ -347,6 +349,11 @@ class FilteringModule(MultipleMethodModule):
                                  callback=self.read_lexicon_file)
         box.select(0)
         self.method_layout.addWidget(box, self.LEXICON, 2, 1, 1)
+
+        pattern_edit = widgets.ValidatedLineEdit(self, 'pattern',
+                                              validator=preprocess.RegexpFilter.validate_regexp)
+        pattern_edit.editingFinished.connect(self.pattern_changed)
+        self.method_layout.addWidget(pattern_edit, self.REGEXP, 1, 1, 2)
 
         range_widget = widgets.RangeWidget(None, self, ('min_df', 'max_df'),
                                            minimum=0., maximum=1., step=0.05,
@@ -362,6 +369,13 @@ class FilteringModule(MultipleMethodModule):
     @property
     def frequency_filter(self):
         return self.methods[self.FREQUENCY]
+
+    def pattern_changed(self):
+        if self.methods[self.REGEXP].pattern != self.pattern:
+            self.methods[self.REGEXP].pattern = self.pattern
+
+            if self.REGEXP in self.checked:
+                self.change_signal.emit()
 
     def get_value(self):
         self.checked = [i for i, button in enumerate(self.buttons) if button.isChecked()]

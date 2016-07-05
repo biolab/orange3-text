@@ -1,9 +1,10 @@
 import os
 
+import re
 from gensim import corpora
 from nltk.corpus import stopwords
 
-__all__ = ['BaseTokenFilter', 'StopwordsFilter', 'LexiconFilter', 'FrequencyFilter']
+__all__ = ['BaseTokenFilter', 'StopwordsFilter', 'LexiconFilter', 'RegexpFilter', 'FrequencyFilter']
 
 
 class BaseTokenFilter:
@@ -105,6 +106,38 @@ class LexiconFilter(BaseTokenFilter, WordListMixin):
 
     def __str__(self):
         return '{} ({})'.format(self.name, 'File: {}'.format(self.file_path))
+
+
+class RegexpFilter(BaseTokenFilter):
+    name = 'Regexp'
+
+    def __init__(self, pattern=r'\.|,|:|!|\?'):
+        self._pattern = pattern
+        self.regex = re.compile(self.pattern)
+
+    @property
+    def pattern(self):
+        return self._pattern
+
+    @pattern.setter
+    def pattern(self, value):
+        self._pattern = value
+        self.regex = re.compile(self.pattern)
+        self.on_change()
+
+    @staticmethod
+    def validate_regexp(regexp):
+        try:
+            re.compile(regexp)
+            return True
+        except re.error:
+            return False
+
+    def check(self, token):
+        return not self.regex.match(token)
+
+    def __str__(self):
+        return '{} ({})'.format(self.name, self.pattern)
 
 
 class FrequencyFilter(LexiconFilter):

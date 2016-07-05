@@ -299,6 +299,20 @@ class FilteringTests(unittest.TestCase):
         self.assertIn('hello', lexicon.lexicon)
         self.assertIn('world', lexicon.lexicon)
 
+    def test_regex_filter(self):
+        reg_filter = preprocess.RegexpFilter(r'.')
+        filtered = reg_filter(self.corpus.tokens[0])
+        self.assertFalse(filtered)
+
+        reg_filter.pattern = 'foo'
+        self.assertCountEqual(reg_filter(['foo', 'bar']), ['bar'])
+
+        reg_filter.pattern = '^http'
+        self.assertCountEqual(reg_filter(['https', 'http', ' http']), [' http'])
+
+        self.assertFalse(preprocess.RegexpFilter.validate_regexp('?'))
+        self.assertTrue(preprocess.RegexpFilter.validate_regexp('\?'))
+
 
 class TokenizerTests(unittest.TestCase):
     def test_call(self):
