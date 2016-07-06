@@ -36,6 +36,7 @@ class OnOffButton(QtGui.QPushButton):
         super().__init__(*__args)
         self.on_icon = QtGui.QIcon(_i(on_button))
         self.off_icon = QtGui.QIcon(_i(off_button))
+        self.setAutoDefault(False)      # do not toggle on Enter
         self.setFlat(True)
         self.setIconSize(QtCore.QSize(*size))
         self.setStyleSheet('border:none')
