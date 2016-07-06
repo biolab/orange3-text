@@ -33,6 +33,13 @@ class BagOfWordsTests(unittest.TestCase):
         self.assertEqual(self.progress_callbacks, 4)
         self.assertEqual(self.error_callbacks, 0)
 
+    def test_empty_tokens(self):
+        corpus = Corpus.from_file('deerwester')
+        corpus.text_features = []
+        bag_of_words = self.bow(corpus)
+
+        self.assertIs(corpus, bag_of_words)
+
     def test_bow_exceptions(self):
         self.assertRaises(
             ValueError,
