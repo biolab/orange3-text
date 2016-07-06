@@ -70,6 +70,9 @@ class OWLoadCorpus(OWWidget):
         self.unused_attrs_view.setModel(self.unused_attrs)
         ibox.layout().addWidget(self.unused_attrs_view)
 
+        # load first file
+        widget.select(0)
+
     def open_file(self, path):
         self.error(1, '')
         self.used_attrs[:] = []
