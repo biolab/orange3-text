@@ -11,3 +11,4 @@ tweepy
 beautifulsoup4
 simhash
 wikipedia
+keyring
