@@ -147,7 +147,6 @@ class PreprocessorModule(gui.OWComponent, QWidget):
         # Activated when the widget is enabled/disabled.
         self.enabled = not self.enabled
         self.display_widget()
-        self.change_signal.emit()
 
     def display_widget(self):
         if self.enabled:
