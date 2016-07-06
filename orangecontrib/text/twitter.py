@@ -118,8 +118,13 @@ class TwitterAPI:
         if word_list is None:
             word_list = []
 
-        query = " OR ".join(['"{}"'.format(q) for q in word_list] +
-                            ['from:{}'.format(user) for user in authors])
+        if not word_list and not authors:
+            # allows empty queries
+            query = "from: "
+        else:
+            query = " OR ".join(['"{}"'.format(q) for q in word_list] +
+                                ['from:{}'.format(user) for user in authors])
+
         if since:
             query += ' since:' + since.strftime('%Y-%m-%d')
         if until:
