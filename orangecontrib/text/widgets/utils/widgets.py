@@ -356,7 +356,8 @@ class RangeWidget(QWidget):
     editingFinished = QtCore.pyqtSignal()
 
     def __init__(self, master, attribute, minimum=0., maximum=1., step=.05,
-                 min_label=None, max_label=None, allow_absolute=False, *args):
+                 min_label=None, max_label=None, allow_absolute=False, dtype=float,
+                 callback=None, *args):
         super().__init__(*args)
         self.allow_absolute_values = allow_absolute
         self.master = master
@@ -374,20 +375,32 @@ class RangeWidget(QWidget):
         if self.allow_absolute_values:
             SpinBox = AbsoluteRelativeSpinBox
         else:
-            SpinBox = QDoubleSpinBox
+            if dtype == float:
+                SpinBox = QDoubleSpinBox
+            else:
+                SpinBox = QSpinBox
+
+        if self.min_label:
+            layout.addWidget(QtGui.QLabel(self.min_label))
 
         self.min_spin = SpinBox(value=a)
         self.min_spin.setSingleStep(self.step)
         layout.addWidget(self.min_spin)
 
+        if self.max_label:
+            layout.addWidget(QtGui.QLabel(self.max_label))
+
         self.max_spin = SpinBox(value=b)
         self.max_spin.setSingleStep(self.step)
         layout.addWidget(self.max_spin)
 
+        self.set_range()
         self.min_spin.valueChanged.connect(self.valueChanged)
         self.min_spin.editingFinished.connect(self.synchronize)
         self.max_spin.valueChanged.connect(self.valueChanged)
         self.max_spin.editingFinished.connect(self.synchronize)
+        if callback:
+            self.valueChanged.connect(callback)
 
     def synchronize(self):
         a, b = self.value()
@@ -410,6 +423,6 @@ class RangeWidget(QWidget):
 
     def set_range(self):
         if not self.allow_absolute_values:
-            a, b = self.value
-            self.min_dspin.setRange(self.min, b)
+            a, b = self.value()
+            self.min_spin.setRange(self.min, b)
             self.max_spin.setRange(a, self.max)
