@@ -348,7 +348,7 @@ class FilteringModule(MultipleMethodModule):
         box.select(0)
         self.method_layout.addWidget(box, self.LEXICON, 2, 1, 1)
 
-        range_widget = widgets.RangeWidget(self, ('min_df', 'max_df'),
+        range_widget = widgets.RangeWidget(None, self, ('min_df', 'max_df'),
                                            minimum=0., maximum=1., step=0.05,
                                            allow_absolute=True)
         range_widget.setToolTip(preprocess.FrequencyFilter.tooltip)

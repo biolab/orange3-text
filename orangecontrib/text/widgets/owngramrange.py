@@ -30,10 +30,8 @@ class OWNgramRange(OWWidget):
 
         box = gui.hBox(self.controlArea, 'Options')
 
-        range_box = widgets.RangeWidget(self, 'ngram_range', minimum=1, maximum=10, step=1,
-                                        min_label='N-grams range:', dtype=int,
-                                        callback=self.on_change)
-        box.layout().addWidget(range_box)
+        widgets.RangeWidget(box, self, 'ngram_range', minimum=1, maximum=10, step=1,
+                            min_label='N-grams range:', dtype=int, callback=self.on_change)
 
         gui.auto_commit(self.buttonsArea, self, 'autocommit', 'Commit', box=False)
 

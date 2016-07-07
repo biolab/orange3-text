@@ -355,10 +355,12 @@ class RangeWidget(QWidget):
     valueChanged = QtCore.pyqtSignal()
     editingFinished = QtCore.pyqtSignal()
 
-    def __init__(self, master, attribute, minimum=0., maximum=1., step=.05,
+    def __init__(self, widget, master, attribute, minimum=0., maximum=1., step=.05,
                  min_label=None, max_label=None, allow_absolute=False, dtype=float,
                  callback=None, *args):
         super().__init__(*args)
+        if widget:
+            widget.layout().addWidget(self)
         self.allow_absolute_values = allow_absolute
         self.master = master
         self.attribute = attribute
