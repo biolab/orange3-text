@@ -8,6 +8,7 @@ from scipy.sparse import issparse, hstack
 from gensim import corpora
 
 from Orange.data import Table, Domain, ContinuousVariable
+from orangecontrib.text.vectorization import CountVectorizer
 
 
 def get_sample_corpora_dir():
@@ -55,6 +56,8 @@ class Corpus(Table):
         self.text_features = None    # list of text features for mining
         self._tokens = None
         self._dictionary = None
+        self._ngrams_dictionary = None
+        self._ngrams_matrix = None
         self.ngram_range = (1, 1)
         self.attributes = {}
 
@@ -239,6 +242,26 @@ class Corpus(Table):
             return (list(chain(*((join_with.join(ngram) for ngram in nltk.ngrams(doc, n))
                     for n in range(self.ngram_range[0], self.ngram_range[1]+1))))
                     for doc in self.tokens)
+
+    @property
+    def ngrams_dictionary(self):
+        if self._ngrams_dictionary is None:
+            CountVectorizer().transform(self, copy=False)
+        return self._ngrams_dictionary
+
+    @ngrams_dictionary.setter
+    def ngrams_dictionary(self, value):
+        self._ngrams_dictionary = value
+
+    @property
+    def ngrams_matrix(self):
+        if self._ngrams_matrix is None:
+            CountVectorizer().transform(self, copy=False)
+        return self._ngrams_matrix
+
+    @ngrams_matrix.setter
+    def ngrams_matrix(self, value):
+        self._ngrams_matrix = value
 
     @property
     def ngrams(self):
