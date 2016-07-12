@@ -85,6 +85,10 @@ class CorpusTests(unittest.TestCase):
         c2 = Corpus(c.X, c.Y, c.metas, broken_domain, new_meta)
         self.assertNotEqual(c, c2)
 
+        c2 = c.copy()
+        c2.ngram_range = (2, 4)
+        self.assertNotEqual(c, c2)
+
     def test_from_table(self):
         t = Table.from_file('brown-selected')
         self.assertIsInstance(t, Table)
@@ -221,3 +225,18 @@ class CorpusTests(unittest.TestCase):
         copied = corpus.copy()
         self.assertIsNot(copied, corpus)
         self.assertEqual(copied, corpus)
+
+    def test_ngrams_iter(self):
+        c = Corpus.from_file('deerwester')
+        c.ngram_range = (1, 1)
+        self.assertEqual(list(c.ngrams), [doc.lower().split() for doc in c.documents])
+        expected = [[(token.lower(), ) for token in doc.split()] for doc in c.documents]
+        self.assertEqual(list(c.ngrams_iterator(join_with=None)), expected)
+        c.ngram_range = (2, 3)
+
+        expected_ngrams = [('machine', 'interface'), ('for', 'lab'),
+                           ('machine', 'interface', 'for'), ('abc', 'computer', 'applications')]
+
+        for ngram in expected_ngrams:
+            self.assertIn(ngram, list(c.ngrams_iterator(join_with=None))[0])
+            self.assertIn('-'.join(ngram), list(c.ngrams_iterator(join_with='-'))[0])
