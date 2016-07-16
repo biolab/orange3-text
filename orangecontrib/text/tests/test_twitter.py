@@ -151,6 +151,9 @@ class TestTwitterAPI(unittest.TestCase):
         query = self.api.build_query(until=date(2016, 10, 9))
         self.assertIn('until:2016-10-09', query)
 
+        query = self.api.build_query(word_list=['hello', 'world'], allow_retweets=False)
+        self.assertIn(' -filter:retweets', query)
+
 
 @mock.patch('tweepy.Cursor', MyCursor)
 class TestSearch(unittest.TestCase):
