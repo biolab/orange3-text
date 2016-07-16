@@ -1,5 +1,6 @@
 from gensim import matutils
 import numpy as np
+from gensim.corpora import Dictionary
 
 from Orange.data import StringVariable, ContinuousVariable, Domain
 from Orange.data.table import Table
@@ -34,6 +35,13 @@ class GensimWrapper:
     Model = NotImplemented
     num_topics = NotImplemented
 
+    def __init__(self, **kwargs):
+        for k, v in kwargs.items():
+            setattr(self, k, v)
+        self.kwargs = kwargs
+        self.model = None
+        self.topic_names = []
+
     def fit(self, corpus, progress_callback=None):
         """ Train the model with the corpus.
 
@@ -47,21 +55,28 @@ class GensimWrapper:
         self.topic_names = ['Topic{} ({})'.format(i, ', '.join(words))
                             for i, words in enumerate(self._topics_words(3), 1)]
 
+    def dummy_method(self, *args, **kwargs):
+        pass
+
     def reset_model(self, corpus):
-        self.model = self.Model(id2word=corpus.ngrams_dictionary)
+        # prevent model from updating
+        _update = self.Model.update
+        self.Model.update = self.dummy_method
+        self.id2word = Dictionary(corpus.ngrams, prune_at=None)
+        self.model = self.Model(corpus=corpus,
+                                id2word=self.id2word, **self.kwargs)
+        self.Model.update = _update
 
     def update(self, corpus, progress_callback=None):
-        gcorpus = matutils.Sparse2Corpus(corpus.ngrams_matrix.T)
-
-        for i, chunk in enumerate(chunks(gcorpus, np.ceil(len(corpus) / 100))):
+        for i, chunk in enumerate(chunks(corpus.ngrams_corpus, np.ceil(len(corpus) / 100))):
             self.model.update(chunk)
             if progress_callback:
                 progress_callback(i)
 
     def transform(self, corpus):
         """ Create a table with topics representation. """
-        topics = self.model[matutils.Sparse2Corpus(corpus.ngrams_matrix.T)]
-        matrix = matutils.corpus2dense(topics,
+        topics = self.model[corpus.ngrams_corpus]
+        matrix = matutils.corpus2dense(topics, num_docs=len(corpus),
                                        num_terms=self.num_topics).T
 
         corpus.extend_attributes(matrix[:, :len(self.topic_names)], self.topic_names)

@@ -148,7 +148,7 @@ class OWTopicModeling(OWWidget):
         self.mainArea.layout().addWidget(self.topic_desc)
 
     def set_data(self, data=None):
-        self.corpus = data.copy()
+        self.corpus = data
         self.apply()
 
     def commit(self):

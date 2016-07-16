@@ -56,8 +56,7 @@ class Corpus(Table):
         self.text_features = None    # list of text features for mining
         self._tokens = None
         self._dictionary = None
-        self._ngrams_dictionary = None
-        self._ngrams_matrix = None
+        self._ngrams_corpus = None
         self.ngram_range = (1, 1)
         self.attributes = {}
 
@@ -244,24 +243,14 @@ class Corpus(Table):
                     for doc in self.tokens)
 
     @property
-    def ngrams_dictionary(self):
-        if self._ngrams_dictionary is None:
+    def ngrams_corpus(self):
+        if self._ngrams_corpus is None:
             CountVectorizer().transform(self, copy=False)
-        return self._ngrams_dictionary
+        return self._ngrams_corpus
 
-    @ngrams_dictionary.setter
-    def ngrams_dictionary(self, value):
-        self._ngrams_dictionary = value
-
-    @property
-    def ngrams_matrix(self):
-        if self._ngrams_matrix is None:
-            CountVectorizer().transform(self, copy=False)
-        return self._ngrams_matrix
-
-    @ngrams_matrix.setter
-    def ngrams_matrix(self, value):
-        self._ngrams_matrix = value
+    @ngrams_corpus.setter
+    def ngrams_corpus(self, value):
+        self._ngrams_corpus = value
 
     @property
     def ngrams(self):
