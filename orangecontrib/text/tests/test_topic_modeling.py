@@ -57,9 +57,9 @@ class LDATests(unittest.TestCase, BaseTests):
             self.model.get_topics_table_by_id(6)
 
     def test_fit_transform(self):
-        topics = super().test_fit_transform()
-        self.assertEqual(len(topics.domain.attributes), 5)
-        self.assertEqual(topics.X.shape, (len(self.corpus), 5))
+        corpus = super().test_fit_transform()
+        self.assertEqual(len(corpus.domain.attributes), 5 + len(corpus.dictionary))
+        self.assertEqual(corpus.X.shape, (len(self.corpus), 5 + len(corpus.dictionary)))
 
 
 class HdpTest(unittest.TestCase, BaseTests):

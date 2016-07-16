@@ -64,16 +64,8 @@ class GensimWrapper:
         matrix = matutils.corpus2dense(topics,
                                        num_terms=self.num_topics).T
 
-        # Generate the new table.
-        attr = [ContinuousVariable(n) for n in self.topic_names]
-        domain = Domain(attr,
-                        corpus.domain.class_vars,
-                        metas=corpus.domain.metas)
-
-        return Table.from_numpy(domain,
-                                matrix,
-                                Y=corpus._Y,
-                                metas=corpus.metas)
+        corpus.extend_attributes(matrix[:, :len(self.topic_names)], self.topic_names)
+        return corpus
 
     def fit_transform(self, corpus, progress_callback=None):
         self.fit(corpus, progress_callback)
