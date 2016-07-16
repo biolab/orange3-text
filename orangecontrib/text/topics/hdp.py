@@ -18,6 +18,7 @@ class HdpWrapper(GensimWrapper):
 
     def __init__(self, **kwargs):
         self.kwargs = kwargs
+        self.model = None
 
     def reset_model(self, corpus):
         self.model = self.Model(corpus=corpus,
@@ -25,4 +26,4 @@ class HdpWrapper(GensimWrapper):
 
     @property
     def num_topics(self):
-        return self.model.m_lambda.shape[0]
+        return self.model.m_lambda.shape[0] if self.model else 0
