@@ -14,61 +14,62 @@ class TopicWidget(gui.OWComponent, QtGui.QGroupBox):
     Model = NotImplemented
     valueChanged = QtCore.pyqtSignal(object)
 
+    parameters = ()
+    spin_format = '{description}:'
+
     def __init__(self, master, **kwargs):
         QtGui.QGroupBox.__init__(self, **kwargs)
         gui.OWComponent.__init__(self, master)
         self.model = self.create_model()
+        QVBoxLayout(self)
+        for parameter, description, minv, maxv, step, _type in self.parameters:
+            spin = gui.spin(self, self, parameter, minv=minv, maxv=maxv, step=step,
+                            label=self.spin_format.format(description=description, parameter=parameter),
+                            labelWidth=220, spinType=_type)
+            spin.editingFinished.connect(self.on_change)
 
     def on_change(self):
         self.model = self.create_model()
         self.valueChanged.emit(self)
 
     def create_model(self):
-        raise NotImplementedError
+        return self.Model(**{par[0]: getattr(self, par[0]) for par in self.parameters})
+
+    def report_model(self):
+        return self.model.name, ((par[1], getattr(self, par[0])) for par in self.parameters)
 
 
 class LdaWidget(TopicWidget):
     Model = LdaWrapper
+
+    parameters = (
+        ('num_topics', 'Number of topics', 1, 500, 1, int),
+    )
     num_topics = settings.Setting(10)
-
-    def __init__(self, widget, **kwargs):
-        super().__init__(widget, **kwargs)
-        QVBoxLayout(self)
-        spin = gui.spin(self, self, 'num_topics', minv=1, maxv=1000, step=1,
-                        label='Number of topics: ')
-        spin.editingFinished.connect(self.on_change)
-
-    def create_model(self):
-        return self.Model(num_topics=self.num_topics)
 
 
 class LsiWidget(TopicWidget):
     Model = LsiWrapper
+
+    parameters = (
+        ('num_topics', 'Number of topics', 1, 500, 1, int),
+    )
     num_topics = settings.Setting(10)
-
-    def __init__(self, widget, **kwargs):
-        super().__init__(widget, **kwargs)
-        QVBoxLayout(self)
-        spin = gui.spin(self, self, 'num_topics', minv=1, maxv=1000, step=1,
-                        label='Number of topics: ')
-        spin.editingFinished.connect(self.on_change)
-
-    def create_model(self):
-        return self.Model(num_topics=self.num_topics)
 
 
 class HdpWidget(TopicWidget):
     Model = HdpWrapper
 
-    parameters = {
-        'gamma': 'First level concentration',
-        'alpha': 'Second level concentration',
-        'eta': 'The topic Dirichlet',
-        'T': 'Top level truncation level',
-        'K': 'Second level truncation level',
-        'kappa': 'Learning rate',
-        'tau': 'Slow down parameter'
-    }
+    spin_format = '{description}: ({parameter})'
+    parameters = (
+        ('gamma', 'First level concentration', .1, 10, .5, float),
+        ('alpha', 'Second level concentration', 1, 10, 1, int),
+        ('eta', 'The topic Dirichlet', 0.001, .5, .01, float),
+        ('T', 'Top level truncation level', 10, 150, 1, int),
+        ('K', 'Second level truncation level', 1, 50, 1, int),
+        ('kappa', 'Learning rate', .1, 10., .1, float),
+        ('tau', 'Slow down parameter', 16., 256., 1., float),
+    )
     gamma = settings.Setting(1)
     alpha = settings.Setting(1)
     eta = settings.Setting(.01)
@@ -76,18 +77,6 @@ class HdpWidget(TopicWidget):
     K = settings.Setting(15)
     kappa = settings.Setting(1)
     tau = settings.Setting(64)
-
-    def __init__(self, widget, **kwargs):
-        super().__init__(widget, **kwargs)
-        QVBoxLayout(self)
-        for parameter, description in self.parameters.items():
-            spin = gui.spin(self, self, parameter, minv=0, maxv=100, step=.1,
-                            labelWidth=220, label='{} ({}):'.format(description, parameter),
-                            spinType=int)
-            spin.editingFinished.connect(self.on_change)
-
-    def create_model(self):
-        return self.Model(**{param: getattr(self, param) for param in self.parameters})
 
 
 class Output:
@@ -149,9 +138,6 @@ class OWTopicModeling(OWWidget):
         button_group.button(self.method_index).setChecked(True)
         self.toggle_widgets()
         method_layout.addStretch()
-
-        # self.update_button = gui.button(self, self, 'Update', callback=self.update_model)
-        # self.controlArea.layout().addWidget(self.update_button)
 
         # Commit button
         gui.auto_commit(self.buttonsArea, self, 'autocommit', 'Commit', box=False)
@@ -224,7 +210,7 @@ class OWTopicModeling(OWWidget):
         self.progressBarFinished()
 
     def send_report(self):
-        self.report_items(self.model.name, self.model.report())
+        self.report_items(*self.widgets[self.method_index].report_model())
 
     def send_topic_by_id(self, topic_id):
         self.send(Output.TOPICS, self.model.get_topics_table_by_id(topic_id))
@@ -284,13 +270,10 @@ class LearningThread(QtCore.QThread):
         self.result_callback = result_callback
         self.model = model
         self.corpus = corpus
-        self.running = False
         self.kwargs = kwargs
 
     def run(self):
-        self.running = True
         result = self.model.fit_transform(self.corpus, **self.kwargs)
-        self.running = False
         self.result_callback(result)
 
 
