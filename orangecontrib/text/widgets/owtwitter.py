@@ -157,6 +157,7 @@ class OWTwitter(OWWidget):
     limited_search = Setting(True)
     max_tweets = Setting(100)
     language = Setting(None)
+    allow_retweets = Setting(False)
     advance = Setting(False)
     include = Setting(False)
     includeON = Setting(True)
@@ -224,6 +225,12 @@ class OWTwitter(OWWidget):
         mode.addItem('Content & Author')
         layout.addWidget(QtGui.QLabel('Search by:'), row, 0, 1, self.label_width)
         layout.addWidget(mode, row, self.label_width, 1, self.widgets_width)
+
+        # Retweets
+        row += 1
+        check = gui.checkBox(self, self, 'allow_retweets', '')
+        layout.addWidget(QtGui.QLabel('Allow\nretweets:'), row, 0, 1, self.label_width)
+        layout.addWidget(check, row, self.label_width, 1, 1)
 
         # Time interval
         row += 1
@@ -306,7 +313,8 @@ class OWTwitter(OWWidget):
 
             self.api.search(max_tweets=self.max_tweets if self.limited_search else 0,
                             word_list=word_list, authors=authors, lang=self.language,
-                            since=self.date_interval[0], until=self.date_interval[1])
+                            since=self.date_interval[0], until=self.date_interval[1],
+                            allow_retweets=self.allow_retweets)
         else:
             self.api.disconnect()
             self.search_button.setText("Search")

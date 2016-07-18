@@ -111,7 +111,7 @@ class TwitterAPI:
         return self.container.values()
 
     @staticmethod
-    def build_query(word_list=None, authors=None, since=None, until=None):
+    def build_query(word_list=None, authors=None, since=None, until=None, allow_retweets=True):
         if authors is None:
             authors = []
 
@@ -130,13 +130,16 @@ class TwitterAPI:
         if until:
             query += ' until:' + until.strftime('%Y-%m-%d')
 
+        if not allow_retweets:
+            query += ' -filter:retweets'
+
         return query
 
     def search(self, *, word_list=None, authors=None, max_tweets=None, lang=None,
-               since=None, until=None):
+               since=None, until=None, allow_retweets=True):
         """ Search for tweets with the given criteria. """
         query = self.build_query(word_list=word_list, authors=authors,
-                                 since=since, until=until)
+                                 since=since, until=until, allow_retweets=allow_retweets)
 
         self.task = SearchTask(self, q=query, lang=lang, max_tweets=max_tweets)
         self.history.append(self.task)
