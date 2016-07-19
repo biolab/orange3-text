@@ -2,22 +2,50 @@ import os
 
 from PyQt4.QtGui import (QComboBox, QWidget, QHBoxLayout, QPushButton, QStyle,
                          QSizePolicy, QFileDialog, QLineEdit, QDoubleSpinBox,
-                         QSpinBox, QTextEdit)
+                         QSpinBox, QTextEdit, QColor)
 from PyQt4 import QtCore, QtGui
 
 
 class ListEdit(QTextEdit):
+    PLACEHOLDER_COLOR = QColor(128, 128, 128)
+    USER_TEXT_COLOR = QColor(0, 0, 0)
 
-    def __init__(self, master=None, attr=None, *args):
+    def __init__(self, master=None, attr=None, placeholder_text=None, *args):
         super().__init__(*args)
         self.master = master
         self.attr = attr
+        self.placeholder_text = placeholder_text
 
         if self.master and self.attr:
             self.setText('\n'.join(getattr(self.master, self.attr, [])))
 
+        self.set_placeholder()
         self.textChanged.connect(self.synchronize)
-        self.setToolTip('Separate queries with a newline.')
+
+    def set_placeholder(self):
+        """ Set placeholder if there is no user input. """
+        if self.toPlainText() == '':
+            self.setFontItalic(True)
+            self.setTextColor(self.PLACEHOLDER_COLOR)
+            self.setText(self.placeholder_text)
+
+    def toPlainText(self):
+        """ Return only text input from user. """
+        text = super().toPlainText()
+        if self.placeholder_text is not None and text == self.placeholder_text:
+            text = ''
+        return text
+
+    def focusInEvent(self, event):
+        super().focusInEvent(event)
+        if self.toPlainText() == '':
+            self.clear()
+            self.setFontItalic(False)
+            self.setTextColor(self.USER_TEXT_COLOR)
+
+    def focusOutEvent(self, event):
+        self.set_placeholder()
+        QTextEdit.focusOutEvent(self, event)
 
     def synchronize(self):
         if self.master and self.attr:
