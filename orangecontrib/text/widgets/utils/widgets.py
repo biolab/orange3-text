@@ -295,7 +295,6 @@ class FileWidget(QtGui.QWidget):
 
 
 class ValidatedLineEdit(QLineEdit):
-
     invalid_input_signal = QtCore.pyqtSignal(str)
 
     def __init__(self, master, attr, validator, *args):
@@ -321,7 +320,6 @@ class ValidatedLineEdit(QLineEdit):
 
 
 class AbsoluteRelativeSpinBox(QWidget):
-
     editingFinished = QtCore.pyqtSignal()
     valueChanged = QtCore.pyqtSignal()
 
@@ -335,7 +333,7 @@ class AbsoluteRelativeSpinBox(QWidget):
         layout.addWidget(self.double_spin)
 
         self.int_spin = QSpinBox()
-        self.int_spin.setMaximum(10**4)
+        self.int_spin.setMaximum(10 ** 4)
         self.int_spin.valueChanged.connect(self.int_value_changed)
         self.int_spin.editingFinished.connect(self.int_editing_finished)
         layout.addWidget(self.int_spin)
@@ -357,7 +355,7 @@ class AbsoluteRelativeSpinBox(QWidget):
         if self.int_spin.value() == 0:
             self.layout().setCurrentIndex(0)
             self.double_spin.setValue(1. - self.double_spin.singleStep())
-        # There is no need to emit valueChanged signal.
+            # There is no need to emit valueChanged signal.
 
     def int_editing_finished(self):
         if self.int_spin.value() > 0:
@@ -382,7 +380,6 @@ class AbsoluteRelativeSpinBox(QWidget):
 
 
 class RangeWidget(QWidget):
-
     valueChanged = QtCore.pyqtSignal()
     editingFinished = QtCore.pyqtSignal()
 
@@ -459,3 +456,32 @@ class RangeWidget(QWidget):
             a, b = self.value()
             self.min_spin.setRange(self.min, b)
             self.max_spin.setRange(a, self.max)
+
+
+class ResourceLoader(QtGui.QWidget):
+    valueChanged = QtCore.pyqtSignal(tuple)
+
+    def __init__(self, recent, model_format, provider_format,
+                 model_button_label='Model', provider_button_label='Provider'):
+        super().__init__()
+        self.resource_path = None
+        self.model_path = None
+        layout = QtGui.QHBoxLayout(self)
+
+        self.model_widget = FileWidget(recent_files=recent, dialog_title='Load model', dialog_format=model_format,
+                                       on_open=self.load_model, allow_empty=False,
+                                       reload_button=False, browse_label=model_button_label)
+        layout.addWidget(self.model_widget)
+
+        self.provider_widget = FileWidget(recent_files=None, dialog_title='Load provider', dialog_format=provider_format,
+                                          on_open=self.load_provider, allow_empty=False,
+                                          reload_button=False, browse_label=provider_button_label)
+        layout.addWidget(self.provider_widget)
+
+    def load_model(self, path_to_file):
+        self.model_path = path_to_file
+        self.valueChanged.emit((self.model_path, self.resource_path))
+
+    def load_provider(self, path_to_file):
+        self.resource_path = path_to_file
+        self.valueChanged.emit((self.model_path, self.resource_path))
