@@ -112,6 +112,8 @@ class OWTopicModeling(OWWidget):
     hdp = settings.SettingProvider(HdpWidget)
     lda = settings.SettingProvider(LdaWidget)
 
+    control_area_width = 300
+
     def __init__(self):
         super().__init__()
         self.apply_mutex = QtCore.QMutex()
@@ -126,6 +128,7 @@ class OWTopicModeling(OWWidget):
         self.controlArea.layout().addLayout(method_layout)
         for i, (method, attr_name) in enumerate(self.methods):
             widget = method(self, title='Options')
+            widget.setFixedWidth(self.control_area_width)
             widget.valueChanged.connect(self.commit)
             self.widgets.append(widget)
             setattr(self, attr_name, widget)
