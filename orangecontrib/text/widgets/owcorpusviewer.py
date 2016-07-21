@@ -105,7 +105,7 @@ class OWCorpusViewer(OWWidget):
         self.reset_widget()  # Clear any old data.
         if data is not None:
             self.corpus = data
-            if type(data) is Table:
+            if not isinstance(data, Corpus):
                 self.corpus = Corpus.from_table(data.domain, data)
             self.load_features()
             self.regenerate_documents()
