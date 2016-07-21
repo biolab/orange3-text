@@ -6,6 +6,7 @@ from Orange.widgets.widget import OWWidget
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.language_codes import lang2code
 from orangecontrib.text.widgets.utils import ComboBox, ListEdit, CheckListLayout
+from orangecontrib.text.wikipedia import WikipediaAPI
 
 
 class Output:
@@ -27,7 +28,7 @@ class OWWikipedia(OWWidget):
     widgets_width = 2
 
     attributes = [
-        ('Content', 'content'),
+        # ('Content', 'content'),
         ('Title', 'title'),
         ('URL', 'url'),
         ('Page ID', 'pageid'),
@@ -46,7 +47,7 @@ class OWWikipedia(OWWidget):
         layout = QtGui.QGridLayout()
 
         row = 0
-        query_edit = ListEdit(self, 'query_list', self)
+        query_edit = ListEdit(self, 'query_list')
         layout.addWidget(QtGui.QLabel('Query word list:'), row, 0, 1, self.label_width)
         layout.addWidget(query_edit, row, self.label_width, 1, self.widgets_width)
 
@@ -75,7 +76,11 @@ class OWWikipedia(OWWidget):
         self.report_items('Query', (('Language', self.language), ('Query', self.query_list)))
 
     def search(self):
-        pass
+        with self.progressBar():
+            corpus = WikipediaAPI.search(lang=self.language, queries=self.query_list, attributes=self.corpus_variables,
+                                         progress_callback=self.progressBarSet)
+        self.send(Output.CORPUS, corpus)
+        self.result_label.setText(self.info_label.format(len(corpus)))
 
 
 if __name__ == '__main__':
