@@ -211,6 +211,9 @@ class OWTopicModeling(OWWidget):
 
     def send_report(self):
         self.report_items(*self.widgets[self.method_index].report_model())
+        if self.corpus:
+            self.report_items('Topics', [(i, self.model.get_top_words_by_id(i))
+                                         for i in range(len(self.model.topic_names))])
 
     def send_topic_by_id(self, topic_id):
         self.send(Output.TOPICS, self.model.get_topics_table_by_id(topic_id))
