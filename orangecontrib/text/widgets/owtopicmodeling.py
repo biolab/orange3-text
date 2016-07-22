@@ -26,6 +26,7 @@ class TopicWidget(gui.OWComponent, QtGui.QGroupBox):
             spin = gui.spin(self, self, parameter, minv=minv, maxv=maxv, step=step,
                             label=self.spin_format.format(description=description, parameter=parameter),
                             labelWidth=220, spinType=_type)
+            spin.clearFocus()
             spin.editingFinished.connect(self.on_change)
 
     def on_change(self):
@@ -144,11 +145,11 @@ class OWTopicModeling(OWWidget):
 
         # Commit button
         gui.auto_commit(self.buttonsArea, self, 'autocommit', 'Commit', box=False)
-
         # Topics description
         self.topic_desc = TopicViewer()
         self.topic_desc.topicSelected.connect(self.send_topic_by_id)
         self.mainArea.layout().addWidget(self.topic_desc)
+        self.topic_desc.setFocus()
 
     def set_data(self, data=None):
         self.corpus = data
@@ -219,7 +220,8 @@ class OWTopicModeling(OWWidget):
                                          for i in range(len(self.model.topic_names))])
 
     def send_topic_by_id(self, topic_id):
-        self.send(Output.TOPICS, self.model.get_topics_table_by_id(topic_id))
+        if self.model.model:
+            self.send(Output.TOPICS, self.model.get_topics_table_by_id(topic_id))
 
 
 class TopicViewerTreeWidgetItem(QtGui.QTreeWidgetItem):
@@ -246,6 +248,7 @@ class TopicViewer(QtGui.QTreeWidget):
         self.setColumnCount(len(self.columns))
         self.setHeaderLabels(self.columns)
         self.resize_columns()
+        self.itemSelectionChanged.connect(self.selected_topic_changed)
 
     def resize_columns(self):
         for i in range(self.columnCount()):
@@ -253,12 +256,13 @@ class TopicViewer(QtGui.QTreeWidget):
 
     def show_model(self, topic_model):
         self.clear()
-        for i in range(topic_model.num_topics):
-            words = topic_model.get_top_words_by_id(i)
-            it = TopicViewerTreeWidgetItem(i, words, self)
-            self.addTopLevelItem(it)
+        if topic_model.model:
+            for i in range(topic_model.num_topics):
+                words = topic_model.get_top_words_by_id(i)
+                it = TopicViewerTreeWidgetItem(i, words, self)
+                self.addTopLevelItem(it)
 
-        self.resize_columns()
+            self.resize_columns()
 
     def selected_topic_changed(self):
         selected = self.selectedItems()
