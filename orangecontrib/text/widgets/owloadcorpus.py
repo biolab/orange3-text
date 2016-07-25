@@ -39,10 +39,10 @@ class OWLoadCorpus(OWWidget):
 
         # Browse file box
         fbox = gui.widgetBox(self.controlArea, "Corpus file", orientation=0)
-        widget = widgets.FileWidget(self.recent_files, icon_size=(16, 16), callback=self.open_file,
+        widget = widgets.FileWidget(recent_files=self.recent_files, icon_size=(16, 16), on_open=self.open_file,
                                     directory_aliases={"Browse documentation corpora ...": get_sample_corpora_dir()},
                                     dialog_format=self.dlgFormats, dialog_title='Open Orange Document Corpus',
-                                    allow_empty=False, show_labels=True)
+                                    allow_empty=False, reload_label='Reload', browse_label='Browse')
         fbox.layout().addWidget(widget)
 
         # Corpus info
