@@ -10,7 +10,8 @@ class POSTagger:
 
     def tag_corpus(self, corpus):
         tags = self.tag_sents(corpus.tokens)
-        corpus.tags = list(map(lambda sent: list(map(lambda x: x[1], sent)), tags))
+        # corpus.tags = list(map(lambda sent: list(map(lambda x: x[1], sent)), tags))
+        corpus.store_tokens(list(map(lambda sent: list(map(lambda x: '{0[0]}_{0[1]}'.format(x), sent)), tags)))
         return corpus
 
     def __str__(self):
