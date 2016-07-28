@@ -121,6 +121,9 @@ class OWTopicModeling(OWWidget):
         self.corpus = None
         self.learning_thread = None
 
+        # Commit button
+        gui.auto_commit(self.buttonsArea, self, 'autocommit', 'Commit', box=False)
+
         button_group = QButtonGroup(self, exclusive=True)
         button_group.buttonClicked[int].connect(self.change_method)
 
@@ -143,8 +146,6 @@ class OWTopicModeling(OWWidget):
         self.toggle_widgets()
         method_layout.addStretch()
 
-        # Commit button
-        gui.auto_commit(self.buttonsArea, self, 'autocommit', 'Commit', box=False)
         # Topics description
         self.topic_desc = TopicViewer()
         self.topic_desc.topicSelected.connect(self.send_topic_by_id)
@@ -293,8 +294,8 @@ if __name__ == '__main__':
 
     app = QApplication([])
     widget = OWTopicModeling()
-    widget.set_data(Corpus.from_file('bookexcerpts'))
-    # widget.set_data(Corpus.from_file('deerwester'))
+    # widget.set_data(Corpus.from_file('bookexcerpts'))
+    widget.set_data(Corpus.from_file('deerwester'))
     widget.show()
     app.exec()
     widget.saveSettings()
