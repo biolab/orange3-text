@@ -81,8 +81,8 @@ class HdpWidget(TopicWidget):
 
 
 class Output:
-    DATA = "Data"
-    TOPICS = "Topics"
+    CORPUS = "Corpus"
+    TOPIC = "Topic"
 
 
 class OWTopicModeling(OWWidget):
@@ -95,8 +95,8 @@ class OWTopicModeling(OWWidget):
 
     # Input/output
     inputs = [("Corpus", Corpus, "set_data")]
-    outputs = [(Output.DATA, Table),
-               (Output.TOPICS, Topics)]
+    outputs = [(Output.CORPUS, Table),
+               (Output.TOPIC, Topics)]
     want_main_area = True
 
     methods = [
@@ -184,8 +184,8 @@ class OWTopicModeling(OWWidget):
         if self.corpus:
             self.start_learning()
         else:
-            self.send(Output.DATA, None)
-            self.send(Output.TOPICS, None)
+            self.send(Output.CORPUS, None)
+            self.send(Output.TOPIC, None)
 
     def start_learning(self):
         self.topic_desc.clear()
@@ -206,7 +206,7 @@ class OWTopicModeling(OWWidget):
             self.progressBarFinished()
 
     def send_corpus(self, corpus):
-        self.send(Output.DATA, corpus)
+        self.send(Output.CORPUS, corpus)
         self.send_topic_by_id(0)
 
     def learning_finished(self):
@@ -221,7 +221,7 @@ class OWTopicModeling(OWWidget):
 
     def send_topic_by_id(self, topic_id):
         if self.model.model:
-            self.send(Output.TOPICS, self.model.get_topics_table_by_id(topic_id))
+            self.send(Output.TOPIC, self.model.get_topics_table_by_id(topic_id))
 
 
 class TopicViewerTreeWidgetItem(QtGui.QTreeWidgetItem):
@@ -259,8 +259,9 @@ class TopicViewer(QtGui.QTreeWidget):
         if topic_model.model:
             for i in range(topic_model.num_topics):
                 words = topic_model.get_top_words_by_id(i)
-                it = TopicViewerTreeWidgetItem(i, words, self)
-                self.addTopLevelItem(it)
+                if words:
+                    it = TopicViewerTreeWidgetItem(i, words, self)
+                    self.addTopLevelItem(it)
 
             self.resize_columns()
 
