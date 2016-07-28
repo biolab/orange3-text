@@ -245,7 +245,7 @@ class Corpus(Table):
     @property
     def ngrams_corpus(self):
         if self._ngrams_corpus is None:
-            CountVectorizer().transform(self, copy=False)
+            return CountVectorizer().transform(self).ngrams_corpus
         return self._ngrams_corpus
 
     @ngrams_corpus.setter
