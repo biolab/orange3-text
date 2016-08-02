@@ -214,7 +214,6 @@ class OWTopicModeling(OWWidget):
 
     def send_corpus(self, corpus):
         self.send(Output.CORPUS, corpus)
-        self.send_topic_by_id(0)
 
     def learning_finished(self):
         self.update_topics()
@@ -226,8 +225,8 @@ class OWTopicModeling(OWWidget):
             self.report_items('Topics', [(i, self.model.get_top_words_by_id(i))
                                          for i in range(len(self.model.topic_names))])
 
-    def send_topic_by_id(self, topic_id):
-        if self.model.model:
+    def send_topic_by_id(self, topic_id=None):
+        if self.model.model and topic_id is not None:
             self.send(Output.TOPIC, self.model.get_topics_table_by_id(topic_id))
 
 
@@ -247,7 +246,7 @@ class TopicViewer(QtGui.QTreeWidget):
     """
 
     columns = ['Topic', 'Topic keywords']
-    topicSelected = QtCore.pyqtSignal(int)
+    topicSelected = QtCore.pyqtSignal(object)
 
     def __init__(self):
         super().__init__()
@@ -271,6 +270,7 @@ class TopicViewer(QtGui.QTreeWidget):
                     self.addTopLevelItem(it)
 
             self.resize_columns()
+            self.setCurrentItem(self.topLevelItem(0))
 
     def selected_topic_changed(self):
         selected = self.selectedItems()
