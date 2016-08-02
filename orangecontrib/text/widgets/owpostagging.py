@@ -113,7 +113,7 @@ class OWPOSTagger(OWWidget):
                     self.Error.not_configured()
             else:
                 self.Error.clear()
-                new_corpus = self.tagger.tag_corpus(self.corpus)
+                new_corpus = self.tagger.tag_corpus(self.corpus.copy())
                 self.send(Output.CORPUS, new_corpus)
 
     def on_change(self):
