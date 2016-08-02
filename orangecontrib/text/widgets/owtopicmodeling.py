@@ -1,6 +1,7 @@
 from PyQt4 import QtGui
 from PyQt4.QtGui import QVBoxLayout, QButtonGroup, QRadioButton
 from PyQt4 import QtCore
+from PyQt4.QtCore import Qt, QMetaObject, Q_ARG
 from Orange.widgets.widget import OWWidget
 from Orange.widgets import settings
 from Orange.widgets import gui
@@ -177,8 +178,9 @@ class OWTopicModeling(OWWidget):
     def update_topics(self):
         self.topic_desc.show_model(self.model)
 
+    @QtCore.pyqtSlot(int)
     def progress(self, p):
-        self.progressBarSet(p)
+        self.progressBarSet(p, processEvents=None)
 
     def apply(self):
         self.stop_learning()
@@ -192,9 +194,12 @@ class OWTopicModeling(OWWidget):
         self.topic_desc.clear()
         if self.corpus:
             self.progressBarInit()
+
+            def progress_callback(i):
+                QMetaObject.invokeMethod(self, "progress", Qt.QueuedConnection, Q_ARG(int, i))
             self.learning_thread = LearningThread(self.model, self.corpus.copy(),
                                                   result_callback=self.send_corpus,
-                                                  progress_callback=self.progress)
+                                                  progress_callback=progress_callback)
             self.learning_thread.finished.connect(self.learning_finished)
             self.learning_thread.start()
 
