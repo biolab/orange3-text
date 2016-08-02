@@ -68,10 +68,11 @@ class GensimWrapper:
         self.Model.update = _update
 
     def update(self, corpus, progress_callback=None):
-        for i, chunk in enumerate(chunks(corpus.ngrams_corpus, np.ceil(len(corpus) / 100))):
+        chunk_size = np.ceil(len(corpus) / 100)
+        for i, chunk in enumerate(chunks(corpus.ngrams_corpus, chunk_size=chunk_size)):
             self.model.update(chunk)
             if progress_callback:
-                progress_callback(i)
+                progress_callback(100 * (i + 1) * chunk_size / len(corpus))
 
     def transform(self, corpus):
         """ Create a table with topics representation. """
