@@ -118,8 +118,8 @@ class GensimWrapper:
 
     def get_top_words_by_id(self, topic_id, num_of_words=10):
         topics = self._topics_words(num_of_words=num_of_words)
-        if topic_id >= self.num_topics:
-            raise ValueError("Too large topic ID.")
+        if not 0 <= topic_id < self.num_topics:
+            raise ValueError("Invalid {}".format(topic_id))
         elif topic_id >= len(topics):
             return []
         return topics[topic_id]
