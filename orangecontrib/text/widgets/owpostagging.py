@@ -2,7 +2,7 @@ from PyQt4 import QtGui
 
 from Orange.widgets import gui
 from Orange.widgets import settings
-from Orange.widgets.widget import OWWidget
+from Orange.widgets.widget import OWWidget, Msg
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.tag.pos import taggers, StanfordPOSTagger
 from orangecontrib.text.widgets.utils import ResourceLoader
@@ -40,7 +40,9 @@ class OWPOSTagger(OWWidget):
 
     STANFORD = len(taggers)
 
-    NOT_CONFIGURED = 1, "Tagger wasn't configured"
+    class Error(OWWidget.Error):
+        not_configured = Msg("Tagger wasn't configured")
+        stanford = Msg("Problem while loading Stanford POS Tagger {}")
 
     def __init__(self):
         super().__init__()
@@ -106,17 +108,16 @@ class OWPOSTagger(OWWidget):
         if self.corpus is not None:
             if not self.tagger:
                 if self.tagger_index == self.STANFORD:
-                    self.error(2, self.stanford_error)
+                    self.Error.stanford('')
                 else:
-                    self.error(*self.NOT_CONFIGURED)
+                    self.Error.not_configured()
             else:
-                self.error(self.NOT_CONFIGURED[0])
+                self.Error.clear()
                 new_corpus = self.tagger.tag_corpus(self.corpus)
                 self.send(Output.CORPUS, new_corpus)
 
     def on_change(self):
-        self.error(1)
-        self.error(2)
+        self.Error.clear()
         self.commit()
 
     def set_stanford_tagger(self, paths=None):
@@ -125,7 +126,7 @@ class OWPOSTagger(OWWidget):
             StanfordPOSTagger.check(*paths)
             self.stanford_tagger = StanfordPOSTagger(*paths)
         except ValueError as e:
-            self.stanford_error = str(e)
+            self.Error.stanford(str(e))
 
         self.on_change()
 
