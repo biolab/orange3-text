@@ -4,11 +4,11 @@ from itertools import chain
 from PyQt4 import QtGui, QtCore
 
 from PyQt4.QtGui import QComboBox, QDialog
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 
 from Orange.widgets import gui
 from Orange.widgets.settings import Setting
-from Orange.widgets.widget import OWWidget
+from Orange.widgets.widget import OWWidget, Msg
 
 from orangecontrib.text import twitter
 from orangecontrib.text.corpus import Corpus
@@ -111,16 +111,18 @@ class Output:
     CORPUS = "Corpus"
 
 
-def require(attribute, warning_code, warning_message):
+def require(attribute, warning):
     def decorator(func):
         @functools.wraps(func)
         def wrapper(self, *args, **kwargs):
             if not getattr(self, attribute, None):
-                self.warning(warning_code, warning_message)
+                getattr(self.Warning, warning)()
             else:
-                self.warning(warning_code)
+                getattr(self.Warning, warning).clear()
                 return func(self, *args, **kwargs)
+
         return wrapper
+
     return decorator
 
 
@@ -142,11 +144,13 @@ class OWTwitter(OWWidget):
     label_width = 2
     text_area_height = 80
 
-    MISSED_KEY = 1
-    MISSED_KEY_MESSAGE = 'Please provide a valid API key in order to get the data.'
-    MISSED_QUERY = 2
-    MISSED_QUERY_MESSAGE = 'Please input query words.'
-    API_ERROR = 3
+    class Warning(OWWidget.Warning):
+        missed_key = Msg('Please provide a valid API key in order to get the data.')
+
+    MISSED_KEY = 'missed_key'
+
+    class Error(OWWidget.Error):
+        api = Msg('Api error ({})')
 
     tweets_info = 'Tweets on output: {}'
 
@@ -168,7 +172,7 @@ class OWTwitter(OWWidget):
     start_signal = QtCore.pyqtSignal()
 
     attributes = [
-        ('Author', ('author_screen_name', )),
+        ('Author', ('author_screen_name',)),
         ('Content', ('text',)),
         ('Date', ('created_at',)),
         ('Language', ('lang',)),
@@ -178,7 +182,7 @@ class OWTwitter(OWWidget):
         ('Coordinates', ('coordinates_longitude', 'coordinates_latitude', 'place')),
         ('Tweet ID', ('id',)),
         ('Author ID', ('author_id',)),
-        ('Author Name', ('author_name', )),
+        ('Author Name', ('author_name',)),
         ('Author Description', ('author_description',)),
         ('Author Statistic', ('author_statuses_count', 'author_favourites_count',
                               'author_friends_count', 'author_followers_count',
@@ -235,7 +239,7 @@ class OWTwitter(OWWidget):
         # Time interval
         row += 1
         interval = DateInterval(self, 'date_interval',
-                                min_date=datetime.now().date()-timedelta(10),
+                                min_date=datetime.now().date() - timedelta(10),
                                 max_date=datetime.now().date(),
                                 from_label='since', to_label='until')
         layout.addWidget(QtGui.QLabel('Date:'), row, 0, 1, self.label_width)
@@ -254,7 +258,7 @@ class OWTwitter(OWWidget):
                                checked='limited_search')
         layout.addWidget(QtGui.QLabel('Max tweets:'), row, 0, 1, self.label_width)
         layout.addWidget(check, row, self.label_width, 1, 1)
-        layout.addWidget(spin, row, self.label_width+1, 1, self.widgets_width-1)
+        layout.addWidget(spin, row, self.label_width + 1, 1, self.widgets_width - 1)
 
         # Checkbox
         row += 1
@@ -284,7 +288,7 @@ class OWTwitter(OWWidget):
         self.update_api(self.key)
         self._tweet_count = False
         self.send_corpus()
-        self.setFocus()     # set focus to widget itself so placeholder is shown for query_edit
+        self.setFocus()  # set focus to widget itself so placeholder is shown for query_edit
 
     def open_key_dialog(self):
         api_dlg = APICredentialsDialog(self)
@@ -292,7 +296,7 @@ class OWTwitter(OWWidget):
 
     def update_api(self, key):
         self.key = key
-        self.warning(self.MISSED_KEY)
+        self.warning()
         if self.key:
             self.api = twitter.TwitterAPI(self.key,
                                           on_start=self.start_signal.emit,
@@ -303,7 +307,7 @@ class OWTwitter(OWWidget):
             self.api = None
 
     @QtCore.pyqtSlot()
-    @require('api', MISSED_KEY, MISSED_KEY_MESSAGE)
+    @require('api', MISSED_KEY)
     def search(self):
         if not self.api.running:
             if not self.advance:
@@ -326,7 +330,7 @@ class OWTwitter(OWWidget):
 
     @QtCore.pyqtSlot()
     def on_start(self):
-        self.error(self.API_ERROR)
+        self.Error.clear()
 
         if self.limited_search:
             self._tweet_count = self.max_tweets
@@ -358,14 +362,14 @@ class OWTwitter(OWWidget):
 
     @QtCore.pyqtSlot(str)
     def on_error(self, text):
-        self.error(self.API_ERROR, text)
+        self.Error.api(text)
 
     def reset(self):
         self.api.reset()
         self.update_tweets_info()
         self.send_corpus()
 
-    @require('api', MISSED_KEY, MISSED_KEY_MESSAGE)
+    @require('api', MISSED_KEY)
     def send_report(self):
         for task in self.api.history:
             self.report_items(task.report())
