@@ -2,7 +2,7 @@ from itertools import chain
 
 from Orange.data.io import FileFormat
 from Orange.widgets.settings import Setting
-from Orange.widgets.widget import OWWidget
+from Orange.widgets.widget import OWWidget, Msg
 from Orange.widgets import gui
 from Orange.widgets.data.owselectcolumns import VariablesListItemModel, VariablesListItemView
 from orangecontrib.text.corpus import Corpus, get_sample_corpora_dir
@@ -31,6 +31,9 @@ class OWLoadCorpus(OWWidget):
                                   key=list(FileFormat.readers.values()).index)))
 
     recent_files = Setting([])
+
+    class Error(OWWidget.Error):
+        read_file = Msg("Can't read file {} ({})")
 
     def __init__(self):
         super().__init__()
@@ -74,7 +77,7 @@ class OWLoadCorpus(OWWidget):
         widget.select(0)
 
     def open_file(self, path):
-        self.error(1, '')
+        self.Error.read_file.clear()
         self.used_attrs[:] = []
         self.unused_attrs[:] = []
         if path:
@@ -86,7 +89,7 @@ class OWLoadCorpus(OWWidget):
                                                            self.corpus.domain.metas)
                                           if f not in self.corpus.text_features])
             except BaseException as err:
-                self.error(1, str(err))
+                self.Error.read_file(path, str(err))
 
     def update_feature_selection(self):
         if self.corpus is not None:
