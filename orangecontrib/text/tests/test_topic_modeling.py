@@ -2,7 +2,6 @@ import unittest
 
 import numpy as np
 
-from Orange.data import Table
 from orangecontrib.text import vectorization
 from orangecontrib.text.topics import LdaWrapper, HdpWrapper, LsiWrapper
 from orangecontrib.text.corpus import Corpus
@@ -32,7 +31,7 @@ class BaseTests:
     def test_vectorized(self):
         corpus = vectorization.TfidfVectorizer().transform(self.corpus, copy=True)
         topics = self.model.fit_transform(corpus)
-        self.assertIsInstance(topics, Table)
+        self.assertIsInstance(topics, Corpus)
 
     def test_report_callback(self):
         prev_progress = -1
