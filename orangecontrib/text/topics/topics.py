@@ -46,7 +46,7 @@ class GensimWrapper:
         """ Train the model with the corpus.
 
         Args:
-            corpus (Corpus): A corpus to lear topics from.
+            corpus (Corpus): A corpus to learn topics from.
         """
         if not len(corpus.dictionary):
             return None
