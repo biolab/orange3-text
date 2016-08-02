@@ -197,6 +197,7 @@ class OWTopicModeling(OWWidget):
 
             def progress_callback(i):
                 QMetaObject.invokeMethod(self, "progress", Qt.QueuedConnection, Q_ARG(int, i))
+
             self.learning_thread = LearningThread(self.model, self.corpus.copy(),
                                                   result_callback=self.send_corpus,
                                                   progress_callback=progress_callback)
@@ -292,6 +293,9 @@ class LearningThread(QtCore.QThread):
     def run(self):
         result = self.model.fit_transform(self.corpus, **self.kwargs)
         self.result_callback(result)
+
+    def terminate(self):
+        self.model.running = False
 
 
 if __name__ == '__main__':

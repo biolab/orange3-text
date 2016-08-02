@@ -41,6 +41,7 @@ class GensimWrapper:
         self.kwargs = kwargs
         self.model = None
         self.topic_names = []
+        self.running = False
 
     def fit(self, corpus, progress_callback=None):
         """ Train the model with the corpus.
@@ -51,9 +52,11 @@ class GensimWrapper:
         if not len(corpus.dictionary):
             return None
         self.reset_model(corpus)
+        self.running = True
         self.update(corpus, progress_callback)
         self.topic_names = ['Topic{} ({})'.format(i, ', '.join(words))
                             for i, words in enumerate(self._topics_words(3), 1)]
+        self.running = False
 
     def dummy_method(self, *args, **kwargs):
         pass
@@ -70,6 +73,8 @@ class GensimWrapper:
     def update(self, corpus, progress_callback=None):
         chunk_size = np.ceil(len(corpus) / 100)
         for i, chunk in enumerate(chunks(corpus.ngrams_corpus, chunk_size=chunk_size)):
+            if not self.running:
+                break
             self.model.update(chunk)
             if progress_callback:
                 progress_callback(100 * (i + 1) * chunk_size / len(corpus))
