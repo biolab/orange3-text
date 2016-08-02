@@ -40,7 +40,11 @@ class WikipediaAPI:
             meta_values.append(
                 [getattr(article, attr) for attr in metas]
             )
-        except wikipedia.DisambiguationError:
+
+        except wikipedia.exceptions.DisambiguationError:
             if recursive:
                 for article in wikipedia.search(article):
                     cls._get(article, attributes, X, metas, meta_values, recursive=False)
+
+        except wikipedia.exceptions.PageError:
+            pass
