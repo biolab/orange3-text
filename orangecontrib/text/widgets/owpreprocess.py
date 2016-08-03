@@ -60,8 +60,6 @@ class PreprocessorModule(gui.OWComponent, QWidget):
     """The base widget for the pre-processing modules."""
 
     change_signal = Signal()  # Emitted when the settings are changed.
-    # Emitted when the module has a message to display in the main widget.
-    error_signal = Signal(str)
     title = NotImplemented
     attribute = NotImplemented
     methods = NotImplemented
@@ -490,7 +488,6 @@ class OWPreprocess(OWWidget):
             setattr(self, stage.title.lower(), widget)
             frame_layout.addWidget(widget)
             widget.change_signal.connect(self.settings_invalidated)
-            widget.error_signal.connect(self.display_message)
 
         frame_layout.addStretch()
         self.mainArea.layout().addWidget(frame)
@@ -535,10 +532,6 @@ class OWPreprocess(OWWidget):
     @Slot()
     def settings_invalidated(self):
         self.commit()
-
-    @Slot(str)
-    def display_message(self, message):
-        self.error(0, message)
 
     def send_report(self):
         self.report_items('Preprocessor', self.preprocessor.report())
