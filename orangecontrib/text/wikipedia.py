@@ -24,7 +24,7 @@ class WikipediaAPI:
                     progress_callback(100 * (i * len(articles) + j + 1) / (len(queries) * len(articles)))
         metas = [data.StringVariable(attr) for attr in metas]
         domain = data.Domain(attributes=[], metas=metas)
-        corpus = Corpus(None, metas=np.array(meta_values), domain=domain, text_features=metas[-1:])
+        corpus = Corpus(None, metas=np.array(meta_values, dtype=object), domain=domain, text_features=metas[-1:])
         corpus.extend_attributes(np.array(X), attributes)
         return corpus
 
