@@ -34,8 +34,6 @@ class OWBaseVectorizer(OWWidget):
     # Settings
     autocommit = settings.Setting(True)
 
-    DATA_ERROR = 0
-
     Method = NotImplemented
 
     def __init__(self):
@@ -57,7 +55,6 @@ class OWBaseVectorizer(OWWidget):
         self.update_method()
 
     def set_data(self, data):
-        self.error(self.DATA_ERROR)
         self.corpus = data
         self.commit()
 
