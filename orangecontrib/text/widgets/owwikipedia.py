@@ -50,6 +50,7 @@ class OWWikipedia(OWWidget):
         super().__init__(*args, **kwargs)
         layout = QtGui.QGridLayout()
         self.api = WikipediaAPI(on_progress=self.on_progress, on_finish=self.on_finish, on_error=self.on_error)
+        self.result = None
 
         row = 0
         query_edit = ListEdit(self, 'query_list', "Multiple lines are automatically joined with OR.", self)
@@ -78,7 +79,10 @@ class OWWikipedia(OWWidget):
         self.search_button.setFocusPolicy(QtCore.Qt.NoFocus)
 
     def send_report(self):
-        self.report_items('Query', (('Language', self.language), ('Query', self.query_list)))
+        items = (('Language', self.language), ('Query', self.query_list))
+        if self.result:
+            items += (('Articles count', len(self.result)), )
+        self.report_items('Query', items)
 
     @QtCore.pyqtSlot()
     def search(self):
@@ -102,6 +106,7 @@ class OWWikipedia(OWWidget):
 
     @QtCore.pyqtSlot(object)
     def on_finish(self, result):
+        self.result = result
         self.send(Output.CORPUS, result)
         self.result_label.setText(self.info_label.format(len(result) if result else 0))
         self.progressBarFinished()
