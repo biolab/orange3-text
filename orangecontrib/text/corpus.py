@@ -284,6 +284,11 @@ class Corpus(Table):
             else:
                 raise TypeError('Indexing by type {} not supported.'.format(type(key)))
             c._dictionary = self._dictionary
+
+        c.text_features = self.text_features
+        c.ngram_range = self.ngram_range
+        c.attributes = self.attributes
+
         return c
 
     def __len__(self):
