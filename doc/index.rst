@@ -14,6 +14,7 @@ Widgets
 
    widgets/corpus.rst
    widgets/nytimes.rst
+   widgets/twitter.rst
    widgets/corpusviewer.rst
    widgets/preprocesstext.rst
    widgets/bagofwords.rst
@@ -32,6 +33,7 @@ Scripting Reference
    scripting/corpus.rst
    scripting/lda.rst
    scripting/preprocess.rst
+   scripting/twitter.rst
    scripting/nyt.rst
    scripting/wikipedia.rst
    scripting/tag.rst
