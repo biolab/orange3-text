@@ -1,4 +1,6 @@
 import numpy as np
+from gensim import matutils
+from gensim.corpora import Dictionary
 
 
 class BaseVectorizer:
@@ -28,3 +30,4 @@ class BaseVectorizer:
         corpus.extend_attributes(X[:, order],
                                  feature_names=(dictionary[i] for i in order),
                                  var_attrs={'hidden': True})
+        corpus.ngrams_corpus = matutils.Sparse2Corpus(X.T)
