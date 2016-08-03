@@ -3,7 +3,7 @@ import unittest
 from distutils.version import LooseVersion
 
 import numpy as np
-from scipy.sparse import csr_matrix
+from scipy.sparse import csr_matrix, issparse
 
 import Orange
 from Orange.data import Table
@@ -61,6 +61,22 @@ class CorpusTests(unittest.TestCase):
         self.assertEqual(c.metas.shape[0], c_copy.metas.shape[0]*2)
         self.assertEqual(c.metas.shape[1], c_copy.metas.shape[1])
         self.assertEqual(len(c_copy.domain.class_var.values), n_classes+1)
+
+    def test_extend_attributes(self):
+        # corpus without features
+        c = Corpus.from_file('bookexcerpts')
+        X = np.random.random((len(c), 3))
+        c.extend_attributes(X, ['1', '2', '3'])
+        self.assertEqual(c.X.shape, (len(c), 3))
+
+        # add to non empty corpus
+        c.extend_attributes(X, ['1', '2', '3'])
+        self.assertEqual(c.X.shape, (len(c), 6))
+
+        # extend sparse
+        c.extend_attributes(csr_matrix(X), ['1', '2', '3'])
+        self.assertEqual(c.X.shape, (len(c), 9))
+        self.assertTrue(issparse(c.X))
 
     def test_corpus_not_eq(self):
         c = Corpus.from_file('bookexcerpts')

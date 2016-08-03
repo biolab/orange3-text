@@ -4,7 +4,7 @@ from itertools import chain
 
 import nltk
 import numpy as np
-from scipy.sparse import issparse, hstack
+import scipy.sparse as sp
 from gensim import corpora
 
 from Orange.data import Table, Domain, ContinuousVariable
@@ -19,7 +19,7 @@ def get_sample_corpora_dir():
 
 def _check_arrays(*arrays):
     for a in arrays:
-        if not (a is None or isinstance(a, np.ndarray) or issparse(a)):
+        if not (a is None or isinstance(a, np.ndarray) or sp.issparse(a)):
             raise TypeError('Argument {} should be of type np.array, sparse or None.'.format(a))
 
     lengths = set(a.shape[0] for a in arrays if a is not None)
@@ -127,11 +127,17 @@ class Corpus(Table):
         Append features to corpus.
 
         Args:
-            X (numpy.ndarray): Features to append
+            X (numpy.ndarray or scipy.sparse.csr_matrix): Features to append
             feature_names (list): List of string containing feature names
             var_attrs (dict): Additional attributes appended to variable.attributes.
         """
-        self.X = hstack((self.X, X)).tocsr() if self.X.size else X
+
+        if self.X.size == 0:
+            self.X = X
+        elif sp.issparse(self.X) or sp.issparse(X):
+            self.X = sp.hstack((self.X, X)).tocsr()
+        else:
+            self.X = np.hstack((self.X, X))
 
         new_attr = self.domain.attributes
 
@@ -169,7 +175,7 @@ class Corpus(Table):
 
         # When we use only features coming from sparse X data.metas is sparse.
         # Transform it to dense.
-        if issparse(data.metas):
+        if sp.issparse(data.metas):
             data.metas = data.metas.toarray()
 
         return [' '.join(f.str_val(val) for f, val in zip(data.domain.metas, row))
