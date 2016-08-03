@@ -2,11 +2,11 @@ from PyQt4 import QtGui, QtCore
 
 from Orange.widgets import gui
 from Orange.widgets import settings
-from Orange.widgets.widget import OWWidget
+from Orange.widgets.widget import OWWidget, Msg
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.language_codes import lang2code
 from orangecontrib.text.widgets.utils import ComboBox, ListEdit, CheckListLayout
-from orangecontrib.text.wikipedia import WikipediaAPI
+from orangecontrib.text.wikipedia import WikipediaAPI, NetworkException
 
 
 class Output:
@@ -17,7 +17,7 @@ class OWWikipedia(OWWidget):
     """ Get articles from wikipedia. """
 
     name = 'Wikipedia'
-    priority = 40
+    priority = 27
     icon = 'icons/Wikipedia.svg'
 
     outputs = [(Output.CORPUS, Corpus)]
@@ -42,12 +42,17 @@ class OWWikipedia(OWWidget):
 
     info_label = 'Articles count {}'
 
+    class Error(OWWidget.Error):
+        api = Msg('Api error\n{}')
+        network = Msg('Connection error\n{}')
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         layout = QtGui.QGridLayout()
+        self.api = WikipediaAPI(on_progress=self.on_progress, on_finish=self.on_finish, on_error=self.on_error)
 
         row = 0
-        query_edit = ListEdit(self, 'query_list')
+        query_edit = ListEdit(self, 'query_list', "Multiple lines are automatically joined with OR.", self)
         layout.addWidget(QtGui.QLabel('Query word list:'), row, 0, 1, self.label_width)
         layout.addWidget(query_edit, row, self.label_width, 1, self.widgets_width)
 
@@ -75,13 +80,38 @@ class OWWikipedia(OWWidget):
     def send_report(self):
         self.report_items('Query', (('Language', self.language), ('Query', self.query_list)))
 
+    @QtCore.pyqtSlot()
     def search(self):
-        with self.progressBar():
-            corpus = WikipediaAPI.search(lang=self.language, queries=self.query_list, attributes=self.corpus_variables,
-                                         progress_callback=self.progressBarSet)
-        self.send(Output.CORPUS, corpus)
-        self.result_label.setText(self.info_label.format(len(corpus)))
+        if not self.api.running:
+            self.on_start()
+        else:
+            self.api.disconnect()
 
+    @QtCore.pyqtSlot()
+    def on_start(self):
+        self.Error.api.clear()
+        self.Error.network.clear()
+        self.search_button.setText("Stop")
+        self.progressBarInit()
+        self.api.search(lang=self.language, queries=self.query_list, attributes=self.corpus_variables, async=True)
+
+    @QtCore.pyqtSlot(float)
+    def on_progress(self, progress, count):
+        self.progressBarSet(progress)
+        self.result_label.setText(self.info_label.format(count))
+
+    @QtCore.pyqtSlot(object)
+    def on_finish(self, result):
+        self.send(Output.CORPUS, result)
+        self.result_label.setText(self.info_label.format(len(result) if result else 0))
+        self.progressBarFinished()
+        self.search_button.setText("Search")
+
+    @QtCore.pyqtSlot(Exception)
+    def on_error(self, error):
+        if isinstance(error, NetworkException):
+            self.Error.network(str(error))
+        self.on_finish(None)
 
 if __name__ == '__main__':
     app = QtGui.QApplication([])
