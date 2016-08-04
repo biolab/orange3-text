@@ -52,30 +52,29 @@ class OWPOSTagger(OWWidget):
         self.button_group = button_group = QtGui.QButtonGroup(self, exclusive=True)
         button_group.buttonClicked[int].connect(self.change_tagger)
 
-        layout = QtGui.QVBoxLayout()
-        layout.setSpacing(15)
-        self.controlArea.layout().addLayout(layout)
+        box = gui.vBox(self.controlArea, 'Method')
+        layout = QtGui.QGridLayout()
+        box.layout().addLayout(layout)
+        layout.setSpacing(25)
 
         for i, tagger in enumerate(taggers + [StanfordPOSTagger]):
             rb = QtGui.QRadioButton(text=tagger.name)
             rb.setChecked(i == self.tagger_index)
             button_group.addButton(rb, i)
-            layout.addWidget(rb)
+            layout.addWidget(rb, i, 0, 1, 2)
 
-        box = QtGui.QGroupBox('Stanford')
-        layout = QtGui.QVBoxLayout(box)
-        layout.setMargin(0)
+        layout.setColumnMinimumWidth(0, 150)
         self.stanford = ResourceLoader(widget=self, model_format='Stanford model (*.model *.tagger)',
                                        provider_format='Java file (*.jar)',
                                        model_button_label='Model', provider_button_label='Tagger')
         self.set_stanford_tagger(self.stanford.model_path, self.stanford.resource_path, silent=True)
 
         self.stanford.valueChanged.connect(self.set_stanford_tagger)
-        layout.addWidget(self.stanford)
-        self.controlArea.layout().addWidget(box)
+        layout.addWidget(self.stanford, self.STANFORD, 1)
 
         buttons_layout = QtGui.QHBoxLayout()
         buttons_layout.addWidget(self.report_button)
+        self.report_button.setMinimumWidth(200)
         buttons_layout.addSpacing(15)
         buttons_layout.addWidget(
             gui.auto_commit(None, self, 'autocommit', 'Commit', box=False)

@@ -4,6 +4,7 @@ from PyQt4.QtGui import (QComboBox, QWidget, QHBoxLayout, QPushButton, QStyle,
                          QSizePolicy, QFileDialog, QLineEdit, QDoubleSpinBox,
                          QSpinBox, QTextEdit, QColor)
 from PyQt4 import QtCore, QtGui
+
 from Orange.widgets.gui import OWComponent
 from Orange.widgets import settings
 
@@ -478,6 +479,7 @@ class ResourceLoader(QtGui.QWidget, OWComponent):
                                        dialog_format=model_format, start_dir=None,
                                        on_open=self.load_model, allow_empty=False,
                                        reload_button=False, browse_label=model_button_label)
+        self.model_widget.setContentsMargins(0, 0, 0, 0)
         self.model_path = self.recent_files[0] if self.recent_files else None
 
         layout.addWidget(self.model_widget)
