@@ -41,7 +41,7 @@ class OWPOSTagger(OWWidget):
 
     class Error(OWWidget.Error):
         not_configured = Msg("Tagger wasn't configured")
-        stanford = Msg("Problem while loading Stanford POS Tagger {}")
+        stanford = Msg("Problem while loading Stanford POS Tagger\n{}")
 
     def __init__(self):
         super().__init__()
@@ -49,8 +49,7 @@ class OWPOSTagger(OWWidget):
         self.tagger = None
         self.stanford_tagger = None
 
-
-        button_group = QtGui.QButtonGroup(self, exclusive=True)
+        self.button_group = button_group = QtGui.QButtonGroup(self, exclusive=True)
         button_group.buttonClicked[int].connect(self.change_tagger)
 
         layout = QtGui.QVBoxLayout()
@@ -69,7 +68,7 @@ class OWPOSTagger(OWWidget):
         self.stanford = ResourceLoader(widget=self, model_format='Stanford model (*.model *.tagger)',
                                        provider_format='Java file (*.jar)',
                                        model_button_label='Model', provider_button_label='Tagger')
-        self.set_stanford_tagger(self.stanford.model_path, self.stanford.resource_path)
+        self.set_stanford_tagger(self.stanford.model_path, self.stanford.resource_path, silent=True)
 
         self.stanford.valueChanged.connect(self.set_stanford_tagger)
         layout.addWidget(self.stanford)
@@ -103,28 +102,30 @@ class OWPOSTagger(OWWidget):
     def apply(self):
         if self.corpus is not None:
             if not self.tagger:
-                if self.tagger_index == self.STANFORD:
-                    self.Error.stanford('')
-                else:
-                    self.Error.not_configured()
+                self.Error.not_configured()
             else:
-                self.Error.clear()
+                self.Error.not_configured.clear()
                 new_corpus = self.tagger.tag_corpus(self.corpus.copy())
                 self.send(Output.CORPUS, new_corpus)
 
     def on_change(self):
-        self.Error.clear()
         self.commit()
 
-    def set_stanford_tagger(self, model_path, stanford_path):
+    def set_stanford_tagger(self, model_path, stanford_path, silent=False):
         self.stanford_tagger = None
         if model_path and stanford_path:
             try:
                 StanfordPOSTagger.check(model_path, stanford_path)
                 self.stanford_tagger = StanfordPOSTagger(model_path, stanford_path)
             except ValueError as e:
-                self.Error.stanford(str(e))
+                if not silent:
+                    self.Error.stanford(str(e))
+        if not stanford_path:
+            self.stanford.provider_widget.browse_button.setStyleSheet("color:#C00;")
+        else:
+            self.stanford.provider_widget.browse_button.setStyleSheet("color:black;")
 
+        self.button_group.button(self.STANFORD).setEnabled(self.stanford_tagger is not None)
         self.on_change()
 
     def send_report(self):
