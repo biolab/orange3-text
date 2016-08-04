@@ -4,7 +4,7 @@ from Orange.widgets import gui
 from Orange.widgets import settings
 from Orange.widgets.widget import OWWidget, Msg
 from orangecontrib.text.corpus import Corpus
-from orangecontrib.text.language_codes import lang2code
+from orangecontrib.text.language_codes import lang2code, code2lang
 from orangecontrib.text.widgets.utils import ComboBox, ListEdit, CheckListLayout
 from orangecontrib.text.wikipedia import WikipediaAPI, NetworkException
 
@@ -82,10 +82,11 @@ class OWWikipedia(OWWidget):
         self.search_button.setFocusPolicy(QtCore.Qt.NoFocus)
 
     def send_report(self):
-        items = (('Language', self.language), ('Query', self.query_list))
         if self.result:
-            items += (('Articles count', len(self.result)), )
-        self.report_items('Query', items)
+            items = (('Language', code2lang[self.language]),
+                     ('Query', self.query_list),
+                     ('Articles count', len(self.result)))
+            self.report_items('Query', items)
 
     @QtCore.pyqtSlot()
     def search(self):
