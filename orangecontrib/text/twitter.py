@@ -6,6 +6,7 @@ import tweepy
 
 from Orange import data
 from orangecontrib.text.corpus import Corpus
+from orangecontrib.text.language_codes import code2lang
 
 __all__ = ['Credentials', 'TwitterAPI']
 
@@ -261,5 +262,5 @@ class SearchTask(threading.Thread):
 
     def report(self):
         return (('Query', self.q),
-                ('Language', self.lang or 'any'),
+                ('Language', code2lang.get(self.lang, 'Any')),
                 ('Tweets count', self.progress))
