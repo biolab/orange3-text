@@ -56,6 +56,12 @@ class OWWikipedia(OWWidget):
         self.api = WikipediaAPI(on_progress=progress_callback, on_finish=self.on_finish, on_error=self.on_error)
         self.result = None
 
+        query_box = gui.hBox(self.controlArea, 'Query')
+
+        # Queries configuration
+        layout = QtGui.QGridLayout()
+        layout.setSpacing(7)
+
         row = 0
         query_edit = ListEdit(self, 'query_list', "Multiple lines are automatically joined with OR.", self)
         layout.addWidget(QtGui.QLabel('Query word list:'), row, 0, 1, self.label_width)
@@ -67,7 +73,8 @@ class OWWikipedia(OWWidget):
         layout.addWidget(QtGui.QLabel('Language:'), row, 0, 1, self.label_width)
         layout.addWidget(language_edit, row, self.label_width, 1, self.widgets_width)
 
-        self.controlArea.layout().addLayout(layout)
+        query_box.layout().addLayout(layout)
+        self.controlArea.layout().addWidget(query_box)
 
         self.controlArea.layout().addWidget(
             CheckListLayout('Text includes', self, 'corpus_variables', self.attributes, cols=2))
