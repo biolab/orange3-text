@@ -239,7 +239,7 @@ class FileWidget(QtGui.QWidget):
         path = QtGui.QFileDialog().getOpenFileName(self, self.dialog_title,
                                                    start_dir, self.dialog_format)
 
-        if path and self.recent_files:
+        if path and self.recent_files is not None:
             if path in self.recent_files:
                 self.recent_files.remove(path)
             self.recent_files.insert(0, path)
