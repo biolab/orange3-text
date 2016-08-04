@@ -33,8 +33,8 @@ class WikipediaAPI:
 
         self.running = True
         wikipedia.set_lang(lang)
-        attributes = [attr for attr in attributes if attr in self.attributes]
         metas = [attr for attr in attributes if attr in self.metas] + ['content']
+        attributes = [attr for attr in attributes if attr in self.attributes]
 
         X, meta_values = [], []
         for i, query in enumerate(queries):
