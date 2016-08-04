@@ -49,7 +49,11 @@ class OWWikipedia(OWWidget):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         layout = QtGui.QGridLayout()
-        self.api = WikipediaAPI(on_progress=self.on_progress, on_finish=self.on_finish, on_error=self.on_error)
+
+        def progress_callback(i, c):
+            QtCore.QMetaObject.invokeMethod(self, "on_progress", QtCore.Qt.QueuedConnection, QtCore.Q_ARG(float, i), QtCore.Q_ARG(int, c))
+
+        self.api = WikipediaAPI(on_progress=progress_callback, on_finish=self.on_finish, on_error=self.on_error)
         self.result = None
 
         row = 0
@@ -98,7 +102,7 @@ class OWWikipedia(OWWidget):
         self.progressBarInit()
         self.api.search(lang=self.language, queries=self.query_list, attributes=self.corpus_variables, async=True)
 
-    @QtCore.pyqtSlot(float)
+    @QtCore.pyqtSlot(float, int)
     def on_progress(self, progress, count):
         self.progressBarSet(progress)
         self.result_label.setText(self.info_label.format(count))
