@@ -4,7 +4,8 @@ from PyQt4.QtGui import (QComboBox, QWidget, QHBoxLayout, QPushButton, QStyle,
                          QSizePolicy, QFileDialog, QLineEdit, QDoubleSpinBox,
                          QSpinBox, QTextEdit, QColor)
 from PyQt4 import QtCore, QtGui
-
+from Orange.widgets.gui import OWComponent
+from Orange.widgets import settings
 
 class ListEdit(QTextEdit):
     PLACEHOLDER_COLOR = QColor(128, 128, 128)
@@ -458,30 +459,40 @@ class RangeWidget(QWidget):
             self.max_spin.setRange(a, self.max)
 
 
-class ResourceLoader(QtGui.QWidget):
-    valueChanged = QtCore.pyqtSignal(tuple)
+class ResourceLoader(QtGui.QWidget, OWComponent):
+    valueChanged = QtCore.pyqtSignal(str, str)
 
-    def __init__(self, recent, model_format, provider_format,
+    recent_files = settings.Setting([])
+    resource_path = settings.Setting('')
+
+    def __init__(self, widget, model_format, provider_format,
                  model_button_label='Model', provider_button_label='Provider'):
-        super().__init__()
-        self.resource_path = None
+        QtGui.QWidget.__init__(self)
+        OWComponent.__init__(self, widget)
+
         self.model_path = None
         layout = QtGui.QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
 
-        self.model_widget = FileWidget(recent_files=recent, dialog_title='Load model', dialog_format=model_format,
+        self.model_widget = FileWidget(recent_files=self.recent_files, dialog_title='Load model',
+                                       dialog_format=model_format, start_dir=None,
                                        on_open=self.load_model, allow_empty=False,
                                        reload_button=False, browse_label=model_button_label)
+        self.model_path = self.recent_files[0] if self.recent_files else None
+
         layout.addWidget(self.model_widget)
 
-        self.provider_widget = FileWidget(recent_files=None, dialog_title='Load provider', dialog_format=provider_format,
+        self.provider_widget = FileWidget(recent_files=None, dialog_title='Load provider',
+                                          dialog_format=provider_format, start_dir=None,
                                           on_open=self.load_provider, allow_empty=False,
                                           reload_button=False, browse_label=provider_button_label)
         layout.addWidget(self.provider_widget)
 
     def load_model(self, path_to_file):
         self.model_path = path_to_file
-        self.valueChanged.emit((self.model_path, self.resource_path))
+        self.valueChanged.emit(self.model_path, self.resource_path)
 
     def load_provider(self, path_to_file):
         self.resource_path = path_to_file
-        self.valueChanged.emit((self.model_path, self.resource_path))
+        self.valueChanged.emit(self.model_path, self.resource_path)
+

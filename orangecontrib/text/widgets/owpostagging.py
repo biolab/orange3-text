@@ -35,10 +35,9 @@ class OWPOSTagger(OWWidget):
     # Settings
     autocommit = settings.Setting(True)
     tagger_index = settings.Setting(0)
-    recent_stanford_models = settings.Setting([])
-    path_to_stanford_jar = settings.Setting(None)
 
     STANFORD = len(taggers)
+    stanford = settings.SettingProvider(ResourceLoader)
 
     class Error(OWWidget.Error):
         not_configured = Msg("Tagger wasn't configured")
@@ -67,16 +66,13 @@ class OWPOSTagger(OWWidget):
         box = QtGui.QGroupBox('Stanford')
         layout = QtGui.QVBoxLayout(box)
         layout.setMargin(0)
-        stanford_tagger = ResourceLoader(self.recent_stanford_models,
-                                         model_format='Stanford model (*.model *.tagger)',
-                                         provider_format='Java file (*.jar)',
-                                         model_button_label='Trained Model',
-                                         provider_button_label='Stanford POS Tagger')
-        self.set_stanford_tagger((self.recent_stanford_models[0] if len(self.recent_stanford_models) else None,
-                                  self.path_to_stanford_jar))
+        self.stanford = ResourceLoader(widget=self, model_format='Stanford model (*.model *.tagger)',
+                                       provider_format='Java file (*.jar)',
+                                       model_button_label='Model', provider_button_label='Tagger')
+        self.set_stanford_tagger(self.stanford.model_path, self.stanford.resource_path)
 
-        stanford_tagger.valueChanged.connect(self.set_stanford_tagger)
-        layout.addWidget(stanford_tagger)
+        self.stanford.valueChanged.connect(self.set_stanford_tagger)
+        layout.addWidget(self.stanford)
         self.controlArea.layout().addWidget(box)
 
         buttons_layout = QtGui.QHBoxLayout()
@@ -120,13 +116,14 @@ class OWPOSTagger(OWWidget):
         self.Error.clear()
         self.commit()
 
-    def set_stanford_tagger(self, paths=None):
+    def set_stanford_tagger(self, model_path, stanford_path):
         self.stanford_tagger = None
-        try:
-            StanfordPOSTagger.check(*paths)
-            self.stanford_tagger = StanfordPOSTagger(*paths)
-        except ValueError as e:
-            self.Error.stanford(str(e))
+        if model_path and stanford_path:
+            try:
+                StanfordPOSTagger.check(model_path, stanford_path)
+                self.stanford_tagger = StanfordPOSTagger(model_path, stanford_path)
+            except ValueError as e:
+                self.Error.stanford(str(e))
 
         self.on_change()
 
