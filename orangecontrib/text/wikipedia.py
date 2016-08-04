@@ -55,6 +55,7 @@ class WikipediaAPI:
         corpus = Corpus(None, metas=np.array(meta_values, dtype=object), domain=domain, text_features=metas[-1:])
         corpus.extend_attributes(np.array(X), attributes)
         self.on_finish(corpus)
+        self.running = False
         return corpus
 
     def _get(self, article, attributes, X, metas, meta_values, recursive=True):
