@@ -24,7 +24,7 @@ class SelectedWords(set):
     def _update_filter(self):
         filter = set()
         if self.widget.corpus is not None:
-            for i, doc in enumerate(self.widget.corpus.tokens):
+            for i, doc in enumerate(self.widget.corpus.ngrams):
                 if any(i in doc for i in self):
                     filter.add(i)
         if filter:
@@ -238,7 +238,7 @@ span.selected {color:red !important}
 
         self.corpus_counter = Counter()
         if data is not None:
-            self.corpus_counter = Counter(w for doc in data.tokens for w in doc)
+            self.corpus_counter = Counter(w for doc in data.ngrams for w in doc)
             n_docs, n_words = len(data), len(self.corpus_counter)
 
         self.documents_info_str = ('{} documents with {} words'.format(n_docs, n_words)
