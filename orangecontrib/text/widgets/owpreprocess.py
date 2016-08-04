@@ -127,6 +127,10 @@ class PreprocessorModule(gui.OWComponent, QWidget):
             self.display_widget()
 
     @staticmethod
+    def get_tooltip(method):
+        return method.__doc__.strip().strip('.') if method.__doc__ else None
+
+    @staticmethod
     def textify(text):
         return text.replace('&', '&&')
 
@@ -176,7 +180,7 @@ class SingleMethodModule(PreprocessorModule):
         for i, method in enumerate(self.methods):
             rb = QRadioButton(self, text=self.textify(method.name))
             rb.setChecked(i == self.method_index)
-            rb.setToolTip(getattr(method, 'tooltip', ''))
+            rb.setToolTip(self.get_tooltip(method))
             self.group.addButton(rb, i)
             self.method_layout.addWidget(rb, i, 0)
 
@@ -199,7 +203,7 @@ class MultipleMethodModule(PreprocessorModule):
             cb = QCheckBox(self.textify(method.name))
             cb.setChecked(i in self.checked)
             cb.stateChanged.connect(self.update_value)
-            cb.setToolTip(getattr(method, 'tooltip', ''))
+            cb.setToolTip(self.get_tooltip(method))
             self.method_layout.addWidget(cb)
             self.buttons.append(cb)
 
@@ -291,7 +295,8 @@ class TransformationModule(MultipleMethodModule):
 
 
 class DummyKeepN:
-    name = 'Keep top tokens by document frequency'
+    """ Keeps top N tokens by document frequency. """
+    name = 'Most frequent tokens.'
 
 
 class FilteringModule(MultipleMethodModule):
@@ -360,7 +365,7 @@ class FilteringModule(MultipleMethodModule):
         range_widget = widgets.RangeWidget(None, self, ('min_df', 'max_df'),
                                            minimum=0., maximum=1., step=0.05,
                                            allow_absolute=True)
-        range_widget.setToolTip(preprocess.FrequencyFilter.tooltip)
+        range_widget.setToolTip(self.get_tooltip(preprocess.FrequencyFilter))
         range_widget.editingFinished.connect(self.df_changed)
         self.method_layout.addWidget(range_widget, self.FREQUENCY, 1, 1, 1)
 

@@ -1,4 +1,4 @@
-.. _corpus:
+.. _Corpus:
 
 ======
 Corpus

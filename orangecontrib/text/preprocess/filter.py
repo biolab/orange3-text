@@ -23,9 +23,6 @@ class BaseTokenFilter:
     def check(self, token):
         raise NotImplementedError
 
-    def on_change(self):
-        pass
-
     def __str__(self):
         return self.name
 
@@ -33,16 +30,7 @@ class BaseTokenFilter:
 class WordListMixin:
     def __init__(self, word_list=None):
         self.file_path = None
-        self._word_list = word_list or []
-
-    @property
-    def word_list(self):
-        return self._word_list
-
-    @word_list.setter
-    def word_list(self, value):
-        self._word_list = value
-        self.on_change()
+        self.word_list = word_list or []
 
     def from_file(self, path):
         self.file_path = path
@@ -54,6 +42,7 @@ class WordListMixin:
 
 
 class StopwordsFilter(BaseTokenFilter, WordListMixin):
+    """ Filters out words that listed in a file or in a list of stopwords for specific language. """
     name = 'Stopwords'
 
     supported_languages = [file for file in os.listdir(stopwords._get_root())
@@ -75,7 +64,6 @@ class StopwordsFilter(BaseTokenFilter, WordListMixin):
             self.stopwords = []
         else:
             self.stopwords = set(stopwords.words(self.language.lower()))
-        self.on_change()
 
     def __str__(self):
         config = ''
@@ -88,6 +76,7 @@ class StopwordsFilter(BaseTokenFilter, WordListMixin):
 
 
 class LexiconFilter(BaseTokenFilter, WordListMixin):
+    """ Keeps only words that present in a word list (lexicon). """
     name = 'Lexicon'
 
     def __init__(self, lexicon=None):
@@ -109,6 +98,7 @@ class LexiconFilter(BaseTokenFilter, WordListMixin):
 
 
 class RegexpFilter(BaseTokenFilter):
+    """ Keeps only words that match a regular expressions. """
     name = 'Regexp'
 
     def __init__(self, pattern=r'\.|,|:|!|\?'):
@@ -123,7 +113,6 @@ class RegexpFilter(BaseTokenFilter):
     def pattern(self, value):
         self._pattern = value
         self.regex = re.compile(self.pattern)
-        self.on_change()
 
     @staticmethod
     def validate_regexp(regexp):
@@ -141,13 +130,13 @@ class RegexpFilter(BaseTokenFilter):
 
 
 class FrequencyFilter(LexiconFilter):
+    """ Filters out tokens by their document frequency. Use either absolute or relative frequency. """
     name = 'Document frequency'
-    tooltip = 'Use either absolute or relative frequency.'
 
     def __init__(self, min_df=0., max_df=1., keep_n=None):
         super().__init__()
         self._corpus_len = 0
-        self._keep_n = keep_n
+        self.keep_n = keep_n
         self._max_df = max_df
         self._min_df = min_df
 
@@ -156,17 +145,8 @@ class FrequencyFilter(LexiconFilter):
         tokens = getattr(corpus, 'tokens', corpus)
         dictionary = corpora.Dictionary(tokens)
         dictionary.filter_extremes(self.min_df, self.max_df, self.keep_n)
-        self._word_list = dictionary.token2id.keys()
+        self.word_list = dictionary.token2id.keys()
         return self(tokens), dictionary
-
-    @property
-    def keep_n(self):
-        return self._keep_n
-
-    @keep_n.setter
-    def keep_n(self, value):
-        self._keep_n = value
-        self.on_change()
 
     @property
     def max_df(self):
@@ -178,7 +158,6 @@ class FrequencyFilter(LexiconFilter):
     @max_df.setter
     def max_df(self, value):
         self._max_df = value
-        self.on_change()
 
     @property
     def min_df(self):
@@ -190,7 +169,6 @@ class FrequencyFilter(LexiconFilter):
     @min_df.setter
     def min_df(self, value):
         self._min_df = value
-        self.on_change()
 
     def __str__(self):
         keep = ', keep {}'.format(self.keep_n) if self.keep_n else ''

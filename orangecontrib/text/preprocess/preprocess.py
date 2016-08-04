@@ -32,6 +32,12 @@ class Preprocessor:
         self._report_frequency = 1
 
     def __call__(self, corpus, inplace=True):
+        """ Runs preprocessing over a corpus.
+
+        Args:
+            corpus(orangecontrib.text.Corpus): A corpus to preprocess.
+            inplace(bool): Whether to create a new Corpus instance.
+        """
         if not inplace:
             corpus = corpus.copy()
 
