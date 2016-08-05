@@ -1,4 +1,7 @@
 import nltk
+import numpy as np
+
+from orangecontrib.text.topics.topics import chunks
 
 nltk.download(['averaged_perceptron_tagger', 'maxent_treebank_pos_tagger'], quiet=True)
 
@@ -8,10 +11,19 @@ class POSTagger:
         self.tag_sents = tagger.tag_sents
         self.name = name
 
-    def tag_corpus(self, corpus):
-        tags = self.tag_sents(corpus.tokens)
-        # corpus.tags = list(map(lambda sent: list(map(lambda x: x[1], sent)), tags))
-        corpus.store_tokens(list(map(lambda sent: list(map(lambda x: '{0[0]}_{0[1]}'.format(x), sent)), tags)))
+    def tag_corpus(self, corpus, chunk_count=None, on_progress=None):
+        if chunk_count:
+            tags = []
+            size = np.ceil(len(corpus) / chunk_count)
+            for i, chunk in enumerate(chunks(corpus.tokens, size)):
+                tags.extend(self.tag_sents(chunk))
+                if on_progress:
+                    on_progress(100 * (i + 1) * size / len(corpus))
+        else:
+            tags = self.tag_sents(corpus.tokens)
+
+        corpus.pos_tags = list(map(lambda sent: list(map(lambda x: x[1], sent)), tags))
+        # corpus.store_tokens(list(map(lambda sent: list(map(lambda x: '{0[0]}_{0[1]}'.format(x), sent)), tags)))
         return corpus
 
     def __str__(self):

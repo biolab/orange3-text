@@ -1,4 +1,4 @@
-from PyQt4 import QtGui
+from PyQt4 import QtGui, QtCore
 
 from Orange.widgets import gui
 from Orange.widgets import settings
@@ -104,7 +104,10 @@ class OWPOSTagger(OWWidget):
                 self.Error.not_configured()
             else:
                 self.Error.not_configured.clear()
-                new_corpus = self.tagger.tag_corpus(self.corpus.copy())
+                self.progressBarInit()
+                new_corpus = self.tagger.tag_corpus(self.corpus.copy(), chunk_count=50,
+                                                    on_progress=self.progressBarSet)
+                self.progressBarFinished()
                 self.send(Output.CORPUS, new_corpus)
 
     def on_change(self):
