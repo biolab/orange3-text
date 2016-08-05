@@ -1,3 +1,5 @@
+import os
+
 from PyQt4 import QtGui, QtCore
 
 from Orange.widgets import gui
@@ -132,7 +134,10 @@ class OWPOSTagger(OWWidget):
         self.button_group.button(self.STANFORD).setEnabled(self.stanford_tagger is not None)
 
     def send_report(self):
-        self.report_items('Tagger', (('Name', self.tagger.name),))
+        items = (('Name', self.tagger.name),)
+        if self.tagger_index == self.STANFORD:
+            items += (('Model', os.path.basename(self.stanford.model_path)), )
+        self.report_items('Tagger', items)
 
 
 if __name__ == '__main__':
