@@ -22,7 +22,8 @@ class POSTagger:
         else:
             tags = self.tag_sents(corpus.tokens)
 
-        corpus.pos_tags = list(map(lambda sent: list(map(lambda x: x[1], sent)), tags))
+        corpus.pos_tags = np.array(list(map(lambda sent: list(map(lambda x: x[1], sent)), tags)),
+                                   dtype=object)
         # corpus.store_tokens(list(map(lambda sent: list(map(lambda x: '{0[0]}_{0[1]}'.format(x), sent)), tags)))
         return corpus
 

@@ -59,6 +59,7 @@ class Corpus(Table):
         self._ngrams_corpus = None
         self.ngram_range = (1, 1)
         self.attributes = {}
+        self.pos_tags = None
 
         if domain is not None and text_features is None:
             self._infer_text_features()
@@ -269,6 +270,7 @@ class Corpus(Table):
         c._tokens = self._tokens
         c._dictionary = self._dictionary
         c.ngram_range = self.ngram_range
+        c.pos_tags = self.pos_tags
         return c
 
     def __getitem__(self, key):
@@ -279,8 +281,10 @@ class Corpus(Table):
                 key = key[0]
             if isinstance(key, Integral):
                 c._tokens = np.array([self._tokens[key]])
+                c.pos_tags = None if self.pos_tags is None else np.array([self.pos_tags[key]])
             elif isinstance(key, list) or isinstance(key, np.ndarray) or isinstance(key, slice):
                 c._tokens = self._tokens[key]
+                c.pos_tags = None if self.pos_tags is None else self.pos_tags[key]
             else:
                 raise TypeError('Indexing by type {} not supported.'.format(type(key)))
             c._dictionary = self._dictionary
@@ -301,5 +305,6 @@ class Corpus(Table):
                 np.array_equal(self.X, other.X) and
                 np.array_equal(self.Y, other.Y) and
                 np.array_equal(self.metas, other.metas) and
+                np.array_equal(self.pos_tags, other.pos_tags) and
                 self.domain == other.domain and
                 self.ngram_range == other.ngram_range)

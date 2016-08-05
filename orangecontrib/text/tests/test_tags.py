@@ -13,11 +13,11 @@ class POSTaggerTests(unittest.TestCase):
         corpus = Corpus.from_file('deerwester')
         tagger = tag.default_tagger
         result = tagger.tag_corpus(corpus)
-        # self.assertTrue(hasattr(result, 'tags'))
-        for token in itertools.chain(*result.tokens):
-            self.assertRegexpMatches(token, '[a-z]+_[A-Z]+')
-        # for tokens, tags in zip(result.tokens, result.tags):
-        #     self.assertEqual(len(tokens), len(tags))
+        self.assertTrue(hasattr(result, 'pos_tags'))
+        # for token in itertools.chain(*result.tokens):
+        #     self.assertRegexpMatches(token, '[a-z]+_[A-Z]+')
+        for tokens, tags in zip(result.tokens, result.pos_tags):
+            self.assertEqual(len(tokens), len(tags))
 
     def test_Stanford_check(self):
         model = tempfile.NamedTemporaryFile()
