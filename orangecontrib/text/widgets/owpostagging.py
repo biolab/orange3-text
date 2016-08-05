@@ -119,6 +119,8 @@ class OWPOSTagger(OWWidget):
             try:
                 StanfordPOSTagger.check(model_path, stanford_path)
                 self.stanford_tagger = StanfordPOSTagger(model_path, stanford_path)
+                self.button_group.button(self.STANFORD).setChecked(True)
+                self.button_group.buttonClicked[int].emit(self.STANFORD)
             except ValueError as e:
                 if not silent:
                     self.Error.stanford(str(e))
@@ -128,7 +130,6 @@ class OWPOSTagger(OWWidget):
             self.stanford.provider_widget.browse_button.setStyleSheet("color:black;")
 
         self.button_group.button(self.STANFORD).setEnabled(self.stanford_tagger is not None)
-        self.on_change()
 
     def send_report(self):
         self.report_items('Tagger', (('Name', self.tagger.name),))
