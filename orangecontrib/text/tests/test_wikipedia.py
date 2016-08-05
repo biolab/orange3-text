@@ -35,7 +35,7 @@ class WikipediaTests(unittest.TestCase):
         api.search('en', ['Barack Obama'], attributes=['pageid'], async=True)
         api.disconnect()
         self.assertEqual(on_finish.call_count, 1)
-        self.assertIsNone(on_finish.call_args[0][0])
+        self.assertLess(len(on_finish.call_args[0][0]), 5)
 
     def test_several_threads(self):
         api = WikipediaAPI()

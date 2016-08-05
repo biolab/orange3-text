@@ -43,8 +43,7 @@ class WikipediaAPI:
                 for j, article in enumerate(articles):
                     self._get(article, attributes, X, metas, meta_values)
                     if not self.running:
-                        self.on_finish(None)
-                        return
+                        break
                     self.on_progress(100 * (i * len(articles) + j + 1) / (len(queries) * len(articles)),
                                      len(X))
             except (wikipedia.exceptions.HTTPTimeoutError, IOError) as e:
