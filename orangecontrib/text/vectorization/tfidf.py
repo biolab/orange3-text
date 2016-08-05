@@ -42,7 +42,11 @@ class TfidfVectorizer(BaseVectorizer):
         self.wglobal = wglobal
 
     def _transform(self, corpus):
-        temp_corpus = list(corpus.ngrams)
+        if corpus.pos_tags is None:
+            temp_corpus = list(corpus.ngrams)
+        else:
+            temp_corpus = list(corpus.ngrams_iterator(' ', include_postags=True))
+
         dic = corpora.Dictionary(temp_corpus, prune_at=None)
         temp_corpus = [dic.doc2bow(doc) for doc in temp_corpus]
         model = models.TfidfModel(temp_corpus, normalize=False,

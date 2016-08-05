@@ -1,4 +1,3 @@
-import numpy as np
 from gensim import corpora, matutils
 
 from orangecontrib.text.vectorization.base import BaseVectorizer
@@ -11,8 +10,13 @@ class CountVectorizer(BaseVectorizer):
         self.binary = binary
 
     def _transform(self, corpus):
-        dic = corpora.Dictionary(corpus.ngrams, prune_at=None)
-        X = matutils.corpus2csc(map(dic.doc2bow, corpus.ngrams)).T
+        if corpus.pos_tags is None:
+            ngrams = list(corpus.ngrams)
+        else:
+            ngrams = list(corpus.ngrams_iterator(' ', include_postags=True))
+
+        dic = corpora.Dictionary(ngrams, prune_at=None)
+        X = matutils.corpus2csc(map(dic.doc2bow, ngrams)).T
 
         if self.binary:
             X[X > 1] = 1

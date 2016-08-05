@@ -239,15 +239,24 @@ class Corpus(Table):
         table = Table.from_file(filename)
         return cls(table.X, table.Y, table.metas, table.domain, None)
 
-    def ngrams_iterator(self, join_with=' '):
-        if join_with is None:
-            return (list(chain(*(nltk.ngrams(doc, n)
-                    for n in range(self.ngram_range[0], self.ngram_range[1]+1))))
-                    for doc in self.tokens)
+    def ngrams_iterator(self, join_with=' ', include_postags=False):
+        if include_postags:
+            data = zip(self.tokens, self.pos_tags)
         else:
-            return (list(chain(*((join_with.join(ngram) for ngram in nltk.ngrams(doc, n))
-                    for n in range(self.ngram_range[0], self.ngram_range[1]+1))))
-                    for doc in self.tokens)
+            data = self.tokens
+
+        if join_with is None:
+            processor = lambda doc, n: nltk.ngrams(doc, n)
+        else:
+            if include_postags:
+                processor = lambda doc, n: (join_with.join(token + '_' + tag for token, tag in ngram)
+                                            for ngram in nltk.ngrams(zip(*doc), n))
+            else:
+                processor = lambda doc, n: (join_with.join(ngram) for ngram in nltk.ngrams(doc, n))
+
+        return (list(chain(*(processor(doc, n)
+                for n in range(self.ngram_range[0], self.ngram_range[1]+1))))
+                for doc in data)
 
     @property
     def ngrams_corpus(self):
