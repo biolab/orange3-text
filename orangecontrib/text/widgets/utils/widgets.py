@@ -425,10 +425,10 @@ class RangeWidget(QWidget):
         layout.addWidget(self.max_spin)
 
         self.set_range()
-        self.min_spin.valueChanged.connect(self.valueChanged)
-        self.min_spin.editingFinished.connect(self.synchronize)
-        self.max_spin.valueChanged.connect(self.valueChanged)
-        self.max_spin.editingFinished.connect(self.synchronize)
+        self.min_spin.valueChanged.connect(self.synchronize)
+        self.min_spin.editingFinished.connect(self.editingFinished)
+        self.max_spin.valueChanged.connect(self.synchronize)
+        self.max_spin.editingFinished.connect(self.editingFinished)
         if callback:
             self.valueChanged.connect(callback)
 
@@ -440,7 +440,7 @@ class RangeWidget(QWidget):
             setattr(self.master, self.attribute[0], a)
             setattr(self.master, self.attribute[1], b)
         self.set_range()
-        self.editingFinished.emit()
+        self.valueChanged.emit()
 
     def master_value(self):
         if isinstance(self.attribute, str):
