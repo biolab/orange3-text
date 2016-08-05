@@ -108,6 +108,7 @@ class OWWikipedia(OWWidget):
         self.Error.network.clear()
         self.search_button.setText("Stop")
         self.progressBarInit()
+        self.result_label.setText(self.info_label.format(0))
         self.api.search(lang=self.language, queries=self.query_list, attributes=self.corpus_variables, async=True)
 
     @QtCore.pyqtSlot(float, int)
