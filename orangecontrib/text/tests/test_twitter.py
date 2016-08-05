@@ -102,7 +102,7 @@ class TestTwitterAPI(unittest.TestCase):
         self.assertIsInstance(corpus, Corpus)
         self.assertEqual(len(corpus), 5)
 
-    def test_crate_corpus_attr_selection(self):
+    def test_create_corpus_attr_selection(self):
         self.api.search(word_list=['hello'], max_tweets=5)
         self.api.join()
         attributes = ['text', 'created_at', 'author_id']

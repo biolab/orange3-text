@@ -28,6 +28,6 @@ class BaseVectorizer:
     def add_features(corpus, X, dictionary):
         order = np.argsort([dictionary[i] for i in range(len(dictionary))])
         corpus.extend_attributes(X[:, order],
-                                 feature_names=(dictionary[i] for i in order),
+                                 feature_names=[dictionary[i] for i in order],
                                  var_attrs={'hidden': True})
-        corpus.ngrams_corpus = matutils.Sparse2Corpus(X.T)
+        corpus.store_ngrams_corpus([dictionary[i] for i in order])

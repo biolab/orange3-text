@@ -45,7 +45,7 @@ class SimhashVectorizer(BaseVectorizer):
 
         X = np.array([self.int2binarray(self.compute_hash(doc)) for doc in corpus.tokens], dtype=np.float)
         corpus = corpus.copy()
-        corpus.extend_attributes(X, ('simhash_{}'.format(int(i) + 1) for i in range(self.f)),
+        corpus.extend_attributes(X, ['simhash_{}'.format(int(i) + 1) for i in range(self.f)],
                                  var_attrs={'hidden': True})
         return corpus
 

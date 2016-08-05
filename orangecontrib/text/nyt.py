@@ -5,6 +5,7 @@ import shelve
 import warnings
 import datetime
 import numpy as np
+import pandas as pd
 from datetime import date
 from html import unescape
 from urllib import request, parse
@@ -42,7 +43,9 @@ def _parse_record_json(records, includes_metadata):
                 field_value = " ".join([kw["value"] for kw in field_value if kw])
             metas_row.append(unescape(field_value) if isinstance(field_value, str) else field_value)
         # Add the pub_date.
-        metas_row.append(tv.parse(doc.get("pub_date", "")))
+        raw_pub_date = doc.get("pub_date", "")
+        metas_row.append(tv.column_to_datetime(pd.Series([raw_pub_date]))[0]
+                         if raw_pub_date is not None else raw_pub_date)
         # Add the glocation.
         metas_row.append(", ".join([kw["value"] for kw in doc["keywords"] if kw["name"] == "glocations"]))
 
@@ -85,7 +88,7 @@ def _generate_corpus(records, required_text_fields):
 
     Y = np.array([class_vars[0].to_val(cv) for cv in class_values])[:, None]
 
-    return Corpus(None, Y, metas, domain, meta_vars) # used all features
+    return Corpus(domain, None, np.array(class_values)[:, None], metas, meta_vars)  # used all features
 
 
 class NYT:

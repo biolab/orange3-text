@@ -4,6 +4,7 @@ import warnings
 from datetime import datetime
 
 import numpy as np
+import pandas as pd
 from Bio import Entrez
 from Bio import Medline
 from validate_email import validate_email
@@ -72,7 +73,7 @@ def _date_to_iso(date):
             date_string = datetime.strptime(
                     date, date_format
             ).date().isoformat()
-            return time_var.parse(date_string)
+            return time_var.column_to_datetime(pd.Series([date_string]))[0].timestamp()
         except ValueError:
             continue  # Try the next format.
 
@@ -80,7 +81,7 @@ def _date_to_iso(date):
             'Could not parse "{}" into a date.'.format(date),
             RuntimeWarning
     )
-    return time_var.parse(np.nan)
+    return np.nan
 
 
 def _records_to_corpus_entries(records, includes_metadata):
@@ -153,9 +154,7 @@ def _corpus_from_records(records, includes_metadata):
     ]
     domain = Domain([], class_vars=class_vars, metas=meta_vars)
 
-    Y = np.array([class_vars[0].to_val(cv) for cv in class_values])[:, None]
-
-    return Corpus(None, Y, meta_values, domain)
+    return Corpus(domain, None, np.array(class_values)[:, None], meta_values)
 
 
 class Pubmed:
@@ -403,7 +402,7 @@ class Pubmed:
                 if corpus is None:
                     corpus = _corpus_from_records(records, includes_metadata)
                 else:  # Update the corpus.
-                    corpus.extend_corpus(meta_values, class_values)
+                    corpus = corpus.extend_corpus(meta_values, class_values)
 
         return corpus
 

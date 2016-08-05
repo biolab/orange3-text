@@ -324,7 +324,7 @@ class OWNYT(OWWidget):
             metas, Y = _parse_record_json(res["response"]["docs"], self.nyt_api.includes_fields)
 
             # Update the corpus.
-            self.output_corpus.extend_corpus(metas, Y)
+            self.output_corpus = self.output_corpus.extend_corpus(metas, Y)
 
             # Update the info label.
             self.num_retrieved += len(res["response"]["docs"])

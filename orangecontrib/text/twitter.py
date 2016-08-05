@@ -193,7 +193,7 @@ class TwitterAPI:
         def to_val(attr, val):
             if isinstance(attr, data.DiscreteVariable) and val not in attr.values:
                 attr.add_value(val)
-            return attr.to_val(val)
+            return val
 
         X = np.array([
             [to_val(attr, record[attr.name]) for attr, _ in attributes]
@@ -206,7 +206,7 @@ class TwitterAPI:
         ], dtype=object)
         self.statuses_lock.release()
 
-        return Corpus(X=X, metas=metas, domain=domain, text_features=text_features)
+        return Corpus(domain, X, None, metas, text_features)
 
     def reset(self):
         """ Removes all downloaded tweets. """

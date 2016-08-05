@@ -33,7 +33,7 @@ class BaseTests:
 
     def test_get_topic_table_by_id(self):
         self.model.fit(self.corpus)
-        topic1 = self.model.get_topics_table_by_id(1)
+        topic1 = self.model.get_topics_table_by_id(0)
         self.assertEqual(len(topic1), len(self.corpus.dictionary))
         self.assertEqual(topic1.metas.shape, (len(self.corpus.dictionary), 2))
         # self.assertAlmostEqual(topic1.W.sum(), 1.)
@@ -41,7 +41,7 @@ class BaseTests:
 
     def test_top_words_by_topic(self):
         self.model.fit(self.corpus)
-        words = self.model.get_top_words_by_id(1, num_of_words=10)
+        words = self.model.get_top_words_by_id(0, num_of_words=10)
         self.assertTrue(all([isinstance(word, str) for word in words]))
         self.assertEqual(len(words), 10)
 

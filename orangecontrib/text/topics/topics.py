@@ -2,8 +2,7 @@ from gensim import matutils
 import numpy as np
 from gensim.corpora import Dictionary
 
-from Orange.data import StringVariable, ContinuousVariable, Domain
-from Orange.data.table import Table
+from Orange.data import StringVariable, ContinuousVariable, Domain, Table, TableSeries
 from orangecontrib.text.corpus import Corpus
 
 
@@ -22,12 +21,9 @@ MAX_WORDS = 1000
 
 
 class Topics(Table):
-    """ Dummy wrapper for Table so signals can distinguish Topics from Data.
+    """Dummy wrapper for Table so signals can distinguish Topics from Data.
     """
-
-    def __new__(cls, *args, **kwargs):
-        """ Bypass Table.__new__. """
-        return object.__new__(Topics)
+    pass
 
 
 class GensimWrapper:
@@ -66,7 +62,7 @@ class GensimWrapper:
         _update = self.Model.update
         self.Model.update = self.dummy_method
         self.id2word = Dictionary(corpus.ngrams, prune_at=None)
-        self.model = self.Model(corpus=corpus,
+        self.model = self.Model(corpus=corpus.ngrams_corpus,
                                 id2word=self.id2word, **self.kwargs)
         self.Model.update = _update
 
