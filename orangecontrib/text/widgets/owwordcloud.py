@@ -53,6 +53,7 @@ class SelectedWords(set):
 
 class Output:
     CORPUS = 'Corpus'
+    TOPIC = 'Topic'
 
 
 class OWWordCloud(widget.OWWidget):
@@ -60,7 +61,7 @@ class OWWordCloud(widget.OWWidget):
     priority = 10000
     icon = "icons/WordCloud.svg"
     inputs = [
-        ('Topics', Topics, 'on_topics_change'),
+        (Output.TOPIC, Topics, 'on_topics_change'),
         (Output.CORPUS, Corpus, 'on_corpus_change'),
     ]
     outputs = [('Corpus', Corpus)]
