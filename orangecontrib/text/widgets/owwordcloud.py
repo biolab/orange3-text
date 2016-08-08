@@ -206,7 +206,6 @@ span.selected {color:red !important}
             return np.clip(w/mean*MEAN_SIZE, MIN_SIZE, MAX_SIZE)
 
         self.wordlist = [[word, _size(weight)] for word, weight in zip(words, weights)]
-        self.webview.evalJS('OPTIONS["list"] = {};'.format(self.wordlist))
         self.on_cloud_pref_change()
 
     def on_topics_change(self, data):
