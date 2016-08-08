@@ -76,7 +76,7 @@ class OWPOSTagger(OWWidget):
 
         buttons_layout = QtGui.QHBoxLayout()
         buttons_layout.addWidget(self.report_button)
-        self.report_button.setMinimumWidth(200)
+        self.report_button.setMinimumWidth(210)
         buttons_layout.addSpacing(15)
         buttons_layout.addWidget(
             gui.auto_commit(None, self, 'autocommit', 'Commit', box=False)
