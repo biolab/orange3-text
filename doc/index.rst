@@ -32,7 +32,8 @@ Scripting Reference
    scripting/corpus.rst
    scripting/lda.rst
    scripting/preprocess.rst
-   scripting/nyt.rst
+   scripting/nyt.rsts
+   cripting/wikipedia.rst
    scripting/tag.rst
 
 Indices and tables

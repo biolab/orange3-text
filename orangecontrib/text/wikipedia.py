@@ -10,6 +10,12 @@ class NetworkException(IOError, wikipedia.exceptions.HTTPTimeoutError):
 
 
 class WikipediaAPI:
+    """ Wraps Wikipedia API.
+
+    Examples:
+        >>> api = WikipediaAPI()
+        >>> corpus = api.search('en', ['Barack Obama', 'Hillary Clinton'])
+    """
     attributes = ('pageid', 'revision_id')
     metas = ('title', 'content', 'summary', 'url')
 
@@ -23,6 +29,12 @@ class WikipediaAPI:
         self.on_finish = on_finish or (lambda x: x)
 
     def search(self, lang, queries, attributes, async=False):
+        """ Searches for articles.
+
+        Args:
+            lang(str): A language code in ISO 639-1 format.
+            queries(list of str): A list of queries.
+        """
         if async:
             if self.thread is not None and self.thread.is_alive():
                 raise RuntimeError('You cannot run several threads at the same time')
