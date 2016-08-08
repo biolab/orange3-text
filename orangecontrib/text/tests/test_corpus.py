@@ -11,7 +11,7 @@ from Orange.data.domain import Domain, StringVariable
 
 from orangecontrib.text import preprocess
 from orangecontrib.text.corpus import Corpus
-from orangecontrib.text.tag import default_tagger
+from orangecontrib.text.tag import pos_tagger
 
 
 class CorpusTests(unittest.TestCase):
@@ -261,7 +261,7 @@ class CorpusTests(unittest.TestCase):
             self.assertIn(ngram, list(c.ngrams_iterator(join_with=None))[0])
             self.assertIn('-'.join(ngram), list(c.ngrams_iterator(join_with='-'))[0])
 
-        default_tagger.tag_corpus(c)
+        pos_tagger.tag_corpus(c)
         c.ngram_range = (1, 1)
         for doc in c.ngrams_iterator(join_with='_', include_postags=True):
             for token in doc:

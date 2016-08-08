@@ -11,7 +11,7 @@ from orangecontrib.text.corpus import Corpus
 class POSTaggerTests(unittest.TestCase):
     def test_POSTagger(self):
         corpus = Corpus.from_file('deerwester')
-        tagger = tag.default_tagger
+        tagger = tag.pos_tagger
         result = tagger.tag_corpus(corpus)
         self.assertTrue(hasattr(result, 'pos_tags'))
         # for token in itertools.chain(*result.tokens):
