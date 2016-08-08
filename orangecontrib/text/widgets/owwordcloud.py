@@ -81,7 +81,9 @@ class OWWordCloud(widget.OWWidget):
         self.topics = None
         self.corpus = None
         self.corpus_counter = None
+        self.wordlist = None
         self._create_layout()
+        self.on_corpus_change(None)
 
     @QtCore.pyqtSlot(str, result=str)
     def word_clicked(self, word):
@@ -170,6 +172,8 @@ span.selected {color:red !important}
         self.webview.evalJS('selectWords();')
 
     def on_cloud_pref_change(self):
+        if self.wordlist is None:
+            return
         self._new_webview()
         self.webview.evalJS('OPTIONS["color"] = "{}"'.format(
             'random-dark' if self.words_color else 'black'))
