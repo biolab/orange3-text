@@ -7,11 +7,18 @@ nltk.download(['averaged_perceptron_tagger', 'maxent_treebank_pos_tagger'], quie
 
 
 class POSTagger:
+    """A class that wraps `nltk.TaggerI` and performs Corpus tagging. """
     def __init__(self, tagger, name='POS Tagger'):
         self.tag_sents = tagger.tag_sents
         self.name = name
 
     def tag_corpus(self, corpus, chunk_count=None, on_progress=None):
+        """ Marks tokens of a corpus with POS tags.
+
+        Args:
+            corpus (orangecontrib.text.corpus.Corpus): A corpus instance.
+
+        """
         if chunk_count:
             tags = []
             size = np.ceil(len(corpus) / chunk_count)
@@ -36,6 +43,22 @@ class StanfordPOSTagger(nltk.StanfordPOSTagger, POSTagger):
 
     @classmethod
     def check(cls, path_to_model, path_to_jar):
+        """ Checks whether provided `path_to_model` and `path_to_jar` are valid.
+
+        Raises:
+            ValueError: in case at least one of the paths is invalid.
+
+        Notes:
+            Can raise an exception if Java Development Kit is not installed or not properly configured.
+
+        Examples:
+            >>> try:
+            ...    StanfordPOSTagger.check('path/to/model', 'path/to/stanford.jar')
+            ... except ValueError as e:
+            ...    print(e)
+            Could not find stanford-postagger.jar jar file at path/to/stanford.jar
+
+        """
         try:
             cls(path_to_model, path_to_jar).tag(())
         except OSError as e:
