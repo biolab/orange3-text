@@ -53,6 +53,7 @@ class SelectedWords(set):
 
 class Output:
     CORPUS = 'Corpus'
+    TOPIC = 'Topic'
 
 
 class OWWordCloud(widget.OWWidget):
@@ -60,7 +61,7 @@ class OWWordCloud(widget.OWWidget):
     priority = 10000
     icon = "icons/WordCloud.svg"
     inputs = [
-        ('Topics', Topics, 'on_topics_change'),
+        (Output.TOPIC, Topics, 'on_topics_change'),
         (Output.CORPUS, Corpus, 'on_corpus_change'),
     ]
     outputs = [('Corpus', Corpus)]
@@ -80,7 +81,9 @@ class OWWordCloud(widget.OWWidget):
         self.topics = None
         self.corpus = None
         self.corpus_counter = None
+        self.wordlist = None
         self._create_layout()
+        self.on_corpus_change(None)
 
     @QtCore.pyqtSlot(str, result=str)
     def word_clicked(self, word):
@@ -169,6 +172,8 @@ span.selected {color:red !important}
         self.webview.evalJS('selectWords();')
 
     def on_cloud_pref_change(self):
+        if self.wordlist is None:
+            return
         self._new_webview()
         self.webview.evalJS('OPTIONS["color"] = "{}"'.format(
             'random-dark' if self.words_color else 'black'))
@@ -201,7 +206,6 @@ span.selected {color:red !important}
             return np.clip(w/mean*MEAN_SIZE, MIN_SIZE, MAX_SIZE)
 
         self.wordlist = [[word, _size(weight)] for word, weight in zip(words, weights)]
-        self.webview.evalJS('OPTIONS["list"] = {};'.format(self.wordlist))
         self.on_cloud_pref_change()
 
     def on_topics_change(self, data):
