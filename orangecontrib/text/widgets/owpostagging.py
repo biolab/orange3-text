@@ -122,16 +122,17 @@ class OWPOSTagger(OWWidget):
                 StanfordPOSTagger.check(model_path, stanford_path)
                 self.stanford_tagger = StanfordPOSTagger(model_path, stanford_path)
                 self.button_group.button(self.STANFORD).setChecked(True)
+                self.button_group.button(self.STANFORD).setEnabled(True)
                 self.button_group.buttonClicked[int].emit(self.STANFORD)
             except ValueError as e:
+                self.button_group.button(self.STANFORD).setEnabled(False)
                 if not silent:
                     self.Error.stanford(str(e))
+
         if not stanford_path:
             self.stanford.provider_widget.browse_button.setStyleSheet("color:#C00;")
         else:
             self.stanford.provider_widget.browse_button.setStyleSheet("color:black;")
-
-        self.button_group.button(self.STANFORD).setEnabled(self.stanford_tagger is not None)
 
     def send_report(self):
         items = (('Name', self.tagger.name),)
