@@ -84,7 +84,7 @@ class OWPOSTagger(OWWidget):
         self.controlArea.layout().addLayout(buttons_layout)
 
     def change_tagger(self, i):
-        if i != self.tagger_index:
+        if i != self.tagger_index or i == self.STANFORD:
             self.tagger_index = i
             self.on_change()
 
@@ -116,6 +116,7 @@ class OWPOSTagger(OWWidget):
         self.commit()
 
     def set_stanford_tagger(self, model_path, stanford_path, silent=False):
+        self.Error.stanford.clear()
         self.stanford_tagger = None
         if model_path and stanford_path:
             try:
@@ -125,9 +126,9 @@ class OWPOSTagger(OWWidget):
                 self.button_group.button(self.STANFORD).setEnabled(True)
                 self.button_group.buttonClicked[int].emit(self.STANFORD)
             except ValueError as e:
-                self.button_group.button(self.STANFORD).setEnabled(False)
                 if not silent:
                     self.Error.stanford(str(e))
+        self.button_group.button(self.STANFORD).setEnabled(self.stanford_tagger is not None)
 
         if not stanford_path:
             self.stanford.provider_widget.browse_button.setStyleSheet("color:#C00;")
