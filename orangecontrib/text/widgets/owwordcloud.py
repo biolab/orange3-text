@@ -124,7 +124,9 @@ span.selected {color:red !important}
 </html>'''
         if self.webview:
             self.mainArea.layout().removeWidget(self.webview)
-        self.webview = gui.WebviewWidget(self.mainArea, self, HTML, debug=True)
+        webview = self.webview = gui.WebviewWidget(self.mainArea, self, debug=False)
+        webview.setHtml(HTML)
+        self.mainArea.layout().addWidget(webview)
         for script in ('wordcloud2.js',
                        'wordcloud-script.js'):
             self.webview.evalJS(open(path.join(path.dirname(__file__), 'resources', script), encoding='utf-8').read())
