@@ -40,6 +40,7 @@ class OWWikipedia(OWWidget):
     query_list = settings.Setting([])
     language = settings.Setting('en')
     corpus_variables = settings.Setting([attr[1] for attr in attributes])
+    articles_per_query = settings.Setting(10)
 
     info_label = 'Articles count {}'
 
@@ -73,6 +74,13 @@ class OWWikipedia(OWWidget):
         language_edit = ComboBox(self, 'language', tuple(sorted(lang2code.items())))
         layout.addWidget(QtGui.QLabel('Language:'), row, 0, 1, self.label_width)
         layout.addWidget(language_edit, row, self.label_width, 1, self.widgets_width)
+
+        # Articles per query
+        row += 1
+        layout.addWidget(QtGui.QLabel('Articles per query:'), row, 0, 1, self.label_width)
+        slider = gui.valueSlider(query_box, self, 'articles_per_query', box='',
+                                 values=[1, 3, 5, 10, 25])
+        layout.addWidget(slider.box, row, 1, 1, self.widgets_width)
 
         query_box.layout().addLayout(layout)
         self.controlArea.layout().addWidget(query_box)
@@ -110,7 +118,8 @@ class OWWikipedia(OWWidget):
         self.search_button.setText("Stop")
         self.progressBarInit()
         self.result_label.setText(self.info_label.format(0))
-        self.api.search(lang=self.language, queries=self.query_list, attributes=self.corpus_variables, async=True)
+        self.api.search(lang=self.language, queries=self.query_list, attributes=self.corpus_variables,
+                        articles_per_query=self.articles_per_query, async=True)
 
     @QtCore.pyqtSlot(float, int)
     def on_progress(self, progress, count):

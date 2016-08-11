@@ -28,7 +28,7 @@ class WikipediaAPI:
         self.on_error = on_error or (lambda x: x)
         self.on_finish = on_finish or (lambda x: x)
 
-    def search(self, lang, queries, attributes, async=False):
+    def search(self, lang, queries, attributes, articles_per_query=10, async=False):
         """ Searches for articles.
 
         Args:
@@ -38,7 +38,8 @@ class WikipediaAPI:
         if async:
             if self.thread is not None and self.thread.is_alive():
                 raise RuntimeError('You cannot run several threads at the same time')
-            self.thread = threading.Thread(target=self.search, args=(lang, queries, attributes, False))
+            self.thread = threading.Thread(target=self.search,
+                                           args=(lang, queries, attributes, articles_per_query, False))
             self.thread.daemon = True
             self.thread.start()
             return
@@ -51,7 +52,7 @@ class WikipediaAPI:
         X, meta_values = [], []
         for i, query in enumerate(queries):
             try:
-                articles = wikipedia.search(query)
+                articles = wikipedia.search(query, results=articles_per_query)
                 for j, article in enumerate(articles):
                     self._get(article, attributes, X, metas, meta_values, query)
                     if not self.running:
@@ -84,11 +85,13 @@ class WikipediaAPI:
             meta_values.append(
                 [getattr(article, attr) for attr in metas]
             )
+            return True
 
         except wikipedia.exceptions.DisambiguationError:
             if recursive:
-                for article in wikipedia.search(article):
-                    self._get(article, attributes, X, metas, meta_values, query, recursive=False)
+                for article in wikipedia.search(article, 10):
+                    if self._get(article, attributes, X, metas, meta_values, query, recursive=False):
+                        break
 
         except wikipedia.exceptions.PageError:
             pass
