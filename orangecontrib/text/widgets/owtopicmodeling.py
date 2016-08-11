@@ -1,14 +1,15 @@
+import functools
+
 from PyQt4 import QtGui
 from PyQt4.QtGui import QVBoxLayout, QButtonGroup, QRadioButton
 from PyQt4 import QtCore
-from PyQt4.QtCore import Qt, QMetaObject, Q_ARG
-from Orange.widgets.widget import OWWidget
 from Orange.widgets import settings
 from Orange.widgets import gui
 from Orange.data import Table
 from Orange.widgets.data.contexthandlers import DomainContextHandler
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.topics import Topics, LdaWrapper, HdpWrapper, LsiWrapper
+from orangecontrib.text.widgets.utils.owwidget import OWConcurrentWidget, asynchronous
 
 
 class TopicWidget(gui.OWComponent, QtGui.QGroupBox):
@@ -86,7 +87,17 @@ class Output:
     TOPIC = "Topic"
 
 
-class OWTopicModeling(OWWidget):
+def require(attribute):
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(self, *args, **kwargs):
+            if getattr(self, attribute, None) is not None:
+                return func(self, *args, **kwargs)
+        return wrapper
+    return decorator
+
+
+class OWTopicModeling(OWConcurrentWidget):
     name = "Topic Modelling"
     description = "Uncover the hidden thematic structure in a corpus."
     icon = "icons/TopicModeling.svg"
@@ -178,46 +189,27 @@ class OWTopicModeling(OWWidget):
     def update_topics(self):
         self.topic_desc.show_model(self.model)
 
-    @QtCore.pyqtSlot(int)
-    def progress(self, p):
-        self.progressBarSet(p, processEvents=None)
+    def on_progress(self, p):
+        self.progressBarSet(100 * p / len(self.corpus), processEvents=None)
 
     def apply(self):
-        self.stop_learning()
+        self.stop()
         if self.corpus:
             self.start_learning()
         else:
             self.send(Output.CORPUS, None)
             self.send(Output.TOPIC, None)
 
-    def start_learning(self):
+    def on_start(self):
         self.topic_desc.clear()
-        if self.corpus:
-            self.progressBarInit()
 
-            def progress_callback(i):
-                QMetaObject.invokeMethod(self, "progress", Qt.QueuedConnection, Q_ARG(int, i))
+    @asynchronous
+    def start_learning(self, **kwargs):
+        return self.model.fit_transform(self.corpus.copy(), chunk_number=100, **kwargs)
 
-            self.learning_thread = LearningThread(self.model, self.corpus.copy(),
-                                                  result_callback=self.send_corpus,
-                                                  on_progress=progress_callback)
-            self.learning_thread.finished.connect(self.learning_finished)
-            self.learning_thread.start()
-
-    @QtCore.pyqtSlot()
-    def stop_learning(self):
-
-        if self.learning_thread and self.learning_thread.isRunning():
-            self.learning_thread.terminate()
-            self.learning_thread.wait()
-            self.progressBarFinished()
-
-    def send_corpus(self, corpus):
-        self.send(Output.CORPUS, corpus)
-
-    def learning_finished(self):
+    def on_result(self, corpus):
         self.update_topics()
-        self.progressBarFinished()
+        self.send(Output.CORPUS, corpus)
 
     def send_report(self):
         self.report_items(*self.widgets[self.method_index].report_model())
@@ -280,22 +272,6 @@ class TopicViewer(QtGui.QTreeWidget):
             self.topicSelected.emit(topic_id)
         else:
             self.topicSelected.emit(None)
-
-
-class LearningThread(QtCore.QThread):
-    def __init__(self, model, corpus, result_callback, **kwargs):
-        super().__init__()
-        self.result_callback = result_callback
-        self.model = model
-        self.corpus = corpus
-        self.kwargs = kwargs
-
-    def run(self):
-        result = self.model.fit_transform(self.corpus, **self.kwargs)
-        self.result_callback(result)
-
-    def terminate(self):
-        self.model.running = False
 
 
 if __name__ == '__main__':
