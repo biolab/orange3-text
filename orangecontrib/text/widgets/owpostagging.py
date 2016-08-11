@@ -8,6 +8,7 @@ from Orange.widgets.widget import OWWidget, Msg
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.tag.pos import taggers, StanfordPOSTagger
 from orangecontrib.text.widgets.utils import ResourceLoader
+from orangecontrib.text.widgets.utils.owwidget import OWConcurrentWidget, asynchronous
 
 
 class Input:
@@ -18,7 +19,7 @@ class Output:
     CORPUS = 'Corpus'
 
 
-class OWPOSTagger(OWWidget):
+class OWPOSTagger(OWConcurrentWidget):
     """Marks up words with corresponding part of speech."""
     name = 'POS Tagging'
     icon = 'icons/POSTagging.svg'
@@ -106,14 +107,20 @@ class OWPOSTagger(OWWidget):
                 self.Error.not_configured()
             else:
                 self.Error.not_configured.clear()
-                self.progressBarInit()
-                new_corpus = self.tagger.tag_corpus(self.corpus.copy(), chunk_count=50,
-                                                    on_progress=self.progressBarSet)
-                self.progressBarFinished()
-                self.send(Output.CORPUS, new_corpus)
+                self.start()
+
+    @asynchronous
+    def start(self, **kwargs):
+        return self.tagger.tag_corpus(self.corpus.copy(), chunk_number=50, **kwargs)
 
     def on_change(self):
         self.commit()
+
+    def on_progress(self, p):
+        self.progressBarSet(100 * p / len(self.corpus))
+
+    def on_result(self, corpus):
+        self.send(Output.CORPUS, corpus)
 
     def set_stanford_tagger(self, model_path, stanford_path, silent=False):
         self.Error.stanford.clear()
