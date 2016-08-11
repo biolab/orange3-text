@@ -56,7 +56,7 @@ class Corpus(SparseTable):
 
     def __new__(cls, *args, **kwargs):
         # see TableBase.__new__ for comments on why this is needed
-        all_kwargs_are_pandas = len(set(kwargs.keys()).difference(cls.KNOWN_PANDAS_KWARGS)) == 0
+        all_kwargs_are_pandas = all(arg in cls._KNOWN_PANDAS_KWARGS for arg in kwargs)
         if len(args) == 1 and (isinstance(args[0], pd.core.internals.BlockManager)
                                or (isinstance(args[0], np.ndarray) and len(kwargs) != 0 and all_kwargs_are_pandas)):
             return cls(data=args[0], **kwargs)
@@ -96,7 +96,7 @@ class Corpus(SparseTable):
             self[self._NGRAMS_CORPUS_COLUMN] = np.nan
 
         # if we are being called from pandas internals
-        all_kwargs_are_pandas = len(set(kwargs.keys()).difference(self.KNOWN_PANDAS_KWARGS)) == 0
+        all_kwargs_are_pandas = all(arg in self._KNOWN_PANDAS_KWARGS for arg in kwargs)
         # we may been to transfer some properties if copying from another table,
         # because we need the domain later on
         if kwargs and all_kwargs_are_pandas and 'data' in kwargs and isinstance(kwargs['data'], TableBase):
