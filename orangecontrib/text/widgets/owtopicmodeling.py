@@ -200,7 +200,7 @@ class OWTopicModeling(OWWidget):
 
             self.learning_thread = LearningThread(self.model, self.corpus.copy(),
                                                   result_callback=self.send_corpus,
-                                                  progress_callback=progress_callback)
+                                                  on_progress=progress_callback)
             self.learning_thread.finished.connect(self.learning_finished)
             self.learning_thread.start()
 

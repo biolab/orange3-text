@@ -5,17 +5,7 @@ from gensim.corpora import Dictionary
 from Orange.data import StringVariable, ContinuousVariable, Domain
 from Orange.data.table import Table
 from orangecontrib.text.corpus import Corpus
-
-
-def chunks(iterable, chunk_size):
-    chunk = []
-    for item in iterable:
-        chunk.append(item)
-        if len(chunk) == chunk_size:
-            yield chunk
-            chunk = []
-    if chunk:
-        yield chunk
+from orangecontrib.text.util import chunkable
 
 
 MAX_WORDS = 1000
@@ -43,7 +33,7 @@ class GensimWrapper:
         self.topic_names = []
         self.running = False
 
-    def fit(self, corpus, progress_callback=None):
+    def fit(self, corpus, **kwargs):
         """ Train the model with the corpus.
 
         Args:
@@ -53,7 +43,7 @@ class GensimWrapper:
             return None
         self.reset_model(corpus)
         self.running = True
-        self.update(corpus, progress_callback)
+        self.update(corpus.ngrams_corpus, **kwargs)
         self.topic_names = ['Topic{} ({})'.format(i, ', '.join(words))
                             for i, words in enumerate(self._topics_words(3), 1)]
         self.running = False
@@ -70,14 +60,9 @@ class GensimWrapper:
                                 id2word=self.id2word, **self.kwargs)
         self.Model.update = _update
 
-    def update(self, corpus, progress_callback=None):
-        chunk_size = np.ceil(len(corpus) / 100)
-        for i, chunk in enumerate(chunks(corpus.ngrams_corpus, chunk_size=chunk_size)):
-            if not self.running:
-                break
-            self.model.update(chunk)
-            if progress_callback:
-                progress_callback(100 * (i + 1) * chunk_size / len(corpus))
+    @chunkable
+    def update(self, documents):
+        self.model.update(documents)
 
     def transform(self, corpus):
         """ Create a table with topics representation. """
@@ -88,8 +73,8 @@ class GensimWrapper:
         corpus.extend_attributes(matrix[:, :len(self.topic_names)], self.topic_names)
         return corpus
 
-    def fit_transform(self, corpus, progress_callback=None):
-        self.fit(corpus, progress_callback)
+    def fit_transform(self, corpus, **kwargs):
+        self.fit(corpus, **kwargs)
         return self.transform(corpus)
 
     def get_topics_table_by_id(self, topic_id):
