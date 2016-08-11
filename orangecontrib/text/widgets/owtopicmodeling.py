@@ -242,7 +242,6 @@ class TopicViewer(QtGui.QTreeWidget):
 
     def __init__(self):
         super().__init__()
-
         self.setColumnCount(len(self.columns))
         self.setHeaderLabels(self.columns)
         self.resize_columns()
@@ -272,6 +271,9 @@ class TopicViewer(QtGui.QTreeWidget):
             self.topicSelected.emit(topic_id)
         else:
             self.topicSelected.emit(None)
+
+    def sizeHint(self):
+        return QtCore.QSize(700, 300)
 
 
 if __name__ == '__main__':
