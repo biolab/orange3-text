@@ -17,7 +17,7 @@ class WikipediaAPI:
         >>> corpus = api.search('en', ['Barack Obama', 'Hillary Clinton'])
     """
     attributes = ('pageid', 'revision_id')
-    metas = ('title', 'content', 'summary', 'url')
+    metas = ('title', 'content', 'summary', 'url', 'query')
 
     def __init__(self, on_progress=None, on_error=None, on_finish=None):
         super().__init__()
@@ -53,7 +53,7 @@ class WikipediaAPI:
             try:
                 articles = wikipedia.search(query)
                 for j, article in enumerate(articles):
-                    self._get(article, attributes, X, metas, meta_values)
+                    self._get(article, attributes, X, metas, meta_values, query)
                     if not self.running:
                         break
                     self.on_progress(100 * (i * len(articles) + j + 1) / (len(queries) * len(articles)),
@@ -69,12 +69,13 @@ class WikipediaAPI:
         self.running = False
         return corpus
 
-    def _get(self, article, attributes, X, metas, meta_values, recursive=True):
+    def _get(self, article, attributes, X, metas, meta_values, query, recursive=True):
         try:
             if not self.running:
                 return
 
             article = wikipedia.page(article)
+            article.query = query
 
             X.append(
                 [int(getattr(article, attr)) for attr in attributes]
@@ -87,7 +88,7 @@ class WikipediaAPI:
         except wikipedia.exceptions.DisambiguationError:
             if recursive:
                 for article in wikipedia.search(article):
-                    self._get(article, attributes, X, metas, meta_values, recursive=False)
+                    self._get(article, attributes, X, metas, meta_values, query, recursive=False)
 
         except wikipedia.exceptions.PageError:
             pass

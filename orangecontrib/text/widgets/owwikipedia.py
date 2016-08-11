@@ -30,10 +30,11 @@ class OWWikipedia(OWWidget):
     attributes = [
         # ('Content', 'content'),
         ('Title', 'title'),
+        ('Summary', 'summary'),
+        ('Query', 'query'),
         ('URL', 'url'),
         ('Page ID', 'pageid'),
         ('Revision ID', 'revision_id'),
-        ('Summary', 'summary'),
     ]
 
     query_list = settings.Setting([])
