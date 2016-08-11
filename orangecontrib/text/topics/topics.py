@@ -99,6 +99,7 @@ class GensimWrapper:
                               X=np.zeros((num_words, 0)),
                               metas=data)
         t.W = data[:, 1]
+        t.name = 'Topic_{}'.format(topic_id + 1)
         return t
 
     def get_top_words_by_id(self, topic_id, num_of_words=10):
