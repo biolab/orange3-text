@@ -247,12 +247,11 @@ class Corpus(Table):
 
         if join_with is None:
             processor = lambda doc, n: nltk.ngrams(doc, n)
+        elif include_postags:
+            processor = lambda doc, n: (join_with.join(token + '_' + tag for token, tag in ngram)
+                                        for ngram in nltk.ngrams(zip(*doc), n))
         else:
-            if include_postags:
-                processor = lambda doc, n: (join_with.join(token + '_' + tag for token, tag in ngram)
-                                            for ngram in nltk.ngrams(zip(*doc), n))
-            else:
-                processor = lambda doc, n: (join_with.join(ngram) for ngram in nltk.ngrams(doc, n))
+            processor = lambda doc, n: (join_with.join(ngram) for ngram in nltk.ngrams(doc, n))
 
         return (list(chain(*(processor(doc, n)
                 for n in range(self.ngram_range[0], self.ngram_range[1]+1))))
