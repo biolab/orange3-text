@@ -1,9 +1,10 @@
+import re
 from bs4 import BeautifulSoup
 from sklearn.feature_extraction.text import strip_accents_unicode
 
 
 __all__ = ['BaseTransformer', 'HtmlTransformer', 'LowercaseTransformer',
-           'StripAccentsTransformer']
+           'StripAccentsTransformer', 'UrlRemover']
 
 
 class BaseTransformer:
@@ -58,3 +59,13 @@ class HtmlTransformer(BaseTransformer):
     @classmethod
     def transform(cls, string):
         return BeautifulSoup(string, 'html.parser').getText()
+
+
+class UrlRemover(BaseTransformer):
+    """ Removes hyperlinks. """
+    name = "Remove urls"
+    urlfinder = re.compile(r"((https?):((//)|(\\\\))+([\w\d:#@%/;$()~_?\+-=\\\.&](#!)?)*)")
+
+    @classmethod
+    def transform(cls, string):
+        return cls.urlfinder.sub('', string)

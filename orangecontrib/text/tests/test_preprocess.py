@@ -135,6 +135,11 @@ class TransformationTests(unittest.TestCase):
         transformer = preprocess.HtmlTransformer()
         self.assertEqual(transformer('<p>abra<b>cadabra</b><p>'), 'abracadabra')
 
+    def test_url_remover(self):
+        url_remover = preprocess.UrlRemover()
+        self.assertEqual(url_remover.transform('some link to https://google.com/'), 'some link to ')
+        self.assertEqual(url_remover.transform('some link to google.com'), 'some link to google.com')
+
 
 class TokenNormalizerTests(unittest.TestCase):
 

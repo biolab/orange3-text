@@ -290,6 +290,7 @@ class TransformationModule(MultipleMethodModule):
         preprocess.LowercaseTransformer,
         preprocess.StripAccentsTransformer,
         preprocess.HtmlTransformer,
+        preprocess.UrlRemover,
     ]
     checked = settings.Setting([0])
 
