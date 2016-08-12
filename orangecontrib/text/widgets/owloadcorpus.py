@@ -1,3 +1,4 @@
+import os
 from itertools import chain
 
 from Orange.data.io import FileFormat
@@ -83,6 +84,7 @@ class OWLoadCorpus(OWWidget):
         if path:
             try:
                 self.corpus = Corpus.from_file(path)
+                self.corpus.name = os.path.splitext(os.path.basename(path))[0]
                 self.info_label.setText("Corpus of {} documents.".format(len(self.corpus)))
                 self.used_attrs.extend(self.corpus.text_features)
                 self.unused_attrs.extend([f for f in chain(self.corpus.domain.variables,
