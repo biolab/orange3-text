@@ -28,7 +28,6 @@ Welcome to Orange3 Text Mining documentation!
    :caption: Scripting
 
    scripting/corpus.rst
-   scripting/lda.rst
    scripting/preprocess.rst
    scripting/twitter.rst
    scripting/nyt.rst
