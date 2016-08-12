@@ -100,7 +100,7 @@ class Corpus(SparseTable):
         # we may been to transfer some properties if copying from another table,
         # because we need the domain later on
         if kwargs and all_kwargs_are_pandas and 'data' in kwargs and isinstance(kwargs['data'], TableBase):
-            self._transfer_properties(kwargs['data'], transfer_domain=True)
+            self.__finalize__(kwargs['data'])
 
         if self.domain is not None and text_features is None:
             self._infer_text_features()
@@ -211,7 +211,7 @@ class Corpus(SparseTable):
         result = pd.concat([self, new], axis=0, copy=False)
         result[self._TOKENS_COLUMN] = np.nan
         # pandas concatenation doesn't transfer properties
-        result._transfer_properties(self, transfer_domain=True)
+        result.__finalize__(self)
         return result
 
     def extend_attributes(self, X, feature_names, var_attrs=None):

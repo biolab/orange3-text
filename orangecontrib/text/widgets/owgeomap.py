@@ -36,7 +36,7 @@ class OWGeoMap(widget.OWWidget):
     name = "GeoMap"
     priority = 20000
     icon = "icons/GeoMap.svg"
-    inputs = [("Data", Table, "on_data")]
+    inputs = [("Data", TableBase, "on_data")]
     outputs = [('Corpus', Corpus)]
 
     want_main_area = False
