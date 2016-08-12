@@ -66,6 +66,7 @@ class WikipediaAPI:
         domain = data.Domain(attributes=[], metas=metas)
         corpus = Corpus(None, metas=np.array(meta_values, dtype=object), domain=domain, text_features=metas[-1:])
         corpus.extend_attributes(np.array(X), attributes)
+        corpus.name = 'Wikipedia'
         self.on_finish(corpus)
         self.running = False
         return corpus
