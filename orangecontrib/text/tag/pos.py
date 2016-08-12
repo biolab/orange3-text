@@ -20,7 +20,6 @@ class POSTagger:
 
         """
         corpus.pos_tags = np.array(self._tag_sents(corpus.tokens, **kwargs), dtype=object)
-        # corpus.store_tokens(list(map(lambda sent: list(map(lambda x: '{0[0]}_{0[1]}'.format(x), sent)), tags)))
         return corpus
 
     @chunkable
