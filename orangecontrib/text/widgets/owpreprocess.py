@@ -9,7 +9,7 @@ from PyQt4.QtGui import (QWidget, QLabel, QHBoxLayout, QVBoxLayout,
 from nltk.downloader import Downloader
 
 from Orange.widgets import gui, settings, widget
-from Orange.widgets.widget import OWWidget
+from Orange.widgets.widget import OWWidget, Msg
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.widgets.utils import widgets
 
@@ -466,6 +466,9 @@ class OWPreprocess(OWWidget):
             "already, was downloaded to: {}".format(Downloader().default_download_dir()),
             "nltk_data")]
 
+    class Warning(OWWidget.Warning):
+        no_token_left = Msg('No tokens on output! Please, change configuration.')
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.corpus = None
@@ -527,6 +530,7 @@ class OWPreprocess(OWWidget):
         self.info_label.setText(info)
 
     def commit(self):
+        self.Warning.no_token_left.clear()
         if self.corpus is not None:
             self.apply()
 
@@ -534,8 +538,11 @@ class OWPreprocess(OWWidget):
         self.progressBarInit()
         output = self.preprocessor(self.corpus, inplace=True)
         self.progressBarFinished()
-        self.send(Output.PP_CORPUS, output)
         self.update_info(output)
+        if output is not None and len(output.dictionary) == 0:
+            self.Warning.no_token_left()
+            output = None
+        self.send(Output.PP_CORPUS, output)
 
     def on_progress(self, progress):
         self.progressBarSet(progress)
