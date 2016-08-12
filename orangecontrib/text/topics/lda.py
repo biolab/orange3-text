@@ -4,5 +4,5 @@ from .topics import GensimWrapper
 
 
 class LdaWrapper(GensimWrapper):
-    name = 'Lda Model'
+    name = 'Latent Dirichlet Allocation'
     Model = models.LdaModel
