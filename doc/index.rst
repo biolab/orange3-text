@@ -17,6 +17,7 @@ Widgets
    widgets/corpusviewer.rst
    widgets/preprocesstext.rst
    widgets/bagofwords.rst
+   widgets/postagging.rst
    widgets/topicmodelling.rst
    widgets/wordenrichment.rst
    widgets/wordcloud.rst
@@ -32,6 +33,7 @@ Scripting Reference
    scripting/lda.rst
    scripting/preprocess.rst
    scripting/nyt.rst
+   scripting/tag.rst
 
 Indices and tables
 ==================

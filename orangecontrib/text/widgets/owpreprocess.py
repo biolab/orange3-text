@@ -336,17 +336,21 @@ class FilteringModule(MultipleMethodModule):
         self.stopwords_changed()
         self.method_layout.addWidget(box, self.STOPWORDS, 1)
 
-        box = widgets.FileWidget(self.recent_sw_files,
+        box = widgets.FileWidget(recent_files=self.recent_sw_files,
                                  dialog_title='Open a stop words source',
                                  dialog_format=self.dlgFormats,
-                                 callback=self.read_stopwords_file)
+                                 on_open=self.read_stopwords_file,
+                                 browse_label='',
+                                 reload_label='')
         box.select(0)
         self.method_layout.addWidget(box, self.STOPWORDS, 2, 1, 1)
 
-        box = widgets.FileWidget(self.recent_lexicon_files,
+        box = widgets.FileWidget(recent_files=self.recent_lexicon_files,
                                  dialog_title='Open a lexicon words source',
                                  dialog_format=self.dlgFormats,
-                                 callback=self.read_lexicon_file)
+                                 on_open=self.read_lexicon_file,
+                                 browse_label='',
+                                 reload_label='')
         box.select(0)
         self.method_layout.addWidget(box, self.LEXICON, 2, 1, 1)
 

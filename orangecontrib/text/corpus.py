@@ -59,6 +59,7 @@ class Corpus(Table):
         self._ngrams_corpus = None
         self.ngram_range = (1, 1)
         self.attributes = {}
+        self.pos_tags = None
 
         if domain is not None and text_features is None:
             self._infer_text_features()
@@ -238,15 +239,23 @@ class Corpus(Table):
         table = Table.from_file(filename)
         return cls(table.X, table.Y, table.metas, table.domain, None)
 
-    def ngrams_iterator(self, join_with=' '):
-        if join_with is None:
-            return (list(chain(*(nltk.ngrams(doc, n)
-                    for n in range(self.ngram_range[0], self.ngram_range[1]+1))))
-                    for doc in self.tokens)
+    def ngrams_iterator(self, join_with=' ', include_postags=False):
+        if include_postags:
+            data = zip(self.tokens, self.pos_tags)
         else:
-            return (list(chain(*((join_with.join(ngram) for ngram in nltk.ngrams(doc, n))
-                    for n in range(self.ngram_range[0], self.ngram_range[1]+1))))
-                    for doc in self.tokens)
+            data = self.tokens
+
+        if join_with is None:
+            processor = lambda doc, n: nltk.ngrams(doc, n)
+        elif include_postags:
+            processor = lambda doc, n: (join_with.join(token + '_' + tag for token, tag in ngram)
+                                        for ngram in nltk.ngrams(zip(*doc), n))
+        else:
+            processor = lambda doc, n: (join_with.join(ngram) for ngram in nltk.ngrams(doc, n))
+
+        return (list(chain(*(processor(doc, n)
+                for n in range(self.ngram_range[0], self.ngram_range[1]+1))))
+                for doc in data)
 
     @property
     def ngrams_corpus(self):
@@ -269,6 +278,7 @@ class Corpus(Table):
         c._tokens = self._tokens
         c._dictionary = self._dictionary
         c.ngram_range = self.ngram_range
+        c.pos_tags = self.pos_tags
         return c
 
     def __getitem__(self, key):
@@ -279,8 +289,10 @@ class Corpus(Table):
                 key = key[0]
             if isinstance(key, Integral):
                 c._tokens = np.array([self._tokens[key]])
+                c.pos_tags = None if self.pos_tags is None else np.array([self.pos_tags[key]])
             elif isinstance(key, list) or isinstance(key, np.ndarray) or isinstance(key, slice):
                 c._tokens = self._tokens[key]
+                c.pos_tags = None if self.pos_tags is None else self.pos_tags[key]
             else:
                 raise TypeError('Indexing by type {} not supported.'.format(type(key)))
             c._dictionary = self._dictionary
@@ -301,5 +313,6 @@ class Corpus(Table):
                 np.array_equal(self.X, other.X) and
                 np.array_equal(self.Y, other.Y) and
                 np.array_equal(self.metas, other.metas) and
+                np.array_equal(self.pos_tags, other.pos_tags) and
                 self.domain == other.domain and
                 self.ngram_range == other.ngram_range)

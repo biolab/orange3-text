@@ -4,24 +4,8 @@ import numpy as np
 
 from orangecontrib.text import vectorization
 from orangecontrib.text.topics import LdaWrapper, HdpWrapper, LsiWrapper
-from orangecontrib.text.topics.topics import chunks
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text import preprocess
-
-class ChunksTest(unittest.TestCase):
-
-    def test_results(self):
-        self.assertEqual(list(chunks([], 10)), [])
-        self.assertEqual(list(chunks([1, 2], 3)), [[1, 2]])
-        self.assertEqual(list(chunks([1, 2], 1)), [[1], [2]])
-
-    def test_size(self):
-        for chunk in chunks(range(10), 2):
-            self.assertEqual(len(chunk), 2)
-
-        for chunk in chunks(range(10), 3):
-            pass
-        self.assertEqual(len(chunk), 1)
 
 
 class BaseTests:
@@ -58,7 +42,7 @@ class BaseTests:
             self.assertGreater(progress, prev_progress)
             prev_progress = progress
 
-        self.model.fit(self.corpus, progress_callback=callback)
+        self.model.fit(self.corpus, on_progress=callback)
         self.assertLessEqual(prev_progress, 100)
 
     def test_empty_corpus(self):
