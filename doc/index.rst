@@ -33,6 +33,7 @@ Scripting Reference
    scripting/lda.rst
    scripting/preprocess.rst
    scripting/nyt.rst
+   scripting/wikipedia.rst
    scripting/tag.rst
 
 Indices and tables

@@ -10,3 +10,4 @@ Orange3
 tweepy
 beautifulsoup4
 simhash
+wikipedia
