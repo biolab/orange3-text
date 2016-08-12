@@ -229,7 +229,9 @@ class TwitterAPI:
         ], dtype=object)
         self.statuses_lock.release()
 
-        return Corpus(X=X, metas=metas, domain=domain, text_features=text_features)
+        corpus = Corpus(X=X, metas=metas, domain=domain, text_features=text_features)
+        corpus.name = 'Twitter'
+        return corpus
 
     def reset(self):
         """ Removes all downloaded tweets. """
