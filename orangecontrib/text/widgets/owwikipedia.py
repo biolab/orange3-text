@@ -65,7 +65,7 @@ class OWWikipedia(OWWidget):
         layout.setSpacing(7)
 
         row = 0
-        query_edit = ListEdit(self, 'query_list', "Multiple lines are automatically joined with OR.", self)
+        query_edit = ListEdit(self, 'query_list', "Each line represents a separate query.", self)
         layout.addWidget(QtGui.QLabel('Query word list:'), row, 0, 1, self.label_width)
         layout.addWidget(query_edit, row, self.label_width, 1, self.widgets_width)
 
