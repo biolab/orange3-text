@@ -77,11 +77,11 @@ class OWPOSTagger(OWConcurrentWidget):
 
         buttons_layout = QtGui.QHBoxLayout()
         buttons_layout.addWidget(self.report_button)
-        self.report_button.setMinimumWidth(210)
+        self.report_button.setFixedWidth(210)
         buttons_layout.addSpacing(15)
-        buttons_layout.addWidget(
-            gui.auto_commit(None, self, 'autocommit', 'Commit', box=False)
-        )
+        autocommit_button = gui.auto_commit(None, self, 'autocommit', 'Commit', box=False)
+        autocommit_button.setFixedWidth(240)
+        buttons_layout.addWidget(autocommit_button)
         self.controlArea.layout().addLayout(buttons_layout)
 
     def change_tagger(self, i):
