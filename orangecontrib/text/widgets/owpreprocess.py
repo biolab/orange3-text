@@ -496,7 +496,12 @@ class OWPreprocess(OWWidget):
             widget.change_signal.connect(self.settings_invalidated)
 
         frame_layout.addStretch()
-        self.mainArea.layout().addWidget(frame)
+        scroll = QtGui.QScrollArea()
+        scroll.setWidget(frame)
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        scroll.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
+        self.mainArea.layout().addWidget(scroll)
 
         # Buttons area
         self.report_button.setFixedWidth(self.control_area_width)
