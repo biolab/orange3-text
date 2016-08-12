@@ -58,7 +58,7 @@ class OWPOSTagger(OWConcurrentWidget):
         box = gui.vBox(self.controlArea, 'Method')
         layout = QtGui.QGridLayout()
         box.layout().addLayout(layout)
-        layout.setSpacing(25)
+        layout.setSpacing(10)
 
         for i, tagger in enumerate(taggers + [StanfordPOSTagger]):
             rb = QtGui.QRadioButton(text=tagger.name)
