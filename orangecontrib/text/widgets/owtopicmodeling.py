@@ -8,7 +8,7 @@ from Orange.widgets import gui
 from Orange.data import Table
 from Orange.widgets.data.contexthandlers import DomainContextHandler
 from orangecontrib.text.corpus import Corpus
-from orangecontrib.text.topics import Topics, LdaWrapper, HdpWrapper, LsiWrapper
+from orangecontrib.text.topics import Topic, LdaWrapper, HdpWrapper, LsiWrapper
 from orangecontrib.text.widgets.utils.owwidget import OWConcurrentWidget, asynchronous
 
 
@@ -108,7 +108,7 @@ class OWTopicModeling(OWConcurrentWidget):
     # Input/output
     inputs = [("Corpus", Corpus, "set_data")]
     outputs = [(Output.CORPUS, Table),
-               (Output.TOPIC, Topics)]
+               (Output.TOPIC, Topic)]
     want_main_area = True
 
     methods = [
