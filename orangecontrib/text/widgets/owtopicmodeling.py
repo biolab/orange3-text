@@ -9,7 +9,7 @@ from Orange.data import Table
 from Orange.widgets.data.contexthandlers import DomainContextHandler
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.topics import Topic, LdaWrapper, HdpWrapper, LsiWrapper
-from orangecontrib.text.widgets.utils.owwidget import OWConcurrentWidget, asynchronous
+from orangecontrib.text.widgets.utils.concurrent import OWConcurrentWidget, asynchronous
 
 
 class TopicWidget(gui.OWComponent, QtGui.QGroupBox):

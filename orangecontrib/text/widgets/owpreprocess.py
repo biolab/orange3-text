@@ -14,7 +14,7 @@ from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.widgets.utils import widgets
 
 from orangecontrib.text import preprocess
-from orangecontrib.text.widgets.utils.owwidget import asynchronous, OWConcurrentWidget
+from orangecontrib.text.widgets.utils.concurrent import asynchronous, OWConcurrentWidget
 
 
 def _i(name, icon_path='icons'):

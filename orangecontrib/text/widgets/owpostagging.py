@@ -8,7 +8,7 @@ from Orange.widgets.widget import OWWidget, Msg
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.tag.pos import taggers, StanfordPOSTagger
 from orangecontrib.text.widgets.utils import ResourceLoader
-from orangecontrib.text.widgets.utils.owwidget import OWConcurrentWidget, asynchronous
+from orangecontrib.text.widgets.utils import OWConcurrentWidget, asynchronous
 
 
 class Input:
