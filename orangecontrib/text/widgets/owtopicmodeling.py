@@ -186,9 +186,6 @@ class OWTopicModeling(OWConcurrentWidget):
         for i, widget in enumerate(self.widgets):
             widget.setVisible(i == self.method_index)
 
-    def update_topics(self):
-        self.topic_desc.show_model(self.model)
-
     def on_progress(self, p):
         self.progressBarSet(100 * p / len(self.corpus), processEvents=None)
 
@@ -208,8 +205,11 @@ class OWTopicModeling(OWConcurrentWidget):
         return self.model.fit_transform(self.corpus.copy(), chunk_number=100, **kwargs)
 
     def on_result(self, corpus):
-        self.update_topics()
         self.send(Output.CORPUS, corpus)
+        if corpus is None:
+            self.topic_desc.clear()
+        else:
+            self.topic_desc.show_model(self.model)
 
     def send_report(self):
         self.report_items(*self.widgets[self.method_index].report_model())
