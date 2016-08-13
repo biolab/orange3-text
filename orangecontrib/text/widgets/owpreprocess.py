@@ -14,6 +14,7 @@ from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.widgets.utils import widgets
 
 from orangecontrib.text import preprocess
+from orangecontrib.text.widgets.utils.owwidget import asynchronous, OWConcurrentWidget
 
 
 def _i(name, icon_path='icons'):
@@ -432,7 +433,7 @@ class FilteringModule(MultipleMethodModule):
             self.change_signal.emit()
 
 
-class OWPreprocess(OWWidget):
+class OWPreprocess(OWConcurrentWidget):
 
     name = 'Preprocess Text'
     description = 'Construct a text pre-processing pipeline.'
@@ -473,7 +474,6 @@ class OWPreprocess(OWWidget):
         super().__init__(parent)
         self.corpus = None
         self.preprocessor = preprocess.Preprocessor()
-        self.preprocessor.on_progress = self.on_progress
 
         # -- INFO --
         info_box = gui.widgetBox(self.controlArea, 'Info')
@@ -535,17 +535,18 @@ class OWPreprocess(OWWidget):
             self.apply()
 
     def apply(self):
-        self.progressBarInit()
-        output = self.preprocessor(self.corpus, inplace=True)
-        self.progressBarFinished()
-        self.update_info(output)
-        if output is not None and len(output.dictionary) == 0:
-            self.Warning.no_token_left()
-            output = None
-        self.send(Output.PP_CORPUS, output)
+        self.preprocess()
 
-    def on_progress(self, progress):
-        self.progressBarSet(progress)
+    @asynchronous
+    def preprocess(self, **kwargs):
+        return self.preprocessor(self.corpus, inplace=True, **kwargs)
+
+    def on_result(self, result):
+        self.update_info(result)
+        if result is not None and len(result.dictionary) == 0:
+            self.Warning.no_token_left()
+            result = None
+        self.send(Output.PP_CORPUS, result)
 
     @Slot()
     def settings_invalidated(self):
