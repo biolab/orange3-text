@@ -32,8 +32,14 @@ class OWConcurrentWidget(OWWidget):
     def _on_progress(self, p):
         self.on_progress(p)
 
-    def on_progress(self, p):
-        """ Overwrite this method in order to report valid progress. """
+    def on_progress(self, progress):
+        """ Overwrite this method in order to report valid progress.
+
+        Notes:
+            It's not recommended to trigger processing of the event in `progressBarSet`.
+            To avoid it pass `processEvents=None`.
+        """
+        self.progressBarSet(progress, processEvents=None)
 
     @Slot(object)
     def _on_result(self, result):
