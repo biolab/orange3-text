@@ -117,7 +117,7 @@ class OWPOSTagger(OWConcurrentWidget):
         self.commit()
 
     def on_progress(self, p):
-        self.progressBarSet(100 * p / len(self.corpus))
+        self.progressBarSet(100 * p / len(self.corpus), None)
 
     def on_result(self, corpus):
         self.send(Output.CORPUS, corpus)
