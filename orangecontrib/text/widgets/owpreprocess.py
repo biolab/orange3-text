@@ -68,6 +68,7 @@ class PreprocessorModule(gui.OWComponent, QWidget):
     toggle_enabled = True
     enabled = settings.Setting(True)
     disabled_value = None
+    Layout = QtGui.QGridLayout
 
     def __init__(self, master):
         QWidget.__init__(self)
@@ -116,7 +117,7 @@ class PreprocessorModule(gui.OWComponent, QWidget):
         self.contents.setLayout(contentArea)
         self.rootArea.addWidget(self.contents)
 
-        self.method_layout = QtGui.QGridLayout()
+        self.method_layout = self.Layout()
         self.setup_method_layout()
         self.contents.layout().addLayout(self.method_layout)
 
@@ -294,6 +295,7 @@ class TransformationModule(MultipleMethodModule):
         preprocess.UrlRemover,
     ]
     checked = settings.Setting([0])
+    Layout = QHBoxLayout
 
 
 class DummyKeepN:
