@@ -33,6 +33,9 @@ def _check_arrays(*arrays):
 class Corpus(SparseTable):
     """Internal class for storing a corpus."""
 
+    # TODO: use the new except-orange-instead-of-pandas behaviour
+    _KNOWN_PANDAS_KWARGS = {"data", "index", "columns", "dtype", "copy", "default_kind", "default_fill_value"}
+
     _metadata = SparseTable._metadata + ["text_features", "_dictionary", "ngram_range",
                                          "_ngrams_corpus_names"]
 
@@ -89,7 +92,7 @@ class Corpus(SparseTable):
         self.ngram_range = (1, 1)
         self._ngrams_corpus_names = []
 
-        super().__init__(domain, X, Y, metas, **kwargs)
+        super().__init__(**kwargs)
         if self._TOKENS_COLUMN not in self.columns:
             self[self._TOKENS_COLUMN] = np.nan
         if self._NGRAMS_CORPUS_COLUMN not in self.columns:
@@ -133,7 +136,6 @@ class Corpus(SparseTable):
             CountVectorizer().transform(self)
         subset = self[self._ngrams_corpus_names]
         return matutils.Sparse2Corpus(subset.X.T)
-        #return self[self._NGRAMS_CORPUS_COLUMN].values.values
 
     def store_ngrams_corpus(self, names):
         # not a property setter because pandas overrides __setattr__ and
