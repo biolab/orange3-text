@@ -60,6 +60,10 @@ class OWConcurrentWidget(OWWidget):
         if self._thread is not None and self._thread.is_alive():
             self._thread.join()
 
+    def progressBarSet(self, value, processEvents=None):
+        """ Changes default processEvents value. """
+        super().progressBarSet(value, processEvents=processEvents)
+
 
 def asynchronous(method):
     """ This decorator wraps method of a OWConcurrentWidget and runs this method in a separate thread.
