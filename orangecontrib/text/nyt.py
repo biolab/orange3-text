@@ -116,7 +116,9 @@ class NYT:
     def check_api_key(self):
         """
         Checks whether the api key provided to this class instance, is valid.
-        :return: True or False depending on the validation outcome.
+
+        Returns:
+            True or False depending on the validation outcome.
         """
         query_url = self._encode_base_url("test")
         try:
@@ -130,16 +132,16 @@ class NYT:
         """
         Executes the NYT query specified by the input parameters and returns a
         list of records.
-        :param query: The query keywords in a string, but separated with whitespaces.
-        :type query: str
-        :param date_from: Signifies to return articles from this date forth only.
-        :type date_from: date
-        :param date_to: Signifies to return articles up to this date only.
-        :type date_to: date
-        :param max_records: Specifies an upper limit to the number of retrieved records.
-            Max 1000.
-        :type max_records: int
-        :return: list
+
+        Args:
+            query (str): The query keywords in a string, but separated with whitespaces.
+            date_from (date): Signifies to return articles from this date forth only.
+            date_to (date): Signifies to return articles up to this date only.
+            max_records (int): Specifies an upper limit to the number of retrieved records.
+                Max 1000.
+
+        Returns:
+            A list of records.
         """
         # Check API key validity first.
         if not self.check_api_key():
@@ -167,7 +169,6 @@ class NYT:
         """
         Builds a NYT article API query url with the input parameters.
         For more information on the inputs, refer to the docs for 'run_query' method.
-        :return: None
         """
         # Query keywords, base url and API key.
         query_url = self._encode_base_url(query)
