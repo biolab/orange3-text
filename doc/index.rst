@@ -32,6 +32,7 @@ Welcome to Orange3 Text Mining documentation!
    scripting/twitter.rst
    scripting/nyt.rst
    scripting/wikipedia.rst
+   scripting/topicmodeling.rst
    scripting/tag.rst
 
 Indices and tables

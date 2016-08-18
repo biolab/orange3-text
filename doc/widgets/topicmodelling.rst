@@ -4,7 +4,7 @@ Topic Modelling
 
 .. figure:: icons/topicmodelling.png
 
-Topic modelling with Latent Diriclet Allocation.
+Topic modelling with Latent Diriclet Allocation, Latent Semantic Indexing or Hierarchical Dirichlet Process.
 
 Signals
 -------
