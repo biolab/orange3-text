@@ -59,6 +59,8 @@ class APICredentialsDialog(QDialog):
         key = twitter.Credentials(self.key_combo.currentText().strip(),
                                   self.secret_line_edit.text().strip())
         if self.key != key:
+            if not key.valid:
+                self.key = None
             self.key = key
 
     @property
