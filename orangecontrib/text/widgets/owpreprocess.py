@@ -300,7 +300,7 @@ class TransformationModule(MultipleMethodModule):
 
 class DummyKeepN:
     """ Keeps top N tokens by document frequency. """
-    name = 'Most frequent tokens.'
+    name = 'Most frequent tokens'
 
 
 class FilteringModule(MultipleMethodModule):
