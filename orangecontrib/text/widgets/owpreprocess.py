@@ -506,6 +506,9 @@ class OWPreprocess(OWConcurrentWidget):
         scroll.setWidgetResizable(True)
         scroll.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         scroll.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
+        scroll.resize(frame_layout.sizeHint())
+        scroll.setMinimumWidth(frame_layout.sizeHint().width() + 20)  # + scroll bar
+        scroll.setMinimumHeight(500)
         self.mainArea.layout().addWidget(scroll)
 
         # Buttons area
