@@ -1,3 +1,4 @@
+""" A module for fetching data from `The Twitter Search API <https://dev.twitter.com/rest/public/search>`_. """
 import threading
 from collections import OrderedDict
 
@@ -28,6 +29,7 @@ class Credentials:
 
     @property
     def valid(self):
+        """bool: Indicates whether it's a valid credentials. """
         if self._valid is None:
             self.check()
 
@@ -60,7 +62,11 @@ class Credentials:
 
 
 class TwitterAPI:
-    """ Fetch tweets from the Tweeter API. """
+    """ Fetch tweets from the Tweeter API.
+
+    Notes:
+        Every search accumulates downloaded tweets. To remove the stored tweets call `reset` method.
+    """
 
     metas = [
         (data.StringVariable('text'), lambda st: st.text),
@@ -92,7 +98,6 @@ class TwitterAPI:
     supported_fields = metas + attributes
 
     def __init__(self, credentials, on_start=None, on_progress=None, on_error=None, on_finish=None):
-        self.busy = False
         self.key = credentials
         self.api = tweepy.API(credentials.auth)
         self.statuses_lock = threading.Lock()
@@ -109,6 +114,7 @@ class TwitterAPI:
 
     @property
     def tweets(self):
+        """ Iterator over the downloaded documents. """
         return self.container.values()
 
     @staticmethod
@@ -138,7 +144,19 @@ class TwitterAPI:
 
     def search(self, *, word_list=None, authors=None, max_tweets=None, lang=None,
                since=None, until=None, allow_retweets=True):
-        """ Search for tweets with the given criteria. """
+        """ Performs search for tweets.
+
+        All the parameters optional.
+
+        Args:
+            max_tweets (int): If present limits the number of downloaded tweets.
+            word_list (list of str): A list of key words to search for.
+            authors (list of str): A list of tweets' author.
+            lang (str): A language's code (either ISO 639-1 or ISO 639-3 formats).
+            since (str): Fetch tweets only from this date.
+            until (str): Fetch tweets only to this date.
+            allow_retweets(bool): Whether to download retweets.
+        """
         query = self.build_query(word_list=word_list, authors=authors,
                                  since=since, until=until, allow_retweets=allow_retweets)
 
@@ -152,7 +170,7 @@ class TwitterAPI:
 
     @property
     def running(self):
-        """ Indicates whether there is an active task. """
+        """bool: Indicates whether there is an active task. """
         return self.task is not None and self.task.running
 
     def join(self, *args):
@@ -167,7 +185,11 @@ class TwitterAPI:
         self.statuses_lock.release()
 
     def create_corpus(self, included_attributes=None):
-        """ Creates a corpus with collected tweets. """
+        """ Creates a corpus with collected tweets.
+
+        Args:
+            included_attributes(Optional[List of string]): A list of tweets' attributes to be included in the result.
+        """
         if included_attributes:
             attributes = [(attr, _) for attr, _ in self.attributes
                           if attr.name in included_attributes]
@@ -207,7 +229,9 @@ class TwitterAPI:
         ], dtype=object)
         self.statuses_lock.release()
 
-        return Corpus(X=X, metas=metas, domain=domain, text_features=text_features)
+        corpus = Corpus(X=X, metas=metas, domain=domain, text_features=text_features)
+        corpus.name = 'Twitter'
+        return corpus
 
     def reset(self):
         """ Removes all downloaded tweets. """

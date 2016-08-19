@@ -8,8 +8,8 @@ from Orange.widgets import gui
 from Orange.data import Table
 from Orange.widgets.data.contexthandlers import DomainContextHandler
 from orangecontrib.text.corpus import Corpus
-from orangecontrib.text.topics import Topics, LdaWrapper, HdpWrapper, LsiWrapper
-from orangecontrib.text.widgets.utils.owwidget import OWConcurrentWidget, asynchronous
+from orangecontrib.text.topics import Topic, LdaWrapper, HdpWrapper, LsiWrapper
+from orangecontrib.text.widgets.utils.concurrent import OWConcurrentWidget, asynchronous
 
 
 class TopicWidget(gui.OWComponent, QtGui.QGroupBox):
@@ -63,15 +63,15 @@ class LsiWidget(TopicWidget):
 class HdpWidget(TopicWidget):
     Model = HdpWrapper
 
-    spin_format = '{description}: ({parameter})'
+    spin_format = '{description}:'
     parameters = (
-        ('gamma', 'First level concentration', .1, 10, .5, float),
-        ('alpha', 'Second level concentration', 1, 10, 1, int),
-        ('eta', 'The topic Dirichlet', 0.001, .5, .01, float),
-        ('T', 'Top level truncation level', 10, 150, 1, int),
-        ('K', 'Second level truncation level', 1, 50, 1, int),
-        ('kappa', 'Learning rate', .1, 10., .1, float),
-        ('tau', 'Slow down parameter', 16., 256., 1., float),
+        ('gamma', 'First level concentration (γ)', .1, 10, .5, float),
+        ('alpha', 'Second level concentration (α)', 1, 10, 1, int),
+        ('eta', 'The topic Dirichlet (α)', 0.001, .5, .01, float),
+        ('T', 'Top level truncation level (Τ)', 10, 150, 1, int),
+        ('K', 'Second level truncation level (Κ)', 1, 50, 1, int),
+        ('kappa', 'Learning rate (κ)', .1, 10., .1, float),
+        ('tau', 'Slow down parameter (τ)', 16., 256., 1., float),
     )
     gamma = settings.Setting(1)
     alpha = settings.Setting(1)
@@ -108,7 +108,7 @@ class OWTopicModeling(OWConcurrentWidget):
     # Input/output
     inputs = [("Corpus", Corpus, "set_data")]
     outputs = [(Output.CORPUS, Table),
-               (Output.TOPIC, Topics)]
+               (Output.TOPIC, Topic)]
     want_main_area = True
 
     methods = [
@@ -186,9 +186,6 @@ class OWTopicModeling(OWConcurrentWidget):
         for i, widget in enumerate(self.widgets):
             widget.setVisible(i == self.method_index)
 
-    def update_topics(self):
-        self.topic_desc.show_model(self.model)
-
     def on_progress(self, p):
         self.progressBarSet(100 * p / len(self.corpus), processEvents=None)
 
@@ -197,8 +194,7 @@ class OWTopicModeling(OWConcurrentWidget):
         if self.corpus:
             self.start_learning()
         else:
-            self.send(Output.CORPUS, None)
-            self.send(Output.TOPIC, None)
+            self.on_result(None)
 
     def on_start(self):
         self.topic_desc.clear()
@@ -208,8 +204,12 @@ class OWTopicModeling(OWConcurrentWidget):
         return self.model.fit_transform(self.corpus.copy(), chunk_number=100, **kwargs)
 
     def on_result(self, corpus):
-        self.update_topics()
         self.send(Output.CORPUS, corpus)
+        if corpus is None:
+            self.topic_desc.clear()
+            self.send(Output.TOPIC, None)
+        else:
+            self.topic_desc.show_model(self.model)
 
     def send_report(self):
         self.report_items(*self.widgets[self.method_index].report_model())
@@ -242,7 +242,6 @@ class TopicViewer(QtGui.QTreeWidget):
 
     def __init__(self):
         super().__init__()
-
         self.setColumnCount(len(self.columns))
         self.setHeaderLabels(self.columns)
         self.resize_columns()
@@ -272,6 +271,9 @@ class TopicViewer(QtGui.QTreeWidget):
             self.topicSelected.emit(topic_id)
         else:
             self.topicSelected.emit(None)
+
+    def sizeHint(self):
+        return QtCore.QSize(700, 300)
 
 
 if __name__ == '__main__':

@@ -11,13 +11,13 @@ from orangecontrib.text.util import chunkable
 MAX_WORDS = 1000
 
 
-class Topics(Table):
-    """ Dummy wrapper for Table so signals can distinguish Topics from Data.
+class Topic(Table):
+    """ Dummy wrapper for Table so signals can distinguish Topic from Data.
     """
 
     def __new__(cls, *args, **kwargs):
         """ Bypass Table.__new__. """
-        return object.__new__(Topics)
+        return object.__new__(Topic)
 
 
 class GensimWrapper:
@@ -95,10 +95,11 @@ class GensimWrapper:
         metas[-1]._out_format = '%.2e'
 
         domain = Domain([], metas=metas)
-        t = Topics.from_numpy(domain,
-                              X=np.zeros((num_words, 0)),
-                              metas=data)
+        t = Topic.from_numpy(domain,
+                             X=np.zeros((num_words, 0)),
+                             metas=data)
         t.W = data[:, 1]
+        t.name = 'Topic_{}'.format(topic_id + 1)
         return t
 
     def get_top_words_by_id(self, topic_id, num_of_words=10):

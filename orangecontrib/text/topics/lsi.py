@@ -7,5 +7,5 @@ models.LsiModel.add_documents = lambda self, *args, **kwargs: self.update(*args,
 
 
 class LsiWrapper(GensimWrapper):
-    name = 'Lsi Model'
+    name = 'Latent Semantic Indexing'
     Model = models.LsiModel

@@ -1,6 +1,6 @@
 """
 
-A module for tagging :ref:`corpus` instances.
+A module for tagging :ref:`Corpus` instances.
 
 This module provides a default `pos_tagger` that can be used for POSTagging an English corpus::
 

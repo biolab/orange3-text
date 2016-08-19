@@ -23,6 +23,17 @@ class Output:
     CORPUS = "Corpus"
 
 
+class DocumentViewer(QTextEdit):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setReadOnly(True)
+        self.setLineWrapMode(self.WidgetWidth)
+
+    def sizeHint(self):
+        return QSize(700, 300)
+
+
 class OWCorpusViewer(OWWidget):
     name = "Corpus Viewer"
     description = "Display corpus contents."
@@ -45,7 +56,7 @@ class OWCorpusViewer(OWWidget):
         self.corpus_docs = None         # Documents generated from Corpus
         self.output_mask = None         # Output corpus indices
         self.document_contents = None   # QTextDocument
-        self.document_holder = None     # QTextEdit
+        self.document_holder = None     # DocumentViewer
         self.features = []              # all attributes
 
         # ---- CONTROL AREA ----
@@ -95,9 +106,7 @@ class OWCorpusViewer(OWWidget):
         self.document_table.selectionModel().selectionChanged.connect(self.show_document)
 
         # Document contents.
-        self.document_holder = QTextEdit()
-        self.document_holder.setReadOnly(True)
-        self.document_holder.setLineWrapMode(QTextEdit.WidgetWidth)
+        self.document_holder = DocumentViewer()
         h_box.layout().addWidget(self.document_holder)
 
     # --- DATA LOADING ---

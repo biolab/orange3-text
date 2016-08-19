@@ -8,7 +8,7 @@ from Orange.widgets.widget import OWWidget, Msg
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.tag.pos import taggers, StanfordPOSTagger
 from orangecontrib.text.widgets.utils import ResourceLoader
-from orangecontrib.text.widgets.utils.owwidget import OWConcurrentWidget, asynchronous
+from orangecontrib.text.widgets.utils import OWConcurrentWidget, asynchronous
 
 
 class Input:
@@ -77,11 +77,11 @@ class OWPOSTagger(OWConcurrentWidget):
 
         buttons_layout = QtGui.QHBoxLayout()
         buttons_layout.addWidget(self.report_button)
-        self.report_button.setMinimumWidth(210)
+        self.report_button.setFixedWidth(210)
         buttons_layout.addSpacing(15)
-        buttons_layout.addWidget(
-            gui.auto_commit(None, self, 'autocommit', 'Commit', box=False)
-        )
+        autocommit_button = gui.auto_commit(None, self, 'autocommit', 'Commit', box=False)
+        autocommit_button.setFixedWidth(240)
+        buttons_layout.addWidget(autocommit_button)
         self.controlArea.layout().addLayout(buttons_layout)
 
     def change_tagger(self, i):
@@ -117,7 +117,7 @@ class OWPOSTagger(OWConcurrentWidget):
         self.commit()
 
     def on_progress(self, p):
-        self.progressBarSet(100 * p / len(self.corpus))
+        self.progressBarSet(100 * p / len(self.corpus), None)
 
     def on_result(self, corpus):
         self.send(Output.CORPUS, corpus)

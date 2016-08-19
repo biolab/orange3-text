@@ -11,7 +11,7 @@ from PyQt4.QtGui import QItemSelection, QItemSelectionModel
 from Orange.widgets import widget, gui, settings
 from Orange.widgets.utils.itemmodels import PyTableModel
 from orangecontrib.text.corpus import Corpus
-from orangecontrib.text.topics import Topics
+from orangecontrib.text.topics import Topic
 
 
 class SelectedWords(set):
@@ -61,7 +61,7 @@ class OWWordCloud(widget.OWWidget):
     priority = 10000
     icon = "icons/WordCloud.svg"
     inputs = [
-        (Output.TOPIC, Topics, 'on_topics_change'),
+        (Output.TOPIC, Topic, 'on_topic_change'),
         (Output.CORPUS, Corpus, 'on_corpus_change'),
     ]
     outputs = [('Corpus', Corpus)]
@@ -78,7 +78,7 @@ class OWWordCloud(widget.OWWidget):
         self.documents_info_str = ''
         self.selected_words = SelectedWords(self)
         self.webview = None
-        self.topics = None
+        self.topic = None
         self.corpus = None
         self.corpus_counter = None
         self.wordlist = None
@@ -210,8 +210,8 @@ span.selected {color:red !important}
         self.wordlist = [[word, _size(weight)] for word, weight in zip(words, weights)]
         self.on_cloud_pref_change()
 
-    def on_topics_change(self, data):
-        self.topics = data
+    def on_topic_change(self, data):
+        self.topic = data
         self.topic_info.setVisible(bool(data))
         if not data and self.corpus:  # Topics aren't, but raw corpus is available
             return self._apply_corpus()
@@ -249,7 +249,7 @@ span.selected {color:red !important}
 
         self.documents_info_str = ('{} documents with {} words'.format(n_docs, n_words)
                                    if data else '(no documents on input)')
-        if not self.topics:
+        if not self.topic:
             self._apply_corpus()
 
 
@@ -272,7 +272,7 @@ def main():
                              metas=data)
     app = QtGui.QApplication([''])
     w = OWWordCloud()
-    w.on_topics_change(table)
+    w.on_topic_change(table)
     domain = Domain([], metas=[StringVariable('text')])
     data = Corpus(None, None, np.array([[' '.join(words.flat)]]), domain)
     # data = Corpus.from_numpy(domain, X=np.zeros((1, 0)), metas=np.array([[' '.join(words.flat)]]))

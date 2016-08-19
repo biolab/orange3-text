@@ -14,9 +14,8 @@ class Preprocessor:
     """
 
     def __init__(self, transformers=None, tokenizer=None,
-                 normalizer=None, filters=None, on_progress=None):
+                 normalizer=None, filters=None):
 
-        self._on_progress = on_progress
         if callable(transformers):
             transformers = [transformers]
 
@@ -31,7 +30,14 @@ class Preprocessor:
         self.progress = 0
         self._report_frequency = 1
 
-    def __call__(self, corpus, inplace=True):
+    def __call__(self, corpus, inplace=True, on_progress=None):
+        """ Runs preprocessing over a corpus.
+
+        Args:
+            corpus(orangecontrib.text.Corpus): A corpus to preprocess.
+            inplace(bool): Whether to create a new Corpus instance.
+        """
+        self._on_progress = on_progress
         if not inplace:
             corpus = corpus.copy()
 

@@ -135,6 +135,11 @@ class TransformationTests(unittest.TestCase):
         transformer = preprocess.HtmlTransformer()
         self.assertEqual(transformer('<p>abra<b>cadabra</b><p>'), 'abracadabra')
 
+    def test_url_remover(self):
+        url_remover = preprocess.UrlRemover()
+        self.assertEqual(url_remover.transform('some link to https://google.com/'), 'some link to ')
+        self.assertEqual(url_remover.transform('some link to google.com'), 'some link to google.com')
+
 
 class TokenNormalizerTests(unittest.TestCase):
 
@@ -174,17 +179,6 @@ class TokenNormalizerTests(unittest.TestCase):
     def test_lookup_normalize(self):
         dln = preprocess.DictionaryLookupNormalizer(dictionary={'aka': 'also known as'})
         self.assertEqual(dln.normalize('aka'), 'also known as')
-
-    def test_on_change(self):
-        snowball = preprocess.SnowballStemmer()
-        snowball.on_change = counted(snowball.on_change)
-        snowball.language = 'french'
-        self.assertEqual(snowball.on_change.calls, 1)
-
-        dictionary = preprocess.DictionaryLookupNormalizer({})
-        dictionary.on_change = counted(dictionary.on_change)
-        dictionary.dictionary = {'a': 'b'}
-        self.assertEqual(snowball.on_change.calls, 1)
 
 
 class FilteringTests(unittest.TestCase):
@@ -260,30 +254,6 @@ class FilteringTests(unittest.TestCase):
         ff.max_df = 2
         corpus = p(self.corpus)
         self.assertFrequencyRange(corpus, 1, 2)
-
-    def test_on_change(self):
-        df_filter = preprocess.FrequencyFilter()
-        df_filter.on_change = counted(df_filter.on_change)
-
-        df_filter.min_df = .2
-        self.assertEqual(df_filter.on_change.calls, 1)
-
-        df_filter.max_df = .5
-        self.assertEqual(df_filter.on_change.calls, 2)
-
-        df_filter.keep_n = 100
-        self.assertEqual(df_filter.on_change.calls, 3)
-        self.assertEqual(df_filter.keep_n, 100)
-
-        stopwords = preprocess.StopwordsFilter()
-        stopwords.on_change = counted(stopwords.on_change)
-        stopwords.language = 'french'
-        self.assertEqual(stopwords.on_change.calls, 1)
-
-        lexicon = preprocess.LexiconFilter()
-        lexicon.on_change = counted(stopwords.on_change)
-        lexicon.lexicon = ['a', 'b', 'c']
-        self.assertEqual(lexicon.on_change.calls, 1)
 
     def assertFrequencyRange(self, corpus, min_fr, max_fr):
         dictionary = corpora.Dictionary(corpus.tokens)

@@ -30,21 +30,25 @@ class BaseTokenizer:
 
 
 class WordPunctTokenizer(BaseTokenizer):
+    """ Split by words and (keep) punctuation. """
     tokenizer = tokenize.WordPunctTokenizer()
     name = 'Word & Punctuation'
 
 
 class PunktSentenceTokenizer(BaseTokenizer):
+    """ Split by full-stop, keeping entire sentences. """
     tokenizer = tokenize.PunktSentenceTokenizer()
     name = 'Sentence'
 
 
 class WhitespaceTokenizer(BaseTokenizer):
+    """ Split only by whitespace. """
     tokenizer = tokenize.WhitespaceTokenizer()
     name = 'Whitespace'
 
 
 class RegexpTokenizer(BaseTokenizer):
+    """ Split by regular expression, default keeps only words. """
     name = 'Regexp'
 
     def __init__(self, pattern=r'\w+'):
@@ -74,5 +78,6 @@ class RegexpTokenizer(BaseTokenizer):
 
 
 class TweetTokenizer(BaseTokenizer):
+    """ Pre-trained tokenizer for tweets. """
     tokenizer = tokenize.TweetTokenizer()
     name = 'Tweet'

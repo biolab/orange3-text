@@ -9,11 +9,12 @@ from PyQt4.QtGui import (QWidget, QLabel, QHBoxLayout, QVBoxLayout,
 from nltk.downloader import Downloader
 
 from Orange.widgets import gui, settings, widget
-from Orange.widgets.widget import OWWidget
+from Orange.widgets.widget import OWWidget, Msg
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.widgets.utils import widgets
 
 from orangecontrib.text import preprocess
+from orangecontrib.text.widgets.utils.concurrent import asynchronous, OWConcurrentWidget
 
 
 def _i(name, icon_path='icons'):
@@ -60,8 +61,6 @@ class PreprocessorModule(gui.OWComponent, QWidget):
     """The base widget for the pre-processing modules."""
 
     change_signal = Signal()  # Emitted when the settings are changed.
-    # Emitted when the module has a message to display in the main widget.
-    error_signal = Signal(str)
     title = NotImplemented
     attribute = NotImplemented
     methods = NotImplemented
@@ -69,6 +68,7 @@ class PreprocessorModule(gui.OWComponent, QWidget):
     toggle_enabled = True
     enabled = settings.Setting(True)
     disabled_value = None
+    Layout = QtGui.QGridLayout
 
     def __init__(self, master):
         QWidget.__init__(self)
@@ -117,7 +117,7 @@ class PreprocessorModule(gui.OWComponent, QWidget):
         self.contents.setLayout(contentArea)
         self.rootArea.addWidget(self.contents)
 
-        self.method_layout = QtGui.QGridLayout()
+        self.method_layout = self.Layout()
         self.setup_method_layout()
         self.contents.layout().addLayout(self.method_layout)
 
@@ -127,6 +127,10 @@ class PreprocessorModule(gui.OWComponent, QWidget):
             self.on_off_button.setContentsMargins(0, 0, 0, 0)
             self.titleArea.addWidget(self.on_off_button)
             self.display_widget()
+
+    @staticmethod
+    def get_tooltip(method):
+        return method.__doc__.strip().strip('.') if method.__doc__ else None
 
     @staticmethod
     def textify(text):
@@ -178,7 +182,7 @@ class SingleMethodModule(PreprocessorModule):
         for i, method in enumerate(self.methods):
             rb = QRadioButton(self, text=self.textify(method.name))
             rb.setChecked(i == self.method_index)
-            rb.setToolTip(getattr(method, 'tooltip', ''))
+            rb.setToolTip(self.get_tooltip(method))
             self.group.addButton(rb, i)
             self.method_layout.addWidget(rb, i, 0)
 
@@ -201,7 +205,7 @@ class MultipleMethodModule(PreprocessorModule):
             cb = QCheckBox(self.textify(method.name))
             cb.setChecked(i in self.checked)
             cb.stateChanged.connect(self.update_value)
-            cb.setToolTip(getattr(method, 'tooltip', ''))
+            cb.setToolTip(self.get_tooltip(method))
             self.method_layout.addWidget(cb)
             self.buttons.append(cb)
 
@@ -288,12 +292,15 @@ class TransformationModule(MultipleMethodModule):
         preprocess.LowercaseTransformer,
         preprocess.StripAccentsTransformer,
         preprocess.HtmlTransformer,
+        preprocess.UrlRemover,
     ]
     checked = settings.Setting([0])
+    Layout = QHBoxLayout
 
 
 class DummyKeepN:
-    name = 'Keep top tokens by document frequency'
+    """ Keeps top N tokens by document frequency. """
+    name = 'Most frequent tokens'
 
 
 class FilteringModule(MultipleMethodModule):
@@ -362,7 +369,7 @@ class FilteringModule(MultipleMethodModule):
         range_widget = widgets.RangeWidget(None, self, ('min_df', 'max_df'),
                                            minimum=0., maximum=1., step=0.05,
                                            allow_absolute=True)
-        range_widget.setToolTip(preprocess.FrequencyFilter.tooltip)
+        range_widget.setToolTip(self.get_tooltip(preprocess.FrequencyFilter))
         range_widget.editingFinished.connect(self.df_changed)
         self.method_layout.addWidget(range_widget, self.FREQUENCY, 1, 1, 1)
 
@@ -428,7 +435,7 @@ class FilteringModule(MultipleMethodModule):
             self.change_signal.emit()
 
 
-class OWPreprocess(OWWidget):
+class OWPreprocess(OWConcurrentWidget):
 
     name = 'Preprocess Text'
     description = 'Construct a text pre-processing pipeline.'
@@ -462,11 +469,13 @@ class OWPreprocess(OWWidget):
             "already, was downloaded to: {}".format(Downloader().default_download_dir()),
             "nltk_data")]
 
+    class Warning(OWWidget.Warning):
+        no_token_left = Msg('No tokens on output! Please, change configuration.')
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.corpus = None
         self.preprocessor = preprocess.Preprocessor()
-        self.preprocessor.on_progress = self.on_progress
 
         # -- INFO --
         info_box = gui.widgetBox(self.controlArea, 'Info')
@@ -490,10 +499,17 @@ class OWPreprocess(OWWidget):
             setattr(self, stage.title.lower(), widget)
             frame_layout.addWidget(widget)
             widget.change_signal.connect(self.settings_invalidated)
-            widget.error_signal.connect(self.display_message)
 
         frame_layout.addStretch()
-        self.mainArea.layout().addWidget(frame)
+        scroll = QtGui.QScrollArea()
+        scroll.setWidget(frame)
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        scroll.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
+        scroll.resize(frame_layout.sizeHint())
+        scroll.setMinimumWidth(frame_layout.sizeHint().width() + 20)  # + scroll bar
+        scroll.setMinimumHeight(500)
+        self.mainArea.layout().addWidget(scroll)
 
         # Buttons area
         self.report_button.setFixedWidth(self.control_area_width)
@@ -519,26 +535,27 @@ class OWPreprocess(OWWidget):
         self.info_label.setText(info)
 
     def commit(self):
+        self.Warning.no_token_left.clear()
         if self.corpus is not None:
             self.apply()
 
     def apply(self):
-        self.progressBarInit()
-        output = self.preprocessor(self.corpus, inplace=True)
-        self.progressBarFinished()
-        self.send(Output.PP_CORPUS, output)
-        self.update_info(output)
+        self.preprocess()
 
-    def on_progress(self, progress):
-        self.progressBarSet(progress)
+    @asynchronous
+    def preprocess(self, **kwargs):
+        return self.preprocessor(self.corpus, inplace=True, **kwargs)
+
+    def on_result(self, result):
+        self.update_info(result)
+        if result is not None and len(result.dictionary) == 0:
+            self.Warning.no_token_left()
+            result = None
+        self.send(Output.PP_CORPUS, result)
 
     @Slot()
     def settings_invalidated(self):
         self.commit()
-
-    @Slot(str)
-    def display_message(self, message):
-        self.error(0, message)
 
     def send_report(self):
         self.report_items('Preprocessor', self.preprocessor.report())

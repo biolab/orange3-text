@@ -4,7 +4,7 @@ from .topics import GensimWrapper
 
 
 class HdpWrapper(GensimWrapper):
-    name = 'Hdp Model'
+    name = 'Hierarchical Dirichlet Process'
     Model = models.HdpModel
 
     @property

@@ -5,8 +5,18 @@ __all__ = ['BaseNormalizer', 'WordNetLemmatizer', 'PorterStemmer',
 
 
 class BaseNormalizer:
+    """ A generic normalizer class.
+    You should either overwrite `normalize` method or provide a custom
+    normalizer.
+
+    Attributes:
+        name(str): A short name for normalization method (will be used in OWPreprocessor)
+        normalizer(Callable): An callabale object to be used for normalization.
+
+    """
     name = NotImplemented
     normalizer = NotImplemented
+    str_format = '{self.name}'
 
     def __call__(self, tokens):
         """ Normalizes tokens to canonical form. """
@@ -17,11 +27,8 @@ class BaseNormalizer:
     def normalize(self, token):
         return self.normalizer(token)
 
-    def on_change(self):
-        pass
-
     def __str__(self):
-        return self.name
+        return self.str_format.format(self=self)
 
 
 class WordNetLemmatizer(BaseNormalizer):
@@ -35,16 +42,7 @@ class DictionaryLookupNormalizer(BaseNormalizer):
 
     def __init__(self, dictionary):
         super().__init__()
-        self._dictionary = dictionary
-
-    @property
-    def dictionary(self):
-        return self._dictionary
-
-    @dictionary.setter
-    def dictionary(self, value):
-        self._dictionary = value
-        self.on_change()
+        self.dictionary = dictionary
 
     def normalize(self, token):
         return self.dictionary.get(token, token)
@@ -57,7 +55,7 @@ class PorterStemmer(BaseNormalizer):
 
 class SnowballStemmer(BaseNormalizer):
     name = 'Snowball Stemmer'
-
+    str_format = '{self.name} ({self.language})'
     supported_languages = stem.SnowballStemmer.languages
 
     def __init__(self, language='english'):
@@ -75,7 +73,3 @@ class SnowballStemmer(BaseNormalizer):
     def language(self, value):
         self._language = value
         self.normalizer = stem.SnowballStemmer(self.language)
-        self.on_change()
-
-    def __str__(self):
-        return '{} ({})'.format(self.name, self.language)

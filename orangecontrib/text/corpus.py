@@ -42,7 +42,7 @@ class Corpus(Table):
             X (numpy.ndarray): attributes
             Y (numpy.ndarray): class variables
             metas (numpy.ndarray): meta attributes; e.g. text
-            domain (Orange.data.domain): the domain for this Corpus
+            domain (Orange.data.Domain): the domain for this Corpus
             text_features (list): meta attributes that are used for
                 text mining. Infer them if None.
         """
@@ -193,7 +193,7 @@ class Corpus(Table):
     @property
     def tokens(self):
         """
-        np.ndarray: Return a list of lists containing tokens. If tokens are not yet
+        np.ndarray: A list of lists containing tokens. If tokens are not yet
         present, run default preprocessor and save tokens.
         """
         if self._tokens is None:
@@ -269,6 +269,7 @@ class Corpus(Table):
 
     @property
     def ngrams(self):
+        """generator: Ngram representations of documents."""
         return self.ngrams_iterator(join_with=' ')
 
     def copy(self):
