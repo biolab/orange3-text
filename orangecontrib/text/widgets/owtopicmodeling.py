@@ -194,8 +194,7 @@ class OWTopicModeling(OWConcurrentWidget):
         if self.corpus:
             self.start_learning()
         else:
-            self.send(Output.CORPUS, None)
-            self.send(Output.TOPIC, None)
+            self.on_result(None)
 
     def on_start(self):
         self.topic_desc.clear()
@@ -208,6 +207,7 @@ class OWTopicModeling(OWConcurrentWidget):
         self.send(Output.CORPUS, corpus)
         if corpus is None:
             self.topic_desc.clear()
+            self.send(Output.TOPIC, None)
         else:
             self.topic_desc.show_model(self.model)
 
