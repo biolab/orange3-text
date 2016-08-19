@@ -13,6 +13,8 @@ Welcome to Orange3 Text Mining documentation!
    widgets/corpus.rst
    widgets/nytimes.rst
    widgets/twitter.rst
+   widgets/wikipedia
+   widgets/pubmed
    widgets/corpusviewer.rst
    widgets/preprocesstext.rst
    widgets/bagofwords.rst
