@@ -2,13 +2,16 @@ import unittest
 
 from orangecontrib.text.vectorization import CountVectorizer
 from orangecontrib.text.corpus import Corpus
+from orangecontrib.text import preprocess
 
 
 class CountVectorizerTests(unittest.TestCase):
     def test_ngrams(self):
         vect = CountVectorizer()
         corpus = Corpus.from_file('deerwester')
-        corpus.ngram_range = (1, 3)
+        pr = preprocess.Preprocessor(tokenizer=preprocess.RegexpTokenizer('\w+'),
+                                     ngrams_range=(1, 3))
+        pr(corpus, inplace=True)
         result = vect.transform(corpus)
         attrs = [attr.name for attr in result.domain.attributes]
         self.assertIn(corpus.tokens[0][1], attrs)
