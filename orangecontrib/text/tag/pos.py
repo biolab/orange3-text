@@ -58,6 +58,9 @@ class StanfordPOSTagger(nltk.StanfordPOSTagger, POSTagger):
         except LookupError as e:
             raise ValueError(str(e).strip(' =\n'))
 
+    def __str__(self):
+        return "{} (model: {})".format(self.name, self._stanford_model)
+
 
 taggers = [
     POSTagger(nltk.PerceptronTagger(), 'Averaged Perceptron Tagger'),

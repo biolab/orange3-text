@@ -14,7 +14,7 @@ class Preprocessor:
     """
 
     def __init__(self, transformers=None, tokenizer=None,
-                 normalizer=None, filters=None, ngrams_range=None):
+                 normalizer=None, filters=None, ngrams_range=None, pos_tagger=None):
 
         if callable(transformers):
             transformers = [transformers]
@@ -27,6 +27,7 @@ class Preprocessor:
         self.filters = filters or []
         self.normalizer = normalizer
         self.ngrams_range = ngrams_range
+        self.pos_tagger = pos_tagger
 
         self.progress = 0
         self._report_frequency = 1
@@ -54,6 +55,10 @@ class Preprocessor:
         # corpus._ngrams = tokens
         # corpus._ngrams_dict = dictionary
         corpus.store_tokens(tokens, dictionary)
+
+        if self.pos_tagger:
+            self.pos_tagger.tag_corpus(corpus)
+
         self.on_progress(100)
         return corpus
 
@@ -107,4 +112,5 @@ class Preprocessor:
             ('Filters', ', '.join(str(f) for f in self.filters)),
             ('Ngrams range', str(self.ngrams_range)),
             ('Frequency filter', str(self.freq_filter)),
+            ('Pos tagger', str(self.pos_tagger)),
         )

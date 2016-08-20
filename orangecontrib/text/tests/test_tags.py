@@ -1,11 +1,11 @@
 import tempfile
 import unittest
 
-import itertools
 import nltk
 
 from orangecontrib.text import tag
 from orangecontrib.text.corpus import Corpus
+from orangecontrib.text import preprocess
 
 
 class POSTaggerTests(unittest.TestCase):
@@ -31,3 +31,10 @@ class POSTaggerTests(unittest.TestCase):
     def test_str(self):
         tagger = tag.POSTagger(nltk.tag.BigramTagger, name='bigram')
         self.assertIn('bigram', str(tagger))
+
+    def test_preprocess(self):
+        pr = preprocess.Preprocessor(tokenizer=preprocess.RegexpTokenizer('\w+'),
+                                     pos_tagger=tag.taggers[0])
+        corpus = Corpus.from_file('deerwester')
+        pr(corpus, inplace=True)
+        self.assertIsNotNone(corpus.pos_tags)
