@@ -14,7 +14,7 @@ class Preprocessor:
     """
 
     def __init__(self, transformers=None, tokenizer=None,
-                 normalizer=None, filters=None):
+                 normalizer=None, filters=None, ngrams_range=None):
 
         if callable(transformers):
             transformers = [transformers]
@@ -26,6 +26,7 @@ class Preprocessor:
         self.tokenizer = tokenizer
         self.filters = filters or []
         self.normalizer = normalizer
+        self.ngrams_range = ngrams_range
 
         self.progress = 0
         self._report_frequency = 1
@@ -47,7 +48,11 @@ class Preprocessor:
         tokens = list(map(self.process_document, corpus.documents))
         corpus.store_tokens(tokens)
         self.on_progress(80)
+        if self.ngrams_range is not None:
+            corpus.ngram_range = self.ngrams_range
         tokens, dictionary = self.freq_filter.fit_filter(corpus)
+        # corpus._ngrams = tokens
+        # corpus._ngrams_dict = dictionary
         corpus.store_tokens(tokens, dictionary)
         self.on_progress(100)
         return corpus
@@ -98,6 +103,8 @@ class Preprocessor:
         return (
             ('Transformers', ', '.join(str(tr) for tr in self.transformers)),
             ('Tokenizer', str(self.tokenizer)),
-            ('Filters', ', '.join(str(f) for f in self.filters + [self.freq_filter])),
             ('Normalizer', str(self.normalizer)),
+            ('Filters', ', '.join(str(f) for f in self.filters)),
+            ('Ngrams range', str(self.ngrams_range)),
+            ('Frequency filter', str(self.freq_filter)),
         )

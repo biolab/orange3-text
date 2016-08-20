@@ -89,12 +89,13 @@ class PreprocessorModule(gui.OWComponent, QWidget):
         }
         """)
         self.titleArea = QHBoxLayout()
-        self.titleArea.setContentsMargins(15, 10, 15, 10)
+        self.titleArea.setContentsMargins(10, 5, 10, 5)
         self.titleArea.setSpacing(0)
         title_holder.setLayout(self.titleArea)
 
         self.title_label = QLabel(self.title)
-        self.title_label.setStyleSheet('font-size: 12px;')
+        self.title_label.mouseDoubleClickEvent = self.on_toggle
+        self.title_label.setStyleSheet('font-size: 12px; border: 2px solid red;')
         self.titleArea.addWidget(self.title_label)
 
         self.off_label = QLabel('[disabled]')
@@ -148,7 +149,7 @@ class PreprocessorModule(gui.OWComponent, QWidget):
     def setup_method_layout(self):
         raise NotImplementedError
 
-    def on_toggle(self):
+    def on_toggle(self, event=None):
         # Activated when the widget is enabled/disabled.
         self.enabled = not self.enabled
         self.display_widget()
@@ -435,6 +436,24 @@ class FilteringModule(MultipleMethodModule):
             self.change_signal.emit()
 
 
+class NgramsModule(PreprocessorModule):
+    attribute = 'ngrams_range'
+    title = 'N-grams Range'
+    toggle_enabled = True
+
+    ngrams_range = settings.Setting((1, 1))
+
+    def setup_method_layout(self):
+        self.method_layout.addWidget(
+            widgets.RangeWidget(None, self, 'ngrams_range', minimum=1, maximum=10, step=1,
+                                min_label='Range:', dtype=int,
+                                callback=self.update_value)
+        )
+
+    def get_value(self):
+        return self.ngrams_range
+
+
 class OWPreprocess(OWConcurrentWidget):
 
     name = 'Preprocess Text'
@@ -452,12 +471,14 @@ class OWPreprocess(OWConcurrentWidget):
         TokenizerModule,
         NormalizationModule,
         FilteringModule,
+        NgramsModule,
     ]
 
     transformation = settings.SettingProvider(TransformationModule)
     tokenization = settings.SettingProvider(TokenizerModule)
     normalization = settings.SettingProvider(NormalizationModule)
     filtering = settings.SettingProvider(FilteringModule)
+    ngrams_range = settings.SettingProvider(NgramsModule)
 
     control_area_width = 250
     buttons_area_orientation = QtCore.Qt.Vertical
@@ -496,7 +517,7 @@ class OWPreprocess(OWConcurrentWidget):
 
         for stage in self.preprocessors:
             widget = stage(self)
-            setattr(self, stage.title.lower(), widget)
+            setattr(self, stage.attribute, widget)
             frame_layout.addWidget(widget)
             widget.change_signal.connect(self.settings_invalidated)
 
