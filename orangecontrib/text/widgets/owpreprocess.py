@@ -526,7 +526,7 @@ class OWPreprocess(OWConcurrentWidget):
         scroll.setWidget(frame)
         scroll.setWidgetResizable(True)
         scroll.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        scroll.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
+        scroll.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
         scroll.resize(frame_layout.sizeHint())
         scroll.setMinimumWidth(frame_layout.sizeHint().width() + 20)  # + scroll bar
         scroll.setMinimumHeight(500)
