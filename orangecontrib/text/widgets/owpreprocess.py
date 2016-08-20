@@ -11,7 +11,9 @@ from nltk.downloader import Downloader
 from Orange.widgets import gui, settings, widget
 from Orange.widgets.widget import OWWidget, Msg
 from orangecontrib.text.corpus import Corpus
-from orangecontrib.text.widgets.utils import widgets
+from orangecontrib.text.tag import StanfordPOSTagger
+from orangecontrib.text.tag import taggers
+from orangecontrib.text.widgets.utils import widgets, ResourceLoader
 
 from orangecontrib.text import preprocess
 from orangecontrib.text.widgets.utils.concurrent import asynchronous, OWConcurrentWidget
@@ -175,10 +177,13 @@ class PreprocessorModule(gui.OWComponent, QWidget):
 
 class SingleMethodModule(PreprocessorModule):
     method_index = settings.Setting(0)
+    initialize_methods = True
 
     def setup_method_layout(self):
         self.group = QButtonGroup(self, exclusive=True)
-        self.methods = [method() for method in self.methods]
+
+        if self.initialize_methods:
+            self.methods = [method() for method in self.methods]
 
         for i, method in enumerate(self.methods):
             rb = QRadioButton(self, text=self.textify(method.name))
@@ -454,6 +459,52 @@ class NgramsModule(PreprocessorModule):
         return self.ngrams_range
 
 
+class POSTaggingModule(SingleMethodModule):
+    title = 'POS Tagger'
+    attribute = 'pos_tagger'
+
+    STANFORD = len(taggers)
+    stanford = settings.SettingProvider(ResourceLoader)
+
+    methods = taggers + [StanfordPOSTagger]
+    initialize_methods = False
+
+    def setup_method_layout(self):
+        super().setup_method_layout()
+        self.stanford = ResourceLoader(widget=self.master, model_format='Stanford model (*.model *.tagger)',
+                                       provider_format='Java file (*.jar)',
+                                       model_button_label='Model', provider_button_label='Tagger')
+        self.set_stanford_tagger(self.stanford.model_path, self.stanford.resource_path, silent=True)
+
+        self.stanford.valueChanged.connect(self.set_stanford_tagger)
+        self.method_layout.addWidget(self.stanford, self.STANFORD, 1)
+
+    def set_stanford_tagger(self, model_path, stanford_path, silent=False):
+        self.master.Error.stanford_tagger.clear()
+        valid = False
+        if model_path and stanford_path:
+            try:
+                self.stanford_tagger.check(model_path, stanford_path)
+                self.methods[self.STANFORD] = StanfordPOSTagger(model_path, stanford_path)
+                valid = True
+                self.update_value()
+            except ValueError as e:
+                if not silent:
+                    self.master.Error.stanford(str(e))
+
+        self.group.button(self.STANFORD).setChecked(valid)
+        self.group.button(self.STANFORD).setEnabled(valid)
+
+        if not stanford_path:
+            self.stanford.provider_widget.browse_button.setStyleSheet("color:#C00;")
+        else:
+            self.stanford.provider_widget.browse_button.setStyleSheet("color:black;")
+
+    @property
+    def stanford_tagger(self):
+        return self.methods[self.STANFORD]
+
+
 class OWPreprocess(OWConcurrentWidget):
 
     name = 'Preprocess Text'
@@ -472,6 +523,7 @@ class OWPreprocess(OWConcurrentWidget):
         NormalizationModule,
         FilteringModule,
         NgramsModule,
+        POSTaggingModule,
     ]
 
     transformation = settings.SettingProvider(TransformationModule)
@@ -479,6 +531,7 @@ class OWPreprocess(OWConcurrentWidget):
     normalization = settings.SettingProvider(NormalizationModule)
     filtering = settings.SettingProvider(FilteringModule)
     ngrams_range = settings.SettingProvider(NgramsModule)
+    pos_tagger = settings.SettingProvider(POSTaggingModule)
 
     control_area_width = 250
     buttons_area_orientation = QtCore.Qt.Vertical
@@ -489,6 +542,9 @@ class OWPreprocess(OWConcurrentWidget):
             "punctuation rules etc.) from the NLTK package. This data, if you didn't have it "
             "already, was downloaded to: {}".format(Downloader().default_download_dir()),
             "nltk_data")]
+
+    class Error(OWWidget.Error):
+        stanford_tagger = Msg("Problem while loading Stanford POS Tagger\n{}")
 
     class Warning(OWWidget.Warning):
         no_token_left = Msg('No tokens on output! Please, change configuration.')
