@@ -112,6 +112,13 @@ class Corpus(SparseTable):
 
         self.index = self._new_id(len(self), force_list=True)
 
+    def __finalize__(self, from_table, **kwargs):
+        # text_features is _computed_ in the constructor and may be overwritten!
+        tf = self.text_features
+        result = super(Corpus, self).__finalize__(from_table, **kwargs)
+        result.text_features = result.text_features or tf
+        return result
+
     @property
     def tokens(self):
         """
@@ -300,9 +307,11 @@ class Corpus(SparseTable):
 
     def _equal_dense_or_sparse(self, left, right):
         if sp.issparse(left) and sp.issparse(right):
-            return left.shape == right.shape and np.allclose(left.data, right.data)
-        else:
+            return left.shape == right.shape and np.array_equal(left.data, right.data)
+        elif not sp.issparse(left) and not sp.issparse(right):
             return np.array_equal(left, right)
+        else:
+            return False
 
     def __eq__(self, other):
         return (self.text_features == other.text_features and

@@ -155,7 +155,7 @@ class CorpusTests(unittest.TestCase):
         # docs from X, Y and metas
         docs = c.documents_from_features([t.domain.attributes[0], t.domain.class_var, t.domain.metas[0]])
         self.assertEqual(len(docs), len(t))
-        for first_attr, class_val, meta_attr, d in zip(t.X[:, 0], c.Y, c.metas[:, 0], docs):
+        for first_attr, class_val, meta_attr, d in zip(t.X[:, 0], c.Y.toarray(), c.metas[:, 0], docs):
             first_attr = c.domain.attributes[0].str_val(first_attr)
             class_val = c.domain.class_var.values[int(class_val)]
             meta_attr = c.domain.metas[0].str_val(meta_attr)
@@ -205,7 +205,7 @@ class CorpusTests(unittest.TestCase):
         c = Corpus.from_file('bookexcerpts')
 
         with self.assertRaises(AttributeError):
-            # float has not attribute shape
+            # float has no attribute size
             Corpus(c.domain, 1.0, c.Y, c.metas, c.text_features)
 
         too_large_y = np.vstack((c.Y, c.Y))

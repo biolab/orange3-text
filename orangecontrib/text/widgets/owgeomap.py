@@ -12,7 +12,7 @@ import numpy as np
 from PyQt4 import QtCore, QtGui
 
 from Orange.widgets import widget, gui, settings
-from Orange.data import Table
+from Orange.data import TableBase
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.country_codes import \
     CC_EUROPE, INV_CC_EUROPE, SET_CC_EUROPE, \

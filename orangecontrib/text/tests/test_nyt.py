@@ -78,7 +78,7 @@ class NYTTests(unittest.TestCase):
                     [StringVariable.make('pub_date'), StringVariable.make('country')]
 
         self.assertEqual(len(meta_vars), len(corpus.domain.metas))
-        self.assertEqual(len(corpus.Y), 10)
+        self.assertEqual(len(corpus), 10)
 
     def test_nyt_result_caching(self):
         # Run a query to create a cache entry first.
