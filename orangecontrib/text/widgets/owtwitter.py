@@ -3,7 +3,6 @@ from itertools import chain
 
 from PyQt4 import QtGui, QtCore
 
-from PyQt4.QtGui import QComboBox, QDialog
 from datetime import datetime, timedelta
 
 from Orange.widgets import gui
@@ -12,101 +11,10 @@ from Orange.widgets.widget import OWWidget, Msg
 
 from orangecontrib.text import twitter
 from orangecontrib.text.corpus import Corpus
+from orangecontrib.text.credentials import CredentialManager
 from orangecontrib.text.language_codes import lang2code
 from orangecontrib.text.widgets.utils import (ComboBox, ListEdit, CheckListLayout,
                                               DateInterval)
-
-
-class APICredentialsDialog(QDialog):
-    size_hint = (470, 100)
-    widgets_min_width = 400
-
-    def __init__(self, parent, windowTitle="Twitter API Credentials"):
-        super().__init__(parent, windowTitle=windowTitle)
-        self.parent = parent
-        self.key = self.recent_keys[0] if self.recent_keys else None
-
-        self.setLayout(QtGui.QVBoxLayout())
-        self.layout().setMargin(5)
-        self.mainArea = gui.widgetBox(self)
-
-        self.layout().addLayout(self.setup_main_layout())
-
-        self.button_box = gui.hBox(self)
-        self.submit_button = gui.button(self.button_box, self, "OK", self.accept)
-        self.button_box.layout().setAlignment(QtCore.Qt.AlignCenter)
-        self.submit_button.setFixedWidth(150)
-
-        self.update_gui()
-
-    def setup_main_layout(self):
-        layout = QtGui.QFormLayout()
-
-        # Key combo box.
-        self.key_combo = QComboBox(self)
-        self.key_combo.setEditable(True)
-        self.key_combo.activated[int].connect(self.key_selected)
-        self.key_combo.setMinimumWidth(self.widgets_min_width)
-        layout.addRow('Key:', self.key_combo)
-
-        self.secret_line_edit = QtGui.QLineEdit(self)
-        self.secret_line_edit.setMinimumWidth(self.widgets_min_width)
-        layout.addRow('Secret:', self.secret_line_edit)
-        self.update_gui()
-        return layout
-
-    def update_key(self):
-        key = twitter.Credentials(self.key_combo.currentText().strip(),
-                                  self.secret_line_edit.text().strip())
-        if self.key != key:
-            if not key.valid:
-                self.key = None
-            self.key = key
-
-    @property
-    def recent_keys(self):
-        return self.parent.recent_api_keys
-
-    def update_gui(self):
-        self.key_combo.clear()
-
-        for key in self.recent_keys:
-            self.key_combo.addItem(key.consumer_key)
-
-        if self.key:
-            self.key_combo.setEditText(self.key.consumer_key)
-            self.secret_line_edit.setText(self.key.consumer_secret)
-
-    def check_credentials(self):
-        self.update_key()
-
-        if self.key.valid:
-            self.save_key()
-
-    def save_key(self):
-        if self.key in self.recent_keys:
-            self.recent_keys.remove(self.key)
-
-        self.recent_keys.insert(0, self.key)
-
-    def key_selected(self, n):
-        self.key = self.recent_keys[n]
-        self.recent_keys.pop(n)
-        self.recent_keys.insert(0, self.key)
-        self.update_gui()
-
-    def accept(self):
-        self.check_credentials()
-        self.parent.update_api(self.key)
-        if self.key.valid:
-            super().accept()
-        else:
-            # TODO: add notification
-            tip = 'This credentials are invalid.'
-            QtGui.QToolTip.showText(QtGui.QCursor.pos(), tip)
-
-    def sizeHint(self):
-        return QtCore.QSize(*self.size_hint)
 
 
 class Output:
@@ -129,11 +37,63 @@ def require(attribute, warning):
 
 
 class OWTwitter(OWWidget):
-    """
-    Attributes:
-        key (twitter.Credentials): Twitter API key/secret holder
-        api (twitter.TwitterAPI): Twitter API object.
-    """
+    class APICredentialsDialog(OWWidget):
+        name = "Twitter API Credentials"
+        want_main_area = False
+        resizing_enabled = False
+
+        cm_key = CredentialManager('Twitter API Key')
+        cm_secret = CredentialManager('Twitter API Secret')
+
+        key_input = ''
+        secret_input = ''
+
+        class Error(OWWidget.Error):
+            invalid_credentials = Msg('This credentials are invalid.')
+
+        def __init__(self, parent):
+            super().__init__()
+            self.parent = parent
+            self.credentials = None
+
+            form = QtGui.QFormLayout()
+            form.setMargin(5)
+            self.key_edit = gui.lineEdit(self, self, 'key_input', controlWidth=400)
+            form.addRow('Key:', self.key_edit)
+            self.secret_edit = gui.lineEdit(self, self, 'secret_input', controlWidth=400)
+            form.addRow('Secret:', self.secret_edit)
+            self.controlArea.layout().addLayout(form)
+
+            self.submit_button = gui.button(self.controlArea, self, "OK", self.accept)
+
+            self.load_credentials()
+
+        def load_credentials(self):
+            self.key_edit.setText(self.cm_key.key)
+            self.secret_edit.setText(self.cm_secret.key)
+
+        def save_credentials(self):
+            self.cm_key.key = self.key_input
+            self.cm_secret.key = self.secret_input
+
+        def check_credentials(self):
+            c = twitter.Credentials(self.key_input, self.secret_input)
+            if self.credentials != c:
+                if c.valid:
+                    self.save_credentials()
+                else:
+                    c = None
+                self.credentials = c
+
+        def accept(self, silent=False):
+            if not silent: self.Error.invalid_credentials.clear()
+            self.check_credentials()
+            if self.credentials and self.credentials.valid:
+                self.parent.update_api(self.credentials)
+                super().accept()
+            elif not silent:
+                self.Error.invalid_credentials()
+
     name = "Twitter"
     description = "Load tweets from the Twitter API."
     icon = "icons/Twitter.svg"
@@ -157,7 +117,6 @@ class OWTwitter(OWWidget):
     tweets_info = 'Tweets on output: {}'
 
     CONTENT, AUTHOR, CONTENT_AUTHOR = 0, 1, 2
-    recent_api_keys = Setting([])
     word_list = Setting([])
     mode = Setting(0)
     limited_search = Setting(True)
@@ -197,9 +156,14 @@ class OWTwitter(OWWidget):
                              datetime.now().date()))
 
     def __init__(self, *args, **kwargs):
+        """
+        Attributes:
+            api (twitter.TwitterAPI): Twitter API object.
+        """
         super().__init__(*args, **kwargs)
-        self.key = self.recent_api_keys[0] if self.recent_api_keys else None
         self.api = None
+        self.api_dlg = self.APICredentialsDialog(self)
+        self.api_dlg.accept(silent=True)
 
         self.controlArea.layout().setContentsMargins(0, 15, 0, 0)
 
@@ -287,20 +251,17 @@ class OWTwitter(OWWidget):
         self.progress_signal.connect(self.on_progress)
         self.finish_signal.connect(self.on_finish)
 
-        self.update_api(self.key)
         self._tweet_count = False
         self.send_corpus()
         self.setFocus()  # set focus to widget itself so placeholder is shown for query_edit
 
     def open_key_dialog(self):
-        api_dlg = APICredentialsDialog(self)
-        api_dlg.exec_()
+        self.api_dlg.exec_()
 
     def update_api(self, key):
-        self.key = key
-        self.warning()
-        if self.key:
-            self.api = twitter.TwitterAPI(self.key,
+        if key:
+            self.Warning.clear()
+            self.api = twitter.TwitterAPI(key,
                                           on_start=self.start_signal.emit,
                                           on_progress=self.progress_signal.emit,
                                           on_error=self.error_signal.emit,

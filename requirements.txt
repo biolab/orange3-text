@@ -11,3 +11,5 @@ tweepy
 beautifulsoup4
 simhash
 wikipedia
+keyring
+keyrings.alt    # for running test on travis
