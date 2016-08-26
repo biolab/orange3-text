@@ -1,4 +1,5 @@
 import os
+from copy import copy
 from numbers import Integral
 from itertools import chain
 
@@ -274,8 +275,9 @@ class Corpus(Table):
 
     def copy(self):
         """Return a copy of the table."""
-        c = self.__class__(self.X, self.Y, self.metas, self.domain, self.text_features)
-        c.ensure_copy()
+        c = self.__class__(self.X.copy(), self.Y.copy(), self.metas.copy(),
+                           self.domain, copy(self.text_features))
+        # since tokens and dictionary are considered immutable copies are not needed
         c._tokens = self._tokens
         c._dictionary = self._dictionary
         c.ngram_range = self.ngram_range
