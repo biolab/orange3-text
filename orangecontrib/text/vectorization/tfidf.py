@@ -26,14 +26,14 @@ class TfidfVectorizer(BaseVectorizer):
     ))
 
     wlocals = OrderedDict((
-        (IDENTITY, lambda x: x),
-        (BINARY, lambda x: int(x > 0)),
-        (SUBLINEAR, lambda x: 1 + np.log(x)),
+        (IDENTITY, lambda tf: tf),
+        (BINARY, lambda tf: int(tf > 0)),
+        (SUBLINEAR, lambda tf: 1 + np.log(tf)),
     ))
 
     wglobals = OrderedDict((
-        (IDENTITY, lambda idf, D: idf),
-        (SMOOTH, lambda idf, D: idf + 1),
+        (IDENTITY, lambda df, N: np.log(N/df)),
+        (SMOOTH, lambda df, N: np.log(1 + N/df)),
     ))
 
     def __init__(self, norm=NONE, wlocal=IDENTITY, wglobal=IDENTITY):
