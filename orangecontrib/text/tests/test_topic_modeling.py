@@ -30,7 +30,7 @@ class BaseTests:
         self.assertEqual(len(words), 10)
 
     def test_vectorized(self):
-        corpus = vectorization.TfidfVectorizer().transform(self.corpus, copy=True)
+        corpus = vectorization.BowVectorizer().transform(self.corpus, copy=True)
         topics = self.model.fit_transform(corpus)
         self.assertIsInstance(topics, Corpus)
 

@@ -9,7 +9,7 @@ import scipy.sparse as sp
 from gensim import corpora
 
 from Orange.data import Table, Domain, ContinuousVariable
-from orangecontrib.text.vectorization import TfidfVectorizer
+from orangecontrib.text.vectorization import BowVectorizer
 
 
 def get_sample_corpora_dir():
@@ -261,7 +261,7 @@ class Corpus(Table):
     @property
     def ngrams_corpus(self):
         if self._ngrams_corpus is None:
-            return TfidfVectorizer().transform(self).ngrams_corpus
+            return BowVectorizer().transform(self).ngrams_corpus
         return self._ngrams_corpus
 
     @ngrams_corpus.setter

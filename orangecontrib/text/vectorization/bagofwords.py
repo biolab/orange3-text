@@ -8,8 +8,8 @@ from sklearn.preprocessing import normalize
 from orangecontrib.text.vectorization.base import BaseVectorizer
 
 
-class TfidfVectorizer(BaseVectorizer):
-    name = 'Tfidf Vectorizer'
+class BowVectorizer(BaseVectorizer):
+    name = 'BoW Vectorizer'
 
     COUNT = 'Count'
     BINARY = 'Binary'
