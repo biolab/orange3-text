@@ -49,7 +49,7 @@ class TfidfVectorizationTest(unittest.TestCase):
         TfidfVectorizer.wglobals['const'] = lambda idf, D: 1
 
         vect = TfidfVectorizer(norm=TfidfVectorizer.NONE,
-                               wlocal=TfidfVectorizer.IDENTITY,
+                               wlocal=TfidfVectorizer.COUNT,
                                wglobal='const')
 
         self.assertEqualCorpus(vect.transform(corpus),
@@ -62,7 +62,7 @@ class TfidfVectorizationTest(unittest.TestCase):
                                CountVectorizer(binary=True).transform(corpus))
 
         vect = TfidfVectorizer(norm=TfidfVectorizer.L1,
-                               wlocal=TfidfVectorizer.IDENTITY,
+                               wlocal=TfidfVectorizer.COUNT,
                                wglobal='const')
         x = vect.transform(corpus).X
         self.assertAlmostEqual(abs(x.sum(axis=1) - 1).sum(), 0)

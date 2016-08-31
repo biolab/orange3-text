@@ -99,7 +99,7 @@ class ComboBox(QComboBox):
         self.master = master
 
         if not isinstance(items[0], tuple):
-            self.items = [(str(item).capitalize(), item) for item in items]
+            self.items = [(str(item), item) for item in items]
         else:
             self.items = items
 

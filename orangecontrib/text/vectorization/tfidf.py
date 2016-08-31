@@ -11,13 +11,26 @@ from orangecontrib.text.vectorization.base import BaseVectorizer
 class TfidfVectorizer(BaseVectorizer):
     name = 'Tfidf Vectorizer'
 
-    IDENTITY = 'Identity'
-    SMOOTH = 'Smooth'
+    COUNT = 'Count'
     BINARY = 'Binary'
     SUBLINEAR = 'Sublinear'
     NONE = '(None)'
+    IDF = 'IDF'
+    SMOOTH = 'Smooth IDF'
     L1 = 'L1 (Sum of elements)'
     L2 = 'L2 (Euclidean)'
+
+    wlocals = OrderedDict((
+        (COUNT, lambda tf: tf),
+        (BINARY, lambda tf: int(tf > 0)),
+        (SUBLINEAR, lambda tf: 1 + np.log(tf)),
+    ))
+
+    wglobals = OrderedDict((
+        (NONE, lambda df, N: 1),
+        (IDF, lambda df, N: np.log(N/df)),
+        (SMOOTH, lambda df, N: np.log(1 + N/df)),
+    ))
 
     norms = OrderedDict((
         (NONE, None),
@@ -25,18 +38,7 @@ class TfidfVectorizer(BaseVectorizer):
         (L2, partial(normalize, norm='l2')),
     ))
 
-    wlocals = OrderedDict((
-        (IDENTITY, lambda tf: tf),
-        (BINARY, lambda tf: int(tf > 0)),
-        (SUBLINEAR, lambda tf: 1 + np.log(tf)),
-    ))
-
-    wglobals = OrderedDict((
-        (IDENTITY, lambda df, N: np.log(N/df)),
-        (SMOOTH, lambda df, N: np.log(1 + N/df)),
-    ))
-
-    def __init__(self, norm=NONE, wlocal=IDENTITY, wglobal=IDENTITY):
+    def __init__(self, norm=NONE, wlocal=COUNT, wglobal=NONE):
         self.norm = norm
         self.wlocal = wlocal
         self.wglobal = wglobal
@@ -62,6 +64,6 @@ class TfidfVectorizer(BaseVectorizer):
         return corpus
 
     def report(self):
-        return (('Norm', self.norm),
-                ('Tf transformation', self.wlocal),
-                ('Idf transformation', self.wglobal))
+        return (('Term Frequency', self.wlocal),
+                ('Document Frequency', self.wglobal),
+                ('Regularization', self.norm),)
