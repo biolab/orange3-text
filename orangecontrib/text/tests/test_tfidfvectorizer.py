@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 
 from orangecontrib.text.corpus import Corpus
-from orangecontrib.text.vectorization import TfidfVectorizer, CountVectorizer
+from orangecontrib.text.vectorization import TfidfVectorizer
 
 
 class TfidfVectorizationTest(unittest.TestCase):
@@ -14,6 +14,19 @@ class TfidfVectorizationTest(unittest.TestCase):
         result = vect.transform(corpus)
         self.assertIsInstance(result, Corpus)
         self.assertEqual(len(result.domain), 43)
+
+    def test_binary(self):
+        vect = TfidfVectorizer(wlocal=TfidfVectorizer.BINARY)
+        corpus = Corpus.from_file('deerwester')
+        result = vect.transform(corpus)
+        self.assertEqual(result.X.max(), 1.)
+
+    def test_empty_tokens(self):
+        corpus = Corpus.from_file('deerwester')
+        corpus.text_features = []
+        bag_of_words = TfidfVectorizer().transform(corpus, copy=False)
+
+        self.assertIs(corpus, bag_of_words)
 
     def test_domain(self):
         vect = TfidfVectorizer()
@@ -53,13 +66,13 @@ class TfidfVectorizationTest(unittest.TestCase):
                                wglobal='const')
 
         self.assertEqualCorpus(vect.transform(corpus),
-                               CountVectorizer(binary=False).transform(corpus))
+                               TfidfVectorizer(wlocal=TfidfVectorizer.BINARY).transform(corpus))
 
         vect = TfidfVectorizer(norm=TfidfVectorizer.NONE,
                                wlocal=TfidfVectorizer.BINARY,
                                wglobal='const')
         self.assertEqualCorpus(vect.transform(corpus),
-                               CountVectorizer(binary=True).transform(corpus))
+                               TfidfVectorizer(wlocal=TfidfVectorizer.BINARY).transform(corpus))
 
         vect = TfidfVectorizer(norm=TfidfVectorizer.L1,
                                wlocal=TfidfVectorizer.COUNT,
