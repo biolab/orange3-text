@@ -9,7 +9,7 @@ from PyQt4.QtGui import *
 
 from Orange.widgets import gui
 from Orange.widgets.settings import Setting, ContextSetting
-from Orange.widgets.widget import OWWidget
+from Orange.widgets.widget import OWWidget, Msg
 from Orange.data import Table
 from Orange.data.domain import filter_visible
 from orangecontrib.text.corpus import Corpus
@@ -48,6 +48,10 @@ class OWCorpusViewer(OWWidget):
     search_features = ContextSetting([0])   # features included in search
     display_features = ContextSetting([0])  # features for display
     autocommit = Setting(True)
+
+    class Warning(OWWidget.Warning):
+        no_feats_search = Msg('No features included in search.')
+        no_feats_display = Msg('No features selected for display.')
 
     def __init__(self):
         super().__init__()
@@ -138,8 +142,7 @@ class OWCorpusViewer(OWWidget):
         self.display_features.clear()
         self.document_table_model.clear()
         # Warnings.
-        self.warning(0)
-        self.warning(1)
+        self.Warning.clear()
 
     def load_features(self):
         self.search_features = []
@@ -185,9 +188,9 @@ class OWCorpusViewer(OWWidget):
 
     def show_document(self):
         """ Show the selected document in the right area. """
-        self.warning(1)
+        self.Warning.no_feats_display.clear()
         if len(self.display_features) == 0 and self.corpus is not None:
-            self.warning(1, 'No features selected for display.')
+            self.Warning.no_feats_display()
         self.clear_text_highlight()  # Clear.
 
         self.document_contents = QTextDocument(undoRedoEnabled=False)
@@ -213,11 +216,11 @@ class OWCorpusViewer(OWWidget):
     # --- WIDGET SEARCH ---
     def regenerate_documents(self):
         self.corpus_docs = None
-        self.warning(0)
+        self.Warning.no_feats_search.clear()
         if self.corpus is not None:
             feats = [self.features[i] for i in self.search_features]
             if len(feats) == 0:
-                self.warning(0, 'No features included in search.')
+                self.Warning.no_feats_search()
             self.corpus_docs = self.corpus.documents_from_features(feats)
             self.refresh_search()
 
