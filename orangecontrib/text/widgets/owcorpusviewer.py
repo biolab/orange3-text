@@ -66,8 +66,13 @@ class OWCorpusViewer(OWWidget):
         # ---- CONTROL AREA ----
         # Filtering results.
         filter_result_box = gui.widgetBox(self.controlArea, 'Info')
-        self.info_all = gui.label(filter_result_box, self, 'All documents:')
-        self.info_fil = gui.label(filter_result_box, self, 'After filtering:')
+        self.info_docs = gui.label(filter_result_box, self, 'Documents:')
+        self.info_preprocessing = gui.label(filter_result_box, self, 'Preprocessed:')
+        self.info_tokens = gui.label(filter_result_box, self, '  ◦ Tokens:')
+        self.info_types = gui.label(filter_result_box, self, '  ◦ Types:')
+        self.info_pos = gui.label(filter_result_box, self, 'POS tagged:')
+        self.info_ngrams = gui.label(filter_result_box, self, 'N-grams range:')
+        self.info_matching = gui.label(filter_result_box, self, 'Matching:')
 
         # Search features
         self.search_listbox = gui.listBox(
@@ -253,11 +258,23 @@ class OWCorpusViewer(OWWidget):
 
     def update_info_display(self):
         if self.corpus is not None:
-            self.info_all.setText('All documents: {}'.format(len(self.corpus)))
-            self.info_fil.setText('After filtering: {}'.format(self.document_table_model.rowCount()))
+            pp = self.corpus._tokens is not None
+            self.info_docs.setText('Documents: {}'.format(len(self.corpus)))
+            self.info_preprocessing.setText('Preprocessed: {}'.format(pp))
+            self.info_tokens.setText('  ◦ Tokens: {}'.format(sum(map(len, self.corpus.tokens)) if pp else ''))
+            self.info_types.setText('  ◦ Types: {}'.format(len(self.corpus.dictionary) if pp else ''))
+            self.info_pos.setText('POS tagged: {}'.format(self.corpus.pos_tags is not None))
+            self.info_ngrams.setText('N-grams range: {}–{}'.format(*self.corpus.ngram_range))
+            self.info_matching.setText('Matching: {}/{}'.format(
+                self.doc_list_model.rowCount(), len(self.corpus)))
         else:
-            self.info_all.setText('All documents:')
-            self.info_fil.setText('After filtering:')
+            self.info_docs.setText('Documents:')
+            self.info_preprocessing.setText('Preprocessed:')
+            self.info_tokens.setText('  ◦ Tokens:')
+            self.info_types.setText('  ◦ Types:')
+            self.info_pos.setText('POS tagged:')
+            self.info_ngrams.setText('N-grams range:')
+            self.info_matching.setText('Matching:')
 
     def clear_text_highlight(self):
         text_format = QtGui.QTextCharFormat()
@@ -284,5 +301,14 @@ if __name__ == '__main__':
     widget = OWCorpusViewer()
     widget.show()
     corpus = Corpus.from_file('bookexcerpts')
-    widget.set_data(corpus)
+    corpus = corpus[:3]
+    # corpus = Corpus.from_file('deerwester')
+    corpus.tokens
+
+    from orangecontrib.text.tag import pos_tagger
+    tagged_corpus = pos_tagger.tag_corpus(corpus)
+
+    tagged_corpus.ngram_range = (1, 2)
+
+    widget.set_data(tagged_corpus)
     app.exec()
