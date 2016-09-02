@@ -201,6 +201,10 @@ class Corpus(Table):
             self._apply_base_preprocessor()
         return self._tokens
 
+    def has_tokens(self):
+        """ Return whether corpus is preprocessed or not. """
+        return self._tokens is not None
+
     def _apply_base_preprocessor(self):
         from orangecontrib.text.preprocess import base_preprocessor
         corpus = base_preprocessor(self)
