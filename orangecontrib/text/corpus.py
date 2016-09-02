@@ -245,6 +245,9 @@ class Corpus(Table):
         return cls(table.X, table.Y, table.metas, table.domain, None)
 
     def ngrams_iterator(self, join_with=' ', include_postags=False):
+        if self.pos_tags is None:
+            include_postags = False
+
         if include_postags:
             data = zip(self.tokens, self.pos_tags)
         else:

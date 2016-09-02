@@ -34,6 +34,7 @@ class OWCorpusViewer(OWWidget):
 
     search_features = ContextSetting([0])   # features included in search
     display_features = ContextSetting([0])  # features for display
+    show_tokens = Setting(False)
     autocommit = Setting(True)
 
     class Warning(OWWidget.Warning):
@@ -66,10 +67,13 @@ class OWCorpusViewer(OWWidget):
             box='Search features', callback=self.regenerate_docs,)
 
         # Display features
+        display_box = gui.widgetBox(self.controlArea, 'Display features')
         self.display_listbox = gui.listBox(
-            self.controlArea, self, 'display_features', 'features',
+            display_box, self, 'display_features', 'features',
             selectionMode=QtGui.QListView.ExtendedSelection,
-            box='Display features', callback=self.show_docs, )
+            callback=self.show_docs,)
+        self.show_tokens_checkbox = gui.checkBox(display_box, self, 'show_tokens',
+                                                 'Show Tokens && Tags', callback=self.show_docs)
 
         # Auto-commit box
         gui.auto_commit(self.controlArea, self, 'autocommit', 'Send data', 'Auto send is on')
@@ -139,6 +143,11 @@ class OWCorpusViewer(OWWidget):
             self.search_features = list(range(len(self.features)))
             self.display_features = list(range(len(self.features)))
 
+            # Enable/disable tokens checkbox
+            if not self.corpus.has_tokens():
+                self.show_tokens_checkbox.setCheckState(False)
+            self.show_tokens_checkbox.setEnabled(self.corpus.has_tokens())
+
     def list_docs(self):
         """ List documents into the left scrolling area """
         search_keyword = self.filter_input.text().strip('|')
@@ -175,7 +184,28 @@ class OWCorpusViewer(OWWidget):
         <head>
         <meta charset='utf-8'>
         <style>
-        mark {{background: #FFCD28;}}
+
+        mark {{ background: #FFCD28; }}
+        tr > td {{ padding-bottom: 5px; }}
+
+        body {{
+            font-family: Helvetica;
+            font-size: 10pt;
+        }}
+
+        .variables {{
+            vertical-align: top;
+            padding-right: 10px;
+        }}
+
+        .token {{
+            padding: 3px;
+            border: 1px #B0B0B0 solid;
+            margin-right: 5px;
+            margin-bottom: 5px;
+            display: inline-block;
+        }}
+
         </style>
         </head>
         <body>
@@ -183,24 +213,34 @@ class OWCorpusViewer(OWWidget):
         </body>
         </html>
         '''
+        if self.corpus is None:
+            return 
+
         self.Warning.no_feats_display.clear()
         if self.corpus is not None and len(self.display_features) == 0:
             self.Warning.no_feats_display()
 
         documents = []
+        if self.show_tokens:
+            tokens = list(self.corpus.ngrams_iterator(include_postags=True))
+
         for index in self.doc_list.selectionModel().selectedRows():
             html = '<table>'
+
+            row_ind = index.data(Qt.UserRole).row_index
             for ind in self.display_features:
                 feature = self.features[ind]
                 mark = 'class="mark-area"' if ind in self.search_features else ''
                 value = index.data(Qt.UserRole)[feature.name]
-                html += '<tr><td><strong>{}:</strong></td>' \
+                html += '<tr><td class="variables"><strong>{}:</strong></td>' \
                         '<td {}>{}</td></tr>'.format(
                     feature.name, mark, value)
-            # if self.corpus and self.corpus._tokens is not None:
-            #     document.append(
-            #         '<tr><td><strong>TOKENS:</strong></td><td>{}</td></tr>'.format(
-            #             ''.join('<span style="border:1px black solid; margin:50x; padding:3px;">{}</span>'.format(token) for token in index.data(Qt.UserRole)._tokens[0])))
+
+            if self.show_tokens:
+                html += '<tr><td class="variables"><strong>Tokens & Tags:</strong></td>' \
+                        '<td>{}</td></tr>'.format(''.join('<span class="token">{}</span>'.format(
+                                                      token) for token in tokens[row_ind]))
+
             html += '</table>'
             documents.append(html)
 
@@ -262,18 +302,13 @@ class OWCorpusViewer(OWWidget):
             self.send(Output.CORPUS, output_corpus)
 
 if __name__ == '__main__':
+    from orangecontrib.text.tag import pos_tagger
     app = QApplication([])
     widget = OWCorpusViewer()
     widget.show()
     corpus = Corpus.from_file('bookexcerpts')
     corpus = corpus[:3]
-    # corpus = Corpus.from_file('deerwester')
-    corpus.tokens
-
-    from orangecontrib.text.tag import pos_tagger
-    tagged_corpus = pos_tagger.tag_corpus(corpus)
-
-    tagged_corpus.ngram_range = (1, 2)
-
-    widget.set_data(tagged_corpus)
+    corpus = pos_tagger.tag_corpus(corpus)
+    corpus.ngram_range = (1, 2)
+    widget.set_data(corpus)
     app.exec()
