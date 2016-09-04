@@ -23,16 +23,12 @@ class OWScraper(OWWidget):
     icon = "icons/Scraper.svg"
     priority = 100
     category="text"
-
     # Input/output
     inputs = [("Data", Table, "set_data")]
     outputs = [("Corpus", Corpus)]
-  
     want_main_area = False
-   
     # Settings
     selected_url = Setting(0)
-    
     # Output includes checkboxes.
     includes_article = Setting(True)
     includes_title = Setting(True)
@@ -78,7 +74,7 @@ class OWScraper(OWWidget):
         self.scraper_controls.append(self.web_url_chbox)
         self.run_query_button = gui.button(self.controlArea, self, 'Run Query',callback=self.apply,
                                            tooltip="Run the chosen article Query")
-        
+
         self.scraper_controls.append(self.run_query_button)
 
 
@@ -123,7 +119,7 @@ class OWScraper(OWWidget):
         :return: corpus
         """
         new_table=None
-        text_includes_params = [self.includes_article, self.includes_author, self.includes_date, 
+        text_includes_params = [self.includes_article, self.includes_author, self.includes_date,
                                  self.includes_title, self.includes_web_url]
         if True not in text_includes_params:
             self.warning(1, "You must select at least one text field.")
@@ -162,7 +158,7 @@ def main():
     widget.show()
     Data=Table("../datasets/url")
     widget.set_data(Data)
-    app.exec()        
+    app.exec()
 
 
 if __name__ == "__main__":

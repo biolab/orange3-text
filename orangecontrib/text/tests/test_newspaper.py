@@ -22,7 +22,6 @@ class MockUrlOpen:
                     pass
 
     def __call__(self, url):
-        
         @contextmanager
         def cm():
             yield self

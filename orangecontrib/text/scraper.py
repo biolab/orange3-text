@@ -29,11 +29,11 @@ def _date_to_str(input_date):
     iso=input_date.isoformat()
     date_part = iso.strip().split("T")[0].split("-")
     return "%s%s%s" % (date_part[0], date_part[1], date_part[2])
-    
+
 def _get_info(url):
     """
     Gets relevent available information from the url
-    :param url: 
+    :param url:
     :type url: string
     :return : list
     """
@@ -51,7 +51,6 @@ def _get_info(url):
                 is_cached=True
                 scraped_data=row  #no need to get the data again, if acraped details are already there in the cache
                 break
-                  
     if not is_cached :          # if not cached, get the data
         article = Article(url)
         try:
@@ -65,7 +64,7 @@ def _get_info(url):
         text = ' '.join(text.split()) # remove white spaces
         title = article.title if article.title else ""
         title = ' '.join(title.split())  # remove white spaces
-        authors = ', '.join(article.authors)   
+        authors = ', '.join(article.authors)
         authors = authors if authors else ""
         pub_date = _date_to_str(article.publish_date) if article.publish_date else ""
         web_url= article.url if article.url else ""

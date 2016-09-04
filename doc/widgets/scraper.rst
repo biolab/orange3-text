@@ -36,8 +36,8 @@ You can selected what you want in the output using the checkboxes. Click Run Que
 Example
 -------
 
-In the example below we have used *url* data set and get the article data 
+In the example below we have used *url* data set and get the article data
 from the URL's. We select the URL attribute from the dropdown list (topic, url).
 Check the box for the attribute that you want to include in output (Article, Author, Date, Title, URL).
-Click Run Query. You get a Corpus Object as Output 
+Click Run Query. You get a Corpus Object as Output
 .. figure:: images/Article_Scraper-Example1.png
