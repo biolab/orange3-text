@@ -32,8 +32,8 @@ class OWCorpusViewer(OWWidget):
     inputs = [(Input.DATA, Table, 'set_data')]
     outputs = [(Output.CORPUS, Corpus)]
 
-    search_features = ContextSetting([0])   # features included in search
-    display_features = ContextSetting([0])  # features for display
+    search_indices = ContextSetting([0])   # features included in search
+    display_indices = ContextSetting([0])  # features for display
     show_tokens = Setting(False)
     autocommit = Setting(True)
 
@@ -48,7 +48,8 @@ class OWCorpusViewer(OWWidget):
         self.corpus_docs = None         # Documents generated from Corpus
         self.output_mask = []           # Output corpus indices
         self.doc_webview = None         # WebView for showing content
-        self.features = []              # all attributes
+        self.search_features = []       # two copies are needed since Display allows drag & drop
+        self.display_features = []
 
         # Info
         filter_result_box = gui.widgetBox(self.controlArea, 'Info')
@@ -62,16 +63,16 @@ class OWCorpusViewer(OWWidget):
 
         # Search features
         self.search_listbox = gui.listBox(
-            self.controlArea, self, 'search_features', 'features',
+            self.controlArea, self, 'search_indices', 'search_features',
             selectionMode=QtGui.QListView.ExtendedSelection,
             box='Search features', callback=self.regenerate_docs,)
 
         # Display features
         display_box = gui.widgetBox(self.controlArea, 'Display features')
         self.display_listbox = gui.listBox(
-            display_box, self, 'display_features', 'features',
+            display_box, self, 'display_indices', 'display_features',
             selectionMode=QtGui.QListView.ExtendedSelection,
-            callback=self.show_docs,)
+            callback=self.show_docs, enableDragDrop=True)
         self.show_tokens_checkbox = gui.checkBox(display_box, self, 'show_tokens',
                                                  'Show Tokens && Tags', callback=self.show_docs)
 
@@ -126,22 +127,24 @@ class OWCorpusViewer(OWWidget):
         self.filter_input.clear()
         self.update_info()
         # Models/vars
-        self.features.clear()
         self.search_features.clear()
         self.display_features.clear()
+        self.search_indices.clear()
+        self.display_indices.clear()
         self.doc_list_model.clear()
         # Warnings
         self.Warning.clear()
 
     def load_features(self):
-        self.search_features = []
-        self.display_features = []
+        self.search_indices = []
+        self.display_indices = []
         if self.corpus is not None:
             domain = self.corpus.domain
-            self.features = list(filter_visible(chain(domain.variables, domain.metas)))
+            self.search_features = list(filter_visible(chain(domain.variables, domain.metas)))
+            self.display_features = list(filter_visible(chain(domain.variables, domain.metas)))
             # FIXME: Select features based on ContextSetting
-            self.search_features = list(range(len(self.features)))
-            self.display_features = list(range(len(self.features)))
+            self.search_indices = list(range(len(self.search_features)))
+            self.display_indices = list(range(len(self.display_features)))
 
             # Enable/disable tokens checkbox
             if not self.corpus.has_tokens():
@@ -217,7 +220,7 @@ class OWCorpusViewer(OWWidget):
             return 
 
         self.Warning.no_feats_display.clear()
-        if self.corpus is not None and len(self.display_features) == 0:
+        if self.corpus is not None and len(self.display_indices) == 0:
             self.Warning.no_feats_display()
 
         documents = []
@@ -228,9 +231,9 @@ class OWCorpusViewer(OWWidget):
             html = '<table>'
 
             row_ind = index.data(Qt.UserRole).row_index
-            for ind in self.display_features:
-                feature = self.features[ind]
-                mark = 'class="mark-area"' if ind in self.search_features else ''
+            for ind in self.display_indices:
+                feature = self.display_features[ind]
+                mark = 'class="mark-area"' if ind in self.search_indices else ''
                 value = index.data(Qt.UserRole)[feature.name]
                 html += '<tr><td class="variables"><strong>{}:</strong></td>' \
                         '<td {}>{}</td></tr>'.format(
@@ -257,7 +260,7 @@ class OWCorpusViewer(OWWidget):
         self.corpus_docs = None
         self.Warning.no_feats_search.clear()
         if self.corpus is not None:
-            feats = [self.features[i] for i in self.search_features]
+            feats = [self.search_features[i] for i in self.search_indices]
             if len(feats) == 0:
                 self.Warning.no_feats_search()
             self.corpus_docs = self.corpus.documents_from_features(feats)
