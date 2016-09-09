@@ -328,7 +328,7 @@ class FilteringModule(MultipleMethodModule):
     KEEP_N = 4
     dlgFormats = 'Only text files (*.txt)'
 
-    stopwords_language = settings.Setting('english')
+    stopwords_language = settings.Setting('English')
 
     recent_sw_files = settings.Setting([])
     recent_lexicon_files = settings.Setting([])
@@ -336,7 +336,7 @@ class FilteringModule(MultipleMethodModule):
     pattern = settings.Setting('\.|,|:|!|\?')
     min_df = settings.Setting(0.)
     max_df = settings.Setting(1.)
-    keep_n = settings.Setting(10**5)
+    keep_n = settings.Setting(100)
     use_keep_n = settings.Setting(False)
     use_df = settings.Setting(False)
 
@@ -445,8 +445,9 @@ class NgramsModule(PreprocessorModule):
     attribute = 'ngrams_range'
     title = 'N-grams Range'
     toggle_enabled = True
+    enabled = settings.Setting(False)
 
-    ngrams_range = settings.Setting((1, 1))
+    ngrams_range = settings.Setting((1, 2))
 
     def setup_method_layout(self):
         self.method_layout.addWidget(
@@ -462,6 +463,7 @@ class NgramsModule(PreprocessorModule):
 class POSTaggingModule(SingleMethodModule):
     title = 'POS Tagger'
     attribute = 'pos_tagger'
+    enabled = settings.Setting(False)
 
     STANFORD = len(taggers)
     stanford = settings.SettingProvider(ResourceLoader)

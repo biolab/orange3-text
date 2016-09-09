@@ -42,13 +42,13 @@ class WordListMixin:
 
 
 class StopwordsFilter(BaseTokenFilter, WordListMixin):
-    """ Filters out words that listed in a file or in a list of stopwords for specific language. """
+    """ Filters out words listed in a file or in a list of stopwords for specific language. """
     name = 'Stopwords'
 
-    supported_languages = [file for file in os.listdir(stopwords._get_root())
+    supported_languages = [file.capitalize() for file in os.listdir(stopwords._get_root())
                            if file.islower()]
 
-    def __init__(self, language='english', word_list=None):
+    def __init__(self, language='English', word_list=None):
         WordListMixin.__init__(self, word_list)
         super().__init__()
         self.language = language
