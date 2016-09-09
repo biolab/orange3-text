@@ -1,3 +1,2 @@
-from .bagofwords import CountVectorizer
-from .tfidf import TfidfVectorizer
+from .bagofwords import BowVectorizer
 from .simhash import SimhashVectorizer

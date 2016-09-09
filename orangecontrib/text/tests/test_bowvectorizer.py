@@ -3,20 +3,33 @@ import unittest
 import numpy as np
 
 from orangecontrib.text.corpus import Corpus
-from orangecontrib.text.vectorization import TfidfVectorizer, CountVectorizer
+from orangecontrib.text.vectorization import BowVectorizer
 
 
-class TfidfVectorizationTest(unittest.TestCase):
+class BowVectorizationTest(unittest.TestCase):
     def test_transform(self):
-        vect = TfidfVectorizer()
+        vect = BowVectorizer()
         corpus = Corpus.from_file('deerwester')
 
         result = vect.transform(corpus)
         self.assertIsInstance(result, Corpus)
         self.assertEqual(len(result.domain), 43)
 
+    def test_binary(self):
+        vect = BowVectorizer(wlocal=BowVectorizer.BINARY)
+        corpus = Corpus.from_file('deerwester')
+        result = vect.transform(corpus)
+        self.assertEqual(result.X.max(), 1.)
+
+    def test_empty_tokens(self):
+        corpus = Corpus.from_file('deerwester')
+        corpus.text_features = []
+        bag_of_words = BowVectorizer().transform(corpus, copy=False)
+
+        self.assertIs(corpus, bag_of_words)
+
     def test_domain(self):
-        vect = TfidfVectorizer()
+        vect = BowVectorizer()
         corpus = Corpus.from_file('deerwester')
 
         result = vect.transform(corpus)
@@ -30,7 +43,7 @@ class TfidfVectorizationTest(unittest.TestCase):
                     self.assertIn(attr, corpus.tokens[i])
 
     def test_ngrams(self):
-        vect = TfidfVectorizer()
+        vect = BowVectorizer()
         corpus = Corpus.from_file('deerwester')
         corpus.ngram_range = (1, 3)
         result = vect.transform(corpus)
@@ -40,30 +53,30 @@ class TfidfVectorizationTest(unittest.TestCase):
         self.assertIn(' '.join(corpus.tokens[0][:3]), attrs)
 
     def test_report(self):
-        vect = TfidfVectorizer()
+        vect = BowVectorizer()
         self.assertGreater(len(vect.report()), 0)
 
     def test_args(self):
         corpus = Corpus.from_file('deerwester')
 
-        TfidfVectorizer.wglobals['const'] = lambda idf, D: 1
+        BowVectorizer.wglobals['const'] = lambda df, N: 1
 
-        vect = TfidfVectorizer(norm=TfidfVectorizer.NONE,
-                               wlocal=TfidfVectorizer.IDENTITY,
-                               wglobal='const')
+        vect = BowVectorizer(norm=BowVectorizer.NONE,
+                             wlocal=BowVectorizer.COUNT,
+                             wglobal='const')
 
         self.assertEqualCorpus(vect.transform(corpus),
-                               CountVectorizer(binary=False).transform(corpus))
+                               BowVectorizer(wlocal=BowVectorizer.COUNT).transform(corpus))
 
-        vect = TfidfVectorizer(norm=TfidfVectorizer.NONE,
-                               wlocal=TfidfVectorizer.BINARY,
-                               wglobal='const')
+        vect = BowVectorizer(norm=BowVectorizer.NONE,
+                             wlocal=BowVectorizer.BINARY,
+                             wglobal='const')
         self.assertEqualCorpus(vect.transform(corpus),
-                               CountVectorizer(binary=True).transform(corpus))
+                               BowVectorizer(wlocal=BowVectorizer.BINARY).transform(corpus))
 
-        vect = TfidfVectorizer(norm=TfidfVectorizer.L1,
-                               wlocal=TfidfVectorizer.IDENTITY,
-                               wglobal='const')
+        vect = BowVectorizer(norm=BowVectorizer.L1,
+                             wlocal=BowVectorizer.COUNT,
+                             wglobal='const')
         x = vect.transform(corpus).X
         self.assertAlmostEqual(abs(x.sum(axis=1) - 1).sum(), 0)
 

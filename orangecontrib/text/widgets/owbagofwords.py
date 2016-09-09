@@ -1,37 +1,62 @@
-from PyQt4.QtGui import QApplication, QVBoxLayout
+from PyQt4.QtGui import QApplication, QGridLayout, QLabel
 
-from Orange.widgets import gui
 from Orange.widgets import settings
-
-from orangecontrib.text.vectorization import CountVectorizer
+from orangecontrib.text.vectorization import BowVectorizer
 from orangecontrib.text.corpus import Corpus
+from orangecontrib.text.widgets.utils import widgets
 from orangecontrib.text.widgets.utils import owbasevectorizer
 
 
-class OWBagOfWords(owbasevectorizer.OWBaseVectorizer):
+class OWTBagOfWords(owbasevectorizer.OWBaseVectorizer):
     name = 'Bag of Words'
     description = 'Generates a bag of words from the input corpus.'
     icon = 'icons/BagOfWords.svg'
     priority = 40
 
-    Method = CountVectorizer
+    Method = BowVectorizer
 
-    binary = settings.Setting(False)
+    # Settings
+    wlocal = settings.Setting(BowVectorizer.COUNT)
+    wglobal = settings.Setting(BowVectorizer.NONE)
+    normalization = settings.Setting(BowVectorizer.NONE)
 
     def create_configuration_layout(self):
-        layout = QVBoxLayout()
-        box = gui.checkBox(None, self, 'binary', 'Binary',
-                           callback=self.on_change)
-        layout.addWidget(box)
+        layout = QGridLayout()
+        layout.setSpacing(10)
+        row = 0
+        combo = widgets.ComboBox(self, 'wlocal',
+                                 items=tuple(BowVectorizer.wlocals.keys()))
+        combo.currentIndexChanged.connect(self.on_change)
+        layout.addWidget(QLabel('Term Frequency:'))
+        layout.addWidget(combo, row, 1)
+
+        row += 1
+        combo = widgets.ComboBox(self, 'wglobal',
+                                 items=tuple(BowVectorizer.wglobals.keys()))
+
+        combo.currentIndexChanged.connect(self.on_change)
+        layout.addWidget(QLabel('Document Frequency:'))
+        layout.addWidget(combo, row, 1)
+
+        row += 1
+        combo = widgets.ComboBox(self, 'normalization',
+                                 items=tuple(BowVectorizer.norms.keys()))
+
+        combo.currentIndexChanged.connect(self.on_change)
+        layout.addWidget(QLabel('Regularization:'))
+        layout.addWidget(combo, row, 1)
+
         return layout
 
     def update_method(self):
-        self.method = self.Method(binary=self.binary)
+        self.method = self.Method(norm=self.normalization,
+                                  wlocal=self.wlocal,
+                                  wglobal=self.wglobal)
 
 
 if __name__ == '__main__':
     app = QApplication([])
-    widget = OWBagOfWords()
+    widget = OWTBagOfWords()
     widget.show()
     corpus = Corpus.from_file('bookexcerpts')
     widget.set_data(corpus)

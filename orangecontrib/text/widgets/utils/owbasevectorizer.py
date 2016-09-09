@@ -74,7 +74,7 @@ class OWBaseVectorizer(OWWidget):
         self.commit()
 
     def send_report(self):
-        self.report_items(self.method.name, self.method.report())
+        self.report_items(self.method.report())
 
     def create_configuration_layout(self):
         return QtGui.QVBoxLayout()
