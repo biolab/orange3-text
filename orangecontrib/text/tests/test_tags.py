@@ -1,6 +1,5 @@
 import tempfile
 import unittest
-
 import nltk
 
 from orangecontrib.text import tag
