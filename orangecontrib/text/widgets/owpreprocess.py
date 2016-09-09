@@ -11,7 +11,9 @@ from nltk.downloader import Downloader
 from Orange.widgets import gui, settings, widget
 from Orange.widgets.widget import OWWidget, Msg
 from orangecontrib.text.corpus import Corpus
-from orangecontrib.text.widgets.utils import widgets
+from orangecontrib.text.tag import StanfordPOSTagger
+from orangecontrib.text.tag import taggers
+from orangecontrib.text.widgets.utils import widgets, ResourceLoader
 
 from orangecontrib.text import preprocess
 from orangecontrib.text.widgets.utils.concurrent import asynchronous, OWConcurrentWidget
@@ -89,12 +91,13 @@ class PreprocessorModule(gui.OWComponent, QWidget):
         }
         """)
         self.titleArea = QHBoxLayout()
-        self.titleArea.setContentsMargins(15, 10, 15, 10)
+        self.titleArea.setContentsMargins(10, 5, 10, 5)
         self.titleArea.setSpacing(0)
         title_holder.setLayout(self.titleArea)
 
         self.title_label = QLabel(self.title)
-        self.title_label.setStyleSheet('font-size: 12px;')
+        self.title_label.mouseDoubleClickEvent = self.on_toggle
+        self.title_label.setStyleSheet('font-size: 12px; border: 2px solid red;')
         self.titleArea.addWidget(self.title_label)
 
         self.off_label = QLabel('[disabled]')
@@ -148,7 +151,7 @@ class PreprocessorModule(gui.OWComponent, QWidget):
     def setup_method_layout(self):
         raise NotImplementedError
 
-    def on_toggle(self):
+    def on_toggle(self, event=None):
         # Activated when the widget is enabled/disabled.
         self.enabled = not self.enabled
         self.display_widget()
@@ -174,10 +177,13 @@ class PreprocessorModule(gui.OWComponent, QWidget):
 
 class SingleMethodModule(PreprocessorModule):
     method_index = settings.Setting(0)
+    initialize_methods = True
 
     def setup_method_layout(self):
         self.group = QButtonGroup(self, exclusive=True)
-        self.methods = [method() for method in self.methods]
+
+        if self.initialize_methods:
+            self.methods = [method() for method in self.methods]
 
         for i, method in enumerate(self.methods):
             rb = QRadioButton(self, text=self.textify(method.name))
@@ -435,6 +441,70 @@ class FilteringModule(MultipleMethodModule):
             self.change_signal.emit()
 
 
+class NgramsModule(PreprocessorModule):
+    attribute = 'ngrams_range'
+    title = 'N-grams Range'
+    toggle_enabled = True
+
+    ngrams_range = settings.Setting((1, 1))
+
+    def setup_method_layout(self):
+        self.method_layout.addWidget(
+            widgets.RangeWidget(None, self, 'ngrams_range', minimum=1, maximum=10, step=1,
+                                min_label='Range:', dtype=int,
+                                callback=self.update_value)
+        )
+
+    def get_value(self):
+        return self.ngrams_range
+
+
+class POSTaggingModule(SingleMethodModule):
+    title = 'POS Tagger'
+    attribute = 'pos_tagger'
+
+    STANFORD = len(taggers)
+    stanford = settings.SettingProvider(ResourceLoader)
+
+    methods = taggers + [StanfordPOSTagger]
+    initialize_methods = False
+
+    def setup_method_layout(self):
+        super().setup_method_layout()
+        self.stanford = ResourceLoader(widget=self.master, model_format='Stanford model (*.model *.tagger)',
+                                       provider_format='Java file (*.jar)',
+                                       model_button_label='Model', provider_button_label='Tagger')
+        self.set_stanford_tagger(self.stanford.model_path, self.stanford.resource_path, silent=True)
+
+        self.stanford.valueChanged.connect(self.set_stanford_tagger)
+        self.method_layout.addWidget(self.stanford, self.STANFORD, 1)
+
+    def set_stanford_tagger(self, model_path, stanford_path, silent=False):
+        self.master.Error.stanford_tagger.clear()
+        valid = False
+        if model_path and stanford_path:
+            try:
+                self.stanford_tagger.check(model_path, stanford_path)
+                self.methods[self.STANFORD] = StanfordPOSTagger(model_path, stanford_path)
+                valid = True
+                self.update_value()
+            except ValueError as e:
+                if not silent:
+                    self.master.Error.stanford(str(e))
+
+        self.group.button(self.STANFORD).setChecked(valid)
+        self.group.button(self.STANFORD).setEnabled(valid)
+
+        if not stanford_path:
+            self.stanford.provider_widget.browse_button.setStyleSheet("color:#C00;")
+        else:
+            self.stanford.provider_widget.browse_button.setStyleSheet("color:black;")
+
+    @property
+    def stanford_tagger(self):
+        return self.methods[self.STANFORD]
+
+
 class OWPreprocess(OWConcurrentWidget):
 
     name = 'Preprocess Text'
@@ -452,12 +522,16 @@ class OWPreprocess(OWConcurrentWidget):
         TokenizerModule,
         NormalizationModule,
         FilteringModule,
+        NgramsModule,
+        POSTaggingModule,
     ]
 
     transformation = settings.SettingProvider(TransformationModule)
     tokenization = settings.SettingProvider(TokenizerModule)
     normalization = settings.SettingProvider(NormalizationModule)
     filtering = settings.SettingProvider(FilteringModule)
+    ngrams_range = settings.SettingProvider(NgramsModule)
+    pos_tagger = settings.SettingProvider(POSTaggingModule)
 
     control_area_width = 250
     buttons_area_orientation = QtCore.Qt.Vertical
@@ -468,6 +542,9 @@ class OWPreprocess(OWConcurrentWidget):
             "punctuation rules etc.) from the NLTK package. This data, if you didn't have it "
             "already, was downloaded to: {}".format(Downloader().default_download_dir()),
             "nltk_data")]
+
+    class Error(OWWidget.Error):
+        stanford_tagger = Msg("Problem while loading Stanford POS Tagger\n{}")
 
     class Warning(OWWidget.Warning):
         no_token_left = Msg('No tokens on output! Please, change configuration.')
@@ -496,7 +573,7 @@ class OWPreprocess(OWConcurrentWidget):
 
         for stage in self.preprocessors:
             widget = stage(self)
-            setattr(self, stage.title.lower(), widget)
+            setattr(self, stage.attribute, widget)
             frame_layout.addWidget(widget)
             widget.change_signal.connect(self.settings_invalidated)
 
@@ -505,7 +582,7 @@ class OWPreprocess(OWConcurrentWidget):
         scroll.setWidget(frame)
         scroll.setWidgetResizable(True)
         scroll.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        scroll.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
+        scroll.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
         scroll.resize(frame_layout.sizeHint())
         scroll.setMinimumWidth(frame_layout.sizeHint().width() + 20)  # + scroll bar
         scroll.setMinimumHeight(500)
