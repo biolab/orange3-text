@@ -27,7 +27,7 @@ class OWCorpusViewer(OWWidget):
     name = "Corpus Viewer"
     description = "Display corpus contents."
     icon = "icons/CorpusViewer.svg"
-    priority = 30
+    priority = 70
 
     inputs = [(Input.DATA, Table, 'set_data')]
     outputs = [(Output.CORPUS, Corpus)]
