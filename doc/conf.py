@@ -263,3 +263,41 @@ texinfo_documents = [
 
 # If true, do not generate a @detailmenu in the "Top" node's menu.
 #texinfo_no_detailmenu = False
+
+
+# Mock parts of Orange depending on C modules
+from unittest.mock import MagicMock
+
+
+class Mock(MagicMock):
+    __all__ = []    # required for "from X import *"
+
+    @classmethod
+    def __getattr__(cls, name):
+        return Mock()
+
+
+class MockVariable(Mock):
+    __all__ = ['Variable', 'StringVariable', 'ContinuousVariable', 'DiscreteVariable', 'TimeVariable']
+
+
+class MockTable(MagicMock):
+    __all__ = ['RowInstance', 'Table',]     # required for "from Orange.data import Table"
+
+    @classmethod
+    def __getattr__(cls, name):
+        return MockClasses if name == 'Table' else Mock()   # required since Corpus extends Table
+
+
+class MockClasses:
+    def __init__(self):
+        pass
+
+
+MOCK_MODULES = [
+    ('Orange.data.variable', MockVariable),
+    ('Orange.data.table', MockTable),
+    ('Orange.data.io', Mock),
+]
+for name, mock_class in MOCK_MODULES:
+    sys.modules.update({name: mock_class()})
