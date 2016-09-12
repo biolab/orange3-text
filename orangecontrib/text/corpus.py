@@ -201,6 +201,10 @@ class Corpus(Table):
             self._apply_base_preprocessor()
         return self._tokens
 
+    def has_tokens(self):
+        """ Return whether corpus is preprocessed or not. """
+        return self._tokens is not None
+
     def _apply_base_preprocessor(self):
         from orangecontrib.text.preprocess import base_preprocessor
         corpus = base_preprocessor(self)
@@ -241,6 +245,9 @@ class Corpus(Table):
         return cls(table.X, table.Y, table.metas, table.domain, None)
 
     def ngrams_iterator(self, join_with=' ', include_postags=False):
+        if self.pos_tags is None:
+            include_postags = False
+
         if include_postags:
             data = zip(self.tokens, self.pos_tags)
         else:

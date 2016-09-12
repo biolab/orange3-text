@@ -232,6 +232,13 @@ class CorpusTests(unittest.TestCase):
         with self.assertRaises(TypeError):
             c[..., 0]
 
+    def test_has_tokens(self):
+        corpus = Corpus.from_file('deerwester')
+
+        self.assertFalse(corpus.has_tokens())
+        corpus.tokens   # default tokenizer
+        self.assertTrue(corpus.has_tokens())
+
     def test_copy(self):
         corpus = Corpus.from_file('deerwester')
 
