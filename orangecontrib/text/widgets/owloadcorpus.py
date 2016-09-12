@@ -94,8 +94,17 @@ class OWLoadCorpus(OWWidget):
                 self.Error.read_file(path, str(err))
 
     def update_feature_selection(self):
+        # TODO fix VariablesListItemView so it does not emit
+        # duplicated data when reordering inside a single window
+        def remove_duplicates(l):
+            unique = []
+            for i in l:
+                if i not in unique:
+                    unique.append(i)
+            return unique
+
         if self.corpus is not None:
-            self.corpus.set_text_features(list(self.used_attrs))
+            self.corpus.set_text_features(remove_duplicates(self.used_attrs))
             self.send(Output.CORPUS, self.corpus)
 
 
