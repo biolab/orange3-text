@@ -472,14 +472,13 @@ class ResourceLoader(QtGui.QWidget, OWComponent):
         OWComponent.__init__(self, widget)
 
         self.model_path = None
-        layout = QtGui.QHBoxLayout(self)
+        layout = QtGui.QHBoxLayout(self, spacing=0)
         layout.setContentsMargins(0, 0, 0, 0)
 
         self.model_widget = FileWidget(recent_files=self.recent_files, dialog_title='Load model',
                                        dialog_format=model_format, start_dir=None,
                                        on_open=self.load_model, allow_empty=False,
                                        reload_button=False, browse_label=model_button_label)
-        self.model_widget.setContentsMargins(0, 0, 0, 0)
         self.model_path = self.recent_files[0] if self.recent_files else None
 
         layout.addWidget(self.model_widget)
