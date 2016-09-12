@@ -528,10 +528,10 @@ class OWPreprocess(OWConcurrentWidget):
         POSTaggingModule,
     ]
 
-    transformation = settings.SettingProvider(TransformationModule)
-    tokenization = settings.SettingProvider(TokenizerModule)
-    normalization = settings.SettingProvider(NormalizationModule)
-    filtering = settings.SettingProvider(FilteringModule)
+    transformers = settings.SettingProvider(TransformationModule)
+    tokenizer = settings.SettingProvider(TokenizerModule)
+    normalizer = settings.SettingProvider(NormalizationModule)
+    filters = settings.SettingProvider(FilteringModule)
     ngrams_range = settings.SettingProvider(NgramsModule)
     pos_tagger = settings.SettingProvider(POSTaggingModule)
 
