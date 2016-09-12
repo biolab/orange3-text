@@ -554,6 +554,7 @@ class OWPreprocess(OWConcurrentWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.corpus = None
+        self.initial_ngram_range = None     # initial range of input corpus — used for inplace
         self.preprocessor = preprocess.Preprocessor()
 
         # -- INFO --
@@ -601,6 +602,7 @@ class OWPreprocess(OWConcurrentWidget):
 
     def set_data(self, data=None):
         self.corpus = data.copy() if data else None
+        self.initial_ngram_range = data.ngram_range
         self.commit()
 
     def update_info(self, corpus=None):
@@ -623,6 +625,8 @@ class OWPreprocess(OWConcurrentWidget):
 
     @asynchronous
     def preprocess(self, **kwargs):
+        self.corpus.pos_tags = None     # reset pos_tags and ngrams_range
+        self.corpus.ngram_range = self.initial_ngram_range
         return self.preprocessor(self.corpus, inplace=True, **kwargs)
 
     def on_result(self, result):
