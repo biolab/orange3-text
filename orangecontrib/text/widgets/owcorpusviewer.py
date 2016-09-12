@@ -7,7 +7,7 @@ from PyQt4 import QtGui
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
-from Orange.widgets import gui
+from Orange.widgets import gui, widget
 from Orange.widgets.settings import Setting, ContextSetting
 from Orange.widgets.widget import OWWidget, Msg
 from Orange.data import Table
@@ -15,12 +15,11 @@ from Orange.data.domain import filter_visible
 from orangecontrib.text.corpus import Corpus
 
 
-class Input:
+
+class IO:
     DATA = 'Data'
-
-
-class Output:
-    CORPUS = "Corpus"
+    MATCHED = "Matching Docs"
+    UNMATCHED = "Other Docs"
 
 
 class OWCorpusViewer(OWWidget):
@@ -29,8 +28,8 @@ class OWCorpusViewer(OWWidget):
     icon = "icons/CorpusViewer.svg"
     priority = 70
 
-    inputs = [(Input.DATA, Table, 'set_data')]
-    outputs = [(Output.CORPUS, Corpus)]
+    inputs = [(IO.DATA, Table, 'set_data')]
+    outputs = [(IO.MATCHED, Corpus, widget.Default), (IO.UNMATCHED, Corpus)]
 
     search_indices = ContextSetting([0])   # features included in search
     display_indices = ContextSetting([0])  # features for display
@@ -300,9 +299,13 @@ class OWCorpusViewer(OWWidget):
 
     def commit(self):
         if self.output_mask is not None:
-            output_corpus = Corpus.from_corpus(self.corpus.domain, self.corpus,
-                                               row_indices=self.output_mask)
-            self.send(Output.CORPUS, output_corpus)
+            matched = Corpus.from_corpus(self.corpus.domain, self.corpus,
+                                         row_indices=self.output_mask)
+            unmatched_mask = [i for i in range(len(self.corpus)) if i not in self.output_mask]
+            unmatched = Corpus.from_corpus(self.corpus.domain, self.corpus,
+                                           row_indices=unmatched_mask)
+            self.send(IO.MATCHED, matched)
+            self.send(IO.UNMATCHED, unmatched)
 
 if __name__ == '__main__':
     from orangecontrib.text.tag import pos_tagger
