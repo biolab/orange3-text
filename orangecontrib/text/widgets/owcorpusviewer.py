@@ -248,8 +248,9 @@ class OWCorpusViewer(OWWidget):
             documents.append(html)
 
         self.doc_webview.setHtml(HTML.format('<hr/>'.join(documents)))
-        self.load_js()
-        self.highlight_docs()
+        if documents:
+            self.load_js()
+            self.highlight_docs()
 
     def load_js(self):
         resources = os.path.join(os.path.dirname(__file__), 'resources')
@@ -269,11 +270,11 @@ class OWCorpusViewer(OWWidget):
     def refresh_search(self):
         if self.corpus:
             self.list_docs()
-            self.highlight_docs()
             self.update_info()
 
     def highlight_docs(self):
-        search_keyword = self.filter_input.text().strip('|')
+        search_keyword = self.filter_input.text().\
+            strip('|').replace('\\', '\\\\')    # escape one \ to  two for mark.js
         if search_keyword:
             self.doc_webview.evalJS('mark("{}");'.format(search_keyword))
 
