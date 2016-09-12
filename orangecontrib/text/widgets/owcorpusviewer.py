@@ -50,15 +50,16 @@ class OWCorpusViewer(OWWidget):
         self.search_features = []       # two copies are needed since Display allows drag & drop
         self.display_features = []
 
-        # Info
-        filter_result_box = gui.widgetBox(self.controlArea, 'Info')
-        self.info_docs = gui.label(filter_result_box, self, 'Documents:')
-        self.info_preprocessing = gui.label(filter_result_box, self, 'Preprocessed:')
-        self.info_tokens = gui.label(filter_result_box, self, '  ◦ Tokens:')
-        self.info_types = gui.label(filter_result_box, self, '  ◦ Types:')
-        self.info_pos = gui.label(filter_result_box, self, 'POS tagged:')
-        self.info_ngrams = gui.label(filter_result_box, self, 'N-grams range:')
-        self.info_matching = gui.label(filter_result_box, self, 'Matching:')
+        # Info attributes
+        self.update_info()
+        info_box = gui.widgetBox(self.controlArea, 'Info')
+        gui.label(info_box, self, 'Documents: %(n_documents)s')
+        gui.label(info_box, self, 'Preprocessed: %(is_preprocessed)s')
+        gui.label(info_box, self, '  ◦ Tokens: %(n_tokens)s')
+        gui.label(info_box, self, '  ◦ Types: %(n_types)s')
+        gui.label(info_box, self, 'POS tagged: %(is_pos_tagged)s')
+        gui.label(info_box, self, 'N-grams range: %(ngram_range)s')
+        gui.label(info_box, self, 'Matching: %(n_matching)s')
 
         # Search features
         self.search_listbox = gui.listBox(
@@ -278,24 +279,21 @@ class OWCorpusViewer(OWWidget):
 
     def update_info(self):
         if self.corpus is not None:
-            self.info_docs.setText('Documents: {}'.format(len(self.corpus)))
-            self.info_preprocessing.setText('Preprocessed: {}'.format(self.corpus.has_tokens()))
-            self.info_tokens.setText('  ◦ Tokens: {}'.format(
-                sum(map(len, self.corpus.tokens)) if self.corpus.has_tokens() else 'n/a'))
-            self.info_types.setText('  ◦ Types: {}'.format(
-                len(self.corpus.dictionary) if self.corpus.has_tokens() else 'n/a'))
-            self.info_pos.setText('POS tagged: {}'.format(self.corpus.pos_tags is not None))
-            self.info_ngrams.setText('N-grams range: {}–{}'.format(*self.corpus.ngram_range))
-            self.info_matching.setText('Matching: {}/{}'.format(
-                self.doc_list_model.rowCount(), len(self.corpus)))
+            self.n_documents = len(self.corpus)
+            self.n_matching = '{}/{}'.format(self.doc_list_model.rowCount(), self.n_documents)
+            self.n_tokens = sum(map(len, self.corpus.tokens)) if self.corpus.has_tokens() else 'n/a'
+            self.n_types = len(self.corpus.dictionary) if self.corpus.has_tokens() else 'n/a'
+            self.is_preprocessed = self.corpus.has_tokens()
+            self.is_pos_tagged = self.corpus.pos_tags is not None
+            self.ngram_range = '{}-{}'.format(*self.corpus.ngram_range)
         else:
-            self.info_docs.setText('Documents:')
-            self.info_preprocessing.setText('Preprocessed:')
-            self.info_tokens.setText('  ◦ Tokens:')
-            self.info_types.setText('  ◦ Types:')
-            self.info_pos.setText('POS tagged:')
-            self.info_ngrams.setText('N-grams range:')
-            self.info_matching.setText('Matching:')
+            self.n_documents = ''
+            self.n_matching = ''
+            self.n_tokens = ''
+            self.n_types = ''
+            self.is_preprocessed = ''
+            self.is_pos_tagged = ''
+            self.ngram_range = ''
 
     def commit(self):
         if self.output_mask is not None:
