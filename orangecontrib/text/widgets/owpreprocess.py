@@ -610,7 +610,7 @@ class OWPreprocess(OWConcurrentWidget):
         if corpus is not None:
             info = 'Document count: {}\n' \
                    'Total tokens: {}\n'\
-                   'Unique tokens: {}'\
+                   'Total types: {}'\
                    .format(len(corpus), sum(map(len, corpus.tokens)), len(corpus.dictionary))
         else:
             info = 'No output corpus.'
