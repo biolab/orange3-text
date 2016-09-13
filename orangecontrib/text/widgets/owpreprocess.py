@@ -133,7 +133,8 @@ class PreprocessorModule(gui.OWComponent, QWidget):
 
     @staticmethod
     def get_tooltip(method):
-        return method.__doc__.strip().strip('.') if method.__doc__ else None
+        return ' '.join([l.strip() for l in method.__doc__.split('\n')]).strip('.') \
+            if method.__doc__ else None
 
     @staticmethod
     def textify(text):
@@ -305,7 +306,7 @@ class TransformationModule(MultipleMethodModule):
 
 
 class DummyKeepN:
-    """ Keeps top N tokens by document frequency. """
+    """ Keep top N tokens by document frequency. """
     name = 'Most frequent tokens'
 
 

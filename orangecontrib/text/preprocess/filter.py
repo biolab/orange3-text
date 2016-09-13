@@ -42,7 +42,7 @@ class WordListMixin:
 
 
 class StopwordsFilter(BaseTokenFilter, WordListMixin):
-    """ Filters out words listed in a file or in a list of stopwords for specific language. """
+    """ Remove tokens present in NLTK's language specific lists or a file. """
     name = 'Stopwords'
 
     supported_languages = [file.capitalize() for file in os.listdir(stopwords._get_root())
@@ -76,7 +76,7 @@ class StopwordsFilter(BaseTokenFilter, WordListMixin):
 
 
 class LexiconFilter(BaseTokenFilter, WordListMixin):
-    """ Keeps only words that present in a word list (lexicon). """
+    """ Keep only tokens present in a file. """
     name = 'Lexicon'
 
     def __init__(self, lexicon=None):
@@ -98,7 +98,7 @@ class LexiconFilter(BaseTokenFilter, WordListMixin):
 
 
 class RegexpFilter(BaseTokenFilter):
-    """ Keeps only words that match a regular expressions. """
+    """ Remove tokens matching this regular expressions. """
     name = 'Regexp'
 
     def __init__(self, pattern=r'\.|,|:|!|\?'):
@@ -130,7 +130,8 @@ class RegexpFilter(BaseTokenFilter):
 
 
 class FrequencyFilter(LexiconFilter):
-    """ Filters out tokens by their document frequency. Use either absolute or relative frequency. """
+    """Remove tokens with document frequency outside this range;
+    use either absolute or relative frequency. """
     name = 'Document frequency'
 
     def __init__(self, min_df=0., max_df=1., keep_n=None):
