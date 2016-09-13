@@ -269,7 +269,7 @@ class NormalizationModule(SingleMethodModule):
     ]
     SNOWBALL = 1
 
-    snowball_language = settings.Setting('english')
+    snowball_language = settings.Setting('English')
 
     def __init__(self, master):
         super().__init__(master)

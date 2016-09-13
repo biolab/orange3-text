@@ -56,11 +56,11 @@ class PorterStemmer(BaseNormalizer):
 class SnowballStemmer(BaseNormalizer):
     name = 'Snowball Stemmer'
     str_format = '{self.name} ({self.language})'
-    supported_languages = stem.SnowballStemmer.languages
+    supported_languages = [l.capitalize() for l in stem.SnowballStemmer.languages]
 
-    def __init__(self, language='english'):
+    def __init__(self, language='English'):
         self._language = language
-        self.normalizer = stem.SnowballStemmer(self.language)
+        self.normalizer = stem.SnowballStemmer(self.language.lower())
 
     def normalize(self, token):
         return self.normalizer.stem(token)
@@ -72,4 +72,4 @@ class SnowballStemmer(BaseNormalizer):
     @language.setter
     def language(self, value):
         self._language = value
-        self.normalizer = stem.SnowballStemmer(self.language)
+        self.normalizer = stem.SnowballStemmer(self.language.lower())
