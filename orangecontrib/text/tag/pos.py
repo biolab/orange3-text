@@ -65,5 +65,5 @@ class StanfordPOSTagger(nltk.StanfordPOSTagger, POSTagger):
 taggers = [
     POSTagger(nltk.PerceptronTagger(), 'Averaged Perceptron Tagger'),
     POSTagger(nltk.data.load('taggers/maxent_treebank_pos_tagger/english.pickle'),
-              'Treebank Part of Speech Tagger (Maximum entropy)'),
+              'Treebank POS Tagger (MaxEnt)'),
 ]

@@ -129,11 +129,12 @@ class PreprocessorModule(gui.OWComponent, QWidget):
             self.on_off_button.stateChanged.connect(self.on_toggle)
             self.on_off_button.setContentsMargins(0, 0, 0, 0)
             self.titleArea.addWidget(self.on_off_button)
-            self.display_widget()
+            self.display_widget(update_master_width=False)
 
     @staticmethod
     def get_tooltip(method):
-        return method.__doc__.strip().strip('.') if method.__doc__ else None
+        return ' '.join([l.strip() for l in method.__doc__.split('\n')]).strip('.') \
+            if method.__doc__ else None
 
     @staticmethod
     def textify(text):
@@ -156,17 +157,21 @@ class PreprocessorModule(gui.OWComponent, QWidget):
         self.enabled = not self.enabled
         self.display_widget()
 
-    def display_widget(self):
+    def display_widget(self, update_master_width=True):
         if self.enabled:
-            self.value = self.get_value()
             self.off_label.hide()
             self.contents.show()
             self.title_label.setStyleSheet('color: #000000;')
         else:
-            self.value = self.disabled_value
             self.off_label.show()
             self.contents.hide()
             self.title_label.setStyleSheet('color: #B0B0B0;')
+
+        if update_master_width:
+            self.master.set_minimal_width()
+
+        # set value at the end since widget should be displayed before recalculation is triggered
+        self.value = self.get_value() if self.enabled else self.disabled_value
 
     def get_value(self):
         raise NotImplemented
@@ -269,7 +274,7 @@ class NormalizationModule(SingleMethodModule):
     ]
     SNOWBALL = 1
 
-    snowball_language = settings.Setting('english')
+    snowball_language = settings.Setting('English')
 
     def __init__(self, master):
         super().__init__(master)
@@ -305,7 +310,7 @@ class TransformationModule(MultipleMethodModule):
 
 
 class DummyKeepN:
-    """ Keeps top N tokens by document frequency. """
+    """ Keep top N tokens by document frequency. """
     name = 'Most frequent tokens'
 
 
@@ -528,10 +533,10 @@ class OWPreprocess(OWConcurrentWidget):
         POSTaggingModule,
     ]
 
-    transformation = settings.SettingProvider(TransformationModule)
-    tokenization = settings.SettingProvider(TokenizerModule)
-    normalization = settings.SettingProvider(NormalizationModule)
-    filtering = settings.SettingProvider(FilteringModule)
+    transformers = settings.SettingProvider(TransformationModule)
+    tokenizer = settings.SettingProvider(TokenizerModule)
+    normalizer = settings.SettingProvider(NormalizationModule)
+    filters = settings.SettingProvider(FilteringModule)
     ngrams_range = settings.SettingProvider(NgramsModule)
     pos_tagger = settings.SettingProvider(POSTaggingModule)
 
@@ -554,6 +559,7 @@ class OWPreprocess(OWConcurrentWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.corpus = None
+        self.initial_ngram_range = None     # initial range of input corpus — used for inplace
         self.preprocessor = preprocess.Preprocessor()
 
         # -- INFO --
@@ -580,15 +586,15 @@ class OWPreprocess(OWConcurrentWidget):
             widget.change_signal.connect(self.settings_invalidated)
 
         frame_layout.addStretch()
-        scroll = QtGui.QScrollArea()
-        scroll.setWidget(frame)
-        scroll.setWidgetResizable(True)
-        scroll.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        scroll.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
-        scroll.resize(frame_layout.sizeHint())
-        scroll.setMinimumWidth(frame_layout.sizeHint().width() + 20)  # + scroll bar
-        scroll.setMinimumHeight(500)
-        self.mainArea.layout().addWidget(scroll)
+        self.scroll = QtGui.QScrollArea()
+        self.scroll.setWidget(frame)
+        self.scroll.setWidgetResizable(True)
+        self.scroll.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.scroll.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
+        self.scroll.resize(frame_layout.sizeHint())
+        self.scroll.setMinimumWidth(frame_layout.sizeHint().width() + 20)  # + scroll bar
+        self.scroll.setMinimumHeight(500)
+        self.mainArea.layout().addWidget(self.scroll)
 
         # Buttons area
         self.report_button.setFixedWidth(self.control_area_width)
@@ -601,13 +607,14 @@ class OWPreprocess(OWConcurrentWidget):
 
     def set_data(self, data=None):
         self.corpus = data.copy() if data else None
+        self.initial_ngram_range = data.ngram_range
         self.commit()
 
     def update_info(self, corpus=None):
         if corpus is not None:
             info = 'Document count: {}\n' \
                    'Total tokens: {}\n'\
-                   'Unique tokens: {}'\
+                   'Total types: {}'\
                    .format(len(corpus), sum(map(len, corpus.tokens)), len(corpus.dictionary))
         else:
             info = 'No output corpus.'
@@ -623,6 +630,8 @@ class OWPreprocess(OWConcurrentWidget):
 
     @asynchronous
     def preprocess(self, **kwargs):
+        self.corpus.pos_tags = None     # reset pos_tags and ngrams_range
+        self.corpus.ngram_range = self.initial_ngram_range
         return self.preprocessor(self.corpus, inplace=True, **kwargs)
 
     def on_result(self, result):
@@ -631,6 +640,14 @@ class OWPreprocess(OWConcurrentWidget):
             self.Warning.no_token_left()
             result = None
         self.send(Output.PP_CORPUS, result)
+
+    def set_minimal_width(self):
+        max_width = 200
+        for p in self.preprocessors:
+            widget = getattr(self, p.attribute)
+            if widget.enabled:
+                max_width = max(max_width, widget.sizeHint().width())
+        self.scroll.setMinimumWidth(max_width + 20)  # + scroll bar
 
     @Slot()
     def settings_invalidated(self):

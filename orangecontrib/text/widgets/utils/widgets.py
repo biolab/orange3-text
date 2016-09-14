@@ -255,14 +255,12 @@ class FileWidget(QtGui.QWidget):
             name = self.recent_files[n]
             del self.recent_files[n]
             self.recent_files.insert(0, name)
+            self.open_file(self.recent_files[0])
+            self.update_combo()
         elif name == self.empty_file_label:
             self.open_file(None)
         elif name in self.directory_aliases:
             self.browse(self.directory_aliases[name])
-
-        if len(self.recent_files) > 0:
-            self.update_combo()
-            self.open_file(self.recent_files[0])
 
     def update_combo(self):
         if self.recent_files is not None:
@@ -472,14 +470,13 @@ class ResourceLoader(QtGui.QWidget, OWComponent):
         OWComponent.__init__(self, widget)
 
         self.model_path = None
-        layout = QtGui.QHBoxLayout(self)
+        layout = QtGui.QHBoxLayout(self, spacing=0)
         layout.setContentsMargins(0, 0, 0, 0)
 
         self.model_widget = FileWidget(recent_files=self.recent_files, dialog_title='Load model',
                                        dialog_format=model_format, start_dir=None,
                                        on_open=self.load_model, allow_empty=False,
                                        reload_button=False, browse_label=model_button_label)
-        self.model_widget.setContentsMargins(0, 0, 0, 0)
         self.model_path = self.recent_files[0] if self.recent_files else None
 
         layout.addWidget(self.model_widget)

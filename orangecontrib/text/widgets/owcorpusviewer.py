@@ -7,7 +7,7 @@ from PyQt4 import QtGui
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
-from Orange.widgets import gui
+from Orange.widgets import gui, widget
 from Orange.widgets.settings import Setting, ContextSetting
 from Orange.widgets.widget import OWWidget, Msg
 from Orange.data import Table
@@ -15,22 +15,21 @@ from Orange.data.domain import filter_visible
 from orangecontrib.text.corpus import Corpus
 
 
-class Input:
+
+class IO:
     DATA = 'Data'
-
-
-class Output:
-    CORPUS = "Corpus"
+    MATCHED = "Matching Docs"
+    UNMATCHED = "Other Docs"
 
 
 class OWCorpusViewer(OWWidget):
     name = "Corpus Viewer"
     description = "Display corpus contents."
     icon = "icons/CorpusViewer.svg"
-    priority = 30
+    priority = 70
 
-    inputs = [(Input.DATA, Table, 'set_data')]
-    outputs = [(Output.CORPUS, Corpus)]
+    inputs = [(IO.DATA, Table, 'set_data')]
+    outputs = [(IO.MATCHED, Corpus, widget.Default), (IO.UNMATCHED, Corpus)]
 
     search_indices = ContextSetting([0])   # features included in search
     display_indices = ContextSetting([0])  # features for display
@@ -51,15 +50,16 @@ class OWCorpusViewer(OWWidget):
         self.search_features = []       # two copies are needed since Display allows drag & drop
         self.display_features = []
 
-        # Info
-        filter_result_box = gui.widgetBox(self.controlArea, 'Info')
-        self.info_docs = gui.label(filter_result_box, self, 'Documents:')
-        self.info_preprocessing = gui.label(filter_result_box, self, 'Preprocessed:')
-        self.info_tokens = gui.label(filter_result_box, self, '  ◦ Tokens:')
-        self.info_types = gui.label(filter_result_box, self, '  ◦ Types:')
-        self.info_pos = gui.label(filter_result_box, self, 'POS tagged:')
-        self.info_ngrams = gui.label(filter_result_box, self, 'N-grams range:')
-        self.info_matching = gui.label(filter_result_box, self, 'Matching:')
+        # Info attributes
+        self.update_info()
+        info_box = gui.widgetBox(self.controlArea, 'Info')
+        gui.label(info_box, self, 'Documents: %(n_documents)s')
+        gui.label(info_box, self, 'Preprocessed: %(is_preprocessed)s')
+        gui.label(info_box, self, '  ◦ Tokens: %(n_tokens)s')
+        gui.label(info_box, self, '  ◦ Types: %(n_types)s')
+        gui.label(info_box, self, 'POS tagged: %(is_pos_tagged)s')
+        gui.label(info_box, self, 'N-grams range: %(ngram_range)s')
+        gui.label(info_box, self, 'Matching: %(n_matching)s')
 
         # Search features
         self.search_listbox = gui.listBox(
@@ -248,8 +248,9 @@ class OWCorpusViewer(OWWidget):
             documents.append(html)
 
         self.doc_webview.setHtml(HTML.format('<hr/>'.join(documents)))
-        self.load_js()
-        self.highlight_docs()
+        if documents:
+            self.load_js()
+            self.highlight_docs()
 
     def load_js(self):
         resources = os.path.join(os.path.dirname(__file__), 'resources')
@@ -269,40 +270,41 @@ class OWCorpusViewer(OWWidget):
     def refresh_search(self):
         if self.corpus:
             self.list_docs()
-            self.highlight_docs()
             self.update_info()
 
     def highlight_docs(self):
-        search_keyword = self.filter_input.text().strip('|')
+        search_keyword = self.filter_input.text().\
+            strip('|').replace('\\', '\\\\')    # escape one \ to  two for mark.js
         if search_keyword:
             self.doc_webview.evalJS('mark("{}");'.format(search_keyword))
 
     def update_info(self):
         if self.corpus is not None:
-            self.info_docs.setText('Documents: {}'.format(len(self.corpus)))
-            self.info_preprocessing.setText('Preprocessed: {}'.format(self.corpus.has_tokens()))
-            self.info_tokens.setText('  ◦ Tokens: {}'.format(
-                sum(map(len, self.corpus.tokens)) if self.corpus.has_tokens() else 'n/a'))
-            self.info_types.setText('  ◦ Types: {}'.format(
-                len(self.corpus.dictionary) if self.corpus.has_tokens() else 'n/a'))
-            self.info_pos.setText('POS tagged: {}'.format(self.corpus.pos_tags is not None))
-            self.info_ngrams.setText('N-grams range: {}–{}'.format(*self.corpus.ngram_range))
-            self.info_matching.setText('Matching: {}/{}'.format(
-                self.doc_list_model.rowCount(), len(self.corpus)))
+            self.n_documents = len(self.corpus)
+            self.n_matching = '{}/{}'.format(self.doc_list_model.rowCount(), self.n_documents)
+            self.n_tokens = sum(map(len, self.corpus.tokens)) if self.corpus.has_tokens() else 'n/a'
+            self.n_types = len(self.corpus.dictionary) if self.corpus.has_tokens() else 'n/a'
+            self.is_preprocessed = self.corpus.has_tokens()
+            self.is_pos_tagged = self.corpus.pos_tags is not None
+            self.ngram_range = '{}-{}'.format(*self.corpus.ngram_range)
         else:
-            self.info_docs.setText('Documents:')
-            self.info_preprocessing.setText('Preprocessed:')
-            self.info_tokens.setText('  ◦ Tokens:')
-            self.info_types.setText('  ◦ Types:')
-            self.info_pos.setText('POS tagged:')
-            self.info_ngrams.setText('N-grams range:')
-            self.info_matching.setText('Matching:')
+            self.n_documents = ''
+            self.n_matching = ''
+            self.n_tokens = ''
+            self.n_types = ''
+            self.is_preprocessed = ''
+            self.is_pos_tagged = ''
+            self.ngram_range = ''
 
     def commit(self):
         if self.output_mask is not None:
-            output_corpus = Corpus.from_corpus(self.corpus.domain, self.corpus,
-                                               row_indices=self.output_mask)
-            self.send(Output.CORPUS, output_corpus)
+            matched = Corpus.from_corpus(self.corpus.domain, self.corpus,
+                                         row_indices=self.output_mask)
+            unmatched_mask = [i for i in range(len(self.corpus)) if i not in self.output_mask]
+            unmatched = Corpus.from_corpus(self.corpus.domain, self.corpus,
+                                           row_indices=unmatched_mask)
+            self.send(IO.MATCHED, matched)
+            self.send(IO.UNMATCHED, unmatched)
 
 if __name__ == '__main__':
     from orangecontrib.text.tag import pos_tagger
