@@ -255,14 +255,12 @@ class FileWidget(QtGui.QWidget):
             name = self.recent_files[n]
             del self.recent_files[n]
             self.recent_files.insert(0, name)
+            self.open_file(self.recent_files[0])
+            self.update_combo()
         elif name == self.empty_file_label:
             self.open_file(None)
         elif name in self.directory_aliases:
             self.browse(self.directory_aliases[name])
-
-        if len(self.recent_files) > 0:
-            self.update_combo()
-            self.open_file(self.recent_files[0])
 
     def update_combo(self):
         if self.recent_files is not None:
