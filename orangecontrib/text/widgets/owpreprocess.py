@@ -129,7 +129,7 @@ class PreprocessorModule(gui.OWComponent, QWidget):
             self.on_off_button.stateChanged.connect(self.on_toggle)
             self.on_off_button.setContentsMargins(0, 0, 0, 0)
             self.titleArea.addWidget(self.on_off_button)
-            self.display_widget()
+            self.display_widget(update_master_width=False)
 
     @staticmethod
     def get_tooltip(method):
@@ -157,17 +157,21 @@ class PreprocessorModule(gui.OWComponent, QWidget):
         self.enabled = not self.enabled
         self.display_widget()
 
-    def display_widget(self):
+    def display_widget(self, update_master_width=True):
         if self.enabled:
-            self.value = self.get_value()
             self.off_label.hide()
             self.contents.show()
             self.title_label.setStyleSheet('color: #000000;')
         else:
-            self.value = self.disabled_value
             self.off_label.show()
             self.contents.hide()
             self.title_label.setStyleSheet('color: #B0B0B0;')
+
+        if update_master_width:
+            self.master.set_minimal_width()
+
+        # set value at the end since widget should be displayed before recalculation is triggered
+        self.value = self.get_value() if self.enabled else self.disabled_value
 
     def get_value(self):
         raise NotImplemented
@@ -582,15 +586,15 @@ class OWPreprocess(OWConcurrentWidget):
             widget.change_signal.connect(self.settings_invalidated)
 
         frame_layout.addStretch()
-        scroll = QtGui.QScrollArea()
-        scroll.setWidget(frame)
-        scroll.setWidgetResizable(True)
-        scroll.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        scroll.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
-        scroll.resize(frame_layout.sizeHint())
-        scroll.setMinimumWidth(frame_layout.sizeHint().width() + 20)  # + scroll bar
-        scroll.setMinimumHeight(500)
-        self.mainArea.layout().addWidget(scroll)
+        self.scroll = QtGui.QScrollArea()
+        self.scroll.setWidget(frame)
+        self.scroll.setWidgetResizable(True)
+        self.scroll.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.scroll.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
+        self.scroll.resize(frame_layout.sizeHint())
+        self.scroll.setMinimumWidth(frame_layout.sizeHint().width() + 20)  # + scroll bar
+        self.scroll.setMinimumHeight(500)
+        self.mainArea.layout().addWidget(self.scroll)
 
         # Buttons area
         self.report_button.setFixedWidth(self.control_area_width)
@@ -636,6 +640,14 @@ class OWPreprocess(OWConcurrentWidget):
             self.Warning.no_token_left()
             result = None
         self.send(Output.PP_CORPUS, result)
+
+    def set_minimal_width(self):
+        max_width = 200
+        for p in self.preprocessors:
+            widget = getattr(self, p.attribute)
+            if widget.enabled:
+                max_width = max(max_width, widget.sizeHint().width())
+        self.scroll.setMinimumWidth(max_width + 20)  # + scroll bar
 
     @Slot()
     def settings_invalidated(self):
