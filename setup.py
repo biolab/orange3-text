@@ -12,6 +12,7 @@ MINOR = 2
 MICRO = 0
 IS_RELEASED = False
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
+FULL_VERSION = VERSION
 
 DESCRIPTION = 'Orange3 TextMining add-on.'
 README_FILE = os.path.join(os.path.dirname(__file__), 'README.pypi')
@@ -82,6 +83,7 @@ def git_version():
 
 def get_version_info():
     """ Copied from numpy setup.py. """
+    global FULL_VERSION
     FULL_VERSION = VERSION
     if os.path.exists('.git'):
         GIT_REVISION = git_version()
@@ -112,6 +114,7 @@ git_revision = '%(git_revision)s'
 release = %(isrelease)s
 if not release:
     version = full_version
+    short_version += ".dev"
 """
     FULL_VERSION, GIT_REVISION = get_version_info()
 
@@ -142,7 +145,7 @@ if __name__ == '__main__':
         name=NAME,
         description=DESCRIPTION,
         long_description=LONG_DESCRIPTION,
-        version=VERSION,
+        version=FULL_VERSION,
         author=AUTHOR,
         author_email=AUTHOR_EMAIL,
         url=URL,
