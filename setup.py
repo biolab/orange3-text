@@ -1,12 +1,17 @@
 #!/usr/bin/env python
 
 import os
+import subprocess
 import sys
 from setuptools import setup, find_packages
 
 NAME = 'Orange3-Text'
 
-VERSION = '0.1.11'
+MAJOR = 0
+MINOR = 2
+MICRO = 0
+IS_RELEASED = False
+VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 
 DESCRIPTION = 'Orange3 TextMining add-on.'
 README_FILE = os.path.join(os.path.dirname(__file__), 'README.pypi')
@@ -15,6 +20,15 @@ AUTHOR = 'Bioinformatics Laboratory, FRI UL'
 AUTHOR_EMAIL = 'contact@orange.biolab.si'
 URL = "https://github.com/biolab/orange3-text"
 DOWNLOAD_URL = "https://github.com/biolab/orange3-text/tarball/{}".format(VERSION)
+
+
+KEYWORDS = [
+    # [PyPi](https://pypi.python.org) packages with keyword "orange3 add-on"
+    # can be installed using the Orange Add-on Manager
+    'orange3-text',
+    'data mining',
+    'orange3 add-on',
+]
 
 ENTRY_POINTS = {
     'orange3.addon': (
@@ -40,13 +54,76 @@ ENTRY_POINTS = {
         'html-index = orangecontrib.text.widgets:WIDGET_HELP_PATH',),
 }
 
-KEYWORDS = [
-    # [PyPi](https://pypi.python.org) packages with keyword "orange3 add-on"
-    # can be installed using the Orange Add-on Manager
-    'orange3-text',
-    'data mining',
-    'orange3 add-on',
-]
+
+def git_version():
+    """ Return the git revision as a string. Copied from numpy setup.py. """
+    def _minimal_ext_cmd(cmd):
+        # construct minimal environment
+        env = {}
+        for k in ['SYSTEMROOT', 'PATH']:
+            v = os.environ.get(k)
+            if v is not None:
+                env[k] = v
+        # LANGUAGE is used on win32
+        env['LANGUAGE'] = 'C'
+        env['LANG'] = 'C'
+        env['LC_ALL'] = 'C'
+        out = subprocess.Popen(cmd, stdout=subprocess.PIPE, env=env).communicate()[0]
+        return out
+
+    try:
+        out = _minimal_ext_cmd(['git', 'rev-parse', 'HEAD'])
+        GIT_REVISION = out.strip().decode('ascii')
+    except OSError:
+        GIT_REVISION = "Unknown"
+
+    return GIT_REVISION
+
+
+def get_version_info():
+    """ Copied from numpy setup.py. """
+    FULL_VERSION = VERSION
+    if os.path.exists('.git'):
+        GIT_REVISION = git_version()
+    elif os.path.exists('orangecontrib/text/version.py'):
+        # must be a source distribution, use existing version file
+        try:
+            from orangecontrib.text.version import git_revision as GIT_REVISION
+        except ImportError:
+            raise ImportError("Unable to import git_revision. Try removing " \
+                              "orangecontrib/text/version.py and the build directory " \
+                              "before building.")
+    else:
+        GIT_REVISION = "Unknown"
+
+    if not IS_RELEASED:
+        FULL_VERSION += '.dev0+' + GIT_REVISION[:7]
+
+    return FULL_VERSION, GIT_REVISION
+
+
+def write_version_py(filename='orangecontrib/text/version.py'):
+    """ Copied from numpy setup.py. """
+    cnt = """
+# THIS FILE IS GENERATED FROM ORANGE3-TEXT SETUP.PY
+short_version = '%(version)s'
+version = '%(version)s'
+full_version = '%(full_version)s'
+git_revision = '%(git_revision)s'
+release = %(isrelease)s
+if not release:
+    version = full_version
+"""
+    FULL_VERSION, GIT_REVISION = get_version_info()
+
+    a = open(filename, 'w')
+    try:
+        a.write(cnt % {'version': VERSION,
+                       'full_version': FULL_VERSION,
+                       'git_revision': GIT_REVISION,
+                       'isrelease': str(IS_RELEASED)})
+    finally:
+        a.close()
 
 INSTALL_REQUIRES = sorted(set(
     line.partition('#')[0].strip()
@@ -61,6 +138,7 @@ else:
     extra_setuptools_args = dict()
 
 if __name__ == '__main__':
+    write_version_py()
     setup(
         name=NAME,
         description=DESCRIPTION,

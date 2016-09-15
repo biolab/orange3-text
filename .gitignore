@@ -9,6 +9,9 @@ doc/_build
 *.pyc
 MANIFEST
 
+# Version
+orangecontrib/text/version.py
+
 # Cython generated files
 __pycache__
 
