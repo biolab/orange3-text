@@ -142,7 +142,7 @@ class PubmedTests(unittest.TestCase):
                 'http://www.ncbi.nlm.nih.gov/pubmed/?term=1',
                 1441065600.0
             ]
-        ])
+        ], dtype=object)
         correct_classes = np.array([
             'heading1'
         ])
