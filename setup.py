@@ -87,12 +87,11 @@ def get_version_info():
         GIT_REVISION = git_version()
     elif os.path.exists('orangecontrib/text/version.py'):
         # must be a source distribution, use existing version file
-        try:
-            from orangecontrib.text.version import git_revision as GIT_REVISION
-        except ImportError:
-            raise ImportError("Unable to import git_revision. Try removing " \
-                              "orangecontrib/text/version.py and the build directory " \
-                              "before building.")
+        # load it as a separate module to not load orangecontrib/text/__init__.py
+        from importlib.machinery import SourceFileLoader
+        version = SourceFileLoader('orangecontrib.text.version',
+                                   'orangecontrib/text/version.py').load_module()
+        GIT_REVISION = version.git_revision
     else:
         GIT_REVISION = "Unknown"
 
