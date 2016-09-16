@@ -35,6 +35,7 @@ Welcome to Orange3 Text Mining documentation!
    scripting/wikipedia.rst
    scripting/topicmodeling.rst
    scripting/tag.rst
+   scripting/async
 
 Indices and tables
 ==================

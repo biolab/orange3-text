@@ -1,57 +1,140 @@
+"""
+Async Module
+============
+
+Helper utils for Orange GUI programming.
+
+Provides :func:`asynchronous` decorator for making methods calls in async mode.
+Once method is decorated it will have :func:`task.on_result` and :func:`task.callback` decorators for callback wrapping.
+
+For instance::
+
+    class Widget(QObject):
+        def __init__(self, name):
+            super().__init__()
+            self.name = name
+
+        @asynchronous
+        def task(self):
+            for i in range(3):
+                time.sleep(0.5)
+                self.report_progress(i)
+            return 'Done'
+
+        @task.on_result
+        def report_result(self, result):
+            print('`{}` result: {}'.format(self.name, result))
+
+        @task.callback
+        def report_progress(self, i):
+            print('`{}` progress: {}'.format(self.name, i))
+
+
+Calling if an asynchronous method will launch a deamon thread::
+
+    first = Widget(name='First')
+    first.task()
+    second = Widget(name='Second')
+    second.task()
+
+    first.task.join()
+    second.task.join()
+
+
+A possible output::
+
+    `Second` progress: 0
+    `First` progress: 0
+    `First` progress: 1
+    `Second` progress: 1
+    `First` progress: 2
+    `First` result: Done
+    `Second` progress: 2
+    `Second` result: Done
+
+
+In order to terminate execution (only if an inner cycle with callbacks is present) call :meth:`stop` method::
+
+    first.task.stop()
+
+"""
+
 import threading
 from functools import wraps
-from AnyQt.QtCore import pyqtSlot as Slot, QMetaObject, Qt, Q_ARG
+from AnyQt.QtCore import pyqtSlot as Slot, QMetaObject, Qt, Q_ARG, QObject
 
-from Orange.widgets.widget import OWWidget
+
+class CallbackMethod:
+    def __init__(self, master, instance):
+        self.instance = instance
+        self.master = master
+
+    def __call__(self, *args, **kwargs):
+        QMetaObject.invokeMethod(self.master, 'call', Qt.QueuedConnection,
+                                 Q_ARG(object, (self.instance, args, kwargs)))
+
+
+class CallbackFunction(QObject):
+    """ PyQt replacement for ordinary function. Will be always called in the main GUI thread (invoked). """
+
+    def __init__(self, func):
+        super().__init__()
+        self.func = func
+
+    @Slot(object)
+    def call(self, scope):
+        instance, args, kwargs = scope
+        self.func.__get__(instance, type(instance))(*args, **kwargs)
+
+    def __get__(self, instance, owner):
+        return CallbackMethod(self, instance)
+
+
+def callback(func):
+    """ Wraps QObject's method and makes its calls always invoked. """
+    return wraps(func)(CallbackFunction(func))
 
 
 class StopExecution(Exception):
+    """ An exception to stop execution of thread's inner cycle. """
     pass
 
 
-class OWConcurrentWidget(OWWidget):
-    """ This widget helps with running task in a separate thread.
+class BoundAsyncMethod(QObject):
+    def __init__(self, func, instance):
+        super().__init__()
+        self.im_func = func
+        self.im_self = instance
 
-    Create a method and wrap it with `asynchronous` decorator in order to execute it in the background.
+        self.running = False
+        self._thread = None
 
-    You can also use `on_start`, `on_result` and `on_progress` callback to modify widgets' gui.
+    def __call__(self, *args, **kwargs):
+        self.running = True
+        self._thread = threading.Thread(target=self.run, args=args, kwargs=kwargs,
+                                        daemon=True)
+        self._thread.start()
 
-    """
-    running = False
-    _thread = None
+    def run(self, *args, **kwargs):
+        if self.im_func.start_callback:
+            QMetaObject.invokeMethod(self.im_self, self.im_func.start_callback,
+                                     Qt.QueuedConnection)
+        if self.im_self:
+            args = (self.im_self,) + args
 
-    @Slot()
-    def _on_start(self):
-        self.progressBarInit(None)
-        self.on_start()
+        try:
+            result = self.im_func.method(*args, **kwargs)
+        except StopExecution:
+            result = None
 
-    def on_start(self):
-        """ This method can be used to clean the widget from previous result. """
-
-    @Slot(float)
-    def _on_progress(self, p):
-        self.on_progress(p)
-
-    def on_progress(self, progress):
-        """ Overwrite this method in order to report valid progress.
-
-        Notes:
-            It's not recommended to trigger processing of the event in `progressBarSet`.
-            To avoid it pass `processEvents=None`.
-        """
-        self.progressBarSet(progress, processEvents=None)
-
-    @Slot(object)
-    def _on_result(self, result):
-        self.progressBarFinished(None)
-        self.on_result(result)
-
-    def on_result(self, result):
-        """ The method is designed to show user the result of the task execution
-        and send proper values to other widgets"""
+        if self.im_func.finish_callback:
+            QMetaObject.invokeMethod(self.im_self, self.im_func.finish_callback,
+                                     Qt.BlockingQueuedConnection, Q_ARG(object, result))
+        self.running = False
+        return result
 
     def stop(self):
-        """ Use this method to terminate thread execution. """
+        """ Terminates thread execution. """
         self.running = False
         self.join()
 
@@ -60,69 +143,57 @@ class OWConcurrentWidget(OWWidget):
         if self._thread is not None and self._thread.is_alive():
             self._thread.join()
 
-    def progressBarSet(self, value, processEvents=None):
-        """ Changes default processEvents value. """
-        super().progressBarSet(value, processEvents=processEvents)
 
+class AsyncMethod(QObject):
+    def __init__(self, method):
+        super().__init__()
+        self.method = method
+        self.method_name = method.__name__
+        self.finish_callback = None
+        self.start_callback = None
 
-def optional_args(fn):
-    """
-    Decorator used for decorating other decorators to enable optional arguments.
-    I.e. the other decorator can then be called either as `@wrap` or as `@wrap(args)`.
+    def __get__(self, instance, owner):
+        """ Bounds methods with instance. """
+        bounded = BoundAsyncMethod(self, instance)
+        setattr(instance, self.method.__name__, bounded)
+        return bounded
 
-    Adopted from: http://stackoverflow.com/a/20966822/892987
-    """
-    def wrapped_decorator(*args, **kwargs):
-        if len(args) == 1 and callable(args[0]):
-            return fn(args[0])
-        else:
-            def real_decorator(decorate):
-                return fn(decorate, *args, **kwargs)
-            return real_decorator
+    def on_start(self, callback):
+        self.start_callback = callback.__name__
+        return Slot()(callback)
 
-    return wrapped_decorator
+    def callback(self, method):
+        """ Callback decorator. Add checks for thread state.
 
+        Raises:
+             StopExecution: If thread was stopped (`running = False`).
+        """
+        async_method = callback(method)
 
-@optional_args
-def asynchronous(method, allow_partial_results=False):
-    """
-    This decorator wraps method of a OWConcurrentWidget and runs this method in a separate thread.
-    It also calls `on_start`, `on_progress` and `on_result` callbacks of the master widgets.
-
-    Args:
-        allow_partial_results (bool): If set, allow for partial results. Consequently, wrapped
-            method is responsible for checking `self.running` and returning the partial result.
-            Otherwise, the main widget should just call stop() and the wrapper will taker care
-            of the rest.
-    """
-    @wraps(method)
-    def wrapper(self, *args, **kwargs):
-        self.stop()
-        self.running = True
-
-        def on_progress(i):
-            if not self.running and not allow_partial_results:
+        @wraps(method)
+        def wrapper(instance, *args, **kwargs):
+            # This check must take place in the background thread.
+            if not getattr(instance, self.method_name).running:
                 raise StopExecution
-            QMetaObject.invokeMethod(self, "_on_progress", Qt.QueuedConnection,  Q_ARG(float, i))
+            # This call must be sent to the main thread.
+            return async_method.__get__(instance, method)(*args, **kwargs)
 
-        def should_break():
-            return not self.running
+        return wrapper
 
-        def func():
-            try:
-                QMetaObject.invokeMethod(self, "_on_start", Qt.QueuedConnection)
-                if allow_partial_results:
-                    kwargs['should_break'] = should_break
-                res = method(self, *args, on_progress=on_progress, **kwargs)
-            except StopExecution:
-                res = None
+    def on_result(self, callback):
+        """ On result callback decorator. """
+        self.finish_callback = callback.__name__
+        return Slot(object)(callback)
 
-            QMetaObject.invokeMethod(self, "_on_result", Qt.QueuedConnection,
-                                     Q_ARG(object, res))
-            self.running = False
+    def join(self):
+        """ Unbounded call. No attention is needed. """
 
-        self._thread = threading.Thread(target=func, daemon=True)
-        self._thread.start()
-        return None
+    def stop(self):
+        """ Unbounded call. No attention is needed. """
 
-    return wrapper
+
+def asynchronous(task):
+    """ Wraps method of a QObject and replaces it with :class:`AsyncMethod` instance
+    in order to run this method in a separate thread.
+    """
+    return wraps(task)(AsyncMethod(task))
