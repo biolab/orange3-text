@@ -1,264 +1,216 @@
-import os
-import math
 import json
+import math
+import os
 import shelve
 import warnings
-import datetime
-import numpy as np
 from datetime import date
-from html import unescape
+from time import sleep
 from urllib import request, parse
-from urllib.error import HTTPError, URLError
+from urllib.error import HTTPError
+
+import numpy as np
+
+from Orange import data
+from Orange.canvas.utils import environ
 from orangecontrib.text.corpus import Corpus
 
-from Orange.canvas.utils import environ
-from Orange.data import Domain, StringVariable, DiscreteVariable, TimeVariable
-
-NYT_TEXT_FIELDS = ["headline", "lead_paragraph", "snippet", "abstract",
-                   "keywords", "type_of_material", "web_url", "word_count"]
-
-
-def _parse_record_json(records, includes_metadata):
-    """
-    Parses the JSON representation of the record returned by the New York Times Article API.
-    :param records: A list of the query's results.
-    :type records: list
-    :param includes_metadata: The flags that determine which fields to include.
-    :type includes_metadata: list
-    :return: A list of the corresponding metadata and class values for the instances.
-    """
-    IGNORED_FIELDS = {'content_kicker', 'kicker', 'print_headline'}     # the garbage fields next to headline
-    class_values = []
-    metadata = []
-    tv = TimeVariable()
-
-    for doc in records:
-        metas_row = []
-        for field in includes_metadata:
-            field_value = doc.get(field) or ''
-            if isinstance(field_value, dict):
-                field_value = " ".join([v for k, v in field_value.items() if v and k not in IGNORED_FIELDS])
-            elif isinstance(field_value, list):
-                field_value = " ".join([kw["value"] for kw in field_value if kw])
-            metas_row.append(unescape(field_value) if isinstance(field_value, str) else field_value)
-        # Add the pub_date.
-        metas_row.append(tv.parse(doc.get("pub_date", "")))
-        # Add the glocation.
-        metas_row.append(", ".join([kw["value"] for kw in doc["keywords"] if kw["name"] == "glocations"]))
-
-        # Add the section_name.
-        class_values.append(doc.get("section_name", ''))
-
-        metadata.append(metas_row)
-    metadata = np.array(metadata, dtype=object)
-    return metadata, class_values
-
-
-def _date_to_str(input_date):
-    """
-    Returns a string representation of the input date, according to the ISO 8601 format.
-    :param input_date:
-    :type input_date: datetime
-    :return: str
-    """
-    iso = input_date.isoformat()
-    date_part = iso.strip().split("T")[0].split("-")
-    return "%s%s%s" % (date_part[0], date_part[1], date_part[2])
-
-
-def _generate_corpus(records, required_text_fields):
-    """
-    Generates a corpus from the input NYT records.
-    :param records: The input NYT records.
-    :type records: list
-    :param required_text_fields: A list of the available NYT text fields.
-    :type required_text_fields: list
-    :return: :class: `orangecontrib.text.corpus.Corpus`
-    """
-    metas, class_values = _parse_record_json(records, required_text_fields)
-
-    # Create domain.
-    meta_vars = [StringVariable.make(field) for field in required_text_fields]
-    meta_vars += [TimeVariable.make("pub_date"), StringVariable.make("country")]
-    class_vars = [DiscreteVariable("section_name", values=list(set(class_values)))]
-    domain = Domain([], class_vars=class_vars, metas=meta_vars)
-
-    Y = np.array([class_vars[0].to_val(cv) for cv in class_values])[:, None]
-
-    return Corpus(None, Y, metas, domain, meta_vars) # used all features
+SLEEP = .2
+MAX_DOCS = 1000
+BATCH_SIZE = 10
+MIN_DATE = date(1851, 1, 1)
+BASE_URL = 'http://api.nytimes.com/svc/search/v2/articlesearch.json'
 
 
 class NYT:
-    """
-    An Orange text mining extension class for fetching records from the NYT API.
-    """
-    _base_url = 'http://api.nytimes.com/svc/search/v2/articlesearch.json'
+    """ Class for fetching records from the NYT API. """
+
+    @staticmethod
+    def keywords(doc, name):
+        return ', '.join([kw.get('value')
+                          for kw in doc.get('keywords', [])
+                          if kw['name'] == name])
+
+    attributes = []
+
+    class_vars = [
+        (data.DiscreteVariable('Section'), lambda doc: doc.get('section_name', None)),
+    ]
+
+    metas = [
+        (data.StringVariable('Headline'), lambda doc: doc.get('headline', {}).get('main') or ''),
+        (data.StringVariable('Abstract'), lambda doc: doc.get('abstract') or ''),
+        (data.StringVariable('Snippet'), lambda doc: doc.get('snippet') or ''),
+        (data.StringVariable('Lead Paragraph'), lambda doc: doc.get('lead_paragraph') or ''),
+        (data.StringVariable('Subject Keywords'), lambda doc: NYT.keywords(doc, 'subject')),
+        (data.StringVariable('URL'), lambda doc: doc.get('web_url') or ''),
+        (data.StringVariable('Locations'), lambda doc: NYT.keywords(doc, 'glocations')),
+        (data.StringVariable('Persons'), lambda doc: NYT.keywords(doc, 'persons')),
+        (data.StringVariable('Organizations'), lambda doc: NYT.keywords(doc, 'organizations')),
+        (data.StringVariable('Creative Works'), lambda doc: NYT.keywords(doc, 'creative_works')),
+        (data.TimeVariable('Publication Date'),
+            lambda doc: data.TimeVariable().parse(doc.get('pub_date'))),
+        (data.DiscreteVariable('Article Type'), lambda doc: doc.get('type_of_material', None)),
+        (data.DiscreteVariable('Word Count'), lambda doc: doc.get('word_count', None)),
+    ]
+
+    text_features = [metas[0][0], metas[1][0]]  # headline + abstract
 
     def __init__(self, api_key):
-        # For accessing the API.
-        self._api_key = api_key.strip()
-        # API endpoint.
-        self._query_url = None
-        # For caching purposes.
-        self.query_key = None
-        # Record fields to include.
-        self.includes_fields = None
-
+        """
+        Args:
+            api_key (str): NY Time API key.
+        """
+        self.api_key = api_key
         self.cache_path = None
-        cache_folder = os.path.join(environ.buffer_dir, "nytcache")
-        try:
-            if not os.path.exists(cache_folder):
-                os.makedirs(cache_folder)
-            self.cache_path = os.path.join(cache_folder, "query_cache")
-        except:
-            warnings.warn('Could not assemble NYT query cache path', RuntimeWarning)
+        self._cache_init()
 
-    def check_api_key(self):
-        """
-        Checks whether the api key provided to this class instance, is valid.
-
-        Returns:
-            True or False depending on the validation outcome.
-        """
-        query_url = self._encode_base_url("test")
+    def api_key_valid(self):
+        """ Checks whether api key given at initialization is valid. """
+        url = self._encode_url('test')
         try:
-            with request.urlopen("{0}?{1}&page=0".format(self._base_url, query_url)) as connection:
+            with request.urlopen(url) as connection:
                 if connection.getcode() == 200:
                     return True
         except HTTPError:
             return False
 
-    def run_query(self, query, date_from=None, date_to=None, max_records=10):
+    def search(self, query, date_from=None, date_to=None, max_docs=None,
+               on_progress=None, should_break=None):
         """
-        Executes the NYT query specified by the input parameters and returns a
-        list of records.
-
         Args:
-            query (str): The query keywords in a string, but separated with whitespaces.
-            date_from (date): Signifies to return articles from this date forth only.
-            date_to (date): Signifies to return articles up to this date only.
-            max_records (int): Specifies an upper limit to the number of retrieved records.
-                Max 1000.
+            query (str): Search query.
+            date_from (date): Start date limit.
+            date_to (date): End date limit.
+            max_docs (int): Maximal number of documents returned.
+            on_progress (callback): Called after every iteration of downloading.
+            should_break (callback): Callback for breaking the computation before the end.
+                If it evaluates to True, downloading is stopped and document downloaded till now
+                are returned in a Corpus.
 
         Returns:
-            A list of records.
+            Corpus: Search results.
         """
-        # Check API key validity first.
-        if not self.check_api_key():
-            warnings.warn("Cannot execute query. The specified API key is not valid.", RuntimeWarning)
+        if not self.api_key_valid():
+            raise RuntimeError('The API key is not valid.')
+        if max_docs is None or max_docs > MAX_DOCS:
+            max_docs = MAX_DOCS
 
-        # Collect the user inputs and assemble the API endpoint.
-        self._set_endpoint_url(query, date_from, date_to, NYT_TEXT_FIELDS)
-
-        if max_records > 1000:
-            warnings.warn("Cannot retrieve more than 1000 records for a particular query.", RuntimeWarning)
-
-        num_steps = min(math.ceil(max_records/10), 100)
+        # TODO create corpus on the fly and extend, so it stops faster.
         records = []
-        for i in range(0, num_steps):
-            data, cached, err = self._execute_query(i)
-            failure = (data is None) or ('response' not in data) or ('docs' not in data['response']) or err
-            if failure:
-                warnings.warn("Warning: could not retrieve page {} of results: {}".format(i, err))
-                break
-            records.extend(data["response"]["docs"])
+        data, cached = self._fetch_page(query, date_from, date_to, 0)
+        records.extend(data['response']['docs'])
+        max_docs = min(data['response']['meta']['hits'], max_docs)
+        if callable(on_progress):
+            on_progress(len(records), max_docs)
 
-        return _generate_corpus(records, NYT_TEXT_FIELDS)
+        for page in range(1, math.ceil(max_docs/BATCH_SIZE)):
+            if callable(should_break) and should_break():
+                return self._create_corpus(records)
 
-    def _set_endpoint_url(self, query, date_from=None, date_to=None, text_includes=None):
-        """
-        Builds a NYT article API query url with the input parameters.
-        For more information on the inputs, refer to the docs for 'run_query' method.
-        """
-        # Query keywords, base url and API key.
-        query_url = self._encode_base_url(query)
-        query_key = []  # This query's key, to store with shelve.
+            data, cached = self._fetch_page(query, date_from, date_to, page)
+            records.extend(data['response']['docs'])
 
-        # Check from date.
-        if date_from is None:   # Is none provided?
-            query_key.append(_date_to_str(datetime.date(1851, 1, 1)))   # For caching.
-        elif not isinstance(date_from, date):   # Is it in an unsupported format?
-            warnings.warn('Type {} is not supported.'.format(type(date_from)), RuntimeWarning)
-        else:   # Update the url and cache key.
-            query_key.append(_date_to_str(date_from))
-            query_url += "&begin_date=" + _date_to_str(date_from)
+            if callable(on_progress):
+                on_progress(len(records), max_docs)
 
-        # Check to date.
-        if date_to is None:   # Is none provided?
-            query_key.append(_date_to_str(datetime.datetime.now().date()))   # For caching.
-        elif not isinstance(date_to, date):   # Is it in an unsupported format?
-            warnings.warn('Type {} is not supported.'.format(type(date_to)), RuntimeWarning)
-        else:   # Update the url and cache key.
-            query_key.append(_date_to_str(date_to))
-            query_url += "&end_date=" + _date_to_str(date_to)
+            if not cached:
+                sleep(SLEEP)
 
-        # Text fields.
-        if text_includes:
-            self.includes_fields = text_includes
-            fl = ",".join(text_includes)
-            query_url += "&fl=" + fl
-        # Add pub_date.
-        query_url += ",pub_date"
-        # Add section_name.
-        query_url += ",section_name"
-        # Add keywords in every case, since we need them for geolocating.
-        if "keywords" not in text_includes:
-            query_url += ",keywords"
+        if len(records) > max_docs:
+            records = records[:max_docs]
 
-        self._query_url = "{0}?{1}".format(self._base_url, query_url)
+        return self._create_corpus(records)
 
-        # Queries differ in query words, included text fields and date range.
-        query_key.extend(query.split(" "))
-        query_key.extend(text_includes)
+    def _cache_init(self):
+        """ Initialize cache in Orange environment buffer dir. """
+        path = os.path.join(environ.buffer_dir, "nytcache")
+        try:
+            if not os.path.exists(path):
+                os.makedirs(path)
+            self.cache_path = os.path.join(path, "query_cache")
+        except OSError as e:
+            warnings.warn('Could not initialize NYT cache: {}'.format(str(e)), RuntimeWarning)
 
-        self.query_key = "_".join(query_key)
-
-    def _execute_query(self, page):
-        """
-        Execute a query and get the data from the New York Times Article API.
-        Will not execute, if the class object's query_url has not been set.
-        :param page: Determine what page of the query to return.
-        :type page: int
-        :return: A JSON representation of the query's results, a boolean flag,
-            that serves as feedback, whether the request was cached or not and
-            the error if one occurred during execution.
-        """
-        if not self._query_url:
-            warnings.warn('Could not find any specified queries.', RuntimeWarning)
-
-        # Method return values.
-        response_data = ""
-        is_cached = False
-
-        current_query = self._query_url+"&page={}".format(page)
-        current_query_key = self.query_key + "_" + str(page)
-
-        with shelve.open(self.cache_path) as query_cache:
-            if current_query_key in query_cache.keys():
-                response = query_cache[current_query_key]
-                response_data = json.loads(response)
-                is_cached = True
-                error = None
+    def _cache_fetch(self, url):
+        """ Fetch URL from cache if present. """
+        with shelve.open(self.cache_path) as cache:
+            if url in cache.keys():
+                return cache[url]
             else:
-                try:
-                    with request.urlopen(current_query) as connection:
-                        response = connection.read().decode("utf-8")
-                    query_cache[current_query_key] = response
+                return None
 
-                    response_data = json.loads(response)
-                    is_cached = False
-                    error = None
-                except (HTTPError, URLError) as err:
-                    error = err
+    def _cache_store(self, url, data):
+        """ Store data for URL in cache. """
+        with shelve.open(self.cache_path) as cache:
+            cache[url] = data
 
-            query_cache.close()    # Release resources.
-        return response_data, is_cached, error
+    def _fetch_page(self, query, date_from, date_to, page):
+        """ Fetch one page either from cache or web. """
+        cache_url = self._encode_url(query, date_from, date_to, page, for_caching=True)
+        data = self._cache_fetch(cache_url)
+        if data:
+            return data, True
+        else:
+            url = self._encode_url(query, date_from, date_to, page, for_caching=False)
+            with request.urlopen(url) as conn:
+                data = conn.read().decode('utf-8')
+            data = json.loads(data)
+            self._cache_store(cache_url, data)
+            return data, False
 
-    def _encode_base_url(self, query):
+    def _encode_url(self, query, date_from=None, date_to=None, page=0, for_caching=False):
         """
-        Builds the foundation url string for this query.
-        :param query: The keywords for this query.
-        :type query: str
-        :return: The foundation url for this query.
+        Encode url for given query, date restrictions and page number.
+
+        Args:
+            query (str): Search query.
+            date_from (date): Date restriction.
+            date_to (date): Date restriction.
+            page (int): Page number.
+            for_caching (bool): Whether URL would be used for caching. If set, exclude BASE_URL
+                and API key.
+
+        Returns:
+            str: An encoded URL.
         """
-        return parse.urlencode([("q", query), ("fq", "The New York Times"), ("api-key", self._api_key)])
+        params = [   # list required to preserve order - important for caching
+            ('fq', 'The New York Times'),
+            ('api-key', self.api_key),
+            ('q', query),
+            ('page', page),
+        ]
+        if date_from:
+            params.append(('begin_date', date_from.strftime('%Y%m%d')))
+        if date_to:
+            params.append(('end_date', date_to.strftime('%Y%m%d')))
+
+        if for_caching:     # remove api key, return only params
+            del params[0]
+            return parse.urlencode(params)
+        else:
+            return '{}?{}'.format(BASE_URL, parse.urlencode(params))
+
+    def _create_corpus(self, documents):
+        domain = data.Domain(attributes=[attr for attr, _ in self.attributes],
+                             class_vars=[attr for attr, _ in self.class_vars],
+                             metas=[attr for attr, _ in self.metas])
+
+        for attr in domain.attributes:
+            if isinstance(attr, data.DiscreteVariable):
+                attr.values = []
+
+        def to_val(attr, val):
+            if isinstance(attr, data.DiscreteVariable) and val not in attr.values:
+                attr.add_value(val)
+            return attr.to_val(val)
+
+        X = np.array([[to_val(attr, func(doc)) for attr, func in self.attributes]
+                      for doc in documents])
+        Y = np.array([[to_val(attr, func(doc)) for attr, func in self.class_vars]
+                      for doc in documents])
+        metas = np.array([[to_val(attr, func(doc)) for attr, func in self.metas]
+                          for doc in documents], dtype=object)
+
+        corpus = Corpus(X=X, Y=Y, metas=metas, domain=domain, text_features=self.text_features)
+        corpus.name = 'NY Times'
+        return corpus
