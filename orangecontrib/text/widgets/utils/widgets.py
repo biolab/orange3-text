@@ -62,11 +62,12 @@ class ListEdit(QTextEdit):
 
 
 class CheckListLayout(QtGui.QGroupBox):
-    def __init__(self, title, master, attr, items, cols=1):
+    def __init__(self, title, master, attr, items, cols=1, callback=None):
         super().__init__(title=title)
         self.master = master
         self.attr = attr
         self.items = items
+        self.callback = callback
 
         self.current_values = getattr(self.master, self.attr)
 
@@ -90,6 +91,9 @@ class CheckListLayout(QtGui.QGroupBox):
                 values.append(item[1])
 
         setattr(self.master, self.attr, values)
+
+        if self.callback:
+            self.callback()
 
 
 class ComboBox(QComboBox):
