@@ -74,14 +74,17 @@ class Corpus(Table):
         Select which meta-attributes to include when mining text.
 
         Args:
-            feats (list): list of text features to include.
+            feats (list or None): List of text features to include. If None infer them.
         """
-        for f in feats:
-            if f not in chain(self.domain.variables, self.domain.metas):
-                raise ValueError('Feature "{}" not found.'.format(f))
-        if len(set(feats)) != len(feats):
-            raise ValueError('Text features must be unique.')
-        self.text_features = feats
+        if feats is not None:
+            for f in feats:
+                if f not in chain(self.domain.variables, self.domain.metas):
+                    raise ValueError('Feature "{}" not found.'.format(f))
+            if len(set(feats)) != len(feats):
+                raise ValueError('Text features must be unique.')
+            self.text_features = feats
+        else:
+            self._infer_text_features()
         self._tokens = None     # invalidate tokens
 
     def _infer_text_features(self):

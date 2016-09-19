@@ -212,6 +212,11 @@ class CorpusTests(unittest.TestCase):
         self.assertEqual(sel.ngram_range, c.ngram_range)
         self.assertEqual(sel.attributes, c.attributes)
 
+    def test_set_text_features(self):
+        c = Corpus.from_file('friends-transcripts')[:100]
+        c2 = c.copy()
+        self.assertEqual(c.set_text_features(None), c2._infer_text_features())
+
     def test_asserting_errors(self):
         c = Corpus.from_file('bookexcerpts')
 
