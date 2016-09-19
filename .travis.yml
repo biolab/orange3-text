@@ -30,6 +30,7 @@ before_install:
 
 install:
     - travis_wait pip install -r requirements.txt
+    - python setup.py develop   # assure version.py is present; required for imports
 
 script:
     - coverage run setup.py test
