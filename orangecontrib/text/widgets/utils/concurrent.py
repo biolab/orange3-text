@@ -65,24 +65,54 @@ class OWConcurrentWidget(OWWidget):
         super().progressBarSet(value, processEvents=processEvents)
 
 
-def asynchronous(method):
-    """ This decorator wraps method of a OWConcurrentWidget and runs this method in a separate thread.
+def optional_args(fn):
+    """
+    Decorator used for decorating other decorators to enable optional arguments.
+    I.e. the other decorator can then be called either as `@wrap` or as `@wrap(args)`.
 
+    Adopted from: http://stackoverflow.com/a/20966822/892987
+    """
+    def wrapped_decorator(*args, **kwargs):
+        if len(args) == 1 and callable(args[0]):
+            return fn(args[0])
+        else:
+            def real_decorator(decorate):
+                return fn(decorate, *args, **kwargs)
+            return real_decorator
+
+    return wrapped_decorator
+
+
+@optional_args
+def asynchronous(method, allow_partial_results=False):
+    """
+    This decorator wraps method of a OWConcurrentWidget and runs this method in a separate thread.
     It also calls `on_start`, `on_progress` and `on_result` callbacks of the master widgets.
+
+    Args:
+        allow_partial_results (bool): If set, allow for partial results. Consequently, wrapped
+            method is responsible for checking `self.running` and returning the partial result.
+            Otherwise, the main widget should just call stop() and the wrapper will taker care
+            of the rest.
     """
     @wraps(method)
-    def wrapper(self, *args,**kwargs):
+    def wrapper(self, *args, **kwargs):
         self.stop()
         self.running = True
 
         def on_progress(i):
-            if not self.running:
+            if not self.running and not allow_partial_results:
                 raise StopExecution
             QMetaObject.invokeMethod(self, "_on_progress", Qt.QueuedConnection,  Q_ARG(float, i))
+
+        def should_break():
+            return not self.running
 
         def func():
             try:
                 QMetaObject.invokeMethod(self, "_on_start", Qt.QueuedConnection)
+                if allow_partial_results:
+                    kwargs['should_break'] = should_break
                 res = method(self, *args, on_progress=on_progress, **kwargs)
             except StopExecution:
                 res = None
