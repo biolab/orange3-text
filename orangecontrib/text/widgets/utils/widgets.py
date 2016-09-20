@@ -62,6 +62,42 @@ class ListEdit(QTextEdit):
         return self.toPlainText().strip()
 
 
+class QueryBox(QComboBox):
+    def __init__(self, widget, master, history, callback, min_width=150):
+        super().__init__()
+        self.master = master
+        self.history = history
+        self.callback = callback
+
+        self.setMinimumWidth(min_width)
+        self.setEditable(True)
+        self.activated[int].connect(self.synchronize)   # triggered for enter and drop-down
+        widget.layout().addWidget(self)
+        self.refresh()
+
+    def synchronize(self, n=None, silent=False):
+        if n is not None and n < len(self.history):     # selecting from drop-down
+            name = self.history[n]
+            del self.history[n]
+            self.history.insert(0, name)
+        else:                                           # enter pressed
+            query = self.currentText()
+            if query != '':
+                if query in self.history:
+                    self.history.remove(query)
+                self.history.insert(0, self.currentText())
+
+        self.refresh()
+
+        if callable(self.callback) and not silent:
+            self.callback()
+
+    def refresh(self):
+        self.clear()
+        for query in self.history:
+            self.addItem(query)
+
+
 class CheckListLayout(QtGui.QGroupBox):
     def __init__(self, title, master, attr, items, cols=1, callback=None):
         super().__init__(title=title)
