@@ -1,12 +1,13 @@
+import datetime
 import os
 import tempfile
 import unittest
-import datetime
-from unittest.mock import patch
 from contextlib import contextmanager
-from orangecontrib.text.nyt import NYT, NYT_TEXT_FIELDS
+from unittest.mock import patch
 
-from Orange.data import StringVariable
+from Orange.data import TimeVariable
+from orangecontrib.text import Corpus
+from orangecontrib.text.nyt import NYT
 
 
 class MockUrlOpen:
@@ -58,31 +59,41 @@ class NYTTests(unittest.TestCase):
             os.remove(self.tmp.name)
 
     def test_nyt_key(self):
-        self.assertTrue(self.nyt.check_api_key())
+        self.assertTrue(self.nyt.api_key_valid())
 
     def test_nyt_query_keywords(self):
-        records = self.nyt.run_query('slovenia')
-        self.assertEqual(len(records), 10)
+        c = self.nyt.search('slovenia', max_docs=10)
+        self.assertIsInstance(c, Corpus)
+        self.assertEqual(len(c), 10)
 
     def test_nyt_query_date_range(self):
-        corpus = self.nyt.run_query('slovenia', datetime.date(2013, 1, 1), datetime.date(2014, 1, 1))
-        self.assertEqual(len(corpus.documents), 10)
+        from_date = datetime.date(2013, 1, 1)
+        to_date = datetime.date(2014, 1, 1)
+        corpus = self.nyt.search('slovenia', from_date, to_date, max_docs=10)
+        self.assertEqual(len(corpus), 10)
+
+        time_index = next(i for i, (var, _) in enumerate(NYT.metas) if isinstance(var, TimeVariable))
+        tv = corpus.domain.metas[time_index]
+        for doc in corpus:
+            date = tv.repr_val(doc.metas[time_index])
+            date = datetime.datetime.strptime(date, '%Y-%m-%d %H:%M:%S').date()
+            self.assertGreaterEqual(date, from_date)
+            self.assertLessEqual(date, to_date)
 
     def test_nyt_query_max_records(self):
-        records = self.nyt.run_query('slovenia', max_records=30)
-        self.assertEqual(len(records), 30)
+        c = self.nyt.search('slovenia', max_docs=25)
+        self.assertEqual(len(c), 25)
 
     def test_nyt_corpus_domain_generation(self):
-        corpus = self.nyt.run_query('slovenia')
-        meta_vars = [StringVariable.make(field) for field in NYT_TEXT_FIELDS] + \
-                    [StringVariable.make('pub_date'), StringVariable.make('country')]
-
-        self.assertEqual(len(meta_vars), len(corpus.domain.metas))
-        self.assertEqual(len(corpus.Y), 10)
+        corpus = self.nyt.search('slovenia', max_docs=10)
+        for var, _ in NYT.attributes:
+            self.assertIn(var, corpus.domain.attributes)
+        for var, _ in NYT.class_vars:
+            self.assertIn(var, corpus.domain.class_vars)
+        for var, _ in NYT.metas:
+            self.assertIn(var, corpus.domain.metas)
 
     def test_nyt_result_caching(self):
-        # Run a query to create a cache entry first.
-        self.nyt.run_query('slovenia')
-        data, is_cached, error = self.nyt._execute_query(0)
-        # Check if the response was cached.
+        self.nyt._fetch_page('slovenia', None, None, 0)     # assure in cache
+        _, is_cached = self.nyt._fetch_page('slovenia', None, None, 0)
         self.assertTrue(is_cached)

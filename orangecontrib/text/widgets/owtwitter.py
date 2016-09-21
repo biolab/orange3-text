@@ -14,26 +14,11 @@ from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.credentials import CredentialManager
 from orangecontrib.text.language_codes import lang2code
 from orangecontrib.text.widgets.utils import (ComboBox, ListEdit, CheckListLayout,
-                                              DateInterval)
+                                              DateInterval, gui_require)
 
 
 class Output:
     CORPUS = "Corpus"
-
-
-def require(attribute, warning):
-    def decorator(func):
-        @functools.wraps(func)
-        def wrapper(self, *args, **kwargs):
-            if not getattr(self, attribute, None):
-                getattr(self.Warning, warning)()
-            else:
-                getattr(self.Warning, warning).clear()
-                return func(self, *args, **kwargs)
-
-        return wrapper
-
-    return decorator
 
 
 class OWTwitter(OWWidget):
@@ -270,7 +255,7 @@ class OWTwitter(OWWidget):
             self.api = None
 
     @QtCore.pyqtSlot()
-    @require('api', MISSED_KEY)
+    @gui_require('api', MISSED_KEY)
     def search(self):
         if not self.api.running:
             if not self.advance:
@@ -332,7 +317,7 @@ class OWTwitter(OWWidget):
         self.update_tweets_info()
         self.send_corpus()
 
-    @require('api', MISSED_KEY)
+    @gui_require('api', MISSED_KEY)
     def send_report(self):
         for task in self.api.history:
             self.report_items(task.report())

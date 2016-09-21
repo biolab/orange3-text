@@ -2,11 +2,12 @@ import os
 
 from PyQt4.QtGui import (QComboBox, QWidget, QHBoxLayout, QPushButton, QStyle,
                          QSizePolicy, QFileDialog, QLineEdit, QDoubleSpinBox,
-                         QSpinBox, QTextEdit, QColor)
+                         QSpinBox, QTextEdit, QColor, QDateEdit)
 from PyQt4 import QtCore, QtGui
 
-from Orange.widgets.gui import OWComponent
+from Orange.widgets.gui import OWComponent, hBox
 from Orange.widgets import settings
+
 
 class ListEdit(QTextEdit):
     PLACEHOLDER_COLOR = QColor(128, 128, 128)
@@ -61,12 +62,49 @@ class ListEdit(QTextEdit):
         return self.toPlainText().strip()
 
 
+class QueryBox(QComboBox):
+    def __init__(self, widget, master, history, callback, min_width=150):
+        super().__init__()
+        self.master = master
+        self.history = history
+        self.callback = callback
+
+        self.setMinimumWidth(min_width)
+        self.setEditable(True)
+        self.activated[int].connect(self.synchronize)   # triggered for enter and drop-down
+        widget.layout().addWidget(self)
+        self.refresh()
+
+    def synchronize(self, n=None, silent=False):
+        if n is not None and n < len(self.history):     # selecting from drop-down
+            name = self.history[n]
+            del self.history[n]
+            self.history.insert(0, name)
+        else:                                           # enter pressed
+            query = self.currentText()
+            if query != '':
+                if query in self.history:
+                    self.history.remove(query)
+                self.history.insert(0, self.currentText())
+
+        self.refresh()
+
+        if callable(self.callback) and not silent:
+            self.callback()
+
+    def refresh(self):
+        self.clear()
+        for query in self.history:
+            self.addItem(query)
+
+
 class CheckListLayout(QtGui.QGroupBox):
-    def __init__(self, title, master, attr, items, cols=1):
+    def __init__(self, title, master, attr, items, cols=1, callback=None):
         super().__init__(title=title)
         self.master = master
         self.attr = attr
         self.items = items
+        self.callback = callback
 
         self.current_values = getattr(self.master, self.attr)
 
@@ -90,6 +128,9 @@ class CheckListLayout(QtGui.QGroupBox):
                 values.append(item[1])
 
         setattr(self.master, self.attr, values)
+
+        if self.callback:
+            self.callback()
 
 
 class ComboBox(QComboBox):
@@ -168,6 +209,59 @@ class DateInterval(QWidget):
         setattr(self.master, self.attribute, self.value)
         self.from_widget.setMaximumDate(self.to_widget.date())
         self.to_widget.setMinimumDate(self.from_widget.date())
+
+
+class DatePicker(QDateEdit):
+    QT_DATE_FORMAT = 'yyyy-MM-dd'
+    PY_DATE_FORMAT = '%Y-%m-%d'
+
+    def __init__(self, widget, master, attribute, label, margin=(0, 0, 0, 0),
+                 display_format=QT_DATE_FORMAT, min_date=None, max_date=None, calendar_popup=True):
+        super().__init__()
+        self.master = master
+        self.attribute = attribute
+
+        hb = hBox(widget)
+        hb.layout().setContentsMargins(*margin)
+        hb.layout().addWidget(QtGui.QLabel(label))
+        hb.layout().addWidget(self)
+
+        self.setCalendarPopup(calendar_popup)
+        self.setDisplayFormat(display_format)
+        self.setDate(self.to_qdate(getattr(master, attribute)))
+        if min_date:
+            self.setMinimumDate(self.to_qdate(min_date))
+        if max_date:
+            self.setMaximumDate(self.to_qdate(max_date))
+        self.dateChanged.connect(self.synchronize)
+
+    @classmethod
+    def to_qdate(cls, date):
+        return QtCore.QDate.fromString(date.strftime(cls.PY_DATE_FORMAT),
+                                       cls.QT_DATE_FORMAT)
+
+    def synchronize(self):
+        setattr(self.master, self.attribute, self.date().toPyDate())
+
+
+class DatePickerInterval(QWidget):
+    def __init__(self, widget, master, attribute_from, attribute_to, min_date=None, max_date=None,
+                 label_from='From:', label_to='To:', margin=(0, 0, 0, 0)):
+        super().__init__()
+        self.setParent(widget)
+
+        hb = hBox(widget)
+        self.picker_from = DatePicker(hb, master, attribute_from, label_from,
+                                      min_date=min_date, max_date=max_date, margin=margin)
+        self.picker_to = DatePicker(hb, master, attribute_to, label_to,
+                                    min_date=min_date, max_date=max_date, margin=margin)
+        self.picker_from.dateChanged.connect(self.synchronize)
+        self.picker_to.dateChanged.connect(self.synchronize)
+        self.synchronize()
+
+    def synchronize(self):
+        self.picker_from.setMaximumDate(self.picker_to.date())
+        self.picker_to.setMinimumDate(self.picker_from.date())
 
 
 class FileWidget(QtGui.QWidget):
