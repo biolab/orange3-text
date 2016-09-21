@@ -98,6 +98,7 @@ class OWTwitter(OWWidget):
 
     class Error(OWWidget.Error):
         api = Msg('Api error ({})')
+        rate_limit = Msg('Rate limit exceeded. Please try again later.')
 
     tweets_info = 'Tweets on output: {}'
 
@@ -250,6 +251,7 @@ class OWTwitter(OWWidget):
                                           on_start=self.start_signal.emit,
                                           on_progress=self.progress_signal.emit,
                                           on_error=self.error_signal.emit,
+                                          on_rate_limit=self.on_rate_limit,
                                           on_finish=self.finish_signal.emit)
         else:
             self.api = None
@@ -307,6 +309,10 @@ class OWTwitter(OWWidget):
             self.send(Output.CORPUS, corpus)
         else:
             self.send(Output.CORPUS, None)
+
+    @QtCore.pyqtSlot(str)
+    def on_rate_limit(self):
+        self.Error.rate_limit()
 
     @QtCore.pyqtSlot(str)
     def on_error(self, text):
