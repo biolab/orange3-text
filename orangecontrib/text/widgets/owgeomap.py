@@ -1,7 +1,9 @@
 # coding: utf-8
 from urllib.parse import urljoin
 from urllib.request import pathname2url
+from itertools import chain
 
+from Orange.widgets.utils.itemmodels import VariableListModel
 from collections import defaultdict, Counter
 from os import path
 from math import pi as PI
@@ -10,6 +12,7 @@ import re
 import numpy as np
 
 from PyQt4 import QtCore, QtGui
+from PyQt4.QtCore import Qt, QTimer
 
 from Orange.widgets import widget, gui, settings
 from Orange.data import Table
@@ -41,12 +44,13 @@ class OWGeoMap(widget.OWWidget):
 
     want_main_area = False
 
-    selected_attr = settings.Setting(0)
+    selected_attr = settings.Setting('')
     selected_map = settings.Setting(0)
     regions = settings.Setting([])
 
     def __init__(self):
         super().__init__()
+        self.data = None
         self._create_layout()
 
     @QtCore.pyqtSlot(str, result=str)
@@ -54,9 +58,10 @@ class OWGeoMap(widget.OWWidget):
         """Called from JavaScript"""
         if not regions:
             self.regions = []
+        if not regions or self.data is None:
             return self.send('Corpus', None)
         self.regions = regions.split(',')
-        attr = self.metas[self.selected_attr]
+        attr = self.data.domain[self.selected_attr]
         if attr.is_discrete: return  # TODO, FIXME: make this work for discrete attrs also
         from Orange.data.filter import FilterRegex
         filter = FilterRegex(attr, r'\b{}\b'.format(r'\b|\b'.join(self.regions)), re.IGNORECASE)
@@ -65,12 +70,15 @@ class OWGeoMap(widget.OWWidget):
     def _create_layout(self):
         box = gui.widgetBox(self.controlArea,
                             orientation='horizontal')
+        self.varmodel = VariableListModel(parent=self)
         self.attr_combo = gui.comboBox(box, self, 'selected_attr',
-                                       orientation='horizontal',
+                                       orientation=Qt.Horizontal,
                                        label='Region attribute:',
-                                       callback=self.on_attr_change)
+                                       callback=self.on_attr_change,
+                                       sendSelectedValue=True)
+        self.attr_combo.setModel(self.varmodel)
         self.map_combo = gui.comboBox(box, self, 'selected_map',
-                                      orientation='horizontal',
+                                      orientation=Qt.Horizontal,
                                       label='Map type:',
                                       callback=self.on_map_change,
                                       items=Map.all)
@@ -102,27 +110,22 @@ html, body, #map {{margin:0px;padding:0px;width:100%;height:100%;}}
         self.webview = gui.WebviewWidget(self.controlArea, self, debug=False)
         self.controlArea.layout().addWidget(self.webview)
         self.webview.setHtml(html)
-        self.webview.evalJS('REGIONS = {};'.format({Map.WORLD: CC_WORLD,
-                                                    Map.EUROPE: CC_EUROPE,
-                                                    Map.USA: CC_USA}))
+        QTimer.singleShot(
+            0, lambda: self.webview.evalJS('REGIONS = {};'.format({Map.WORLD: CC_WORLD,
+                                                                   Map.EUROPE: CC_EUROPE,
+                                                                   Map.USA: CC_USA})))
 
     def _repopulate_attr_combo(self, data):
-        from itertools import chain
-        self.metas = [a for a in chain(data.domain.metas,
-                                       data.domain.attributes,
-                                       data.domain.class_vars)
-                      # Filter string variables
-                      if (a.is_discrete and a.values and isinstance(a.values[0], str) and not a.ordered or
-                          a.is_string)] if data else []
-        self.attr_combo.clear()
-        self.selected_attr = 0
-        for i, var in enumerate(self.metas):
-            self.attr_combo.addItem(gui.attributeIconDict[var], var.name)
-            # Select default attribute
-            if var.name.lower() == 'country':
-                self.selected_attr = i
-        if self.metas:
-            self.attr_combo.setCurrentIndex(self.attr_combo.findText(self.metas[self.selected_attr].name))
+        vars = [a for a in chain(data.domain.metas,
+                                 data.domain.attributes,
+                                 data.domain.class_vars)
+                if a.is_string] if data else []
+        self.varmodel.wrap(vars)
+        # Select default attribute
+        self.selected_attr = next((var.name
+                                   for var in vars
+                                   if var.name.lower().startswith(('country', 'location', 'region'))),
+                                  vars[0].name if vars else '')
 
     def on_data(self, data):
         if data and not isinstance(data, Corpus):
@@ -131,9 +134,9 @@ html, body, #map {{margin:0px;padding:0px;width:100%;height:100%;}}
         self._repopulate_attr_combo(data)
         if not data:
             self.region_selected('')
-            self.webview.evalJS('DATA = {}; renderMap();')
+            QTimer.singleShot(0, lambda: self.webview.evalJS('DATA = {}; renderMap();'))
         else:
-            self.on_attr_change()
+            QTimer.singleShot(0, self.on_attr_change)
 
     def on_map_change(self, map_code=''):
         if map_code:
@@ -150,21 +153,21 @@ html, body, #map {{margin:0px;padding:0px;width:100%;height:100%;}}
             key = inv_cc_map.get(cc, cc)
             if key in cc_map:
                 data[key] += self.cc_counts[cc]
-        self.webview.evalJS('DATA = {};'.format(dict(data)))
         # Draw the new map
-        self.webview.evalJS('MAP_CODE = "{}";'.format(map_code))
-        self.webview.evalJS('SELECTED_REGIONS = {};'.format(self.regions))
-        self.webview.evalJS('renderMap();')
+        self.webview.evalJS('DATA = {};'
+                            'MAP_CODE = "{}";'
+                            'SELECTED_REGIONS = {};'
+                            'renderMap();'.format(dict(data),
+                                                  map_code,
+                                                  self.regions))
 
     def on_attr_change(self):
-        attr = self.metas[self.selected_attr]
-        if attr.is_discrete:
-            return self.warning(0, 'Discrete region attributes not yet supported. Patches welcome!')
-        countries = (set(map(str.strip, CC_NAMES.findall(i.lower()))) if len(i) > 3 else (i,)
-                     for i in self.data.get_column_view(self.data.domain.index(attr))[0])
-        def flatten(seq):
-            return (i for sub in seq for i in sub)
-        self.cc_counts = Counter(flatten(countries))
+        if not self.selected_attr:
+            return
+        attr = self.data.domain[self.selected_attr]
+        self.cc_counts = Counter(chain.from_iterable(
+            set(name.strip() for name in CC_NAMES.findall(i.lower())) if len(i) > 3 else (i,)
+            for i in self.data.get_column_view(self.data.domain.index(attr))[0]))
         # Auto-select region map
         values = set(self.cc_counts)
         if 0 == len(values - SET_CC_USA):
