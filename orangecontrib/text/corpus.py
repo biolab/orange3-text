@@ -228,12 +228,6 @@ class Corpus(Table):
         return Corpus(t.X, t.Y, t.metas, t.domain, None)
 
     @classmethod
-    def from_corpus(cls, domain, source, row_indices=...):
-        c = cls.from_table(domain, source, row_indices)
-        c.text_features = source.text_features
-        return c
-
-    @classmethod
     def from_file(cls, filename):
         if not os.path.exists(filename):    # check the default location
             abs_path = os.path.join(get_sample_corpora_dir(), filename)

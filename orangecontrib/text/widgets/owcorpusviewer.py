@@ -300,11 +300,9 @@ class OWCorpusViewer(OWWidget):
 
     def commit(self):
         if self.corpus is not None:
-            matched = Corpus.from_corpus(self.corpus.domain, self.corpus,
-                                         row_indices=self.output_mask)
+            matched = self.corpus[self.output_mask]
             unmatched_mask = [i for i in range(len(self.corpus)) if i not in self.output_mask]
-            unmatched = Corpus.from_corpus(self.corpus.domain, self.corpus,
-                                           row_indices=unmatched_mask)
+            unmatched = self.corpus[unmatched_mask]
             self.send(IO.MATCHED, matched)
             self.send(IO.UNMATCHED, unmatched)
         else:
