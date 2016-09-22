@@ -87,21 +87,21 @@ class OWGeoMap(widget.OWWidget):
 <style>
 html, body, #map {{margin:0px;padding:0px;width:100%;height:100%;}}
 </style>
-<link  href="resources/jquery-jvectormap-2.0.2.css" rel="stylesheet">
+<link href="resources/jquery-jvectormap-2.0.2.css" rel="stylesheet">
+<script src="resources/jquery-2.1.4.min.js"></script>
+<script src="resources/jquery-jvectormap-2.0.2.min.js"></script>
+<script src="resources/jquery-jvectormap-world-mill-en.js"></script>
+<script src="resources/jquery-jvectormap-europe-mill-en.js"></script>
+<script src="resources/jquery-jvectormap-us-aea-en.js"></script>
+<script src="resources/geomap-script.js"></script>
 </head>
 <body>
 <div id="map"></div>
 </body>
 </html>'''.format(urljoin('file:', pathname2url(path.abspath(path.dirname(__file__)))))
-        self.webview = gui.WebviewWidget(self.controlArea, self, debug=True)
+        self.webview = gui.WebviewWidget(self.controlArea, self, debug=False)
+        self.controlArea.layout().addWidget(self.webview)
         self.webview.setHtml(html)
-        for script in ('jquery-2.1.4.min.js',
-                       'jquery-jvectormap-2.0.2.min.js',
-                       'jquery-jvectormap-world-mill-en.js',
-                       'jquery-jvectormap-europe-mill-en.js',
-                       'jquery-jvectormap-us-aea-en.js',
-                       'geomap-script.js'):
-            self.webview.evalJS(open(path.join(path.dirname(__file__), 'resources', script), encoding='utf-8').read())
         self.webview.evalJS('REGIONS = {};'.format({Map.WORLD: CC_WORLD,
                                                     Map.EUROPE: CC_EUROPE,
                                                     Map.USA: CC_USA}))
