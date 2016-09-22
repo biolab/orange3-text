@@ -108,13 +108,13 @@ class OWCorpusViewer(OWWidget):
 
     def set_data(self, data=None):
         self.reset_widget()
+        self.corpus = data
         if data is not None:
-            self.corpus = data
             if not isinstance(data, Corpus):
                 self.corpus = Corpus.from_table(data.domain, data)
             self.load_features()
             self.regenerate_docs()
-            self.commit()
+        self.commit()
 
     def reset_widget(self):
         # Corpus
@@ -134,6 +134,8 @@ class OWCorpusViewer(OWWidget):
         self.doc_list_model.clear()
         # Warnings
         self.Warning.clear()
+        # WebView
+        self.doc_webview.setHtml('')
 
     def load_features(self):
         self.search_indices = []
@@ -297,7 +299,7 @@ class OWCorpusViewer(OWWidget):
             self.ngram_range = ''
 
     def commit(self):
-        if self.output_mask is not None:
+        if self.corpus is not None:
             matched = Corpus.from_corpus(self.corpus.domain, self.corpus,
                                          row_indices=self.output_mask)
             unmatched_mask = [i for i in range(len(self.corpus)) if i not in self.output_mask]
@@ -305,6 +307,9 @@ class OWCorpusViewer(OWWidget):
                                            row_indices=unmatched_mask)
             self.send(IO.MATCHED, matched)
             self.send(IO.UNMATCHED, unmatched)
+        else:
+            self.send(IO.MATCHED, None)
+            self.send(IO.UNMATCHED, None)
 
 if __name__ == '__main__':
     from orangecontrib.text.tag import pos_tagger

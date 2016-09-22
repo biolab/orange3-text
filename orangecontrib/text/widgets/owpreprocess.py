@@ -606,8 +606,8 @@ class OWPreprocess(OWConcurrentWidget):
         self.buttonsArea.layout().addWidget(commit_button)
 
     def set_data(self, data=None):
-        self.corpus = data.copy() if data else None
-        self.initial_ngram_range = data.ngram_range
+        self.corpus = data.copy() if data is not None else None
+        self.initial_ngram_range = data.ngram_range if data is not None else None
         self.commit()
 
     def update_info(self, corpus=None):
@@ -617,13 +617,16 @@ class OWPreprocess(OWConcurrentWidget):
                    'Total types: {}'\
                    .format(len(corpus), sum(map(len, corpus.tokens)), len(corpus.dictionary))
         else:
-            info = 'No output corpus.'
+            info = 'No corpus.'
         self.info_label.setText(info)
 
     def commit(self):
         self.Warning.no_token_left.clear()
         if self.corpus is not None:
             self.apply()
+        else:
+            self.update_info()
+            self.send(Output.PP_CORPUS, None)
 
     def apply(self):
         self.preprocess()
