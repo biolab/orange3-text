@@ -97,7 +97,8 @@ class TwitterAPI:
 
     supported_fields = metas + attributes
 
-    def __init__(self, credentials, on_start=None, on_progress=None, on_error=None, on_finish=None):
+    def __init__(self, credentials, on_start=None, on_progress=None, on_error=None,
+                 on_rate_limit=None, on_finish=None):
         self.key = credentials
         self.api = tweepy.API(credentials.auth)
         self.statuses_lock = threading.Lock()
@@ -107,6 +108,7 @@ class TwitterAPI:
         self.on_progress = on_progress
         self.on_error = on_error
         self.on_finish = on_finish
+        self.on_rate_limit = on_rate_limit
         self.on_start = on_start
 
         self.container = OrderedDict()
@@ -274,7 +276,9 @@ class SearchTask(threading.Thread):
                 if not self.running:
                     break
         except tweepy.TweepError as e:
-            if self.master.on_error:
+            if e.response.status_code == 429 and self.master.on_rate_limit:
+                self.master.on_rate_limit()
+            elif self.master.on_error:
                 self.master.on_error(str(e))
 
         self.finish()
