@@ -1,5 +1,4 @@
 import os
-import re
 from datetime import date
 
 from PyQt4 import QtGui, QtCore
@@ -9,7 +8,7 @@ from validate_email import validate_email
 
 from Orange.widgets import gui
 from Orange.widgets.settings import Setting
-from Orange.widgets.widget import OWWidget
+from Orange.widgets.widget import OWWidget, Msg
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.pubmed import (
     Pubmed, PUBMED_TEXT_FIELDS
@@ -54,6 +53,12 @@ class OWPubmed(OWWidget):
     includes_mesh = Setting(True)
     includes_abstract = Setting(True)
     includes_url = Setting(True)
+
+    class Warning(OWWidget.Warning):
+        no_query = Msg('Please specify the keywords for this query.')
+
+    class Error(OWWidget.Error):
+        api_error = Msg('API error: {}.')
 
     def __init__(self):
         super().__init__()
@@ -251,8 +256,8 @@ class OWPubmed(OWWidget):
             self.email_combo.setFocus()
 
     def run_search(self):
-        self.error(0)
-        self.warning(0)
+        self.Error.clear()
+        self.Warning.clear()
         self.run_search_button.setEnabled(False)
         self.retrieve_records_button.setEnabled(False)
 
@@ -278,7 +283,7 @@ class OWPubmed(OWWidget):
                     terms, authors, self.pub_date_from, self.pub_date_to
             )
             if error is not None:
-                self.warning(0, str(error))
+                self.Error.api_error(str(error))
                 return
 
             if self.keyword_combo.currentText() not in self.recent_keywords:
@@ -289,14 +294,14 @@ class OWPubmed(OWWidget):
         else:
             query = self.advanced_query_input.toPlainText()
             if not query:
-                self.warning(0, 'Please specify the keywords for this query.')
+                self.Warning.no_query()
                 self.run_search_button.setEnabled(True)
                 self.retrieve_records_button.setEnabled(True)
                 return
             error = self.pubmed_api._search_for_records(advanced_query=query)
 
             if error is not None:
-                self.warning(0, str(error))
+                self.Error.api_error(str(error))
                 return
 
             self.last_advanced_query = query
@@ -305,8 +310,8 @@ class OWPubmed(OWWidget):
         self.update_search_info()
 
     def retrieve_records(self):
-        self.warning(0)
-        self.error(0)
+        self.Warning.clear()
+        self.Error.clear()
 
         if self.pubmed_api is None:
             return
@@ -362,7 +367,7 @@ class OWPubmed(OWWidget):
             self.progress.advance()
 
     def api_error_callback(self, error):
-        self.error(0, str(error))
+        self.Error.api_error(str(error))
         if self.progress is not None:
             self.progress.finish()
 
