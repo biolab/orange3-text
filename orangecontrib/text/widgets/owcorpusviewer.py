@@ -222,12 +222,15 @@ class OWCorpusViewer(OWWidget):
             return 
 
         self.Warning.no_feats_display.clear()
-        if self.corpus is not None and len(self.display_indices) == 0:
+        if len(self.display_indices) == 0:
             self.Warning.no_feats_display()
 
         documents = []
         if self.show_tokens:
             tokens = list(self.corpus.ngrams_iterator(include_postags=True))
+
+        marked_search_features = [f for i, f in enumerate(self.search_features)
+                                  if i in self.search_indices]
 
         for index in self.doc_list.selectionModel().selectedRows():
             html = '<table>'
@@ -235,7 +238,7 @@ class OWCorpusViewer(OWWidget):
             row_ind = index.data(Qt.UserRole).row_index
             for ind in self.display_indices:
                 feature = self.display_features[ind]
-                mark = 'class="mark-area"' if ind in self.search_indices else ''
+                mark = 'class="mark-area"' if feature in marked_search_features else ''
                 value = index.data(Qt.UserRole)[feature.name]
                 html += '<tr><td class="variables"><strong>{}:</strong></td>' \
                         '<td {}>{}</td></tr>'.format(
@@ -300,11 +303,9 @@ class OWCorpusViewer(OWWidget):
 
     def commit(self):
         if self.corpus is not None:
-            matched = Corpus.from_corpus(self.corpus.domain, self.corpus,
-                                         row_indices=self.output_mask)
+            matched = self.corpus[self.output_mask]
             unmatched_mask = [i for i in range(len(self.corpus)) if i not in self.output_mask]
-            unmatched = Corpus.from_corpus(self.corpus.domain, self.corpus,
-                                           row_indices=unmatched_mask)
+            unmatched = self.corpus[unmatched_mask]
             self.send(IO.MATCHED, matched)
             self.send(IO.UNMATCHED, unmatched)
         else:

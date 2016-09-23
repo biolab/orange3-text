@@ -116,11 +116,6 @@ class CorpusTests(unittest.TestCase):
         np.testing.assert_equal(t.metas, c.metas)
         self.assertEqual(c.text_features, [t.domain.metas[0]])
 
-    def test_from_corpus(self):
-        c = Corpus.from_file('bookexcerpts')
-        c2 = Corpus.from_corpus(c.domain, c, row_indices=list(range(5)))
-        self.assertEqual(len(c2), 5)
-
     def test_infer_text_features(self):
         c = Corpus.from_file('friends-transcripts')
         tf = c.text_features
