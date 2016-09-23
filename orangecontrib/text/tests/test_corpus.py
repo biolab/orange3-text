@@ -6,8 +6,7 @@ import numpy as np
 from scipy.sparse import csr_matrix, issparse
 
 import Orange
-from Orange.data import Table
-from Orange.data.domain import Domain, StringVariable
+from Orange.data import Table, DiscreteVariable, StringVariable, Domain, ContinuousVariable
 
 from orangecontrib.text import preprocess
 from orangecontrib.text.corpus import Corpus
@@ -273,3 +272,54 @@ class CorpusTests(unittest.TestCase):
         for doc in c.ngrams_iterator(join_with='_', include_postags=True):
             for token in doc:
                 self.assertRegexpMatches(token, '\w+_[A-Z]+')
+
+    def test_from_documents(self):
+        documents = [
+            {
+                'wheels': 4,
+                'engine': 'w4',
+                'type': 'car',
+                'desc': 'A new car.'
+            },
+            {
+                'wheels': 8.,
+                'engine': 'w8',
+                'type': 'truck',
+                'desc': 'An old truck.'
+            },
+            {
+                'wheels': 12.,
+                'engine': 'w12',
+                'type': 'truck',
+                'desc': 'An new truck.'
+            }
+        ]
+
+        attrs = [
+            (DiscreteVariable('Engine'), lambda doc: doc.get('engine')),
+            (ContinuousVariable('Wheels'), lambda doc: doc.get('wheels')),
+        ]
+
+        class_vars = [
+            (DiscreteVariable('Type'), lambda doc: doc.get('type')),
+        ]
+
+        metas = [
+            (StringVariable('Description'), lambda doc: doc.get('desc')),
+        ]
+
+        dataset_name = 'TruckData'
+        c = Corpus.from_documents(documents, dataset_name, attrs, class_vars, metas)
+
+        self.assertEqual(len(c), len(documents))
+        self.assertEqual(c.name, dataset_name)
+        self.assertEqual(len(c.domain.attributes), len(attrs))
+        self.assertEqual(len(c.domain.class_vars), len(class_vars))
+        self.assertEqual(len(c.domain.metas), len(metas))
+
+        engine_dv = c.domain.attributes[0]
+        self.assertEqual(sorted(engine_dv.values),
+                         sorted([d['engine'] for d in documents]))
+        self.assertEqual([engine_dv.repr_val(v) for v in c.X[:, 0]],
+                         [d['engine'] for d in documents])
+
