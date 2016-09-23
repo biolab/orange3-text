@@ -38,7 +38,7 @@ class WordListMixin:
             self.word_list = []
         else:
             with open(path) as f:
-                self.word_list = [line.strip() for line in f]
+                self.word_list = set([line.strip() for line in f])
 
 
 class StopwordsFilter(BaseTokenFilter, WordListMixin):
