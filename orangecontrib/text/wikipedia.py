@@ -1,8 +1,8 @@
-import numpy as np
 import wikipedia
 import threading
+
 from Orange import data
-from orangecontrib.text.corpus import Corpus
+from orangecontrib.text import Corpus
 
 
 class NetworkException(IOError, wikipedia.exceptions.HTTPTimeoutError):
@@ -16,8 +16,19 @@ class WikipediaAPI:
         >>> api = WikipediaAPI()
         >>> corpus = api.search('en', ['Barack Obama', 'Hillary Clinton'])
     """
-    attributes = ('pageid', 'revision_id')
-    metas = ('title', 'content', 'summary', 'url', 'query')
+    metas = [
+        (data.StringVariable('Title'), lambda doc: getattr(doc, 'title')),
+        (data.StringVariable('Content'), lambda doc: getattr(doc, 'content')),
+        (data.StringVariable('Summary'), lambda doc: getattr(doc, 'summary')),
+        (data.StringVariable('Url'), lambda doc: getattr(doc, 'url')),
+        (data.ContinuousVariable('Page ID'), lambda doc: int(getattr(doc, 'pageid'))),
+        (data.ContinuousVariable('Revision ID'), lambda doc: int(getattr(doc, 'revision_id'))),
+        (data.DiscreteVariable('Query'), lambda doc: getattr(doc, 'query')),
+    ]
+
+    attributes = []
+    class_vars = []
+    text_features = [m for m, _ in metas]
 
     def __init__(self, on_progress=None, on_error=None, on_finish=None):
         super().__init__()
@@ -28,7 +39,7 @@ class WikipediaAPI:
         self.on_error = on_error or (lambda x: x)
         self.on_finish = on_finish or (lambda x: x)
 
-    def search(self, lang, queries, attributes, articles_per_query=10, async=False):
+    def search(self, lang, queries, articles_per_query=10, async=False):
         """ Searches for articles.
 
         Args:
@@ -39,63 +50,50 @@ class WikipediaAPI:
             if self.thread is not None and self.thread.is_alive():
                 raise RuntimeError('You cannot run several threads at the same time')
             self.thread = threading.Thread(target=self.search,
-                                           args=(lang, queries, attributes, articles_per_query, False))
+                                           args=(lang, queries, articles_per_query, False))
             self.thread.daemon = True
             self.thread.start()
             return
 
         self.running = True
         wikipedia.set_lang(lang)
-        metas = [attr for attr in attributes if attr in self.metas] + ['content']
-        attributes = [attr for attr in attributes if attr in self.attributes]
 
-        X, meta_values = [], []
+        results = []
         for i, query in enumerate(queries):
             try:
                 articles = wikipedia.search(query, results=articles_per_query)
                 for j, article in enumerate(articles):
-                    self._get(article, attributes, X, metas, meta_values, query)
+                    results.extend(self._get(article, query))
                     if not self.running:
                         break
                     self.on_progress(100 * (i * len(articles) + j + 1) / (len(queries) * len(articles)),
-                                     len(X))
+                                     len(results))
             except (wikipedia.exceptions.HTTPTimeoutError, IOError) as e:
                 self.on_error(NetworkException(e))
 
-        metas = [data.StringVariable(attr) for attr in metas]
-        domain = data.Domain(attributes=[], metas=metas)
-        corpus = Corpus(None, metas=np.array(meta_values, dtype=object), domain=domain, text_features=metas[-1:])
-        corpus.extend_attributes(np.array(X), attributes)
-        corpus.name = 'Wikipedia'
+        corpus = Corpus.from_documents(results, 'Wikipedia', self.attributes,
+                                       self.class_vars, self.metas)
         self.on_finish(corpus)
         self.running = False
         return corpus
 
-    def _get(self, article, attributes, X, metas, meta_values, query, recursive=True):
+    def _get(self, article, query, recursive=True):
         try:
             if not self.running:
-                return
+                return []
 
             article = wikipedia.page(article)
             article.query = query
-
-            X.append(
-                [int(getattr(article, attr)) for attr in attributes]
-                # [getattr(article, attr) for attr in attributes]
-            )
-            meta_values.append(
-                [getattr(article, attr) for attr in metas]
-            )
-            return True
-
+            return [article]
         except wikipedia.exceptions.DisambiguationError:
+            res = []
             if recursive:
                 for article in wikipedia.search(article, 10):
-                    if self._get(article, attributes, X, metas, meta_values, query, recursive=False):
-                        break
+                    res.extend(self._get(article, query, recursive=False))
+            return res
 
         except wikipedia.exceptions.PageError:
-            pass
+            return []
 
     def disconnect(self):
         self.running = False
