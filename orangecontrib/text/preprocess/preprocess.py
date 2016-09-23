@@ -51,10 +51,9 @@ class Preprocessor:
         self.on_progress(80)
         if self.ngrams_range is not None:
             corpus.ngram_range = self.ngrams_range
-        tokens, dictionary = self.freq_filter.fit_filter(corpus)
-        # corpus._ngrams = tokens
-        # corpus._ngrams_dict = dictionary
-        corpus.store_tokens(tokens, dictionary)
+        if self.freq_filter is not None:
+            tokens, dictionary = self.freq_filter.fit_filter(corpus)
+            corpus.store_tokens(tokens, dictionary)
 
         if self.pos_tagger:
             self.pos_tagger.tag_corpus(corpus)
@@ -69,7 +68,7 @@ class Preprocessor:
     @filters.setter
     def filters(self, filters):
         self._filters = []
-        self.freq_filter = FrequencyFilter()
+        self.freq_filter = None
 
         for f in filters:
             if isinstance(f, FrequencyFilter):
