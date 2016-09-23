@@ -29,6 +29,7 @@ class WikipediaAPI:
     attributes = []
     class_vars = []
     text_features = [m for m, _ in metas]
+    string_attributes = [m for m, _ in metas if isinstance(m, data.StringVariable)]
 
     def __init__(self, on_progress=None, on_error=None, on_finish=None):
         super().__init__()
