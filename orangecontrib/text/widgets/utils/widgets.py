@@ -114,8 +114,8 @@ class CheckListLayout(QtGui.QGroupBox):
         nrows = len(items) // cols + bool(len(items) % cols)
 
         self.boxes = []
-        for i, (text, value) in enumerate(self.items):
-            box = QtGui.QCheckBox(text)
+        for i, value in enumerate(self.items):
+            box = QtGui.QCheckBox(value)
             box.setChecked(value in self.current_values)
             box.stateChanged.connect(self.synchronize)
             self.boxes.append(box)
@@ -125,7 +125,7 @@ class CheckListLayout(QtGui.QGroupBox):
         values = []
         for item, check_box in zip(self.items, self.boxes):
             if check_box.isChecked():
-                values.append(item[1])
+                values.append(item)
 
         setattr(self.master, self.attr, values)
 

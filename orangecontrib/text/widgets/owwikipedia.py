@@ -26,7 +26,7 @@ class OWWikipedia(OWWidget):
     label_width = 1
     widgets_width = 2
 
-    attributes = [(feat.name,) * 2 for feat in WikipediaAPI.string_attributes]
+    attributes = [feat.name for feat in WikipediaAPI.string_attributes]
     text_includes = settings.Setting([feat.name for feat in WikipediaAPI.string_attributes])
 
     query_list = settings.Setting([])

@@ -116,7 +116,7 @@ class OWTwitter(OWWidget):
     progress_signal = QtCore.pyqtSignal(int)
     start_signal = QtCore.pyqtSignal()
 
-    attributes = [(feat.name,) * 2 for feat in twitter.TwitterAPI.string_attributes]
+    attributes = [feat.name for feat in twitter.TwitterAPI.string_attributes]
     text_includes = Setting([feat.name for feat in twitter.TwitterAPI.text_features])
 
     date_interval = Setting((datetime.now().date() - timedelta(10),

@@ -77,7 +77,7 @@ class OWNYT(OWConcurrentWidget):
     date_from = Setting((datetime.now().date() - timedelta(365)))
     date_to = Setting(datetime.now().date())
 
-    attributes = [(feat.name, )*2 for feat, _ in NYT.metas if isinstance(feat, StringVariable)]
+    attributes = [feat.name for feat, _ in NYT.metas if isinstance(feat, StringVariable)]
     text_includes = Setting([feat.name for feat in NYT.text_features])
 
     class Warning(OWWidget.Warning):
