@@ -1,6 +1,3 @@
-import functools
-from itertools import chain
-
 from PyQt4 import QtGui, QtCore
 
 from datetime import datetime, timedelta
@@ -17,7 +14,7 @@ from orangecontrib.text.widgets.utils import (ComboBox, ListEdit, CheckListLayou
                                               DateInterval, gui_require)
 
 
-class Output:
+class IO:
     CORPUS = "Corpus"
 
 
@@ -84,7 +81,7 @@ class OWTwitter(OWWidget):
     icon = "icons/Twitter.svg"
     priority = 25
 
-    outputs = [(Output.CORPUS, Corpus)]
+    outputs = [(IO.CORPUS, Corpus)]
     want_main_area = False
     resizing_enabled = False
     widgets_width = 11
@@ -93,6 +90,7 @@ class OWTwitter(OWWidget):
 
     class Warning(OWWidget.Warning):
         missed_key = Msg('Please provide a valid API key in order to get the data.')
+        no_text_fields = Msg('Text features are inferred when none are selected.')
 
     MISSED_KEY = 'missed_key'
 
@@ -118,25 +116,8 @@ class OWTwitter(OWWidget):
     progress_signal = QtCore.pyqtSignal(int)
     start_signal = QtCore.pyqtSignal()
 
-    attributes = [
-        ('Author', ('author_screen_name',)),
-        ('Content', ('text',)),
-        ('Date', ('created_at',)),
-        ('Language', ('lang',)),
-        ('In Reply To', 'in_reply_to_user_id'),
-        ('Number of Likes', ('favorite_count',)),
-        ('Number of Retweets', ('retweet_count',)),
-        ('Coordinates', ('coordinates_longitude', 'coordinates_latitude', 'place')),
-        ('Tweet ID', ('id',)),
-        ('Author ID', ('author_id',)),
-        ('Author Name', ('author_name',)),
-        ('Author Description', ('author_description',)),
-        ('Author Statistic', ('author_statuses_count', 'author_favourites_count',
-                              'author_friends_count', 'author_followers_count',
-                              'author_listed_count')),
-        ('Author Verified', ('author_verified',)),
-    ]
-    corpus_variables = Setting([val for _, val in attributes[:3]])
+    attributes = [(feat.name,) * 2 for feat in twitter.TwitterAPI.string_attributes]
+    text_includes = Setting([feat.name for feat in twitter.TwitterAPI.text_features])
 
     date_interval = Setting((datetime.now().date() - timedelta(10),
                              datetime.now().date()))
@@ -148,6 +129,7 @@ class OWTwitter(OWWidget):
         """
         super().__init__(*args, **kwargs)
         self.api = None
+        self.corpus = None
         self.api_dlg = self.APICredentialsDialog(self)
         self.api_dlg.accept(silent=True)
 
@@ -220,7 +202,8 @@ class OWTwitter(OWWidget):
         self.query_box.layout().addLayout(layout)
 
         self.controlArea.layout().addWidget(
-            CheckListLayout('Text includes', self, 'corpus_variables', self.attributes, cols=2))
+            CheckListLayout('Text includes', self, 'text_includes', self.attributes, cols=2,
+                            callback=self.set_text_features))
 
         self.info_box = gui.hBox(self.controlArea, 'Info')
         self.tweets_count_label = gui.label(self.info_box, self, self.tweets_info.format(0))
@@ -304,11 +287,20 @@ class OWTwitter(OWWidget):
 
     def send_corpus(self):
         if self.api and self.api.tweets:
-            corpus = self.api.create_corpus(
-                included_attributes=list(chain(*self.corpus_variables)))
-            self.send(Output.CORPUS, corpus)
+            self.corpus = self.api.create_corpus()
+            self.set_text_features()
         else:
-            self.send(Output.CORPUS, None)
+            self.send(IO.CORPUS, None)
+
+    def set_text_features(self):
+        self.Warning.no_text_fields.clear()
+        if not self.text_includes:
+            self.Warning.no_text_fields()
+
+        if self.corpus is not None:
+            vars_ = [var for var in self.corpus.domain.metas if var.name in self.text_includes]
+            self.corpus.set_text_features(vars_ or None)
+            self.send(IO.CORPUS, self.corpus)
 
     @QtCore.pyqtSlot(str)
     def on_rate_limit(self):

@@ -2,11 +2,10 @@
 import threading
 from collections import OrderedDict
 
-import numpy as np
 import tweepy
 
 from Orange import data
-from orangecontrib.text.corpus import Corpus
+from orangecontrib.text import Corpus
 from orangecontrib.text.language_codes import code2lang
 
 __all__ = ['Credentials', 'TwitterAPI']
@@ -67,35 +66,35 @@ class TwitterAPI:
     Notes:
         Every search accumulates downloaded tweets. To remove the stored tweets call `reset` method.
     """
+    attributes = []
+    class_vars = []
 
     metas = [
-        (data.StringVariable('text'), lambda st: st.text),
-        (data.StringVariable('author_description'), lambda st: st.author.description),
-        (data.StringVariable('place'), lambda st: getattr(st.place, 'country_code', None)),
-    ]
-    text_features = [metas[0][0]]
-
-    attributes = [
-        (data.DiscreteVariable('id'), lambda st: st.id_str),
-        (data.DiscreteVariable('in_reply_to_user_id'), lambda st: st.in_reply_to_user_id),
-        (data.ContinuousVariable('favorite_count'), lambda st: st.favorite_count),
-        (data.ContinuousVariable('retweet_count'), lambda st: st.retweet_count),
-        (data.TimeVariable('created_at'), lambda st: st.created_at.timestamp()),
-        (data.DiscreteVariable('lang'), lambda st: st.lang),
-        (data.DiscreteVariable('author_id'), lambda st: st.author.id_str),
-        (data.DiscreteVariable('author_name'), lambda st: st.author.name),
-        (data.DiscreteVariable('author_screen_name'), lambda st: st.author.screen_name),
-        (data.ContinuousVariable('author_statuses_count'), lambda st: st.author.statuses_count),
-        (data.ContinuousVariable('author_favourites_count'), lambda st: st.author.favourites_count),
-        (data.ContinuousVariable('author_friends_count'), lambda st: st.author.friends_count),
-        (data.ContinuousVariable('author_followers_count'), lambda st: st.author.followers_count),
-        (data.ContinuousVariable('author_listed_count'), lambda st: st.author.listed_count),
-        (data.DiscreteVariable('author_verified'), lambda st: str(st.author.verified)),
-        (data.ContinuousVariable('coordinates_longitude'), lambda st: coordinates_geoJSON(st.coordinates)[0]),
-        (data.ContinuousVariable('coordinates_latitude'), lambda st: coordinates_geoJSON(st.coordinates)[1]),
+        (data.DiscreteVariable('Author'), lambda doc: '@'+doc.author.screen_name),
+        (data.StringVariable('Content'), lambda doc: doc.text),
+        (data.TimeVariable('Date'), lambda doc: doc.created_at.timestamp()),
+        (data.DiscreteVariable('Language'), lambda doc: doc.lang),
+        (data.DiscreteVariable('Location'), lambda doc: getattr(doc.place, 'country_code', None)),
+        (data.ContinuousVariable('Number of Likes'), lambda doc: doc.favorite_count),
+        (data.ContinuousVariable('Number of Retweets'), lambda doc: doc.retweet_count),
+        (data.DiscreteVariable('In Reply To'),
+            lambda doc: '@' + doc.in_reply_to_screen_name if doc.in_reply_to_screen_name else ''),
+        (data.DiscreteVariable('Author Name'), lambda doc: doc.author.name),
+        (data.StringVariable('Author Description'), lambda doc: doc.author.description),
+        (data.ContinuousVariable('Author Statuses Count'), lambda doc: doc.author.statuses_count),
+        (data.ContinuousVariable('Author Favourites Count'), lambda doc: doc.author.favourites_count),
+        (data.ContinuousVariable('Author Friends Count'), lambda doc: doc.author.friends_count),
+        (data.ContinuousVariable('Author Followers Count'), lambda doc: doc.author.followers_count),
+        (data.ContinuousVariable('Author Listed Count'), lambda doc: doc.author.listed_count),
+        (data.DiscreteVariable('Author Verified'), lambda doc: str(doc.author.verified)),
+        (data.ContinuousVariable('Longitude'),
+         lambda doc: coordinates_geoJSON(doc.coordinates)[0]),
+        (data.ContinuousVariable('Latitude'),
+         lambda doc: coordinates_geoJSON(doc.coordinates)[1]),
     ]
 
-    supported_fields = metas + attributes
+    text_features = [metas[1][0]]       # Content
+    string_attributes = [m for m, _ in metas if isinstance(m, data.StringVariable)]
 
     def __init__(self, credentials, on_start=None, on_progress=None, on_error=None,
                  on_rate_limit=None, on_finish=None):
@@ -180,59 +179,16 @@ class TwitterAPI:
             self.task.join(*args)
 
     def add_status(self, status):
-        status_record = {attr.name: getter(status)
-                         for attr, getter in self.supported_fields}
         self.statuses_lock.acquire()
-        self.container[status.id] = status_record
+        self.container[status.id] = status
         self.statuses_lock.release()
 
-    def create_corpus(self, included_attributes=None):
-        """ Creates a corpus with collected tweets.
-
-        Args:
-            included_attributes(Optional[List of string]): A list of tweets' attributes to be included in the result.
-        """
-        if included_attributes:
-            attributes = [(attr, _) for attr, _ in self.attributes
-                          if attr.name in included_attributes]
-
-            metas = [(attr, _) for attr, _ in self.metas
-                     if attr.name in included_attributes]
-
-            text_features = [attr for attr in self.text_features
-                             if attr.name in included_attributes]
-        else:
-            attributes = self.attributes
-            metas = self.metas
-            text_features = self.text_features
-
-        domain = data.Domain(attributes=[attr for attr, _ in attributes],
-                             metas=[attr for attr, _ in metas])
-
+    def create_corpus(self):
+        """ Creates a corpus with collected tweets. """
         self.statuses_lock.acquire()
-
-        for attr in domain.attributes:
-            if isinstance(attr, data.DiscreteVariable):
-                attr.values = []
-
-        def to_val(attr, val):
-            if isinstance(attr, data.DiscreteVariable) and val not in attr.values:
-                attr.add_value(val)
-            return attr.to_val(val)
-
-        X = np.array([
-            [to_val(attr, record[attr.name]) for attr, _ in attributes]
-            for record in self.tweets
-        ])
-
-        metas = np.array([
-            [record[attr.name] for attr, _ in metas]
-            for record in self.tweets
-        ], dtype=object)
+        corpus = Corpus.from_documents(self.tweets, 'Twitter', self.attributes,
+                                       self.class_vars, self.metas)
         self.statuses_lock.release()
-
-        corpus = Corpus(X=X, metas=metas, domain=domain, text_features=text_features)
-        corpus.name = 'Twitter'
         return corpus
 
     def reset(self):
