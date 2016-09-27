@@ -45,7 +45,7 @@ class CorpusTests(unittest.TestCase):
 
     def test_corpus_from_init(self):
         c = Corpus.from_file('bookexcerpts')
-        c2 = Corpus(c.X, c.Y, c.metas, c.domain, c.text_features)
+        c2 = Corpus(c.domain, c.X, c.Y, c.metas, c.text_features)
         self.assertEqual(c, c2)
 
     def test_extend_corpus(self):
@@ -82,23 +82,23 @@ class CorpusTests(unittest.TestCase):
         c = Corpus.from_file('bookexcerpts')
         n_doc = c.X.shape[0]
 
-        c2 = Corpus(c.X, c.Y, c.metas, c.domain, [])
+        c2 = Corpus(c.domain, c.X, c.Y, c.metas, c.W, [])
         self.assertNotEqual(c, c2)
 
-        c2 = Corpus(np.ones((n_doc, 1)), c.Y, c.metas, c.domain, c.text_features)
+        c2 = Corpus(c.domain, np.ones((n_doc, 1)), c.Y, c.metas, c.W, c.text_features)
         self.assertNotEqual(c, c2)
 
-        c2 = Corpus(c.X, np.ones((n_doc, 1)), c.metas, c.domain, c.text_features)
+        c2 = Corpus(c.domain, c.X, np.ones((n_doc, 1)), c.metas, c.W, c.text_features)
         self.assertNotEqual(c, c2)
 
         broken_metas = np.copy(c.metas)
         broken_metas[0, 0] = ''
-        c2 = Corpus(c.X, c.Y, broken_metas, c.domain, c.text_features)
+        c2 = Corpus(c.domain, c.X, c.Y, broken_metas, c.W, c.text_features)
         self.assertNotEqual(c, c2)
 
         new_meta = [StringVariable('text2')]
         broken_domain = Domain(c.domain.attributes, c.domain.class_var, new_meta)
-        c2 = Corpus(c.X, c.Y, c.metas, broken_domain, new_meta)
+        c2 = Corpus(broken_domain, c.X, c.Y, c.metas, c.W, new_meta)
         self.assertNotEqual(c, c2)
 
         c2 = c.copy()
@@ -219,7 +219,7 @@ class CorpusTests(unittest.TestCase):
 
         too_large_x = np.vstack((c.X, c.X))
         with self.assertRaises(ValueError):
-            Corpus(too_large_x, c.Y, c.metas, c.domain, c.text_features)
+            Corpus(c.domain, too_large_x, c.Y, c.metas, c.W, c.text_features)
 
         with self.assertRaises(ValueError):
             c.set_text_features([StringVariable('foobar')])

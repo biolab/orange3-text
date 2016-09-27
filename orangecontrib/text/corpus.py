@@ -37,13 +37,14 @@ class Corpus(Table):
         """Bypass Table.__new__."""
         return object.__new__(cls)
 
-    def __init__(self, X=None, Y=None, metas=None, domain=None, text_features=None):
+    def __init__(self, domain=None, X=None, Y=None, metas=None, W=None, text_features=None):
         """
         Args:
+            domain (Orange.data.Domain): the domain for this Corpus
             X (numpy.ndarray): attributes
             Y (numpy.ndarray): class variables
             metas (numpy.ndarray): meta attributes; e.g. text
-            domain (Orange.data.Domain): the domain for this Corpus
+            W (numpy.ndarray): instance weights
             text_features (list): meta attributes that are used for
                 text mining. Infer them if None.
         """
@@ -52,7 +53,7 @@ class Corpus(Table):
         self.X = X if X is not None else np.zeros((n_doc, 0))
         self.Y = Y if Y is not None else np.zeros((n_doc, 0))
         self.metas = metas if metas is not None else np.zeros((n_doc, 0))
-        self.W = np.zeros((n_doc, 0))
+        self.W = W if W is not None else np.zeros((n_doc, 0))
         self.domain = domain
         self.text_features = None    # list of text features for mining
         self._tokens = None
@@ -225,7 +226,7 @@ class Corpus(Table):
     @classmethod
     def from_table(cls, domain, source, row_indices=...):
         t = super().from_table(domain, source, row_indices)
-        return Corpus(t.X, t.Y, t.metas, t.domain, None)
+        return Corpus(t.domain, t.X, t.Y, t.metas, t.W, None)
 
     @classmethod
     def from_file(cls, filename):
@@ -239,7 +240,7 @@ class Corpus(Table):
                 filename = abs_path
 
         table = Table.from_file(filename)
-        return cls(table.X, table.Y, table.metas, table.domain, None)
+        return cls(table.domain, table.X, table.Y, table.metas, table.W, None)
 
     def ngrams_iterator(self, join_with=' ', include_postags=False):
         if self.pos_tags is None:
@@ -279,8 +280,8 @@ class Corpus(Table):
 
     def copy(self):
         """Return a copy of the table."""
-        c = self.__class__(self.X.copy(), self.Y.copy(), self.metas.copy(),
-                           self.domain, copy(self.text_features))
+        c = self.__class__(self.domain, self.X.copy(), self.Y.copy(), self.metas.copy(),
+                           self.W.copy(), copy(self.text_features))
         # since tokens and dictionary are considered immutable copies are not needed
         c._tokens = self._tokens
         c._dictionary = self._dictionary
