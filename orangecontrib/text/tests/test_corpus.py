@@ -206,6 +206,9 @@ class CorpusTests(unittest.TestCase):
         self.assertEqual(sel.ngram_range, c.ngram_range)
         self.assertEqual(sel.attributes, c.attributes)
 
+        sel = c[...]
+        self.assertEqual(sel, c)
+
     def test_set_text_features(self):
         c = Corpus.from_file('friends-transcripts')[:100]
         c2 = c.copy()
@@ -226,10 +229,6 @@ class CorpusTests(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             c.set_text_features([c.domain.metas[0], c.domain.metas[0]])
-
-        c.tokens    # preprocess
-        with self.assertRaises(TypeError):
-            c[..., 0]
 
     def test_has_tokens(self):
         corpus = Corpus.from_file('deerwester')
