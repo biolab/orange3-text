@@ -280,6 +280,10 @@ class Mock(MagicMock):
 class MockVariable(Mock):
     __all__ = ['Variable', 'StringVariable', 'ContinuousVariable', 'DiscreteVariable', 'TimeVariable']
 
+    @classmethod
+    def __getattr__(cls, name):
+        return MockClasses if name in cls.__all__  else Mock()  # required since Corpus extends Table
+
 
 class MockTable(MagicMock):
     __all__ = ['RowInstance', 'Table',]     # required for "from Orange.data import Table"
@@ -290,14 +294,20 @@ class MockTable(MagicMock):
 
 
 class MockClasses:
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         pass
-
 
 MOCK_MODULES = [
     ('Orange.data.variable', MockVariable),
     ('Orange.data.table', MockTable),
     ('Orange.data.io', Mock),
+    ('Orange.data.util', Mock),
 ]
+
 for name, mock_class in MOCK_MODULES:
     sys.modules.update({name: mock_class()})
+
+# checks if imports work
+from Orange.data import Table
+from Orange.data import StringVariable
+isinstance(None, StringVariable)
