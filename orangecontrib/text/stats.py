@@ -1,5 +1,5 @@
 import numpy as np
-from scipy import stats
+from scipy import stats, sparse
 import math
 
 # To speed-up FDR, calculate ahead sum([1/i for i in range(1, m+1)]), for m in [1,100000].
@@ -75,6 +75,11 @@ def hypergeom_p_values(data, selected, callback=None):
     Returns: p-values for features
 
     """
+    def col_sum(x):
+        if sparse.issparse(x):
+            return np.squeeze(np.asarray(x.sum(axis=0)))
+        else:
+            return np.sum(x, axis=0)
 
     if data.shape[1] != selected.shape[1]:
         raise ValueError("Number of columns does not match.")
@@ -86,9 +91,8 @@ def hypergeom_p_values(data, selected, callback=None):
     num_features = selected.shape[1]
     pop_size = data.shape[0]                # population size = number of all data examples
     sam_size = selected.shape[0]            # sample size = number of selected examples
-    pop_counts = np.sum(data, axis=0)       # number of observations in population = occurrences of words all data
-    sam_counts = np.sum(selected, axis=0)   # number of observations in sample = occurrences of words in selected data
-
+    pop_counts = col_sum(data)              # number of observations in population = occurrences of words all data
+    sam_counts = col_sum(selected)          # number of observations in sample = occurrences of words in selected data
     step = 250
     p_vals = []
 

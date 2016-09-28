@@ -3,7 +3,7 @@ import numpy as np
 
 from Orange.widgets import gui
 from Orange.widgets.settings import Setting
-from Orange.widgets.widget import OWWidget
+from Orange.widgets.widget import OWWidget, Msg
 from Orange.data import Table
 from orangecontrib.text.stats import false_discovery_rate, hypergeom_p_values
 
@@ -19,6 +19,9 @@ class OWWordEnrichment(OWWidget):
     inputs = [("Selected Data", Table, "set_data_selected"),
               ("Data", Table, "set_data"),]
     want_main_area = True
+
+    class Warning(OWWidget.Warning):
+        no_feature_overlap = Msg('No features overlap!')
 
     # Settings
     filter_by_p = Setting(False)
@@ -92,16 +95,15 @@ class OWWordEnrichment(OWWidget):
         self.check_data()
 
     def check_data(self):
-        self.warning(1)
+        self.Warning.clear()
         if isinstance(self.data, Table) and \
                 isinstance(self.selected_data, Table):
             self.selected_data_transformed = Table.from_table(self.data.domain, self.selected_data)
-            if self.selected_data_transformed.X.size > 0 and \
-                    not np.isnan(self.selected_data_transformed.X).all():
+            if self.selected_data_transformed.X.size > 0:
                 self.apply()
             else:
                 self.clear()
-                self.warning(1, 'No features overlap!')
+                self.Warning.no_feature_overlap()
         else:
             self.clear()
 
