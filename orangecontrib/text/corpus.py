@@ -268,6 +268,7 @@ class Corpus(Table):
         c._dictionary = self._dictionary
         c.ngram_range = self.ngram_range
         c.pos_tags = self.pos_tags
+        c.name = self.name
         return c
 
     @staticmethod
