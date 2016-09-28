@@ -1,5 +1,7 @@
 import unittest
 import numpy as np
+import scipy.sparse as sp
+
 from orangecontrib.text.stats import hypergeom_p_values, false_discovery_rate, is_sorted
 
 class StatsTests(unittest.TestCase):
@@ -13,6 +15,10 @@ class StatsTests(unittest.TestCase):
 
         # calculating on counts
         pvals = hypergeom_p_values(self.x, self.x[-2:, :])
+        np.testing.assert_almost_equal(pvals, results)
+
+        # calculating on sparse counts
+        pvals = hypergeom_p_values(sp.csr_matrix(self.x), self.x[-2:, :])
         np.testing.assert_almost_equal(pvals, results)
 
         # calculating on 0,1s
