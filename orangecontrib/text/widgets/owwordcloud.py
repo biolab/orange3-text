@@ -274,7 +274,7 @@ def main():
     w = OWWordCloud()
     w.on_topic_change(table)
     domain = Domain([], metas=[StringVariable('text')])
-    data = Corpus(None, None, np.array([[' '.join(words.flat)]]), domain)
+    data = Corpus(domain=domain, metas=np.array([[' '.join(words.flat)]]))
     # data = Corpus.from_numpy(domain, X=np.zeros((1, 0)), metas=np.array([[' '.join(words.flat)]]))
     w.on_corpus_change(data)
     w.show()

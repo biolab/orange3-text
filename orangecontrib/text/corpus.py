@@ -37,13 +37,14 @@ class Corpus(Table):
         """Bypass Table.__new__."""
         return object.__new__(cls)
 
-    def __init__(self, X=None, Y=None, metas=None, domain=None, text_features=None):
+    def __init__(self, domain=None, X=None, Y=None, metas=None, W=None, text_features=None):
         """
         Args:
+            domain (Orange.data.Domain): the domain for this Corpus
             X (numpy.ndarray): attributes
             Y (numpy.ndarray): class variables
             metas (numpy.ndarray): meta attributes; e.g. text
-            domain (Orange.data.Domain): the domain for this Corpus
+            W (numpy.ndarray): instance weights
             text_features (list): meta attributes that are used for
                 text mining. Infer them if None.
         """
@@ -52,7 +53,7 @@ class Corpus(Table):
         self.X = X if X is not None else np.zeros((n_doc, 0))
         self.Y = Y if Y is not None else np.zeros((n_doc, 0))
         self.metas = metas if metas is not None else np.zeros((n_doc, 0))
-        self.W = np.zeros((n_doc, 0))
+        self.W = W if W is not None else np.zeros((n_doc, 0))
         self.domain = domain
         self.text_features = None    # list of text features for mining
         self._tokens = None
@@ -222,25 +223,6 @@ class Corpus(Table):
             self._apply_base_preprocessor()
         return self._dictionary
 
-    @classmethod
-    def from_table(cls, domain, source, row_indices=...):
-        t = super().from_table(domain, source, row_indices)
-        return Corpus(t.X, t.Y, t.metas, t.domain, None)
-
-    @classmethod
-    def from_file(cls, filename):
-        if not os.path.exists(filename):    # check the default location
-            abs_path = os.path.join(get_sample_corpora_dir(), filename)
-            if not abs_path.endswith('.tab'):
-                abs_path += '.tab'
-            if not os.path.exists(abs_path):
-                raise FileNotFoundError('File "{}" not found.'.format(filename))
-            else:
-                filename = abs_path
-
-        table = Table.from_file(filename)
-        return cls(table.X, table.Y, table.metas, table.domain, None)
-
     def ngrams_iterator(self, join_with=' ', include_postags=False):
         if self.pos_tags is None:
             include_postags = False
@@ -279,8 +261,8 @@ class Corpus(Table):
 
     def copy(self):
         """Return a copy of the table."""
-        c = self.__class__(self.X.copy(), self.Y.copy(), self.metas.copy(),
-                           self.domain, copy(self.text_features))
+        c = self.__class__(self.domain, self.X.copy(), self.Y.copy(), self.metas.copy(),
+                           self.W.copy(), copy(self.text_features))
         # since tokens and dictionary are considered immutable copies are not needed
         c._tokens = self._tokens
         c._dictionary = self._dictionary
@@ -333,25 +315,55 @@ class Corpus(Table):
 
     def __getitem__(self, key):
         c = super().__getitem__(key)
-
-        if self._tokens is not None:    # retain preprocessing
-            if isinstance(key, tuple):  # get row selection
-                key = key[0]
-            if isinstance(key, Integral):
-                c._tokens = np.array([self._tokens[key]])
-                c.pos_tags = None if self.pos_tags is None else np.array([self.pos_tags[key]])
-            elif isinstance(key, list) or isinstance(key, np.ndarray) or isinstance(key, slice):
-                c._tokens = self._tokens[key]
-                c.pos_tags = None if self.pos_tags is None else self.pos_tags[key]
-            else:
-                raise TypeError('Indexing by type {} not supported.'.format(type(key)))
-            c._dictionary = self._dictionary
-
-        c.text_features = self.text_features
-        c.ngram_range = self.ngram_range
-        c.attributes = self.attributes
-
+        Corpus.retain_preprocessing(self, c, key)
         return c
+
+    @classmethod
+    def from_table(cls, domain, source, row_indices=...):
+        t = super().from_table(domain, source, row_indices)
+        c = Corpus(t.domain, t.X, t.Y, t.metas, t.W)
+        Corpus.retain_preprocessing(source, c, row_indices)
+        return c
+
+    @classmethod
+    def from_file(cls, filename):
+        if not os.path.exists(filename):  # check the default location
+            abs_path = os.path.join(get_sample_corpora_dir(), filename)
+            if not abs_path.endswith('.tab'):
+                abs_path += '.tab'
+            if not os.path.exists(abs_path):
+                raise FileNotFoundError('File "{}" not found.'.format(filename))
+            else:
+                filename = abs_path
+
+        table = Table.from_file(filename)
+        return cls(table.domain, table.X, table.Y, table.metas, table.W)
+
+    @staticmethod
+    def retain_preprocessing(orig, new, key=...):
+        """ Set preprocessing of 'new' object to match the 'orig' object. """
+        if isinstance(orig, Corpus):
+            if orig._tokens is not None:  # retain preprocessing
+                if isinstance(key, tuple):  # get row selection
+                    key = key[0]
+                if isinstance(key, Integral):
+                    new._tokens = np.array([orig._tokens[key]])
+                    new.pos_tags = None if orig.pos_tags is None else np.array(
+                        [orig.pos_tags[key]])
+                elif isinstance(key, list) or isinstance(key, np.ndarray) or isinstance(key,
+                                                                                        slice):
+                    new._tokens = orig._tokens[key]
+                    new.pos_tags = None if orig.pos_tags is None else orig.pos_tags[key]
+                elif key is Ellipsis:
+                    new._tokens = orig._tokens
+                    new.pos_tags = orig.pos_tags
+                else:
+                    raise TypeError('Indexing by type {} not supported.'.format(type(key)))
+                new._dictionary = orig._dictionary
+
+            new.text_features = orig.text_features
+            new.ngram_range = orig.ngram_range
+            new.attributes = orig.attributes
 
     def __len__(self):
         return len(self.metas)
