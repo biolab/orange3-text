@@ -3,7 +3,6 @@ from unittest import mock
 import os
 
 import pickle
-from itertools import chain
 
 import json
 
@@ -101,16 +100,6 @@ class TestTwitterAPI(unittest.TestCase):
         corpus = self.api.create_corpus()
         self.assertIsInstance(corpus, Corpus)
         self.assertEqual(len(corpus), 5)
-
-    def test_crate_corpus_attr_selection(self):
-        self.api.search(word_list=['hello'], max_tweets=5)
-        self.api.join()
-        attributes = ['text', 'created_at', 'author_id']
-        corpus = self.api.create_corpus(included_attributes=attributes)
-        domain_attributes = [attr.name for attr in chain(corpus.domain.attributes, corpus.domain.metas)]
-        self.assertEqual(len(domain_attributes), 3)
-        for attr in attributes:
-            self.assertIn(attr, domain_attributes)
 
     def test_clear(self):
         self.api.search(word_list=['hello'], max_tweets=5)

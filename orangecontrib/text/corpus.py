@@ -8,7 +8,7 @@ import numpy as np
 import scipy.sparse as sp
 from gensim import corpora
 
-from Orange.data import Table, Domain, ContinuousVariable
+from Orange.data import Table, Domain, ContinuousVariable, DiscreteVariable
 from orangecontrib.text.vectorization import BowVectorizer
 
 
@@ -287,6 +287,49 @@ class Corpus(Table):
         c.ngram_range = self.ngram_range
         c.pos_tags = self.pos_tags
         return c
+
+    @staticmethod
+    def from_documents(documents, name, attributes=None, class_vars=None, metas=None):
+        """
+        Create corpus from documents.
+
+        Args:
+            documents (list): List of documents.
+            name (str): Name of the corpus
+            attributes (list): List of tuples (Variable, getter) for attributes.
+            class_vars (list): List of tuples (Variable, getter) for class vars.
+            metas (list): List of tuples (Variable, getter) for metas.
+
+        Returns:
+            Corpus.
+        """
+        attributes = attributes or []
+        class_vars = class_vars or []
+        metas = metas or []
+
+        domain = Domain(attributes=[attr for attr, _ in attributes],
+                        class_vars=[attr for attr, _ in class_vars],
+                        metas=[attr for attr, _ in metas])
+
+        for attr in domain.attributes:
+            if isinstance(attr, DiscreteVariable):
+                attr.values = []
+
+        def to_val(attr, val):
+            if isinstance(attr, DiscreteVariable):
+                attr.val_from_str_add(val)
+            return attr.to_val(val)
+
+        X = np.array([[to_val(attr, func(doc)) for attr, func in attributes]
+                      for doc in documents])
+        Y = np.array([[to_val(attr, func(doc)) for attr, func in class_vars]
+                      for doc in documents])
+        metas = np.array([[to_val(attr, func(doc)) for attr, func in metas]
+                          for doc in documents], dtype=object)
+
+        corpus = Corpus(X=X, Y=Y, metas=metas, domain=domain, text_features=[])
+        corpus.name = name
+        return corpus
 
     def __getitem__(self, key):
         c = super().__getitem__(key)

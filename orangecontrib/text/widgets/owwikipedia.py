@@ -9,37 +9,28 @@ from orangecontrib.text.widgets.utils import ComboBox, ListEdit, CheckListLayout
 from orangecontrib.text.wikipedia import WikipediaAPI, NetworkException
 
 
-class Output:
+class IO:
     CORPUS = "Corpus"
 
 
 class OWWikipedia(OWWidget):
     """ Get articles from wikipedia. """
-
     name = 'Wikipedia'
     priority = 27
     icon = 'icons/Wikipedia.svg'
 
-    outputs = [(Output.CORPUS, Corpus)]
+    outputs = [(IO.CORPUS, Corpus)]
     want_main_area = False
     resizing_enabled = False
 
     label_width = 1
     widgets_width = 2
 
-    attributes = [
-        # ('Content', 'content'),
-        ('Title', 'title'),
-        ('Summary', 'summary'),
-        ('Query', 'query'),
-        ('URL', 'url'),
-        ('Page ID', 'pageid'),
-        ('Revision ID', 'revision_id'),
-    ]
+    attributes = [feat.name for feat in WikipediaAPI.string_attributes]
+    text_includes = settings.Setting([feat.name for feat in WikipediaAPI.string_attributes])
 
     query_list = settings.Setting([])
     language = settings.Setting('en')
-    corpus_variables = settings.Setting([attr[1] for attr in attributes])
     articles_per_query = settings.Setting(10)
 
     info_label = 'Articles count {}'
@@ -48,14 +39,18 @@ class OWWikipedia(OWWidget):
         api = Msg('Api error\n{}')
         network = Msg('Connection error\n{}')
 
+    class Warning(OWWidget.Warning):
+        no_text_fields = Msg('Text features are inferred when none are selected.')
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        layout = QtGui.QGridLayout()
 
         def progress_callback(i, c):
-            QtCore.QMetaObject.invokeMethod(self, "on_progress", QtCore.Qt.QueuedConnection, QtCore.Q_ARG(float, i), QtCore.Q_ARG(int, c))
+            QtCore.QMetaObject.invokeMethod(self, "on_progress", QtCore.Qt.QueuedConnection,
+                                            QtCore.Q_ARG(float, i), QtCore.Q_ARG(int, c))
 
-        self.api = WikipediaAPI(on_progress=progress_callback, on_finish=self.on_finish, on_error=self.on_error)
+        self.api = WikipediaAPI(on_progress=progress_callback, on_finish=self.on_finish,
+                                on_error=self.on_error)
         self.result = None
 
         query_box = gui.hBox(self.controlArea, 'Query')
@@ -86,7 +81,8 @@ class OWWikipedia(OWWidget):
         self.controlArea.layout().addWidget(query_box)
 
         self.controlArea.layout().addWidget(
-            CheckListLayout('Text includes', self, 'corpus_variables', self.attributes, cols=2))
+            CheckListLayout('Text includes', self, 'text_includes', self.attributes, cols=2,
+                            callback=self.set_text_features))
 
         self.info_box = gui.hBox(self.controlArea, 'Info')
         self.result_label = gui.label(self.info_box, self, self.info_label.format(0))
@@ -118,7 +114,7 @@ class OWWikipedia(OWWidget):
         self.search_button.setText("Stop")
         self.progressBarInit()
         self.result_label.setText(self.info_label.format(0))
-        self.api.search(lang=self.language, queries=self.query_list, attributes=self.corpus_variables,
+        self.api.search(lang=self.language, queries=self.query_list,
                         articles_per_query=self.articles_per_query, async=True)
 
     @QtCore.pyqtSlot(float, int)
@@ -129,7 +125,7 @@ class OWWikipedia(OWWidget):
     @QtCore.pyqtSlot(object)
     def on_finish(self, result):
         self.result = result
-        self.send(Output.CORPUS, result)
+        self.set_text_features()
         self.result_label.setText(self.info_label.format(len(result) if result else 0))
         self.progressBarFinished()
         self.search_button.setText("Search")
@@ -139,6 +135,16 @@ class OWWikipedia(OWWidget):
         if isinstance(error, NetworkException):
             self.Error.network(str(error))
         self.on_finish(None)
+
+    def set_text_features(self):
+        self.Warning.no_text_fields.clear()
+        if not self.text_includes:
+            self.Warning.no_text_fields()
+
+        if self.result is not None:
+            vars_ = [var for var in self.result.domain.metas if var.name in self.text_includes]
+            self.result.set_text_features(vars_ or None)
+            self.send(IO.CORPUS, self.result)
 
 if __name__ == '__main__':
     app = QtGui.QApplication([])

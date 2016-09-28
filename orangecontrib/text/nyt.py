@@ -8,7 +8,6 @@ from time import sleep
 from urllib import request, parse
 from urllib.error import HTTPError
 
-import numpy as np
 
 from Orange import data
 from Orange.canvas.utils import environ
@@ -105,7 +104,8 @@ class NYT:
 
         for page in range(1, math.ceil(max_docs/BATCH_SIZE)):
             if callable(should_break) and should_break():
-                return self._create_corpus(records)
+                return Corpus.from_documents(records, 'NY Times', self.attributes,
+                                             self.class_vars, self.metas)
 
             data, cached = self._fetch_page(query, date_from, date_to, page)
             records.extend(data['response']['docs'])
@@ -119,7 +119,8 @@ class NYT:
         if len(records) > max_docs:
             records = records[:max_docs]
 
-        return self._create_corpus(records)
+        return Corpus.from_documents(records, 'NY Times', self.attributes,
+                                     self.class_vars, self.metas)
 
     def _cache_init(self):
         """ Initialize cache in Orange environment buffer dir. """
@@ -189,28 +190,3 @@ class NYT:
             return parse.urlencode(params)
         else:
             return '{}?{}'.format(BASE_URL, parse.urlencode(params))
-
-    def _create_corpus(self, documents):
-        domain = data.Domain(attributes=[attr for attr, _ in self.attributes],
-                             class_vars=[attr for attr, _ in self.class_vars],
-                             metas=[attr for attr, _ in self.metas])
-
-        for attr in domain.attributes:
-            if isinstance(attr, data.DiscreteVariable):
-                attr.values = []
-
-        def to_val(attr, val):
-            if isinstance(attr, data.DiscreteVariable) and val not in attr.values:
-                attr.add_value(val)
-            return attr.to_val(val)
-
-        X = np.array([[to_val(attr, func(doc)) for attr, func in self.attributes]
-                      for doc in documents])
-        Y = np.array([[to_val(attr, func(doc)) for attr, func in self.class_vars]
-                      for doc in documents])
-        metas = np.array([[to_val(attr, func(doc)) for attr, func in self.metas]
-                          for doc in documents], dtype=object)
-
-        corpus = Corpus(X=X, Y=Y, metas=metas, domain=domain, text_features=self.text_features)
-        corpus.name = 'NY Times'
-        return corpus
