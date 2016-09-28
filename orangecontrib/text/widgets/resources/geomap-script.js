@@ -52,6 +52,8 @@ function renderMap() {
             }
         },
         onRegionSelected: function() {
+            if (__in_resize)  // Don't resend selections if we came here through window resizing
+                return;
             var regions = [];
             var selected = map.getSelectedRegions();
             for (var i=0; i<selected.length; ++i) {
@@ -63,6 +65,7 @@ function renderMap() {
                 regions = regions.concat(alias);
                 regions.push(selected[i]);
             }
+            SELECTED_REGIONS = regions;
             pybridge.region_selected(regions);
         }
     }).vectorMap('get', 'mapObject');
@@ -77,4 +80,10 @@ function renderMap() {
     map.setSelectedRegions(SELECTED_REGIONS.filter(function(el) { return map.regions[el]; }));
 }
 
-window.onresize = renderMap;
+var __in_resize = false;
+
+window.onresize = function() {
+    __in_resize = true;
+    renderMap();
+    __in_resize = false;
+}
