@@ -96,8 +96,7 @@ class OWWordEnrichment(OWWidget):
         if isinstance(self.data, Table) and \
                 isinstance(self.selected_data, Table):
             self.selected_data_transformed = Table.from_table(self.data.domain, self.selected_data)
-            if self.selected_data_transformed.X.size > 0 and \
-                    not np.isnan(self.selected_data_transformed.X).all():
+            if self.selected_data_transformed.X.size > 0:
                 self.apply()
             else:
                 self.clear()
