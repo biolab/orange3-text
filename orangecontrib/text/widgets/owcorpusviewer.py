@@ -85,8 +85,12 @@ class OWCorpusViewer(OWWidget):
                                          label='RegExp Filter:')
         self.filter_input.textChanged.connect(self.refresh_search)
 
-        h_box = gui.widgetBox(self.mainArea, orientation=Qt.Horizontal, addSpace=True)
-        h_box.layout().setSpacing(0)
+        # Main area
+        self.splitter = QtGui.QSplitter(
+            orientation=Qt.Horizontal,
+            childrenCollapsible=False,
+            handleWidth=2,
+        )
 
         # Document list
         self.doc_list = QTableView()
@@ -95,16 +99,16 @@ class OWCorpusViewer(OWWidget):
         self.doc_list.setEditTriggers(QtGui.QAbstractItemView.NoEditTriggers)
         self.doc_list.horizontalHeader().setResizeMode(QtGui.QHeaderView.Stretch)
         self.doc_list.horizontalHeader().setVisible(False)
-        h_box.layout().addWidget(self.doc_list)
+        self.splitter.addWidget(self.doc_list)
 
         self.doc_list_model = QStandardItemModel(self)
-
         self.doc_list.setModel(self.doc_list_model)
-        self.doc_list.setFixedWidth(200)
         self.doc_list.selectionModel().selectionChanged.connect(self.show_docs)
 
         # Document contents
-        self.doc_webview = gui.WebviewWidget(h_box, self, debug=True)
+        self.doc_webview = gui.WebviewWidget(self.splitter, self, debug=True)
+
+        self.mainArea.layout().addWidget(self.splitter)
 
     def set_data(self, data=None):
         self.reset_widget()
@@ -167,10 +171,11 @@ class OWCorpusViewer(OWWidget):
         self.output_mask.clear()
         self.doc_list_model.clear()
 
-        for i, (doc, content) in enumerate(zip(self.corpus, self.corpus_docs)):
+        for i, (doc, title, content) in enumerate(zip(self.corpus, self.corpus.titles,
+                                                      self.corpus_docs)):
             if is_match(content):
                 item = QStandardItem()
-                item.setData('Document {}'.format(i+1), Qt.DisplayRole)
+                item.setData(title, Qt.DisplayRole)
                 item.setData(doc, Qt.UserRole)
                 self.doc_list_model.appendRow(item)
                 self.output_mask.append(i)
