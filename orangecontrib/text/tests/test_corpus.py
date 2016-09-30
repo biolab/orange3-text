@@ -135,6 +135,22 @@ class CorpusTests(unittest.TestCase):
         self.assertEqual(len(types), 1)
         self.assertIn(str, types)
 
+    def test_titles(self):
+        c = Corpus.from_file('bookexcerpts')
+
+        # no title feature set
+        titles = c.titles
+        self.assertEqual(len(titles), len(c))
+        for title in titles:
+            self.assertIn('Document ', title)
+
+        # title feature set
+        c.domain[0].attributes['title'] = True
+        titles = c.titles
+        self.assertEqual(len(titles), len(c))
+        for title in titles:
+            self.assertIn(title, c.domain.class_var.values)
+
     def test_documents_from_features(self):
         c = Corpus.from_file('bookexcerpts')
         docs = c.documents_from_features([c.domain.class_var])

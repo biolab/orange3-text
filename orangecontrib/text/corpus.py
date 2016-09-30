@@ -168,6 +168,16 @@ class Corpus(Table):
         """
         return self.documents_from_features(self.text_features)
 
+    @property
+    def titles(self):
+        """ Returns a list of titles. """
+        attrs = [attr for attr in chain(self.domain.variables, self.domain.metas)
+                 if attr.attributes.get('title', False)]
+        if attrs:
+            return self.documents_from_features(attrs)
+        else:
+            return ['Document {}'.format(i+1) for i in range(len(self))]
+
     def documents_from_features(self, feats):
         """
         Args:
@@ -271,7 +281,8 @@ class Corpus(Table):
         return c
 
     @staticmethod
-    def from_documents(documents, name, attributes=None, class_vars=None, metas=None):
+    def from_documents(documents, name, attributes=None, class_vars=None, metas=None,
+                       title_indices=None):
         """
         Create corpus from documents.
 
@@ -281,6 +292,8 @@ class Corpus(Table):
             attributes (list): List of tuples (Variable, getter) for attributes.
             class_vars (list): List of tuples (Variable, getter) for class vars.
             metas (list): List of tuples (Variable, getter) for metas.
+            title_indices (list): List of indices into domain corresponding to features which will
+                be used as titles.
 
         Returns:
             Corpus.
@@ -288,10 +301,14 @@ class Corpus(Table):
         attributes = attributes or []
         class_vars = class_vars or []
         metas = metas or []
+        title_indices = title_indices or []
 
         domain = Domain(attributes=[attr for attr, _ in attributes],
                         class_vars=[attr for attr, _ in class_vars],
                         metas=[attr for attr, _ in metas])
+
+        for ind in title_indices:
+            domain[ind].attributes['title'] = True
 
         for attr in domain.attributes:
             if isinstance(attr, DiscreteVariable):

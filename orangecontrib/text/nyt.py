@@ -105,7 +105,7 @@ class NYT:
         for page in range(1, math.ceil(max_docs/BATCH_SIZE)):
             if callable(should_break) and should_break():
                 return Corpus.from_documents(records, 'NY Times', self.attributes,
-                                             self.class_vars, self.metas)
+                                             self.class_vars, self.metas, title_indices=[-1])
 
             data, cached = self._fetch_page(query, date_from, date_to, page)
             records.extend(data['response']['docs'])
@@ -120,7 +120,7 @@ class NYT:
             records = records[:max_docs]
 
         return Corpus.from_documents(records, 'NY Times', self.attributes,
-                                     self.class_vars, self.metas)
+                                     self.class_vars, self.metas, title_indices=[-1])
 
     def _cache_init(self):
         """ Initialize cache in Orange environment buffer dir. """

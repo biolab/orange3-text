@@ -73,7 +73,7 @@ class WikipediaAPI:
                 self.on_error(NetworkException(e))
 
         corpus = Corpus.from_documents(results, 'Wikipedia', self.attributes,
-                                       self.class_vars, self.metas)
+                                       self.class_vars, self.metas, title_indices=[-1])
         self.on_finish(corpus)
         self.running = False
         return corpus
