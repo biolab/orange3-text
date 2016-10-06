@@ -5,15 +5,15 @@ from Orange.widgets import settings
 from Orange.widgets.widget import OWWidget, Msg
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.language_codes import lang2code, code2lang
-from orangecontrib.text.widgets.utils import ComboBox, ListEdit, CheckListLayout
-from orangecontrib.text.wikipedia import WikipediaAPI, NetworkException
+from orangecontrib.text.widgets.utils import ComboBox, ListEdit, CheckListLayout, OWConcurrentWidget, asynchronous
+from orangecontrib.text.wikipedia import WikipediaAPI
 
 
 class IO:
     CORPUS = "Corpus"
 
 
-class OWWikipedia(OWWidget):
+class OWWikipedia(OWConcurrentWidget):
     """ Get articles from wikipedia. """
     name = 'Wikipedia'
     priority = 27
@@ -33,11 +33,10 @@ class OWWikipedia(OWWidget):
     language = settings.Setting('en')
     articles_per_query = settings.Setting(10)
 
-    info_label = 'Articles count {}'
+    info_label = 'Articles count {:d}'
 
     class Error(OWWidget.Error):
-        api = Msg('Api error\n{}')
-        network = Msg('Connection error\n{}')
+        api_error = Msg('API error: {}')
 
     class Warning(OWWidget.Warning):
         no_text_fields = Msg('Text features are inferred when none are selected.')
@@ -45,12 +44,7 @@ class OWWikipedia(OWWidget):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        def progress_callback(i, c):
-            QtCore.QMetaObject.invokeMethod(self, "on_progress", QtCore.Qt.QueuedConnection,
-                                            QtCore.Q_ARG(float, i), QtCore.Q_ARG(int, c))
-
-        self.api = WikipediaAPI(on_progress=progress_callback, on_finish=self.on_finish,
-                                on_error=self.on_error)
+        self.api = WikipediaAPI(on_error=self.Error.api_error)
         self.result = None
 
         query_box = gui.hBox(self.controlArea, 'Query')
@@ -90,51 +84,37 @@ class OWWikipedia(OWWidget):
         self.button_box = gui.hBox(self.controlArea)
         self.button_box.layout().addWidget(self.report_button)
 
-        self.search_button = gui.button(self.button_box, self, "Search", self.search)
+        self.search_button = gui.button(self.button_box, self, 'Search', self.start_stop)
         self.search_button.setFocusPolicy(QtCore.Qt.NoFocus)
 
-    def send_report(self):
-        if self.result:
-            items = (('Language', code2lang[self.language]),
-                     ('Query', self.query_list),
-                     ('Articles count', len(self.result)))
-            self.report_items('Query', items)
-
-    @QtCore.pyqtSlot()
-    def search(self):
-        if not self.api.running:
-            self.on_start()
+    def start_stop(self):
+        if self.running:
+            self.stop()
         else:
-            self.api.disconnect()
+            self.search()
 
-    @QtCore.pyqtSlot()
+    @asynchronous(allow_partial_results=True)
+    def search(self, on_progress, should_break):
+        def progress_with_info(progress, n_retrieved):
+            on_progress(100 * progress)
+            self.result_label.setText(self.info_label.format(n_retrieved))
+
+        return self.api.search(lang=self.language, queries=self.query_list,
+                               articles_per_query=self.articles_per_query,
+                               on_progress=progress_with_info,
+                               should_break=should_break)
+
     def on_start(self):
-        self.Error.api.clear()
-        self.Error.network.clear()
-        self.search_button.setText("Stop")
-        self.progressBarInit()
+        self.Error.api_error.clear()
+        self.search_button.setText('Stop')
         self.result_label.setText(self.info_label.format(0))
-        self.api.search(lang=self.language, queries=self.query_list,
-                        articles_per_query=self.articles_per_query, async=True)
+        self.send(IO.CORPUS, None)
 
-    @QtCore.pyqtSlot(float, int)
-    def on_progress(self, progress, count):
-        self.progressBarSet(progress)
-        self.result_label.setText(self.info_label.format(count))
-
-    @QtCore.pyqtSlot(object)
-    def on_finish(self, result):
+    def on_result(self, result):
         self.result = result
-        self.set_text_features()
         self.result_label.setText(self.info_label.format(len(result) if result else 0))
-        self.progressBarFinished()
-        self.search_button.setText("Search")
-
-    @QtCore.pyqtSlot(Exception)
-    def on_error(self, error):
-        if isinstance(error, NetworkException):
-            self.Error.network(str(error))
-        self.on_finish(None)
+        self.search_button.setText('Search')
+        self.set_text_features()
 
     def set_text_features(self):
         self.Warning.no_text_fields.clear()
@@ -145,6 +125,14 @@ class OWWikipedia(OWWidget):
             vars_ = [var for var in self.result.domain.metas if var.name in self.text_includes]
             self.result.set_text_features(vars_ or None)
             self.send(IO.CORPUS, self.result)
+
+    def send_report(self):
+        if self.result:
+            items = (('Language', code2lang[self.language]),
+                     ('Query', self.query_list),
+                     ('Articles count', len(self.result)))
+            self.report_items('Query', items)
+
 
 if __name__ == '__main__':
     app = QtGui.QApplication([])

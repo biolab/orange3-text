@@ -7,21 +7,31 @@ from orangecontrib.text.wikipedia import WikipediaAPI
 from orangecontrib.text.corpus import Corpus
 
 
+class StopingMock(mock.Mock):
+    def __init__(self, allow_calls=0):
+        super().__init__()
+        self.allow_calls = allow_calls
+        self.call_count = 0
+
+    def __call__(self, *args, **kwargs):
+        self.call_count += 1
+        if self.call_count >= self.allow_calls:
+            return True
+        else:
+            return False
+
+
 class WikipediaTests(unittest.TestCase):
     def test_search(self):
-        on_finish = mock.MagicMock()
         on_progress = mock.MagicMock()
 
-        api = WikipediaAPI(on_finish=on_finish, on_progress=on_progress)
+        api = WikipediaAPI()
 
-        result = api.search('en', ['Clinton'], articles_per_query=2)
+        result = api.search('en', ['Clinton'], articles_per_query=2, on_progress=on_progress)
         self.assertIsInstance(result, Corpus)
         self.assertEquals(len(result.domain.attributes), 0)
         self.assertEquals(len(result.domain.metas), 7)
         self.assertEquals(len(result), 2)
-
-        self.assertEqual(on_finish.call_count, 1)
-        self.assertEqual(on_finish.call_args[0][0], result)
 
         self.assertEquals(on_progress.call_count, 2)
         progress = 0
@@ -36,20 +46,16 @@ class WikipediaTests(unittest.TestCase):
         self.assertIsInstance(result, Corpus)
         self.assertGreater(len(result), 3)
 
-    def test_disconnect(self):
-        on_finish = mock.MagicMock()
-        api = WikipediaAPI(on_finish=on_finish)
-
-        api.search('en', ['Barack Obama'], async=True)
-        api.disconnect()
-        self.assertEqual(on_finish.call_count, 1)
-        self.assertLess(len(on_finish.call_args[0][0]), 5)
-
-    def test_several_threads(self):
+    def test_search_break(self):
         api = WikipediaAPI()
-        api.search('en', ['Barack Obama'], async=True)
-        with self.assertRaises(RuntimeError):
-            api.search('en', ['Barack Obama'], async=True)
+
+        # stop immediately
+        result = api.search('en', ['Clinton'], articles_per_query=2, should_break=mock.Mock(return_value=True))
+        self.assertEqual(len(result), 0)
+
+        # stop inside recursion
+        result = api.search('en', ['Scarf'], articles_per_query=3, should_break=StopingMock(4))
+        self.assertEqual(len(result), 2)
 
     def page(*args, **kwargs):
         raise wikipedia.exceptions.PageError('1')
