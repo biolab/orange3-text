@@ -82,6 +82,8 @@ class OWCorpusViewer(OWWidget):
         # Search
         self.filter_input = gui.lineEdit(self.mainArea, self, '',
                                          orientation=Qt.Horizontal,
+                                         sizePolicy=QSizePolicy(QSizePolicy.MinimumExpanding,
+                                                                QSizePolicy.Fixed),
                                          label='RegExp Filter:')
         self.filter_input.textChanged.connect(self.refresh_search)
 
@@ -89,7 +91,6 @@ class OWCorpusViewer(OWWidget):
         self.splitter = QtGui.QSplitter(
             orientation=Qt.Horizontal,
             childrenCollapsible=False,
-            handleWidth=2,
         )
 
         # Document list
