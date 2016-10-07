@@ -147,7 +147,7 @@ class CorpusTests(unittest.TestCase):
         # inferred title from heuristics
         expected = list(map(str, range(len(c))))
         c2 = Corpus(Domain([], [], (StringVariable('heading'),)),
-                    np.c_[np.arange(len(c))], None, np.c_[expected])
+                    None, None, np.c_[expected])
         titles = c2.titles
         self.assertEqual(titles, expected)
 
