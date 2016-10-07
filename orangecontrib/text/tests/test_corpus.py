@@ -144,6 +144,13 @@ class CorpusTests(unittest.TestCase):
         for title in titles:
             self.assertIn('Document ', title)
 
+        # inferred title from heuristics
+        expected = list(map(str, range(len(c))))
+        c2 = Corpus(Domain([], [], (StringVariable('heading'),)),
+                    None, None, np.c_[expected])
+        titles = c2.titles
+        self.assertEqual(titles, expected)
+
         # title feature set
         c.domain[0].attributes['title'] = True
         titles = c.titles
