@@ -21,15 +21,17 @@ class IO:
 
 
 class OWDuplicates(widget.OWWidget):
-    name = 'Duplicates Detection'
+    name = 'Duplicate Detection'
     description = 'Detect & remove duplicates from a corpus.'
     icon = 'icons/Duplicates.svg'
     priority = 45
 
     inputs = [(IO.distances, DistMatrix, 'set_distances')]
-    outputs = [(IO.corpus, Corpus),
-               (IO.corpus_without_duplicates, Corpus),
-               (IO.duplicates, Corpus)]
+    outputs = [
+        (IO.corpus_without_duplicates, Corpus),
+        (IO.duplicates, Corpus),
+        (IO.corpus, Corpus),
+    ]
 
     resizing_enabled = False
 
