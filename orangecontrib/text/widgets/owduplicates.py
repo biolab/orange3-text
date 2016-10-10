@@ -247,6 +247,10 @@ class Cluster:
 # TODO move the code below to a common place.
 # Currently this is a more or less a copy from OWNxFromDistances.py
 
+# Switch to using white background and black foreground
+pg.setConfigOption('background', 'w')
+pg.setConfigOption('foreground', 'k')   # axis lines, numbers etc
+
 
 pg_InfiniteLine = pg.InfiniteLine
 
