@@ -35,6 +35,7 @@ extensions = [
     'sphinx.ext.todo',
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
+    'sphinx.ext.intersphinx',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -105,7 +106,7 @@ pygments_style = 'sphinx'
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = 'sphinx_rtd_theme'
+html_theme = 'nature'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -264,6 +265,9 @@ texinfo_documents = [
 # If true, do not generate a @detailmenu in the "Top" node's menu.
 #texinfo_no_detailmenu = False
 
+# Mapping for external documentation in Sphinx.
+#intersphinx_mapping = {'orange3': ('../../orange3/doc/visual-programming/build/html',
+#                                   '../../orange3/doc/visual-programming/build/html/objects.inv')}
 
 # Mock parts of Orange depending on C modules
 from unittest.mock import MagicMock
@@ -308,6 +312,6 @@ for name, mock_class in MOCK_MODULES:
     sys.modules.update({name: mock_class()})
 
 # checks if imports work
-from Orange.data import Table
-from Orange.data import StringVariable
-isinstance(None, StringVariable)
+#from Orange.data import Table
+#from Orange.data import StringVariable
+#isinstance(None, StringVariable)
