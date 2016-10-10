@@ -33,7 +33,7 @@ class OWDuplicates(widget.OWWidget):
         (IO.corpus, Corpus),
     ]
 
-    resizing_enabled = False
+    resizing_enabled = True
 
     LINKAGE = ['Single', 'Average', 'Complete', 'Weighted', 'Ward']
     linkage_method = settings.Setting(1)
@@ -73,8 +73,8 @@ class OWDuplicates(widget.OWWidget):
         height = 300
         main_area = gui.hBox(self.mainArea)
         self.histogram.setMinimumWidth(500)
-        self.histogram.setFixedHeight(height)
-        self.table_view.setFixedSize(QSize(140, height))
+        self.histogram.setMinimumHeight(height)
+        self.table_view.setFixedWidth(140)
         main_area.layout().addWidget(self.histogram)
         main_area.layout().addWidget(self.table_view)
 
