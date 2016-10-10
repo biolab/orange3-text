@@ -86,7 +86,8 @@ class OWNYT(OWConcurrentWidget):
     class Error(OWWidget.Error):
         no_api = Msg('Please provide a valid API key.')
         no_query = Msg('Please provide a query.')
-        an_error = Msg('API error: {}')
+        api_error = Msg('API error: {}')
+        rate_limit = Msg('Rate limit exceeded. Please try again later.')
 
     def __init__(self):
         super().__init__()
@@ -145,6 +146,8 @@ class OWNYT(OWConcurrentWidget):
     @gui_require('recent_queries', 'no_query')
     @asynchronous(allow_partial_results=True)
     def search(self, on_progress, should_break):
+        self.Error.api_error.clear()
+        self.Error.rate_limit.clear()
         def progress_with_info(n_retrieved, n_all):
             on_progress(100 * (n_retrieved / n_all if n_all else 1))    # prevent division by 0
             self.num_all = n_all
@@ -180,6 +183,8 @@ class OWNYT(OWConcurrentWidget):
 
     def update_api(self, api):
         self.nyt_api = api
+        self.nyt_api.on_error = self.Error.api_error
+        self.nyt_api.on_rate_limit = self.Error.rate_limit
 
     def send_report(self):
         self.report_items([

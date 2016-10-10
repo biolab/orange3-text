@@ -3,11 +3,12 @@ import os
 import tempfile
 import unittest
 from contextlib import contextmanager
-from unittest.mock import patch
+from unittest.mock import patch, Mock
+from urllib.error import HTTPError
 
 from Orange.data import TimeVariable
 from orangecontrib.text import Corpus
-from orangecontrib.text.nyt import NYT
+from orangecontrib.text.nyt import NYT, BATCH_SIZE
 
 
 class MockUrlOpen:
@@ -42,6 +43,14 @@ class MockUrlOpen:
 
 CACHE = os.path.join(os.path.dirname(__file__), 'nyt-cache.txt')
 mock_urllib = MockUrlOpen(CACHE)
+
+
+class MockErrors(Mock):
+    def __call__(self, url, *args, **kwargs):
+        if 'test' in url:               # mock api valid check as usual
+            return mock_urllib(url)
+        else:                           # raise HTTP errors for _fetch_page
+            raise HTTPError(None, 429, None, None, None)
 
 
 @patch('urllib.request.urlopen', mock_urllib)
@@ -97,3 +106,71 @@ class NYTTests(unittest.TestCase):
         self.nyt._fetch_page('slovenia', None, None, 0)     # assure in cache
         _, is_cached = self.nyt._fetch_page('slovenia', None, None, 0)
         self.assertTrue(is_cached)
+
+    def test_on_progress(self):
+        n_calls = 0
+
+        def on_progress(progress, max_docs):
+            nonlocal n_calls
+            n_calls += 1
+            self.assertEqual(max_docs, 25)
+
+        self.nyt.search('slovenia', max_docs=25, on_progress=on_progress)
+        self.assertEqual(n_calls, 3)
+
+    def test_break(self):
+        def should_break():
+            return True
+
+        c = self.nyt.search('slovenia', max_docs=25, should_break=should_break)
+        self.assertEqual(len(c), BATCH_SIZE)
+
+
+@patch('urllib.request.urlopen', MockErrors())
+class NYTTestsErrorRaising(unittest.TestCase):
+    API_KEY = 'api_key'
+
+    def test_error_callbacks(self):
+        n_calls_rate_limit = 0
+        n_calls_error = 0
+
+        def on_rate_limit():
+            nonlocal n_calls_rate_limit
+            n_calls_rate_limit += 1
+
+        def on_error(e):
+            nonlocal n_calls_error
+            n_calls_error += 1
+
+        nyt = NYT(self.API_KEY)
+        nyt.on_rate_limit = on_rate_limit
+        nyt.on_error = on_error
+
+        # both callback, should call rate limit
+        nyt.search('slovenia')
+        self.assertEqual(n_calls_rate_limit, 1)
+        self.assertEqual(n_calls_error, 0)
+
+        # only error callback, should call it
+        n_calls_rate_limit = 0
+        n_calls_error = 0
+        nyt.on_rate_limit = None
+        nyt.search('slovenia')
+        self.assertEqual(n_calls_rate_limit, 0)
+        self.assertEqual(n_calls_error, 1)
+
+        # no callback
+        n_calls_rate_limit = 0
+        n_calls_error = 0
+        nyt.on_error = None
+        nyt.on_rate_limit = None
+        nyt.search('slovenia')
+        self.assertEqual(n_calls_rate_limit, 0)
+        self.assertEqual(n_calls_error, 0)
+
+    @patch('orangecontrib.text.nyt.NYT._fetch_page', Mock(return_value=(None, False)))
+    def test_error_empty_result(self):
+        nyt = NYT(self.API_KEY)
+        c = nyt.search('slovenia', max_docs=25)
+        self.assertIsNone(c)
+

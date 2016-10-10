@@ -60,6 +60,8 @@ class NYT:
             api_key (str): NY Time API key.
         """
         self.api_key = api_key
+        self.on_error = None
+        self.on_rate_limit = None
         self.cache_path = None
         self._cache_init()
 
@@ -97,6 +99,8 @@ class NYT:
         # TODO create corpus on the fly and extend, so it stops faster.
         records = []
         data, cached = self._fetch_page(query, date_from, date_to, 0)
+        if data is None:
+            return None
         records.extend(data['response']['docs'])
         max_docs = min(data['response']['meta']['hits'], max_docs)
         if callable(on_progress):
@@ -104,10 +108,13 @@ class NYT:
 
         for page in range(1, math.ceil(max_docs/BATCH_SIZE)):
             if callable(should_break) and should_break():
-                return Corpus.from_documents(records, 'NY Times', self.attributes,
-                                             self.class_vars, self.metas, title_indices=[-1])
+                break
 
             data, cached = self._fetch_page(query, date_from, date_to, page)
+
+            if data is None:
+                break
+
             records.extend(data['response']['docs'])
 
             if callable(on_progress):
@@ -153,8 +160,15 @@ class NYT:
             return data, True
         else:
             url = self._encode_url(query, date_from, date_to, page, for_caching=False)
-            with request.urlopen(url) as conn:
-                data = conn.read().decode('utf-8')
+            try:
+                with request.urlopen(url) as conn:
+                    data = conn.read().decode('utf-8')
+            except HTTPError as e:
+                if e.code == 429 and callable(self.on_rate_limit):
+                    self.on_rate_limit()
+                elif callable(self.on_error):
+                    self.on_error(str(e))
+                return None, False
             data = json.loads(data)
             self._cache_store(cache_url, data)
             return data, False
