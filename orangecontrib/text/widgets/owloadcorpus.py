@@ -87,9 +87,8 @@ class OWLoadCorpus(OWWidget):
                 self.corpus.name = os.path.splitext(os.path.basename(path))[0]
                 self.info_label.setText("Corpus of {} documents.".format(len(self.corpus)))
                 self.used_attrs.extend(self.corpus.text_features)
-                self.unused_attrs.extend([f for f in chain(self.corpus.domain.variables,
-                                                           self.corpus.domain.metas)
-                                          if f not in self.corpus.text_features])
+                self.unused_attrs.extend([f for f in self.corpus.domain.metas
+                                          if f.is_string and f not in self.corpus.text_features])
             except BaseException as err:
                 self.Error.read_file(path, str(err))
 
