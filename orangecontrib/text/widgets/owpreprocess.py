@@ -338,7 +338,8 @@ class FilteringModule(MultipleMethodModule):
     recent_sw_files = settings.Setting([])
     recent_lexicon_files = settings.Setting([])
 
-    pattern = settings.Setting('\.|,|:|!|\?')
+    pattern = settings.Setting('\.|,|:|;|!|\?|\(|\)|\||\+|\'|\"|‘|’|“|”|\'|\’'
+                               '|…|\-|–|—|\$|&|\*|>|<')
     min_df = settings.Setting(0.)
     max_df = settings.Setting(1.)
     keep_n = settings.Setting(100)

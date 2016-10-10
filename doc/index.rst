@@ -10,18 +10,18 @@ Welcome to Orange3 Text Mining documentation!
    :maxdepth: 1
    :caption: Widgets
 
-   widgets/corpus.rst
-   widgets/nytimes.rst
-   widgets/twitter.rst
+   widgets/corpus
+   widgets/nytimes
+   widgets/twitter
    widgets/wikipedia
    widgets/pubmed
-   widgets/corpusviewer.rst
-   widgets/preprocesstext.rst
-   widgets/bagofwords.rst
-   widgets/topicmodelling.rst
-   widgets/wordenrichment.rst
-   widgets/wordcloud.rst
-   widgets/geomap.rst
+   widgets/corpusviewer
+   widgets/preprocesstext
+   widgets/bagofwords
+   widgets/topicmodelling
+   widgets/wordenrichment
+   widgets/wordcloud
+   widgets/geomap
 
 
 .. toctree::
