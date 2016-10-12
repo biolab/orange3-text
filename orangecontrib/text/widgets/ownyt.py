@@ -4,9 +4,9 @@ from PyQt4 import QtGui, QtCore
 
 from Orange.data import StringVariable
 from Orange.widgets.settings import Setting
+from Orange.widgets.credentials import CredentialManager
 from Orange.widgets.widget import OWWidget, Msg, gui
 from orangecontrib.text.corpus import Corpus
-from orangecontrib.text.credentials import CredentialManager
 from orangecontrib.text.nyt import NYT, MIN_DATE
 from orangecontrib.text.widgets.utils import CheckListLayout, DatePickerInterval, QueryBox, \
     gui_require, OWConcurrentWidget, asynchronous

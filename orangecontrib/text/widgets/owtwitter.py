@@ -4,11 +4,11 @@ from datetime import datetime, timedelta
 
 from Orange.widgets import gui
 from Orange.widgets.settings import Setting
+from Orange.widgets.credentials import CredentialManager
 from Orange.widgets.widget import OWWidget, Msg
 
 from orangecontrib.text import twitter
 from orangecontrib.text.corpus import Corpus
-from orangecontrib.text.credentials import CredentialManager
 from orangecontrib.text.language_codes import lang2code
 from orangecontrib.text.widgets.utils import (ComboBox, ListEdit, CheckListLayout,
                                               DateInterval, gui_require)
