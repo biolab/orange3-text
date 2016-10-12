@@ -59,6 +59,8 @@ class Preprocessor:
             self.pos_tagger.tag_corpus(corpus)
 
         self.on_progress(100)
+        corpus.used_preprocessor = self
+        corpus.used_preprocessor._on_progress = None    # remove on_progress that is causing pickling problems
         return corpus
 
     @property

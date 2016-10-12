@@ -62,6 +62,7 @@ class Corpus(Table):
         self.ngram_range = (1, 1)
         self.attributes = {}
         self.pos_tags = None
+        self.used_preprocessor = None   # required for compute values
 
         if domain is not None and text_features is None:
             self._infer_text_features()
@@ -229,8 +230,7 @@ class Corpus(Table):
 
     def _apply_base_preprocessor(self):
         from orangecontrib.text.preprocess import base_preprocessor
-        corpus = base_preprocessor(self)
-        self.store_tokens(corpus.tokens, corpus.dictionary)
+        base_preprocessor(self)
 
     @property
     def dictionary(self):
@@ -287,6 +287,7 @@ class Corpus(Table):
         c.ngram_range = self.ngram_range
         c.pos_tags = self.pos_tags
         c.name = self.name
+        c.used_preprocessor = self.used_preprocessor
         return c
 
     @staticmethod
@@ -390,6 +391,7 @@ class Corpus(Table):
             new.text_features = orig.text_features
             new.ngram_range = orig.ngram_range
             new.attributes = orig.attributes
+            new.used_preprocessor = orig.used_preprocessor
 
     def __len__(self):
         return len(self.metas)
