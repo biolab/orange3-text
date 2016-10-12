@@ -43,19 +43,19 @@ class BowVectorizer(BaseVectorizer):
         self.wlocal = wlocal
         self.wglobal = wglobal
 
-    def _transform(self, corpus):
+    def _transform(self, corpus, source_dict=None):
         if corpus.pos_tags is None:
             temp_corpus = list(corpus.ngrams)
         else:
             temp_corpus = list(corpus.ngrams_iterator(' ', include_postags=True))
 
-        dic = corpora.Dictionary(temp_corpus, prune_at=None)
+        dic = corpora.Dictionary(temp_corpus, prune_at=None) if not source_dict else source_dict
         temp_corpus = [dic.doc2bow(doc) for doc in temp_corpus]
         model = models.TfidfModel(temp_corpus, normalize=False,
                                   wlocal=self.wlocals[self.wlocal],
                                   wglobal=self.wglobals[self.wglobal])
 
-        X = matutils.corpus2csc(model[temp_corpus], dtype=np.float).T
+        X = matutils.corpus2csc(model[temp_corpus], dtype=np.float, num_terms=len(dic)).T
         norm = self.norms[self.norm]
         if norm:
             X = norm(X)

@@ -7,7 +7,7 @@ class BaseVectorizer:
     """Base class for vectorization objects. """
     name = NotImplemented
 
-    def transform(self, corpus, copy=True):
+    def transform(self, corpus, copy=True, source_dict=None):
         """Transforms a corpus to a new one with additional attributes. """
         if copy:
             corpus = corpus.copy()
@@ -15,9 +15,9 @@ class BaseVectorizer:
         if not len(corpus.dictionary):
             return corpus
         else:
-            return self._transform(corpus)
+            return self._transform(corpus, source_dict)
 
-    def _transform(self, corpus):
+    def _transform(self, corpus, source_dict):
         raise NotImplementedError
 
     def report(self):
