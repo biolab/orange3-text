@@ -129,7 +129,7 @@ class Corpus(Table):
 
         self._tokens = None     # invalidate tokens
 
-    def extend_attributes(self, X, feature_names, var_attrs=None):
+    def extend_attributes(self, X, feature_names, var_attrs=None, compute_values=None):
         """
         Append features to corpus.
 
@@ -137,8 +137,8 @@ class Corpus(Table):
             X (numpy.ndarray or scipy.sparse.csr_matrix): Features to append
             feature_names (list): List of string containing feature names
             var_attrs (dict): Additional attributes appended to variable.attributes.
+            compute_values (list): Compute values for corresponding features.
         """
-
         if self.X.size == 0:
             self.X = X
         elif sp.issparse(self.X) or sp.issparse(X):
@@ -146,10 +146,12 @@ class Corpus(Table):
         else:
             self.X = np.hstack((self.X, X))
 
-        new_attr = self.domain.attributes
+        if compute_values is None:
+            compute_values = [None] * X.shape[1]
 
-        for f in feature_names:
-            var = ContinuousVariable.make(f)
+        new_attr = self.domain.attributes
+        for f, cv in zip(feature_names, compute_values):
+            var = ContinuousVariable(f, compute_value=cv)
             if isinstance(var_attrs, dict):
                 var.attributes.update(var_attrs)
             new_attr += (var, )
