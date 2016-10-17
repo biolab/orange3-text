@@ -273,45 +273,48 @@ texinfo_documents = [
 from unittest.mock import MagicMock
 
 
-class Mock(MagicMock):
-    __all__ = []    # required for "from X import *"
+class MockData(MagicMock):
+    # required for "from X import *" and for "from Orange.data import Table"
+    __all__ = ['Variable', 'StringVariable', 'ContinuousVariable', 'DiscreteVariable', 'TimeVariable',
+               'RowInstance', 'Domain', 'Table']
+
+    class MockClasses:
+        def __init__(self, *args, **kwargs):
+            pass
 
     @classmethod
     def __getattr__(cls, name):
-        return Mock()
+        return cls.MockClasses if name in cls.__all__ else MagicMock()  # required since Corpus extends Table
 
 
-class MockVariable(Mock):
-    __all__ = ['Variable', 'StringVariable', 'ContinuousVariable', 'DiscreteVariable', 'TimeVariable']
-
-    @classmethod
-    def __getattr__(cls, name):
-        return MockClasses if name in cls.__all__  else Mock()  # required since Corpus extends Table
-
-
-class MockTable(MagicMock):
-    __all__ = ['RowInstance', 'Table',]     # required for "from Orange.data import Table"
+class MockOrange(MagicMock):
+    __all__ = ['data', 'canvas']
 
     @classmethod
     def __getattr__(cls, name):
-        return MockClasses if name == 'Table' else Mock()   # required since Corpus extends Table
+        return MockData() if name in cls.__all__ else MagicMock()  # required since Corpus extends Table
 
-
-class MockClasses:
-    def __init__(self, *args, **kwargs):
-        pass
 
 MOCK_MODULES = [
-    ('Orange.data.variable', MockVariable),
-    ('Orange.data.table', MockTable),
-    ('Orange.data.io', Mock),
-    ('Orange.data.util', Mock),
+    ('Orange', MockOrange),
+    ('Orange.data', MockData),
+    ('Orange.data.io', MockData),
+    ('Orange.data.util', MockData),
+    ('Orange.data.table', MockData),
+    ('Orange.data.variable', MockData),
+    ('Orange.canvas.utils', MockData),
 ]
 
 for name, mock_class in MOCK_MODULES:
     sys.modules.update({name: mock_class()})
 
 # checks if imports work
-#from Orange.data import Table
-#from Orange.data import StringVariable
-#isinstance(None, StringVariable)
+# from Orange.canvas.utils import environ
+# from Orange.data import Table, StringVariable, Domain
+# from Orange import data
+# isinstance(None, Table)
+# isinstance(None, Domain)
+# isinstance(None, StringVariable)
+# isinstance(None, data.Table)
+# isinstance(None, data.Domain)
+# isinstance(None, data.StringVariable)
