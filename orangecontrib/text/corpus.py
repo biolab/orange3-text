@@ -50,7 +50,7 @@ class Corpus(Table):
         """
         n_doc = _check_arrays(X, Y, metas)
 
-        self.X = X if X is not None else np.zeros((n_doc, 0))
+        self.X = X if X is not None and X.size else sp.csr_matrix((n_doc, 0))   # prefer sparse (BoW compute values)
         self.Y = Y if Y is not None else np.zeros((n_doc, 0))
         self.metas = metas if metas is not None else np.zeros((n_doc, 0))
         self.W = W if W is not None else np.zeros((n_doc, 0))
