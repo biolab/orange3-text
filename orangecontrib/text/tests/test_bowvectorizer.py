@@ -83,5 +83,15 @@ class BowVectorizationTest(unittest.TestCase):
         x = vect.transform(corpus).X
         self.assertAlmostEqual(abs(x.sum(axis=1) - 1).sum(), 0)
 
+    def test_compute_values(self):
+        corpus = Corpus.from_file('deerwester')
+        vect = BowVectorizer()
+
+        bow = vect.transform(corpus)
+        computed = Corpus.from_table(bow.domain, corpus)
+
+        self.assertEqual(bow.domain, computed.domain)
+        self.assertEqual((bow.X != computed.X).nnz, 0)
+
     def assertEqualCorpus(self, first, second, msg=None):
         np.testing.assert_allclose(first.X.todense(), second.X.todense(), err_msg=msg)
