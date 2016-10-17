@@ -35,7 +35,7 @@ Biopython is an optional dependency and not installing it will simply result in 
 
 Run
 
-   python -m Orange.canvas
+    python -m Orange.canvas
 
 to open Orange and check if everything is installed properly.
 
