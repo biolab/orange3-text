@@ -399,12 +399,20 @@ class Corpus(Table):
         return len(self.metas)
 
     def __eq__(self, other):
+        def arrays_equal(a, b):
+            if sp.issparse(a) != sp.issparse(b):
+                return False
+            elif sp.issparse(a) and sp.issparse(b):
+                return (a != b).nnz == 0
+            else:
+                return np.array_equal(a, b)
+
         return (self.text_features == other.text_features and
                 self._dictionary == other._dictionary and
                 np.array_equal(self._tokens, other._tokens) and
-                np.array_equal(self.X, other.X) and
-                np.array_equal(self.Y, other.Y) and
-                np.array_equal(self.metas, other.metas) and
+                arrays_equal(self.X, other.X) and
+                arrays_equal(self.Y, other.Y) and
+                arrays_equal(self.metas, other.metas) and
                 np.array_equal(self.pos_tags, other.pos_tags) and
                 self.domain == other.domain and
                 self.ngram_range == other.ngram_range)
