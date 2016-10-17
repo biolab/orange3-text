@@ -88,7 +88,7 @@ class LexiconFilter(BaseTokenFilter, WordListMixin):
 
     @lexicon.setter
     def lexicon(self, value):
-        self.word_list = value
+        self.word_list = set(value)
 
     def check(self, token):
         return not self.lexicon or token in self.lexicon
@@ -146,7 +146,7 @@ class FrequencyFilter(LexiconFilter):
         tokens = getattr(corpus, 'tokens', corpus)
         dictionary = corpora.Dictionary(tokens)
         dictionary.filter_extremes(self.min_df, self.max_df, self.keep_n)
-        self.word_list = dictionary.token2id.keys()
+        self.lexicon = dictionary.token2id.keys()
         return self(tokens), dictionary
 
     @property
