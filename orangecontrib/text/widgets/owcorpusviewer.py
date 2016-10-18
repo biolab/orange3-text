@@ -15,7 +15,6 @@ from Orange.data.domain import filter_visible
 from orangecontrib.text.corpus import Corpus
 
 
-
 class IO:
     DATA = 'Data'
     MATCHED = "Matching Docs"
@@ -110,6 +109,10 @@ class OWCorpusViewer(OWWidget):
         self.doc_webview = gui.WebviewWidget(self.splitter, self, debug=True)
 
         self.mainArea.layout().addWidget(self.splitter)
+
+    def copy_to_clipboard(self):
+        text = self.doc_webview.selectedText()
+        QtGui.QApplication.clipboard().setText(text)
 
     def set_data(self, data=None):
         self.reset_widget()
