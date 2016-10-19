@@ -55,7 +55,7 @@ class GensimWrapper:
         # prevent model from updating
         _update = self.Model.update
         self.Model.update = self.dummy_method
-        self.id2word = Dictionary(corpus.ngrams, prune_at=None)
+        self.id2word = Dictionary(corpus.ngrams_iterator(include_postags=True), prune_at=None)
         self.model = self.Model(corpus=corpus,
                                 id2word=self.id2word, **self.kwargs)
         self.Model.update = _update
