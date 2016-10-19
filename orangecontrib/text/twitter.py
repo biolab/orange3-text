@@ -223,7 +223,8 @@ class SearchTask(threading.Thread):
     def run(self):
         try:
             for status in tweepy.Cursor(self.master.api.search, q=self.q,
-                                        lang=self.lang, **self.kwargs).items(self.max_tweets):
+                                        lang=self.lang, count=100,
+                                        **self.kwargs).items(self.max_tweets):
                 self.master.add_status(status)
                 self.progress += 1
                 if self.master.on_progress:
