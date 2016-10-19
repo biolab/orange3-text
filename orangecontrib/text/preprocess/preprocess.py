@@ -39,6 +39,7 @@ class Preprocessor:
             corpus(orangecontrib.text.Corpus): A corpus to preprocess.
             inplace(bool): Whether to create a new Corpus instance.
         """
+        self.set_up()
         self._on_progress = on_progress
         if not inplace:
             corpus = corpus.copy()
@@ -61,6 +62,7 @@ class Preprocessor:
         self.on_progress(100)
         corpus.used_preprocessor = self
         corpus.used_preprocessor._on_progress = None    # remove on_progress that is causing pickling problems
+        self.tear_down()
         return corpus
 
     @property
@@ -101,6 +103,22 @@ class Preprocessor:
     def on_progress(self, progress):
         if self._on_progress:
             self._on_progress(progress)
+
+    def set_up(self):
+        """ Called before every __call__. Used for setting up tokenizer & filters. """
+        if self.tokenizer:
+            self.tokenizer.set_up()
+
+        for f in self.filters:
+            f.set_up()
+
+    def tear_down(self):
+        """ Called after every __call__. Used for cleaning up tokenizer & filters. """
+        if self.tokenizer:
+            self.tokenizer.tear_down()
+
+        for f in self.filters:
+            f.tear_down()
 
     def __str__(self):
         return '\n'.join(['{}: {}'.format(name, value) for name, value in self.report()])

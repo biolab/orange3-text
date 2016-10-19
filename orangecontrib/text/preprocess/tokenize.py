@@ -28,6 +28,14 @@ class BaseTokenizer:
     def on_change(self):
         pass
 
+    def set_up(self):
+        """ A method for setting filters up before every __call__. """
+        pass
+
+    def tear_down(self):
+        """ A method for cleaning up after every __call__. """
+        pass
+
 
 class WordPunctTokenizer(BaseTokenizer):
     """ Split by words and (keep) punctuation. """
@@ -53,7 +61,11 @@ class RegexpTokenizer(BaseTokenizer):
 
     def __init__(self, pattern=r'\w+'):
         self._pattern = pattern
-        self.tokenizer = tokenize.RegexpTokenizer(pattern)
+        # Compiled Regexes are NOT deepcopy-able and hence to make Corpus deepcopy-able
+        # we cannot store then (due to Corpus also storing used_preprocessor for BoW compute values).
+        # To bypass the problem regex is compiled before every __call__ and discarded right after.
+        self.tokenizer = None
+        self.set_up()
 
     @property
     def pattern(self):
@@ -62,7 +74,7 @@ class RegexpTokenizer(BaseTokenizer):
     @pattern.setter
     def pattern(self, value):
         self._pattern = value
-        self.tokenizer = tokenize.RegexpTokenizer(self.pattern)
+        self.set_up()
         self.on_change()
 
     def __str__(self):
@@ -75,6 +87,12 @@ class RegexpTokenizer(BaseTokenizer):
             return True
         except re.error:
             return False
+
+    def set_up(self):
+        self.tokenizer = tokenize.RegexpTokenizer(self.pattern)
+
+    def tear_down(self):
+        self.tokenizer = None
 
 
 class TweetTokenizer(BaseTokenizer):
