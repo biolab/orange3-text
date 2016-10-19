@@ -388,6 +388,7 @@ class FilteringModule(MultipleMethodModule):
         spin = gui.spin(self.contents, self, 'keep_n', box=False, minv=1, maxv=10**6)
         spin.editingFinished.connect(self.keep_n_changed)
         self.method_layout.addWidget(spin, self.KEEP_N, 1, 1, 1)
+        self.pattern_changed()
 
     @property
     def frequency_filter(self):
