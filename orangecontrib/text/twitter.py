@@ -67,10 +67,11 @@ class TwitterAPI:
         Every search accumulates downloaded tweets. To remove the stored tweets call `reset` method.
     """
     attributes = []
-    class_vars = []
+    class_vars = [
+        (data.DiscreteVariable('Author'), lambda doc: '@' + doc.author.screen_name),
+    ]
 
     metas = [
-        (data.DiscreteVariable('Author'), lambda doc: '@'+doc.author.screen_name),
         (data.StringVariable('Content'), lambda doc: doc.text),
         (data.TimeVariable('Date'), lambda doc: doc.created_at.timestamp()),
         (data.DiscreteVariable('Language'), lambda doc: doc.lang),
