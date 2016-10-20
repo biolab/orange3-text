@@ -359,8 +359,8 @@ class FilteringModule(MultipleMethodModule):
                                  dialog_title='Open a stop words source',
                                  dialog_format=self.dlgFormats,
                                  on_open=self.read_stopwords_file,
-                                 browse_label='',
-                                 reload_label='')
+                                 browse_label='', reload_label='',
+                                 minimal_width=100)
         box.select(0)
         self.method_layout.addWidget(box, self.STOPWORDS, 2, 1, 1)
 
@@ -368,8 +368,8 @@ class FilteringModule(MultipleMethodModule):
                                  dialog_title='Open a lexicon words source',
                                  dialog_format=self.dlgFormats,
                                  on_open=self.read_lexicon_file,
-                                 browse_label='',
-                                 reload_label='')
+                                 browse_label='', reload_label='',
+                                 minimal_width=100)
         box.select(0)
         self.method_layout.addWidget(box, self.LEXICON, 2, 1, 1)
 

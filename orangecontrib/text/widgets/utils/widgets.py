@@ -268,7 +268,8 @@ class FileWidget(QtGui.QWidget):
     on_open = QtCore.pyqtSignal(str)
 
     def __init__(self, dialog_title='', dialog_format='',
-                 start_dir=os.path.expanduser('~/'), icon_size=(12, 20),
+                 start_dir=os.path.expanduser('~/'),
+                 icon_size=(12, 20), minimal_width=200,
                  browse_label='Browse', on_open=None,
                  reload_button=True, reload_label='Reload',
                  recent_files=None, directory_aliases=None,
@@ -306,7 +307,7 @@ class FileWidget(QtGui.QWidget):
 
         if recent_files is not None:
             self.file_combo = QtGui.QComboBox()
-            self.file_combo.setMinimumWidth(200)
+            self.file_combo.setMinimumWidth(minimal_width)
             self.file_combo.activated[int].connect(self.select)
             self.update_combo()
             layout.addWidget(self.file_combo)
