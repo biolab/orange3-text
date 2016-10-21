@@ -164,6 +164,16 @@ class OWTwitter(OWWidget):
         layout.addWidget(QtGui.QLabel('Search by:'), row, 0, 1, self.label_width)
         layout.addWidget(mode, row, self.label_width, 1, self.widgets_width)
 
+        # Language
+        row += 1
+        language_edit = ComboBox(self, 'language',
+                                 (('Any', None),) + tuple(
+                                     sorted(lang2code.items())))
+        layout.addWidget(QtGui.QLabel('Language:'), row, 0, 1,
+                         self.label_width)
+        layout.addWidget(language_edit, row, self.label_width, 1,
+                         self.widgets_width)
+
         # Retweets
         row += 1
         check = gui.checkBox(self, self, 'allow_retweets', '')
@@ -178,13 +188,6 @@ class OWTwitter(OWWidget):
                                 from_label='since', to_label='until')
         layout.addWidget(QtGui.QLabel('Date:'), row, 0, 1, self.label_width)
         layout.addWidget(interval, row, self.label_width, 1, self.widgets_width)
-
-        # Language
-        row += 1
-        language_edit = ComboBox(self, 'language',
-                                 (('Any', None),) + tuple(sorted(lang2code.items())))
-        layout.addWidget(QtGui.QLabel('Language:'), row, 0, 1, self.label_width)
-        layout.addWidget(language_edit, row, self.label_width, 1, self.widgets_width)
 
         # Max tweets
         row += 1
