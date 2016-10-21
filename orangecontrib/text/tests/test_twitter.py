@@ -75,44 +75,30 @@ class TestTwitterAPI(unittest.TestCase):
     def test_search_callbacks(self):
         self.checker = 0
 
-        def on_start():
-            self.assertEqual(self.checker, 0)
+        def on_progress(total, current):
+            self.assertEqual(self.checker + 1, current)
             self.checker += 1
 
-        def on_progress(progress):
-            self.assertEqual(self.checker, progress)
-            self.checker += 1
-
-        def on_finish():
-            self.assertEqual(self.checker, 3)
-            self.checker += 1
-
-        api = twitter.TwitterAPI(self.credentials, on_start=on_start,
-                                 on_progress=on_progress, on_finish=on_finish)
-        api.search(word_list=['hello'], max_tweets=2, lang='en')
-        api.join()
-        self.assertEqual(self.checker, 4)
+        api = twitter.TwitterAPI(self.credentials)
+        api.search(content=['hello'], max_tweets=2, lang='en',
+                   on_progress=on_progress)
+        self.assertEqual(self.checker, 2)
 
     def test_create_corpus(self):
-        self.api.search(word_list=['hello'], max_tweets=5)
-        self.api.join()
+        self.api.search(content=['hello'], max_tweets=5)
         corpus = self.api.create_corpus()
         self.assertIsInstance(corpus, Corpus)
         self.assertEqual(len(corpus), 5)
 
     def test_clear(self):
-        self.api.search(word_list=['hello'], max_tweets=5)
-        self.api.join()
+        self.api.search(content=['hello'], max_tweets=5)
         self.assertEqual(len(self.api.container), 5)
-
         self.api.reset()
         self.assertEqual(len(self.api.container), 0)
 
     def test_report(self):
-        self.api.search(word_list=['hello'], max_tweets=5)
-        self.api.join()
-        self.assertEqual(len(self.api.history), 1)
-        self.assertIsNotNone(self.api.task.report())
+        self.api.search(content=['hello'], max_tweets=5)
+        self.assertEqual(len(self.api.search_history), 1)
 
     def test_geo_util(self):
         point = twitter.coordinates_geoJSON({})
@@ -135,23 +121,3 @@ class TestTwitterAPI(unittest.TestCase):
 
         query = self.api.build_query(word_list=['hello', 'world'], allow_retweets=False)
         self.assertIn(' -filter:retweets', query)
-
-
-@mock.patch('tweepy.Cursor', MyCursor)
-class TestSearch(unittest.TestCase):
-    def setUp(self):
-        self.credentials = get_credentials()
-        self.api = twitter.TwitterAPI(self.credentials)
-
-    def test_running(self):
-        self.assertFalse(self.api.running)
-        self.api.search(word_list=['hello'], max_tweets=5)
-        self.assertTrue(self.api.running)
-        self.api.disconnect()
-        self.assertFalse(self.api.running)
-
-    def test_search_disconnect(self):
-        self.api.search(word_list=['hello'], max_tweets=20, lang='en')
-        self.api.disconnect()
-        self.api.join()
-        self.assertLess(len(self.api.container), 10)

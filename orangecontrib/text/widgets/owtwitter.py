@@ -9,14 +9,15 @@ from orangecontrib.text import twitter
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.language_codes import lang2code
 from orangecontrib.text.widgets.utils import (ComboBox, ListEdit,
-                                              CheckListLayout, gui_require)
+                                              CheckListLayout, gui_require,
+                                              OWConcurrentWidget, asynchronous)
 
 
 class IO:
     CORPUS = "Corpus"
 
 
-class OWTwitter(OWWidget):
+class OWTwitter(OWConcurrentWidget):
     class APICredentialsDialog(OWWidget):
         name = "Twitter API Credentials"
         want_main_area = False
@@ -90,8 +91,6 @@ class OWTwitter(OWWidget):
         missed_key = Msg('Please provide a valid API key in order to get the data.')
         no_text_fields = Msg('Text features are inferred when none are selected.')
 
-    MISSED_KEY = 'missed_key'
-
     class Error(OWWidget.Error):
         api = Msg('Api error ({})')
         rate_limit = Msg('Rate limit exceeded. Please try again later.')
@@ -105,14 +104,7 @@ class OWTwitter(OWWidget):
     max_tweets = Setting(100)
     language = Setting(None)
     allow_retweets = Setting(False)
-    advance = Setting(False)
-    include = Setting(False)
-    includeON = Setting(True)
-
-    error_signal = QtCore.pyqtSignal(str)
-    finish_signal = QtCore.pyqtSignal()
-    progress_signal = QtCore.pyqtSignal(int)
-    start_signal = QtCore.pyqtSignal()
+    collecting = Setting(False)
 
     attributes = [feat.name for feat in twitter.TwitterAPI.string_attributes]
     text_includes = Setting([feat.name for feat in twitter.TwitterAPI.text_features])
@@ -133,7 +125,7 @@ class OWTwitter(OWWidget):
         # Set API key button.
         key_dialog_button = gui.button(self.controlArea, self, 'Twitter API Key',
                                        callback=self.open_key_dialog,
-                                       tooltip="Set the API key for this widget.")
+                                       tooltip='Set the API key for this widget.')
         key_dialog_button.setFocusPolicy(QtCore.Qt.NoFocus)
 
         # Query
@@ -186,7 +178,7 @@ class OWTwitter(OWWidget):
 
         # Checkbox
         row += 1
-        check = gui.checkBox(self, self, 'advance', '')
+        check = gui.checkBox(self, self, 'collecting', '')
         layout.addWidget(QtGui.QLabel('Collect results:'), row, 0, 1, self.label_width)
         layout.addWidget(check, row, self.label_width, 1, 1)
         self.query_box.layout().addLayout(layout)
@@ -202,13 +194,8 @@ class OWTwitter(OWWidget):
         self.button_box = gui.hBox(self.controlArea)
         self.button_box.layout().addWidget(self.report_button)
 
-        self.search_button = gui.button(self.button_box, self, "Search", self.search)
+        self.search_button = gui.button(self.button_box, self, 'Search', self.start_stop)
         self.search_button.setFocusPolicy(QtCore.Qt.NoFocus)
-
-        self.start_signal.connect(self.on_start)
-        self.error_signal.connect(self.on_error)
-        self.progress_signal.connect(self.on_progress)
-        self.finish_signal.connect(self.on_finish)
 
         self._tweet_count = False
         self.send_corpus()
@@ -217,62 +204,48 @@ class OWTwitter(OWWidget):
     def open_key_dialog(self):
         self.api_dlg.exec_()
 
+    def start_stop(self):
+        if self.running:
+            self.stop()
+        else:
+            self.search()
+
     def update_api(self, key):
         if key:
             self.Warning.clear()
-            self.api = twitter.TwitterAPI(key,
-                                          on_start=self.start_signal.emit,
-                                          on_progress=self.progress_signal.emit,
-                                          on_error=self.error_signal.emit,
-                                          on_rate_limit=self.on_rate_limit,
-                                          on_finish=self.finish_signal.emit)
+            self.api = twitter.TwitterAPI(key)
         else:
             self.api = None
 
-    @QtCore.pyqtSlot()
-    @gui_require('api', MISSED_KEY)
-    def search(self):
-        if not self.api.running:
-            if not self.advance:
-                self.api.reset()
-            self.search_button.setText("Stop")
+    @gui_require('api', 'missed_key')
+    @asynchronous(allow_partial_results=True)
+    def search(self, on_progress, should_break):
+            def progress_with_info(total, current):
+                on_progress(100 * current / self.max_tweets)
+                self.update_tweets_num(total)
+
             word_list = self.word_list if self.mode == self.CONTENT else None
             authors = self.word_list if self.mode == self.AUTHOR else None
 
-            self.api.search(max_tweets=self.max_tweets if self.limited_search else 0,
-                            word_list=word_list, authors=authors, lang=self.language,
-                            allow_retweets=self.allow_retweets)
-        else:
-            self.api.disconnect()
-            self.search_button.setText("Search")
+            return self.api.search(max_tweets=self.max_tweets if self.limited_search else 0,
+                                   content=word_list, authors=authors, lang=self.language,
+                                   allow_retweets=self.allow_retweets,
+                                   collecting=self.collecting,
+                                   on_progress=progress_with_info,
+                                   should_break=should_break)
 
-    def update_tweets_info(self):
-        tweet_count = len(self.api.container) if self.api else 0
-        self.tweets_count_label.setText(self.tweets_info.format(tweet_count))
-
-    @QtCore.pyqtSlot()
     def on_start(self):
         self.Error.clear()
+        self.search_button.setText('Stop')
+        self.send(IO.CORPUS, None)
 
-        if self.limited_search:
-            self._tweet_count = self.max_tweets
-            self.progressBarInit()
-
-    @QtCore.pyqtSlot(int)
-    def on_progress(self, progress):
-        self.update_tweets_info()
-        if self._tweet_count:
-            self.progressBarSet(progress / self._tweet_count * 100)
-
-    @QtCore.pyqtSlot()
-    def on_finish(self):
-        self.send_corpus()
-        self.update_tweets_info()
+    def on_result(self, result):
         self.search_button.setText('Search')
-        self.search_button.setEnabled(True)
-        if self._tweet_count:
-            self._tweet_count = False
-            self.progressBarFinished()
+        self.corpus = result
+        self.set_text_features()
+
+    def update_tweets_num(self, num=0):
+        self.tweets_count_label.setText(self.tweets_info.format(num))
 
     def send_corpus(self):
         if self.api and self.api.tweets:
@@ -291,23 +264,10 @@ class OWTwitter(OWWidget):
             self.corpus.set_text_features(vars_ or None)
             self.send(IO.CORPUS, self.corpus)
 
-    @QtCore.pyqtSlot(str)
-    def on_rate_limit(self):
-        self.Error.rate_limit()
-
-    @QtCore.pyqtSlot(str)
-    def on_error(self, text):
-        self.Error.api(text)
-
-    def reset(self):
-        self.api.reset()
-        self.update_tweets_info()
-        self.send_corpus()
-
-    @gui_require('api', MISSED_KEY)
+    @gui_require('api', 'missed_key')
     def send_report(self):
-        for task in self.api.history:
-            self.report_items(task.report())
+        for task in self.api.search_history:
+            self.report_items(task)
 
 
 if __name__ == '__main__':

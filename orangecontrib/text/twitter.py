@@ -1,12 +1,9 @@
-""" A module for fetching data from `The Twitter Search API <https://dev.twitter.com/rest/public/search>`_. """
-import threading
 from collections import OrderedDict
 
 import tweepy
 
 from Orange import data
 from orangecontrib.text import Corpus
-from orangecontrib.text.language_codes import code2lang
 
 __all__ = ['Credentials', 'TwitterAPI']
 
@@ -98,22 +95,15 @@ class TwitterAPI:
     text_features = [metas[1][0]]       # Content
     string_attributes = [m for m, _ in metas if isinstance(m, data.StringVariable)]
 
-    def __init__(self, credentials, on_start=None, on_progress=None, on_error=None,
-                 on_rate_limit=None, on_finish=None):
+    def __init__(self, credentials, on_error=None, on_rate_limit=None,):
         self.key = credentials
         self.api = tweepy.API(credentials.auth)
-        self.statuses_lock = threading.Lock()
-        self.task = None
+        self.container = OrderedDict()
+        self.search_history = []
 
         # Callbacks:
-        self.on_progress = on_progress
         self.on_error = on_error
-        self.on_finish = on_finish
         self.on_rate_limit = on_rate_limit
-        self.on_start = on_start
-
-        self.container = OrderedDict()
-        self.history = []
 
     @property
     def tweets(self):
@@ -140,107 +130,71 @@ class TwitterAPI:
 
         return query
 
-    def search(self, *, word_list=None, authors=None, max_tweets=None,
-               lang=None, allow_retweets=True):
+    def search(self, *, content=None, authors=None,
+               max_tweets=None, lang=None, allow_retweets=True,
+               collecting=False, on_progress=None, should_break=None):
         """ Performs search for tweets.
-
-        All the parameters optional.
 
         Args:
             max_tweets (int): If present limits the number of downloaded tweets.
-            word_list (list of str): A list of key words to search for.
+            content (list of str): A list of key words to search for.
             authors (list of str): A list of tweets' author.
             lang (str): A language's code (either ISO 639-1 or ISO 639-3 formats).
             allow_retweets(bool): Whether to download retweets.
+            collecting (bool): Whether to collect results across multiple
+                search calls.
+            on_progress (callable): Callback for progress reporting.
+            should_break (callback): Callback for breaking the computation
+                before the end. If it evaluates to True, downloading is stopped
+                and document downloaded till now are returned in a Corpus.
+
+        Returns:
+            Corpus
         """
-        query = self.build_query(word_list=word_list, authors=authors,
+        on_progress = on_progress if on_progress else lambda x, y: (x, y)
+        should_break = should_break if should_break else lambda: False
+
+        if not collecting:
+            self.reset()
+
+        query = self.build_query(word_list=content, authors=authors,
                                  allow_retweets=allow_retweets)
 
-        self.task = SearchTask(self, q=query, lang=lang, max_tweets=max_tweets)
-        self.history.append(self.task)
-        self.task.start()
+        try:
+            for i, tweet in enumerate(tweepy.Cursor(
+                    self.api.search, q=query, lang=lang).items(max_tweets),
+                                      start=1):
+                if should_break():
+                    break
+                self.container[tweet.id] = tweet
+                on_progress(len(self.container), i)
+        except tweepy.TweepError as e:
+            if e.response.status_code == 429 and self.on_rate_limit:
+                self.on_rate_limit()
+            elif self.on_error:
+                self.on_error(str(e))
 
-    def disconnect(self):
-        if self.task:
-            self.task.disconnect()
-
-    @property
-    def running(self):
-        """bool: Indicates whether there is an active task. """
-        return self.task is not None and self.task.running
-
-    def join(self, *args):
-        if self.task:
-            self.task.join(*args)
-
-    def add_status(self, status):
-        self.statuses_lock.acquire()
-        self.container[status.id] = status
-        self.statuses_lock.release()
+        self.append_history(content, lang, allow_retweets, i)
+        return self.create_corpus()
 
     def create_corpus(self):
-        """ Creates a corpus with collected tweets. """
-        self.statuses_lock.acquire()
-        corpus = Corpus.from_documents(self.tweets, 'Twitter', self.attributes,
-                                       self.class_vars, self.metas, title_indices=[-1])
-        self.statuses_lock.release()
-        return corpus
+        """ Create a corpus with collected tweets. """
+        return Corpus.from_documents(self.tweets, 'Twitter', self.attributes,
+                                     self.class_vars, self.metas,
+                                     title_indices=[-1])
 
     def reset(self):
         """ Removes all downloaded tweets. """
-        if self.task:
-            self.task.disconnect()
-            self.task.join()
-        self.history = []
+        self.search_history = []
         self.container = OrderedDict()
 
-
-class SearchTask(threading.Thread):
-    def __init__(self, master, q, lang=None, max_tweets=None, **kwargs):
-        super().__init__()
-        self.master = master
-        self.q = q
-        self.lang = lang
-        self.running = False
-        self.max_tweets = max_tweets
-        self.kwargs = kwargs
-
-    def disconnect(self):
-        self.running = False
-
-    def start(self):
-        self.running = True
-        self.progress = 0
-        if self.master.on_start:
-            self.master.on_start()
-        super().start()
-
-    def run(self):
-        try:
-            for status in tweepy.Cursor(self.master.api.search, q=self.q,
-                                        lang=self.lang, count=100,
-                                        **self.kwargs).items(self.max_tweets):
-                self.master.add_status(status)
-                self.progress += 1
-                if self.master.on_progress:
-                    self.master.on_progress(self.progress)
-
-                if not self.running:
-                    break
-        except tweepy.TweepError as e:
-            if e.response.status_code == 429 and self.master.on_rate_limit:
-                self.master.on_rate_limit()
-            elif self.master.on_error:
-                self.master.on_error(str(e))
-
-        self.finish()
-
-    def finish(self):
-        self.running = False
-        if self.master.on_finish:
-            self.master.on_finish()
+    def append_history(self, query, lang, allow_retweets, n_tweets):
+        self.search_history.append((
+            ('Query', ', '.join(query)),
+            ('Language', lang if lang else 'Any'),
+            ('Allow retweets', str(allow_retweets)),
+            ('Tweets count', n_tweets),
+        ))
 
     def report(self):
-        return (('Query', self.q),
-                ('Language', code2lang.get(self.lang, 'Any')),
-                ('Tweets count', self.progress))
+        return self.search_history
