@@ -182,7 +182,7 @@ class TwitterAPI:
         """ Creates a corpus with collected tweets. """
         self.statuses_lock.acquire()
         corpus = Corpus.from_documents(self.tweets, 'Twitter', self.attributes,
-                                       self.class_vars, self.metas, title_indices=[-2])
+                                       self.class_vars, self.metas, title_indices=[-1])
         self.statuses_lock.release()
         return corpus
 
