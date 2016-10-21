@@ -50,7 +50,7 @@ class Corpus(Table):
         """
         n_doc = _check_arrays(X, Y, metas)
 
-        self.X = X if X is not None else np.zeros((n_doc, 0))
+        self.X = X if X is not None and X.size else sp.csr_matrix((n_doc, 0))   # prefer sparse (BoW compute values)
         self.Y = Y if Y is not None else np.zeros((n_doc, 0))
         self.metas = metas if metas is not None else np.zeros((n_doc, 0))
         self.W = W if W is not None else np.zeros((n_doc, 0))
@@ -62,6 +62,7 @@ class Corpus(Table):
         self.ngram_range = (1, 1)
         self.attributes = {}
         self.pos_tags = None
+        self.used_preprocessor = None   # required for compute values
 
         if domain is not None and text_features is None:
             self._infer_text_features()
@@ -128,7 +129,7 @@ class Corpus(Table):
 
         self._tokens = None     # invalidate tokens
 
-    def extend_attributes(self, X, feature_names, var_attrs=None):
+    def extend_attributes(self, X, feature_names, var_attrs=None, compute_values=None):
         """
         Append features to corpus.
 
@@ -136,8 +137,8 @@ class Corpus(Table):
             X (numpy.ndarray or scipy.sparse.csr_matrix): Features to append
             feature_names (list): List of string containing feature names
             var_attrs (dict): Additional attributes appended to variable.attributes.
+            compute_values (list): Compute values for corresponding features.
         """
-
         if self.X.size == 0:
             self.X = X
         elif sp.issparse(self.X) or sp.issparse(X):
@@ -145,10 +146,12 @@ class Corpus(Table):
         else:
             self.X = np.hstack((self.X, X))
 
-        new_attr = self.domain.attributes
+        if compute_values is None:
+            compute_values = [None] * X.shape[1]
 
-        for f in feature_names:
-            var = ContinuousVariable.make(f)
+        new_attr = self.domain.attributes
+        for f, cv in zip(feature_names, compute_values):
+            var = ContinuousVariable(f, compute_value=cv)
             if isinstance(var_attrs, dict):
                 var.attributes.update(var_attrs)
             new_attr += (var, )
@@ -229,8 +232,7 @@ class Corpus(Table):
 
     def _apply_base_preprocessor(self):
         from orangecontrib.text.preprocess import base_preprocessor
-        corpus = base_preprocessor(self)
-        self.store_tokens(corpus.tokens, corpus.dictionary)
+        base_preprocessor(self)
 
     @property
     def dictionary(self):
@@ -287,6 +289,7 @@ class Corpus(Table):
         c.ngram_range = self.ngram_range
         c.pos_tags = self.pos_tags
         c.name = self.name
+        c.used_preprocessor = self.used_preprocessor
         return c
 
     @staticmethod
@@ -390,17 +393,26 @@ class Corpus(Table):
             new.text_features = orig.text_features
             new.ngram_range = orig.ngram_range
             new.attributes = orig.attributes
+            new.used_preprocessor = orig.used_preprocessor
 
     def __len__(self):
         return len(self.metas)
 
     def __eq__(self, other):
+        def arrays_equal(a, b):
+            if sp.issparse(a) != sp.issparse(b):
+                return False
+            elif sp.issparse(a) and sp.issparse(b):
+                return (a != b).nnz == 0
+            else:
+                return np.array_equal(a, b)
+
         return (self.text_features == other.text_features and
                 self._dictionary == other._dictionary and
                 np.array_equal(self._tokens, other._tokens) and
-                np.array_equal(self.X, other.X) and
-                np.array_equal(self.Y, other.Y) and
-                np.array_equal(self.metas, other.metas) and
+                arrays_equal(self.X, other.X) and
+                arrays_equal(self.Y, other.Y) and
+                arrays_equal(self.metas, other.metas) and
                 np.array_equal(self.pos_tags, other.pos_tags) and
                 self.domain == other.domain and
                 self.ngram_range == other.ngram_range)

@@ -32,7 +32,7 @@ class SimhashVectorizer(BaseVectorizer):
     def int2binarray(self, num):
         return [int(x) for x in self._bin_format.format(num)]
 
-    def _transform(self, corpus):
+    def _transform(self, corpus, source_dict):
         """ Computes simhash values from the given corpus
         and creates a new one with a simhash attribute.
 

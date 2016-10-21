@@ -26,6 +26,14 @@ class BaseTokenFilter:
     def __str__(self):
         return self.name
 
+    def set_up(self):
+        """ A method for setting filters up before every __call__. """
+        pass
+
+    def tear_down(self):
+        """ A method for cleaning up after every __call__. """
+        pass
+
 
 class WordListMixin:
     def __init__(self, word_list=None):
@@ -88,7 +96,7 @@ class LexiconFilter(BaseTokenFilter, WordListMixin):
 
     @lexicon.setter
     def lexicon(self, value):
-        self.word_list = value
+        self.word_list = set(value)
 
     def check(self, token):
         return not self.lexicon or token in self.lexicon
@@ -103,7 +111,11 @@ class RegexpFilter(BaseTokenFilter):
 
     def __init__(self, pattern=r'\.|,|:|!|\?'):
         self._pattern = pattern
-        self.regex = re.compile(self.pattern)
+        # Compiled Regexes are NOT deepcopy-able and hence to make Corpus deepcopy-able
+        # we cannot store then (due to Corpus also storing used_preprocessor for BoW compute values).
+        # To bypass the problem regex is compiled before every __call__ and discarded right after.
+        self.regex = None
+        self.set_up()
 
     @property
     def pattern(self):
@@ -112,7 +124,7 @@ class RegexpFilter(BaseTokenFilter):
     @pattern.setter
     def pattern(self, value):
         self._pattern = value
-        self.regex = re.compile(self.pattern)
+        self.set_up()
 
     @staticmethod
     def validate_regexp(regexp):
@@ -127,6 +139,14 @@ class RegexpFilter(BaseTokenFilter):
 
     def __str__(self):
         return '{} ({})'.format(self.name, self.pattern)
+
+    def set_up(self):
+        """ Compile Regex before the __call__. """
+        self.regex = re.compile(self.pattern)
+
+    def tear_down(self):
+        """ Delete Regex after every __call__. """
+        self.regex = None
 
 
 class FrequencyFilter(LexiconFilter):
@@ -146,7 +166,7 @@ class FrequencyFilter(LexiconFilter):
         tokens = getattr(corpus, 'tokens', corpus)
         dictionary = corpora.Dictionary(tokens)
         dictionary.filter_extremes(self.min_df, self.max_df, self.keep_n)
-        self.word_list = dictionary.token2id.keys()
+        self.lexicon = dictionary.token2id.keys()
         return self(tokens), dictionary
 
     @property
