@@ -7,7 +7,6 @@ import pickle
 import json
 
 import tweepy
-from datetime import date
 import time
 
 from orangecontrib.text import twitter
@@ -133,12 +132,6 @@ class TestTwitterAPI(unittest.TestCase):
 
         query = self.api.build_query(authors=['johndoe'])
         self.assertIn('from:johndoe', query)
-
-        query = self.api.build_query(since=date(2016, 10, 9))
-        self.assertIn('since:2016-10-09', query)
-
-        query = self.api.build_query(until=date(2016, 10, 9))
-        self.assertIn('until:2016-10-09', query)
 
         query = self.api.build_query(word_list=['hello', 'world'], allow_retweets=False)
         self.assertIn(' -filter:retweets', query)

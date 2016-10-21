@@ -121,7 +121,7 @@ class TwitterAPI:
         return self.container.values()
 
     @staticmethod
-    def build_query(word_list=None, authors=None, since=None, until=None, allow_retweets=True):
+    def build_query(word_list=None, authors=None, allow_retweets=True):
         if authors is None:
             authors = []
 
@@ -135,18 +135,13 @@ class TwitterAPI:
             query = " OR ".join(['"{}"'.format(q) for q in word_list] +
                                 ['from:{}'.format(user) for user in authors])
 
-        if since:
-            query += ' since:' + since.strftime('%Y-%m-%d')
-        if until:
-            query += ' until:' + until.strftime('%Y-%m-%d')
-
         if not allow_retweets:
             query += ' -filter:retweets'
 
         return query
 
-    def search(self, *, word_list=None, authors=None, max_tweets=None, lang=None,
-               since=None, until=None, allow_retweets=True):
+    def search(self, *, word_list=None, authors=None, max_tweets=None,
+               lang=None, allow_retweets=True):
         """ Performs search for tweets.
 
         All the parameters optional.
@@ -156,12 +151,10 @@ class TwitterAPI:
             word_list (list of str): A list of key words to search for.
             authors (list of str): A list of tweets' author.
             lang (str): A language's code (either ISO 639-1 or ISO 639-3 formats).
-            since (str): Fetch tweets only from this date.
-            until (str): Fetch tweets only to this date.
             allow_retweets(bool): Whether to download retweets.
         """
         query = self.build_query(word_list=word_list, authors=authors,
-                                 since=since, until=until, allow_retweets=allow_retweets)
+                                 allow_retweets=allow_retweets)
 
         self.task = SearchTask(self, q=query, lang=lang, max_tweets=max_tweets)
         self.history.append(self.task)

@@ -1,7 +1,5 @@
 from PyQt4 import QtGui, QtCore
 
-from datetime import datetime, timedelta
-
 from Orange.widgets import gui
 from Orange.widgets.settings import Setting
 from Orange.widgets.credentials import CredentialManager
@@ -10,8 +8,8 @@ from Orange.widgets.widget import OWWidget, Msg
 from orangecontrib.text import twitter
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.language_codes import lang2code
-from orangecontrib.text.widgets.utils import (ComboBox, ListEdit, CheckListLayout,
-                                              DateInterval, gui_require)
+from orangecontrib.text.widgets.utils import (ComboBox, ListEdit,
+                                              CheckListLayout, gui_require)
 
 
 class IO:
@@ -119,9 +117,6 @@ class OWTwitter(OWWidget):
     attributes = [feat.name for feat in twitter.TwitterAPI.string_attributes]
     text_includes = Setting([feat.name for feat in twitter.TwitterAPI.text_features])
 
-    date_interval = Setting((datetime.now().date() - timedelta(10),
-                             datetime.now().date()))
-
     def __init__(self, *args, **kwargs):
         """
         Attributes:
@@ -179,15 +174,6 @@ class OWTwitter(OWWidget):
         check = gui.checkBox(self, self, 'allow_retweets', '')
         layout.addWidget(QtGui.QLabel('Allow\nretweets:'), row, 0, 1, self.label_width)
         layout.addWidget(check, row, self.label_width, 1, 1)
-
-        # Time interval
-        row += 1
-        interval = DateInterval(self, 'date_interval',
-                                min_date=datetime.now().date() - timedelta(10),
-                                max_date=datetime.now().date(),
-                                from_label='since', to_label='until')
-        layout.addWidget(QtGui.QLabel('Date:'), row, 0, 1, self.label_width)
-        layout.addWidget(interval, row, self.label_width, 1, self.widgets_width)
 
         # Max tweets
         row += 1
@@ -254,7 +240,6 @@ class OWTwitter(OWWidget):
 
             self.api.search(max_tweets=self.max_tweets if self.limited_search else 0,
                             word_list=word_list, authors=authors, lang=self.language,
-                            since=self.date_interval[0], until=self.date_interval[1],
                             allow_retweets=self.allow_retweets)
         else:
             self.api.disconnect()
