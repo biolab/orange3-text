@@ -182,13 +182,13 @@ class OWTwitter(OWWidget):
         # Retweets
         row += 1
         check = gui.checkBox(self, self, 'allow_retweets', '')
-        layout.addWidget(QtGui.QLabel('Allow\nretweets:'), row, 0, 1, self.label_width)
+        layout.addWidget(QtGui.QLabel('Allow retweets:'), row, 0, 1, self.label_width)
         layout.addWidget(check, row, self.label_width, 1, 1)
 
         # Checkbox
         row += 1
         check = gui.checkBox(self, self, 'advance', '')
-        layout.addWidget(QtGui.QLabel('Accumulate\nresults:'), row, 0, 1, self.label_width)
+        layout.addWidget(QtGui.QLabel('Collect results:'), row, 0, 1, self.label_width)
         layout.addWidget(check, row, self.label_width, 1, 1)
         self.query_box.layout().addLayout(layout)
 
