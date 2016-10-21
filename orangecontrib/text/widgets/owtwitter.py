@@ -145,7 +145,7 @@ class OWTwitter(OWWidget):
 
         # Query
         row = 0
-        query_edit = ListEdit(self, 'word_list', "Multiple lines are automatically joined with OR.", self)
+        query_edit = ListEdit(self, 'word_list', "Multiple lines are joined with OR.", self)
         query_edit.setFixedHeight(self.text_area_height)
         layout.addWidget(QtGui.QLabel('Query word list:'), row, 0, 1, self.label_width)
         layout.addWidget(query_edit, row, self.label_width, 1, self.widgets_width)
