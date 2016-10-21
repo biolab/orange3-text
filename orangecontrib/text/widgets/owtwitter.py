@@ -169,19 +169,21 @@ class OWTwitter(OWWidget):
         layout.addWidget(language_edit, row, self.label_width, 1,
                          self.widgets_width)
 
+        # Max tweets
+        row += 1
+        check, spin = gui.spin(self, self, 'max_tweets', minv=1, maxv=10000,
+                               checked='limited_search')
+        layout.addWidget(QtGui.QLabel('Max tweets:'), row, 0, 1,
+                         self.label_width)
+        layout.addWidget(check, row, self.label_width, 1, 1)
+        layout.addWidget(spin, row, self.label_width + 1, 1,
+                         self.widgets_width - 1)
+
         # Retweets
         row += 1
         check = gui.checkBox(self, self, 'allow_retweets', '')
         layout.addWidget(QtGui.QLabel('Allow\nretweets:'), row, 0, 1, self.label_width)
         layout.addWidget(check, row, self.label_width, 1, 1)
-
-        # Max tweets
-        row += 1
-        check, spin = gui.spin(self, self, 'max_tweets', minv=1, maxv=10000,
-                               checked='limited_search')
-        layout.addWidget(QtGui.QLabel('Max tweets:'), row, 0, 1, self.label_width)
-        layout.addWidget(check, row, self.label_width, 1, 1)
-        layout.addWidget(spin, row, self.label_width + 1, 1, self.widgets_width - 1)
 
         # Checkbox
         row += 1
