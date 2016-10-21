@@ -88,12 +88,13 @@ class OWTwitter(OWConcurrentWidget):
     text_area_height = 80
 
     class Warning(OWWidget.Warning):
-        missed_key = Msg('Please provide a valid API key in order to get the data.')
         no_text_fields = Msg('Text features are inferred when none are selected.')
 
     class Error(OWWidget.Error):
         api = Msg('Api error ({})')
         rate_limit = Msg('Rate limit exceeded. Please try again later.')
+        empty_user_list = Msg('Query cannot be empty when searching by author.')
+        missed_key = Msg('Please provide a valid API key in order to get the data.')
 
     tweets_info = 'Tweets on output: {}'
 
@@ -120,8 +121,6 @@ class OWTwitter(OWConcurrentWidget):
         self.api_dlg = self.APICredentialsDialog(self)
         self.api_dlg.accept(silent=True)
 
-        self.controlArea.layout().setContentsMargins(0, 15, 0, 0)
-
         # Set API key button.
         key_dialog_button = gui.button(self.controlArea, self, 'Twitter API Key',
                                        callback=self.open_key_dialog,
@@ -144,7 +143,7 @@ class OWTwitter(OWConcurrentWidget):
 
         # Search mode
         row += 1
-        mode = gui.comboBox(self, self, 'mode')
+        mode = gui.comboBox(self, self, 'mode', callback=self.mode_toggle)
         mode.addItem('Content')
         mode.addItem('Author')
         layout.addWidget(QtGui.QLabel('Search by:'), row, 0, 1, self.label_width)
@@ -152,29 +151,29 @@ class OWTwitter(OWConcurrentWidget):
 
         # Language
         row += 1
-        language_edit = ComboBox(self, 'language',
+        self.language_combo = ComboBox(self, 'language',
                                  (('Any', None),) + tuple(
                                      sorted(lang2code.items())))
         layout.addWidget(QtGui.QLabel('Language:'), row, 0, 1,
                          self.label_width)
-        layout.addWidget(language_edit, row, self.label_width, 1,
+        layout.addWidget(self.language_combo, row, self.label_width, 1,
                          self.widgets_width)
 
         # Max tweets
         row += 1
-        check, spin = gui.spin(self, self, 'max_tweets', minv=1, maxv=10000,
+        self.retweets_check, spin = gui.spin(self, self, 'max_tweets', minv=1, maxv=10000,
                                checked='limited_search')
         layout.addWidget(QtGui.QLabel('Max tweets:'), row, 0, 1,
                          self.label_width)
-        layout.addWidget(check, row, self.label_width, 1, 1)
+        layout.addWidget(self.retweets_check, row, self.label_width, 1, 1)
         layout.addWidget(spin, row, self.label_width + 1, 1,
                          self.widgets_width - 1)
 
         # Retweets
         row += 1
-        check = gui.checkBox(self, self, 'allow_retweets', '')
+        self.retweets_check = gui.checkBox(self, self, 'allow_retweets', '')
         layout.addWidget(QtGui.QLabel('Allow retweets:'), row, 0, 1, self.label_width)
-        layout.addWidget(check, row, self.label_width, 1, 1)
+        layout.addWidget(self.retweets_check, row, self.label_width, 1, 1)
 
         # Checkbox
         row += 1
@@ -204,6 +203,17 @@ class OWTwitter(OWConcurrentWidget):
     def open_key_dialog(self):
         self.api_dlg.exec_()
 
+    def mode_toggle(self):
+        if self.mode == self.AUTHOR:
+            self.language = None
+            self.retweets_check.setCheckState(False)
+            self.retweets_check.setEnabled(False)
+            self.language_combo.setCurrentIndex(0)
+            self.language_combo.setEnabled(False)
+        else:
+            self.retweets_check.setEnabled(True)
+            self.language_combo.setEnabled(True)
+
     def start_stop(self):
         if self.running:
             self.stop()
@@ -212,35 +222,46 @@ class OWTwitter(OWConcurrentWidget):
 
     def update_api(self, key):
         if key:
-            self.Warning.clear()
-            self.api = twitter.TwitterAPI(key)
+            self.Error.missed_key.clear()
+            self.api = twitter.TwitterAPI(key,
+                                          on_error=self.Error.api,
+                                          on_rate_limit=self.Error.rate_limit)
         else:
             self.api = None
 
     @gui_require('api', 'missed_key')
     @asynchronous(allow_partial_results=True)
     def search(self, on_progress, should_break):
-            def progress_with_info(total, current):
-                on_progress(100 * current / self.max_tweets)
-                self.update_tweets_num(total)
+        def progress_with_info(total, progress):
+            on_progress(100 * progress)
+            self.update_tweets_num(total)
 
-            word_list = self.word_list if self.mode == self.CONTENT else None
-            authors = self.word_list if self.mode == self.AUTHOR else None
+        self.Error.clear()
+        self.api.on_progress = progress_with_info
+        self.api.should_break = should_break
+        max_tweets = self.max_tweets if self.limited_search else 0
 
-            return self.api.search(max_tweets=self.max_tweets if self.limited_search else 0,
-                                   content=word_list, authors=authors, lang=self.language,
-                                   allow_retweets=self.allow_retweets,
-                                   collecting=self.collecting,
-                                   on_progress=progress_with_info,
-                                   should_break=should_break)
+        if self.mode == self.CONTENT:
+            return self.api.search_content(max_tweets=max_tweets,
+                                           content=self.word_list,
+                                           lang=self.language,
+                                           allow_retweets=self.allow_retweets,
+                                           collecting=self.collecting)
+        else:
+            if not self.word_list:
+                self.Error.empty_user_list()
+                return None
+            return self.api.search_authors(max_tweets=max_tweets,
+                                           authors=self.word_list,
+                                           collecting=self.collecting)
 
     def on_start(self):
-        self.Error.clear()
         self.search_button.setText('Stop')
         self.send(IO.CORPUS, None)
 
     def on_result(self, result):
         self.search_button.setText('Search')
+        self.update_tweets_num(len(result) if result else 0)
         self.corpus = result
         self.set_text_features()
 

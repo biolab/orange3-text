@@ -1,9 +1,10 @@
-from collections import OrderedDict
+from collections import OrderedDict, Iterable
 
 import tweepy
 
 from Orange import data
 from orangecontrib.text import Corpus
+from orangecontrib.text.language_codes import code2lang
 
 __all__ = ['Credentials', 'TwitterAPI']
 
@@ -95,7 +96,9 @@ class TwitterAPI:
     text_features = [metas[1][0]]       # Content
     string_attributes = [m for m, _ in metas if isinstance(m, data.StringVariable)]
 
-    def __init__(self, credentials, on_error=None, on_rate_limit=None,):
+    def __init__(self, credentials,
+                 on_progress=None, should_break=None,
+                 on_error=None, on_rate_limit=None):
         self.key = credentials
         self.api = tweepy.API(credentials.auth)
         self.container = OrderedDict()
@@ -104,81 +107,117 @@ class TwitterAPI:
         # Callbacks:
         self.on_error = on_error
         self.on_rate_limit = on_rate_limit
+        self.on_progress = on_progress
+        self.should_break = should_break
 
     @property
     def tweets(self):
-        """ Iterator over the downloaded documents. """
         return self.container.values()
 
-    @staticmethod
-    def build_query(word_list=None, authors=None, allow_retweets=True):
-        if authors is None:
-            authors = []
-
-        if word_list is None:
-            word_list = []
-
-        if not word_list and not authors:
-            # allows empty queries
-            query = "from: "
-        else:
-            query = " OR ".join(['"{}"'.format(q) for q in word_list] +
-                                ['from:{}'.format(user) for user in authors])
-
-        if not allow_retweets:
-            query += ' -filter:retweets'
-
-        return query
-
-    def search(self, *, content=None, authors=None,
-               max_tweets=None, lang=None, allow_retweets=True,
-               collecting=False, on_progress=None, should_break=None):
-        """ Performs search for tweets.
+    def search_content(self, content, *, max_tweets=0,
+                       lang=None, allow_retweets=True,
+                       collecting=False):
+        """ Search by content.
 
         Args:
-            max_tweets (int): If present limits the number of downloaded tweets.
             content (list of str): A list of key words to search for.
-            authors (list of str): A list of tweets' author.
-            lang (str): A language's code (either ISO 639-1 or ISO 639-3 formats).
+            max_tweets (int): If greater than zero limits the number of
+                downloaded tweets.
+            lang (str): A language's code (either ISO 639-1 or ISO 639-3
+                formats).
             allow_retweets(bool): Whether to download retweets.
             collecting (bool): Whether to collect results across multiple
                 search calls.
-            on_progress (callable): Callback for progress reporting.
-            should_break (callback): Callback for breaking the computation
-                before the end. If it evaluates to True, downloading is stopped
-                and document downloaded till now are returned in a Corpus.
 
         Returns:
             Corpus
         """
-        on_progress = on_progress if on_progress else lambda x, y: (x, y)
-        should_break = should_break if should_break else lambda: False
-
         if not collecting:
             self.reset()
 
-        query = self.build_query(word_list=content, authors=authors,
-                                 allow_retweets=allow_retweets)
+        if max_tweets == 0:     # set to max allowed for progress
+            max_tweets = 3300
 
+        def build_query():
+            nonlocal content
+            if not content:
+                q = 'from: '
+            else:
+                if not isinstance(content, list):
+                    content = [content]
+                q = ' OR '.join(['"{}"'.format(q) for q in content])
+            if not allow_retweets:
+                q += ' -filter:retweets'
+            return q
+
+        query = build_query()
+        cursor = tweepy.Cursor(self.api.search, q=query, lang=lang)
+        corpus, count = self.fetch(cursor, max_tweets)
+        self.append_history('Content', content, lang if lang else 'Any',
+                            str(allow_retweets), count)
+        return corpus
+
+    def search_authors(self, authors, *, max_tweets=0, collecting=False):
+        """ Search by authors.
+
+        Args:
+            authors (list of str): A list of authors to search for.
+            max_tweets (int): If greater than zero limits the number of
+                downloaded tweets.
+            collecting (bool): Whether to collect results across multiple
+                search calls.
+
+        Returns:
+            Corpus
+        """
+        if not collecting:
+            self.reset()
+
+        if max_tweets == 0:  # set to max allowed for progress
+            max_tweets = 3300
+
+        if not isinstance(authors, list):
+            authors = [authors]
+
+        cursors = [tweepy.Cursor(self.api.user_timeline, screen_name=a)
+                   for a in authors]
+        corpus, count = self.fetch(cursors, max_tweets)
+        self.append_history('Author', authors, None, None, count)
+        return corpus
+
+    def fetch(self, cursors, max_tweets):
+        if not self.on_progress:
+            self.on_progress = lambda x, y: (x, y)
+        if not self.should_break:
+            self.should_break = lambda: False
+
+        if not isinstance(cursors, list):
+            cursors = [cursors]
+
+        count = 0
         try:
-            for i, tweet in enumerate(tweepy.Cursor(
-                    self.api.search, q=query, lang=lang).items(max_tweets),
-                                      start=1):
-                if should_break():
+            for i, cursor in enumerate(cursors):
+                for j, tweet in enumerate(cursor.items(max_tweets), start=1):
+                    if self.should_break():
+                        break
+                    if tweet.id not in self.container:
+                        count += 1
+                    self.container[tweet.id] = tweet
+                    if j % 20 == 0:
+                        self.on_progress(len(self.container),
+                                         (i*max_tweets + j)/
+                                         (len(cursors)*max_tweets))
+                if self.should_break():
                     break
-                self.container[tweet.id] = tweet
-                on_progress(len(self.container), i)
         except tweepy.TweepError as e:
             if e.response.status_code == 429 and self.on_rate_limit:
                 self.on_rate_limit()
             elif self.on_error:
                 self.on_error(str(e))
-
-        self.append_history(content, lang, allow_retweets, i)
-        return self.create_corpus()
+                return None, 0
+        return self.create_corpus(), count
 
     def create_corpus(self):
-        """ Create a corpus with collected tweets. """
         return Corpus.from_documents(self.tweets, 'Twitter', self.attributes,
                                      self.class_vars, self.metas,
                                      title_indices=[-1])
@@ -188,11 +227,15 @@ class TwitterAPI:
         self.search_history = []
         self.container = OrderedDict()
 
-    def append_history(self, query, lang, allow_retweets, n_tweets):
+    def append_history(self, mode, query, lang, allow_retweets, n_tweets):
+        query = ', '.join(query) if isinstance(query, Iterable) else query
+        if lang in code2lang.keys():
+            lang = code2lang[lang]
         self.search_history.append((
-            ('Query', ', '.join(query)),
-            ('Language', lang if lang else 'Any'),
-            ('Allow retweets', str(allow_retweets)),
+            ('Query', query),
+            ('Search by', mode),
+            ('Language', lang),
+            ('Allow retweets', allow_retweets),
             ('Tweets count', n_tweets),
         ))
 
