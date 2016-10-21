@@ -69,10 +69,11 @@ class TwitterAPI:
     attributes = []
     class_vars = []
 
+    tv = data.TimeVariable('Date')
     metas = [
         (data.DiscreteVariable('Author'), lambda doc: '@'+doc.author.screen_name),
         (data.StringVariable('Content'), lambda doc: doc.text),
-        (data.TimeVariable('Date'), lambda doc: doc.created_at.timestamp()),
+        (tv, lambda doc: TwitterAPI.tv.parse(doc.created_at.isoformat())),
         (data.DiscreteVariable('Language'), lambda doc: doc.lang),
         (data.DiscreteVariable('Location'), lambda doc: getattr(doc.place, 'country_code', None)),
         (data.ContinuousVariable('Number of Likes'), lambda doc: doc.favorite_count),
