@@ -13,7 +13,8 @@ class ListEdit(QTextEdit):
     PLACEHOLDER_COLOR = QColor(128, 128, 128)
     USER_TEXT_COLOR = QColor(0, 0, 0)
 
-    def __init__(self, master=None, attr=None, placeholder_text=None, *args):
+    def __init__(self, master=None, attr=None, placeholder_text=None,
+                 fixed_height=None, *args):
         super().__init__(*args)
         self.master = master
         self.attr = attr
@@ -24,6 +25,9 @@ class ListEdit(QTextEdit):
 
         self.set_placeholder()
         self.textChanged.connect(self.synchronize)
+
+        if fixed_height:
+            self.setFixedHeight(fixed_height)
 
     def set_placeholder(self):
         """ Set placeholder if there is no user input. """

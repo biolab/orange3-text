@@ -21,15 +21,13 @@ class Credentials:
     def __init__(self, consumer_key, consumer_secret):
         self.consumer_key = consumer_key
         self.consumer_secret = consumer_secret
-        self.auth = tweepy.OAuthHandler(self.consumer_key, self.consumer_secret)
+        self.auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
         self._valid = None
 
     @property
     def valid(self):
-        """bool: Indicates whether it's a valid credentials. """
         if self._valid is None:
             self.check()
-
         return self._valid
 
     def check(self):
@@ -38,7 +36,6 @@ class Credentials:
             self._valid = True
         except tweepy.TweepError:
             self._valid = False
-
         return self._valid
 
     def __getstate__(self):
@@ -62,7 +59,10 @@ class TwitterAPI:
     """ Fetch tweets from the Tweeter API.
 
     Notes:
-        Every search accumulates downloaded tweets. To remove the stored tweets call `reset` method.
+        Results across multiple searches are aggregated. To remove tweets form
+        previous searches and only return results from the last search either
+        call `reset` method before searching or provide `collecting=False`
+        argument to search method.
     """
     attributes = []
     class_vars = [
@@ -88,13 +88,14 @@ class TwitterAPI:
         (data.ContinuousVariable('Author Listed Count'), lambda doc: doc.author.listed_count),
         (data.DiscreteVariable('Author Verified'), lambda doc: str(doc.author.verified)),
         (data.ContinuousVariable('Longitude'),
-         lambda doc: coordinates_geoJSON(doc.coordinates)[0]),
+            lambda doc: coordinates_geoJSON(doc.coordinates)[0]),
         (data.ContinuousVariable('Latitude'),
-         lambda doc: coordinates_geoJSON(doc.coordinates)[1]),
+            lambda doc: coordinates_geoJSON(doc.coordinates)[1]),
     ]
 
-    text_features = [metas[1][0]]       # Content
-    string_attributes = [m for m, _ in metas if isinstance(m, data.StringVariable)]
+    text_features = [metas[0][0]]       # Content
+    string_attributes = [m for m, _ in metas
+                         if isinstance(m, data.StringVariable)]
 
     def __init__(self, credentials,
                  on_progress=None, should_break=None,
@@ -135,8 +136,8 @@ class TwitterAPI:
         if not collecting:
             self.reset()
 
-        if max_tweets == 0:     # set to max allowed for progress
-            max_tweets = 3300
+        if max_tweets == 0:
+            max_tweets = float('Inf')
 
         def build_query():
             nonlocal content
@@ -173,8 +174,8 @@ class TwitterAPI:
         if not collecting:
             self.reset()
 
-        if max_tweets == 0:  # set to max allowed for progress
-            max_tweets = 3300
+        if max_tweets == 0:     # set to max allowed for progress
+            max_tweets = 3200
 
         if not isinstance(authors, list):
             authors = [authors]
