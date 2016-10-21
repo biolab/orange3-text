@@ -98,7 +98,7 @@ class OWTwitter(OWWidget):
 
     tweets_info = 'Tweets on output: {}'
 
-    CONTENT, AUTHOR, CONTENT_AUTHOR = 0, 1, 2
+    CONTENT, AUTHOR = 0, 1
     word_list = Setting([])
     mode = Setting(0)
     limited_search = Setting(True)
@@ -155,7 +155,6 @@ class OWTwitter(OWWidget):
         mode = gui.comboBox(self, self, 'mode')
         mode.addItem('Content')
         mode.addItem('Author')
-        mode.addItem('Content & Author')
         layout.addWidget(QtGui.QLabel('Search by:'), row, 0, 1, self.label_width)
         layout.addWidget(mode, row, self.label_width, 1, self.widgets_width)
 
@@ -237,8 +236,8 @@ class OWTwitter(OWWidget):
             if not self.advance:
                 self.api.reset()
             self.search_button.setText("Stop")
-            word_list = self.word_list if self.mode in [self.CONTENT, self.CONTENT_AUTHOR] else None
-            authors = self.word_list if self.mode in [self.AUTHOR, self.CONTENT_AUTHOR] else None
+            word_list = self.word_list if self.mode == self.CONTENT else None
+            authors = self.word_list if self.mode == self.AUTHOR else None
 
             self.api.search(max_tweets=self.max_tweets if self.limited_search else 0,
                             word_list=word_list, authors=authors, lang=self.language,
