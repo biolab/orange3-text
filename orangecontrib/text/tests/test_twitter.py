@@ -1,14 +1,11 @@
+import json
+import os
+import pickle
+import time
 import unittest
 from unittest import mock
-import os
-
-import pickle
-
-import json
 
 import tweepy
-from datetime import date
-import time
 
 from orangecontrib.text import twitter
 from orangecontrib.text.corpus import Corpus
@@ -63,7 +60,13 @@ class MyCursor:
         self.args = args
 
     def items(self, count):
+        count = min(count, 20)
         return self.statuses[:count]
+
+
+class MyCursor2(MyCursor):  # go from back forward
+    def items(self, count):
+        return super().items(20)[::-1][:count]
 
 
 @mock.patch('tweepy.Cursor', MyCursor)
@@ -76,44 +79,60 @@ class TestTwitterAPI(unittest.TestCase):
     def test_search_callbacks(self):
         self.checker = 0
 
-        def on_start():
-            self.assertEqual(self.checker, 0)
+        def on_progress(total, current):
+            self.assertTrue(total % 20 == 0)
             self.checker += 1
 
-        def on_progress(progress):
-            self.assertEqual(self.checker, progress)
-            self.checker += 1
-
-        def on_finish():
-            self.assertEqual(self.checker, 3)
-            self.checker += 1
-
-        api = twitter.TwitterAPI(self.credentials, on_start=on_start,
-                                 on_progress=on_progress, on_finish=on_finish)
-        api.search(word_list=['hello'], max_tweets=2, lang='en')
-        api.join()
-        self.assertEqual(self.checker, 4)
+        api = twitter.TwitterAPI(self.credentials, on_progress=on_progress)
+        api.search_content('hello', max_tweets=20, lang='en')
+        self.assertEqual(self.checker, 1)
 
     def test_create_corpus(self):
-        self.api.search(word_list=['hello'], max_tweets=5)
-        self.api.join()
+        self.api.search_content('hello', max_tweets=5)
         corpus = self.api.create_corpus()
         self.assertIsInstance(corpus, Corpus)
         self.assertEqual(len(corpus), 5)
 
     def test_clear(self):
-        self.api.search(word_list=['hello'], max_tweets=5)
-        self.api.join()
+        self.api.search_content(content=['hello'], max_tweets=5)
         self.assertEqual(len(self.api.container), 5)
-
         self.api.reset()
         self.assertEqual(len(self.api.container), 0)
 
     def test_report(self):
-        self.api.search(word_list=['hello'], max_tweets=5)
-        self.api.join()
-        self.assertEqual(len(self.api.history), 1)
-        self.assertIsNotNone(self.api.task.report())
+        api = twitter.TwitterAPI(self.credentials)
+        api.search_content('hello', max_tweets=5, collecting=True)
+        self.assertEqual(len(api.report()), 1)
+        api.search_content('world', collecting=True)
+        self.assertEqual(len(api.report()), 2)
+
+    def test_empty_content(self):
+        api = twitter.TwitterAPI(self.credentials)
+        corpus = api.search_content('', max_tweets=10, allow_retweets=False)
+        self.assertEqual(len(corpus), 10)
+
+    def test_search_author(self):
+        api = twitter.TwitterAPI(self.credentials)
+        corpus = api.search_authors('hello', max_tweets=5)
+        self.assertEqual(len(corpus), 5)
+
+    def test_search_author_collecting(self):
+        api = twitter.TwitterAPI(self.credentials)
+        with unittest.mock.patch('tweepy.Cursor', MyCursor) as mock:
+            corpus = api.search_authors('hello', max_tweets=5)
+            self.assertEqual(len(corpus), 5)
+        # MyCursor2 so we get different tweets
+        with unittest.mock.patch('tweepy.Cursor', MyCursor2) as mock:
+            corpus = api.search_authors('world', max_tweets=5, collecting=True)
+            self.assertEqual(len(corpus), 10)
+
+    def test_max_tweets_zero(self):
+        api = twitter.TwitterAPI(self.credentials)
+        corpus = api.search_content('hello', max_tweets=0)
+        self.assertEqual(len(corpus), 20)   # 20 is the #tweets in cache
+
+        corpus = api.search_authors('hello', max_tweets=0)
+        self.assertEqual(len(corpus), 20)  # 20 is the #tweets in cache
 
     def test_geo_util(self):
         point = twitter.coordinates_geoJSON({})
@@ -124,41 +143,43 @@ class TestTwitterAPI(unittest.TestCase):
         self.assertEqual(point[0], 10)
         self.assertEqual(point[1], 10)
 
-    def test_build_query(self):
-        # https://dev.twitter.com/rest/public/search
+    def test_breaking(self):
+        count = 0
 
-        query = self.api.build_query(word_list=['hello', 'world'])
-        self.assertIn('hello', query)
-        self.assertIn('world', query)
+        def should_break():
+            nonlocal count
+            if count == 1:
+                return True
+            count += 1
+            return False
 
-        query = self.api.build_query(authors=['johndoe'])
-        self.assertIn('from:johndoe', query)
-
-        query = self.api.build_query(since=date(2016, 10, 9))
-        self.assertIn('since:2016-10-09', query)
-
-        query = self.api.build_query(until=date(2016, 10, 9))
-        self.assertIn('until:2016-10-09', query)
-
-        query = self.api.build_query(word_list=['hello', 'world'], allow_retweets=False)
-        self.assertIn(' -filter:retweets', query)
+        api = twitter.TwitterAPI(self.credentials, should_break=should_break)
+        corpus = api.search_content('hello', max_tweets=10)
+        self.assertEqual(len(corpus), 1)
 
 
-@mock.patch('tweepy.Cursor', MyCursor)
-class TestSearch(unittest.TestCase):
+class Response:
+    def __init__(self, code):
+        self.status_code = code
+
+
+class TestTwitterAPIErrorRaising(unittest.TestCase):
     def setUp(self):
         self.credentials = get_credentials()
-        self.api = twitter.TwitterAPI(self.credentials)
 
-    def test_running(self):
-        self.assertFalse(self.api.running)
-        self.api.search(word_list=['hello'], max_tweets=5)
-        self.assertTrue(self.api.running)
-        self.api.disconnect()
-        self.assertFalse(self.api.running)
+    def test_error_reporting(self):
+        with unittest.mock.patch('tweepy.Cursor.items') as mock:
+            mock.side_effect = tweepy.TweepError('', Response(500))
+            error_callback = unittest.mock.Mock()
+            api = twitter.TwitterAPI(self.credentials, on_error=error_callback)
+            api.search_authors('hello', max_tweets=5)
+            self.assertEqual(error_callback.call_count, 1)
 
-    def test_search_disconnect(self):
-        self.api.search(word_list=['hello'], max_tweets=20, lang='en')
-        self.api.disconnect()
-        self.api.join()
-        self.assertLess(len(self.api.container), 10)
+    def test_rate_limit_reporting(self):
+        with unittest.mock.patch('tweepy.Cursor.items') as mock:
+            mock.side_effect = tweepy.TweepError('', Response(429))
+            rate_callback = unittest.mock.Mock()
+            api = twitter.TwitterAPI(self.credentials,
+                                     on_rate_limit=rate_callback)
+            api.search_authors('hello', max_tweets=5)
+            self.assertEqual(rate_callback.call_count, 1)

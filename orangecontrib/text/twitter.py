@@ -1,6 +1,4 @@
-""" A module for fetching data from `The Twitter Search API <https://dev.twitter.com/rest/public/search>`_. """
-import threading
-from collections import OrderedDict
+from collections import OrderedDict, Iterable
 
 import tweepy
 
@@ -23,15 +21,13 @@ class Credentials:
     def __init__(self, consumer_key, consumer_secret):
         self.consumer_key = consumer_key
         self.consumer_secret = consumer_secret
-        self.auth = tweepy.OAuthHandler(self.consumer_key, self.consumer_secret)
+        self.auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
         self._valid = None
 
     @property
     def valid(self):
-        """bool: Indicates whether it's a valid credentials. """
         if self._valid is None:
             self.check()
-
         return self._valid
 
     def check(self):
@@ -40,7 +36,6 @@ class Credentials:
             self._valid = True
         except tweepy.TweepError:
             self._valid = False
-
         return self._valid
 
     def __getstate__(self):
@@ -64,7 +59,10 @@ class TwitterAPI:
     """ Fetch tweets from the Tweeter API.
 
     Notes:
-        Every search accumulates downloaded tweets. To remove the stored tweets call `reset` method.
+        Results across multiple searches are aggregated. To remove tweets form
+        previous searches and only return results from the last search either
+        call `reset` method before searching or provide `collecting=False`
+        argument to search method.
     """
     attributes = []
     class_vars = [
@@ -90,164 +88,157 @@ class TwitterAPI:
         (data.ContinuousVariable('Author Listed Count'), lambda doc: doc.author.listed_count),
         (data.DiscreteVariable('Author Verified'), lambda doc: str(doc.author.verified)),
         (data.ContinuousVariable('Longitude'),
-         lambda doc: coordinates_geoJSON(doc.coordinates)[0]),
+            lambda doc: coordinates_geoJSON(doc.coordinates)[0]),
         (data.ContinuousVariable('Latitude'),
-         lambda doc: coordinates_geoJSON(doc.coordinates)[1]),
+            lambda doc: coordinates_geoJSON(doc.coordinates)[1]),
     ]
 
-    text_features = [metas[1][0]]       # Content
-    string_attributes = [m for m, _ in metas if isinstance(m, data.StringVariable)]
+    text_features = [metas[0][0]]       # Content
+    string_attributes = [m for m, _ in metas
+                         if isinstance(m, data.StringVariable)]
 
-    def __init__(self, credentials, on_start=None, on_progress=None, on_error=None,
-                 on_rate_limit=None, on_finish=None):
+    def __init__(self, credentials,
+                 on_progress=None, should_break=None,
+                 on_error=None, on_rate_limit=None):
         self.key = credentials
         self.api = tweepy.API(credentials.auth)
-        self.statuses_lock = threading.Lock()
-        self.task = None
+        self.container = OrderedDict()
+        self.search_history = []
 
         # Callbacks:
-        self.on_progress = on_progress
         self.on_error = on_error
-        self.on_finish = on_finish
         self.on_rate_limit = on_rate_limit
-        self.on_start = on_start
-
-        self.container = OrderedDict()
-        self.history = []
+        self.on_progress = on_progress
+        self.should_break = should_break
 
     @property
     def tweets(self):
-        """ Iterator over the downloaded documents. """
         return self.container.values()
 
-    @staticmethod
-    def build_query(word_list=None, authors=None, since=None, until=None, allow_retweets=True):
-        if authors is None:
-            authors = []
-
-        if word_list is None:
-            word_list = []
-
-        if not word_list and not authors:
-            # allows empty queries
-            query = "from: "
-        else:
-            query = " OR ".join(['"{}"'.format(q) for q in word_list] +
-                                ['from:{}'.format(user) for user in authors])
-
-        if since:
-            query += ' since:' + since.strftime('%Y-%m-%d')
-        if until:
-            query += ' until:' + until.strftime('%Y-%m-%d')
-
-        if not allow_retweets:
-            query += ' -filter:retweets'
-
-        return query
-
-    def search(self, *, word_list=None, authors=None, max_tweets=None, lang=None,
-               since=None, until=None, allow_retweets=True):
-        """ Performs search for tweets.
-
-        All the parameters optional.
+    def search_content(self, content, *, max_tweets=0,
+                       lang=None, allow_retweets=True,
+                       collecting=False):
+        """ Search by content.
 
         Args:
-            max_tweets (int): If present limits the number of downloaded tweets.
-            word_list (list of str): A list of key words to search for.
-            authors (list of str): A list of tweets' author.
-            lang (str): A language's code (either ISO 639-1 or ISO 639-3 formats).
-            since (str): Fetch tweets only from this date.
-            until (str): Fetch tweets only to this date.
+            content (list of str): A list of key words to search for.
+            max_tweets (int): If greater than zero limits the number of
+                downloaded tweets.
+            lang (str): A language's code (either ISO 639-1 or ISO 639-3
+                formats).
             allow_retweets(bool): Whether to download retweets.
+            collecting (bool): Whether to collect results across multiple
+                search calls.
+
+        Returns:
+            Corpus
         """
-        query = self.build_query(word_list=word_list, authors=authors,
-                                 since=since, until=until, allow_retweets=allow_retweets)
+        if not collecting:
+            self.reset()
 
-        self.task = SearchTask(self, q=query, lang=lang, max_tweets=max_tweets)
-        self.history.append(self.task)
-        self.task.start()
+        if max_tweets == 0:
+            max_tweets = float('Inf')
 
-    def disconnect(self):
-        if self.task:
-            self.task.disconnect()
+        def build_query():
+            nonlocal content
+            if not content:
+                q = 'from: '
+            else:
+                if not isinstance(content, list):
+                    content = [content]
+                q = ' OR '.join(['"{}"'.format(q) for q in content])
+            if not allow_retweets:
+                q += ' -filter:retweets'
+            return q
 
-    @property
-    def running(self):
-        """bool: Indicates whether there is an active task. """
-        return self.task is not None and self.task.running
+        query = build_query()
+        cursor = tweepy.Cursor(self.api.search, q=query, lang=lang)
+        corpus, count = self.fetch(cursor, max_tweets)
+        self.append_history('Content', content, lang if lang else 'Any',
+                            str(allow_retweets), count)
+        return corpus
 
-    def join(self, *args):
-        if self.task:
-            self.task.join(*args)
+    def search_authors(self, authors, *, max_tweets=0, collecting=False):
+        """ Search by authors.
 
-    def add_status(self, status):
-        self.statuses_lock.acquire()
-        self.container[status.id] = status
-        self.statuses_lock.release()
+        Args:
+            authors (list of str): A list of authors to search for.
+            max_tweets (int): If greater than zero limits the number of
+                downloaded tweets.
+            collecting (bool): Whether to collect results across multiple
+                search calls.
+
+        Returns:
+            Corpus
+        """
+        if not collecting:
+            self.reset()
+
+        if max_tweets == 0:     # set to max allowed for progress
+            max_tweets = 3200
+
+        if not isinstance(authors, list):
+            authors = [authors]
+
+        cursors = [tweepy.Cursor(self.api.user_timeline, screen_name=a)
+                   for a in authors]
+        corpus, count = self.fetch(cursors, max_tweets)
+        self.append_history('Author', authors, None, None, count)
+        return corpus
+
+    def fetch(self, cursors, max_tweets):
+        if not self.on_progress:
+            self.on_progress = lambda x, y: (x, y)
+        if not self.should_break:
+            self.should_break = lambda: False
+
+        if not isinstance(cursors, list):
+            cursors = [cursors]
+
+        count = 0
+        try:
+            for i, cursor in enumerate(cursors):
+                for j, tweet in enumerate(cursor.items(max_tweets), start=1):
+                    if self.should_break():
+                        break
+                    if tweet.id not in self.container:
+                        count += 1
+                    self.container[tweet.id] = tweet
+                    if j % 20 == 0:
+                        self.on_progress(len(self.container),
+                                         (i*max_tweets + j)/
+                                         (len(cursors)*max_tweets))
+                if self.should_break():
+                    break
+        except tweepy.TweepError as e:
+            if e.response.status_code == 429 and self.on_rate_limit:
+                self.on_rate_limit()
+            elif self.on_error:
+                self.on_error(str(e))
+                return None, 0
+        return self.create_corpus(), count
 
     def create_corpus(self):
-        """ Creates a corpus with collected tweets. """
-        self.statuses_lock.acquire()
-        corpus = Corpus.from_documents(self.tweets, 'Twitter', self.attributes,
-                                       self.class_vars, self.metas, title_indices=[-2])
-        self.statuses_lock.release()
-        return corpus
+        return Corpus.from_documents(self.tweets, 'Twitter', self.attributes,
+                                     self.class_vars, self.metas,
+                                     title_indices=[-1])
 
     def reset(self):
         """ Removes all downloaded tweets. """
-        if self.task:
-            self.task.disconnect()
-            self.task.join()
-        self.history = []
+        self.search_history = []
         self.container = OrderedDict()
 
-
-class SearchTask(threading.Thread):
-    def __init__(self, master, q, lang=None, max_tweets=None, **kwargs):
-        super().__init__()
-        self.master = master
-        self.q = q
-        self.lang = lang
-        self.running = False
-        self.max_tweets = max_tweets
-        self.kwargs = kwargs
-
-    def disconnect(self):
-        self.running = False
-
-    def start(self):
-        self.running = True
-        self.progress = 0
-        if self.master.on_start:
-            self.master.on_start()
-        super().start()
-
-    def run(self):
-        try:
-            for status in tweepy.Cursor(self.master.api.search, q=self.q,
-                                        lang=self.lang, count=100,
-                                        **self.kwargs).items(self.max_tweets):
-                self.master.add_status(status)
-                self.progress += 1
-                if self.master.on_progress:
-                    self.master.on_progress(self.progress)
-
-                if not self.running:
-                    break
-        except tweepy.TweepError as e:
-            if e.response.status_code == 429 and self.master.on_rate_limit:
-                self.master.on_rate_limit()
-            elif self.master.on_error:
-                self.master.on_error(str(e))
-
-        self.finish()
-
-    def finish(self):
-        self.running = False
-        if self.master.on_finish:
-            self.master.on_finish()
+    def append_history(self, mode, query, lang, allow_retweets, n_tweets):
+        query = ', '.join(query) if isinstance(query, Iterable) else query
+        if lang in code2lang.keys():
+            lang = code2lang[lang]
+        self.search_history.append((
+            ('Query', query),
+            ('Search by', mode),
+            ('Language', lang),
+            ('Allow retweets', allow_retweets),
+            ('Tweets count', n_tweets),
+        ))
 
     def report(self):
-        return (('Query', self.q),
-                ('Language', code2lang.get(self.lang, 'Any')),
-                ('Tweets count', self.progress))
+        return self.search_history

@@ -13,7 +13,8 @@ class ListEdit(QTextEdit):
     PLACEHOLDER_COLOR = QColor(128, 128, 128)
     USER_TEXT_COLOR = QColor(0, 0, 0)
 
-    def __init__(self, master=None, attr=None, placeholder_text=None, *args):
+    def __init__(self, master=None, attr=None, placeholder_text=None,
+                 fixed_height=None, *args):
         super().__init__(*args)
         self.master = master
         self.attr = attr
@@ -24,6 +25,9 @@ class ListEdit(QTextEdit):
 
         self.set_placeholder()
         self.textChanged.connect(self.synchronize)
+
+        if fixed_height:
+            self.setFixedHeight(fixed_height)
 
     def set_placeholder(self):
         """ Set placeholder if there is no user input. """
@@ -153,62 +157,6 @@ class ComboBox(QComboBox):
 
     def synchronize(self, i):
         setattr(self.master, self.attr, self.items[i][1])
-
-
-class DateInterval(QWidget):
-    QT_DATE_FORMAT = 'yyyy-MM-dd'
-    PY_DATE_FORMAT = '%Y-%m-%d'
-
-    def __init__(self, master, attribute, display_format=QT_DATE_FORMAT,
-                 min_date=None, max_date=None, from_label='from:', to_label='to:'):
-        super().__init__()
-        self.attribute = attribute
-        self.master = master
-        self.min_date = min_date
-        self.max_date = max_date
-
-        layout = QtGui.QHBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-
-        layout.addWidget(QtGui.QLabel(from_label))
-        self.from_widget = QtGui.QDateEdit(displayFormat=display_format)
-        layout.addWidget(self.from_widget)
-
-        layout.addWidget(QtGui.QLabel(to_label))
-        self.to_widget = QtGui.QDateEdit(displayFormat=display_format)
-        layout.addWidget(self.to_widget)
-
-        if min_date:
-            self.from_widget.setMinimumDate(self.to_qdate(min_date))
-            self.to_widget.setMinimumDate(self.to_qdate(min_date))
-        if max_date:
-            self.from_widget.setMaximumDate(self.to_qdate(max_date))
-            self.to_widget.setMaximumDate(self.to_qdate(max_date))
-
-        self.from_widget.dateChanged.connect(self.synchronize)
-        self.to_widget.dateChanged.connect(self.synchronize)
-
-        self.value = getattr(master, attribute)
-
-    @classmethod
-    def to_qdate(cls, date):
-        return QtCore.QDate.fromString(date.strftime(cls.PY_DATE_FORMAT),
-                                       cls.QT_DATE_FORMAT)
-
-    @property
-    def value(self):
-        return self.from_widget.date().toPyDate(), self.to_widget.date().toPyDate()
-
-    @value.setter
-    def value(self, value):
-        if value:
-            self.from_widget.setDate(self.to_qdate(value[0]))
-            self.to_widget.setDate(self.to_qdate(value[1]))
-
-    def synchronize(self):
-        setattr(self.master, self.attribute, self.value)
-        self.from_widget.setMaximumDate(self.to_widget.date())
-        self.to_widget.setMinimumDate(self.from_widget.date())
 
 
 class DatePicker(QDateEdit):
