@@ -15,7 +15,7 @@ class StopingMock(mock.Mock):
 
     def __call__(self, *args, **kwargs):
         self.call_count += 1
-        if self.call_count >= self.allow_calls:
+        if self.call_count > self.allow_calls:
             return True
         else:
             return False
@@ -44,17 +44,19 @@ class WikipediaTests(unittest.TestCase):
         result = api.search('en', ['Scarf'], articles_per_query=3)
 
         self.assertIsInstance(result, Corpus)
-        self.assertGreater(len(result), 3)
+        self.assertGreaterEqual(len(result), 3)
 
     def test_search_break(self):
         api = WikipediaAPI()
 
         # stop immediately
-        result = api.search('en', ['Clinton'], articles_per_query=2, should_break=mock.Mock(return_value=True))
+        result = api.search('en', ['Clinton'], articles_per_query=2,
+                            should_break=mock.Mock(return_value=True))
         self.assertEqual(len(result), 0)
 
         # stop inside recursion
-        result = api.search('en', ['Scarf'], articles_per_query=3, should_break=StopingMock(4))
+        result = api.search('en', ['Scarf'], articles_per_query=3,
+                            should_break=StopingMock(allow_calls=2))
         self.assertEqual(len(result), 2)
 
     def page(*args, **kwargs):
