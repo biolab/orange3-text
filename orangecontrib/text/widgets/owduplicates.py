@@ -10,6 +10,7 @@ from Orange.data import Table, DiscreteVariable, Domain
 from Orange.misc import DistMatrix
 from Orange.widgets import gui, widget, settings
 from Orange.widgets.utils.itemmodels import PyTableModel
+from Orange.widgets.widget import Msg, OWWidget
 from orangecontrib.text import Corpus
 
 
@@ -34,6 +35,10 @@ class OWDuplicates(widget.OWWidget):
     ]
 
     resizing_enabled = True
+
+    class Error(OWWidget.Error):
+        dist_matrix_invalid_shape = Msg('Duplicate detection only supports '
+                                        'distances calculated between rows.')
 
     LINKAGE = ['Single', 'Average', 'Complete', 'Weighted', 'Ward']
     linkage_method = settings.Setting(1)
@@ -109,6 +114,7 @@ class OWDuplicates(widget.OWWidget):
         self.histogram.setValues([])
 
     def set_distances(self, distances):
+        self.Error.clear()
         self.distances = distances
         if distances is None:
             self.reset()
@@ -116,6 +122,10 @@ class OWDuplicates(widget.OWWidget):
 
         self.corpus = self.distances.row_items
         self.n_documents = len(self.corpus)
+        if distances.shape != (self.n_documents, self.n_documents):
+            self.Error.dist_matrix_invalid_shape()
+            self.reset()
+            return
         self.threshold_spin.setEnabled(True)
         self.recalculate_linkage()
 
