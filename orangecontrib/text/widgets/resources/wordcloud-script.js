@@ -30,7 +30,7 @@ window.addEventListener('click', function(event) {
         if (! (event.ctrlKey || event.shiftKey)) {
             clearSelection();
         }
-        cls = pybridge.word_clicked(span.innerHTML);
+        var cls = pybridge.word_clicked(span.innerHTML);
         console.log(cls);
         span.className = cls;
     } else if (span.tagName == 'BODY') {
