@@ -45,7 +45,7 @@ class TweetProfiler:
                     'token': self.token,
             }
 
-            json = self.server_call('tweet_profiler', json)
+            json = self.server_call('tweet_profiler', json=json)
 
             class_vars = json['classes']
             profile = np.array(json['profile'])
