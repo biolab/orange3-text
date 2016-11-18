@@ -331,12 +331,17 @@ class Corpus(Table):
                 attr.val_from_str_add(val)
             return attr.to_val(val)
 
-        X = np.array([[to_val(attr, func(doc)) for attr, func in attributes]
-                      for doc in documents])
-        Y = np.array([[to_val(attr, func(doc)) for attr, func in class_vars]
-                      for doc in documents])
-        metas = np.array([[to_val(attr, func(doc)) for attr, func in metas]
-                          for doc in documents], dtype=object)
+        if documents:
+            X = np.array([[to_val(attr, func(doc)) for attr, func in attributes]
+                          for doc in documents])
+            Y = np.array([[to_val(attr, func(doc)) for attr, func in class_vars]
+                          for doc in documents])
+            metas = np.array([[to_val(attr, func(doc)) for attr, func in metas]
+                              for doc in documents], dtype=object)
+        else:   # assure shapes match the number of columns
+            X = np.empty((0, len(attributes)))
+            Y = np.empty((0, len(class_vars)))
+            metas = np.empty((0, len(metas)))
 
         corpus = Corpus(X=X, Y=Y, metas=metas, domain=domain, text_features=[])
         corpus.name = name
