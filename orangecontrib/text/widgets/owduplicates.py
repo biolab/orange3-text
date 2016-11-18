@@ -39,6 +39,7 @@ class OWDuplicates(widget.OWWidget):
     class Error(OWWidget.Error):
         dist_matrix_invalid_shape = Msg('Duplicate detection only supports '
                                         'distances calculated between rows.')
+        too_little_documents = Msg('More than one document is required.')
 
     LINKAGE = ['Single', 'Average', 'Complete', 'Weighted', 'Ward']
     linkage_method = settings.Setting(1)
@@ -122,6 +123,10 @@ class OWDuplicates(widget.OWWidget):
 
         self.corpus = self.distances.row_items
         self.n_documents = len(self.corpus)
+        if self.n_documents < 2:
+            self.Error.too_little_documents()
+            self.reset()
+            return
         if distances.shape != (self.n_documents, self.n_documents):
             self.Error.dist_matrix_invalid_shape()
             self.reset()
