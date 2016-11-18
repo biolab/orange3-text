@@ -12,6 +12,7 @@ from Orange.widgets.settings import Setting, ContextSetting
 from Orange.widgets.widget import OWWidget, Msg
 from Orange.data import Table
 from Orange.data.domain import filter_visible
+from Orange.widgets.utils.webview import HAVE_WEBKIT
 from orangecontrib.text.corpus import Corpus
 
 
@@ -106,8 +107,11 @@ class OWCorpusViewer(OWWidget):
         self.doc_list.selectionModel().selectionChanged.connect(self.show_docs)
 
         # Document contents
+        # For PyQt5 WebEngine's setHtml grabs the focus and makes typing hard
+        # More info: http://stackoverflow.com/questions/36609489
+        # To bypass the annoying behaviour disable the widget for WebEngine
         self.doc_webview = gui.WebviewWidget(self.splitter, self,
-                                             debug=True, enabled=False)
+                                             debug=True, enabled=HAVE_WEBKIT)
 
         self.mainArea.layout().addWidget(self.splitter)
 
@@ -269,7 +273,7 @@ class OWCorpusViewer(OWWidget):
 
     def load_js(self):
         resources = os.path.join(os.path.dirname(__file__), 'resources')
-        for script in ('jquery-2.1.4.min.js', 'jquery.mark.min.js', 'highlighter.js', ):
+        for script in ('jquery-3.1.1.min.js', 'jquery.mark.min.js', 'highlighter.js', ):
             self.doc_webview.evalJS(open(os.path.join(resources, script), encoding='utf-8').read())
 
     def regenerate_docs(self):
