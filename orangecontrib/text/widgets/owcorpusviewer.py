@@ -106,7 +106,8 @@ class OWCorpusViewer(OWWidget):
         self.doc_list.selectionModel().selectionChanged.connect(self.show_docs)
 
         # Document contents
-        self.doc_webview = gui.WebviewWidget(self.splitter, self, debug=True)
+        self.doc_webview = gui.WebviewWidget(self.splitter, self,
+                                             debug=True, enabled=False)
 
         self.mainArea.layout().addWidget(self.splitter)
 
