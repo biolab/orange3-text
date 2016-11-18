@@ -1,18 +1,20 @@
+import os
 import re
 import sre_constants
 from itertools import chain
-import os
 
-from PyQt4 import QtGui
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
+from AnyQt.QtCore import Qt
+from AnyQt.QtGui import QStandardItemModel, QStandardItem
+from AnyQt.QtWidgets import (QListView, QSizePolicy, QTableView,
+                             QAbstractItemView, QHeaderView, QSplitter,
+                             QApplication)
 
-from Orange.widgets import gui, widget
-from Orange.widgets.settings import Setting, ContextSetting
-from Orange.widgets.widget import OWWidget, Msg
 from Orange.data import Table
 from Orange.data.domain import filter_visible
+from Orange.widgets import gui, widget
+from Orange.widgets.settings import Setting, ContextSetting
 from Orange.widgets.utils.webview import HAVE_WEBKIT
+from Orange.widgets.widget import OWWidget, Msg
 from orangecontrib.text.corpus import Corpus
 
 
@@ -64,14 +66,14 @@ class OWCorpusViewer(OWWidget):
         # Search features
         self.search_listbox = gui.listBox(
             self.controlArea, self, 'search_indices', 'search_features',
-            selectionMode=QtGui.QListView.ExtendedSelection,
+            selectionMode=QListView.ExtendedSelection,
             box='Search features', callback=self.regenerate_docs,)
 
         # Display features
         display_box = gui.widgetBox(self.controlArea, 'Display features')
         self.display_listbox = gui.listBox(
             display_box, self, 'display_indices', 'display_features',
-            selectionMode=QtGui.QListView.ExtendedSelection,
+            selectionMode=QListView.ExtendedSelection,
             callback=self.show_docs, enableDragDrop=True)
         self.show_tokens_checkbox = gui.checkBox(display_box, self, 'show_tokens',
                                                  'Show Tokens && Tags', callback=self.show_docs)
@@ -88,7 +90,7 @@ class OWCorpusViewer(OWWidget):
         self.filter_input.textChanged.connect(self.refresh_search)
 
         # Main area
-        self.splitter = QtGui.QSplitter(
+        self.splitter = QSplitter(
             orientation=Qt.Horizontal,
             childrenCollapsible=False,
         )
@@ -97,8 +99,8 @@ class OWCorpusViewer(OWWidget):
         self.doc_list = QTableView()
         self.doc_list.setSelectionBehavior(QTableView.SelectRows)
         self.doc_list.setSelectionMode(QTableView.ExtendedSelection)
-        self.doc_list.setEditTriggers(QtGui.QAbstractItemView.NoEditTriggers)
-        self.doc_list.horizontalHeader().setResizeMode(QtGui.QHeaderView.Stretch)
+        self.doc_list.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.doc_list.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.doc_list.horizontalHeader().setVisible(False)
         self.splitter.addWidget(self.doc_list)
 
@@ -117,7 +119,7 @@ class OWCorpusViewer(OWWidget):
 
     def copy_to_clipboard(self):
         text = self.doc_webview.selectedText()
-        QtGui.QApplication.clipboard().setText(text)
+        QApplication.clipboard().setText(text)
 
     def set_data(self, data=None):
         self.reset_widget()
@@ -233,7 +235,7 @@ class OWCorpusViewer(OWWidget):
         </html>
         '''
         if self.corpus is None:
-            return 
+            return
 
         self.Warning.no_feats_display.clear()
         if len(self.display_indices) == 0:

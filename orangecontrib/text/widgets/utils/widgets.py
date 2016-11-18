@@ -1,9 +1,12 @@
 import os
 
-from PyQt4.QtGui import (QComboBox, QWidget, QHBoxLayout, QPushButton, QStyle,
-                         QSizePolicy, QFileDialog, QLineEdit, QDoubleSpinBox,
-                         QSpinBox, QTextEdit, QColor, QDateEdit)
-from PyQt4 import QtCore, QtGui
+from AnyQt.QtWidgets import (QComboBox, QWidget, QHBoxLayout,
+                         QSizePolicy, QLineEdit, QDoubleSpinBox,
+                         QSpinBox, QTextEdit, QDateEdit, QGroupBox,
+                             QPushButton, QStyle, QFileDialog, QLabel,
+                             QGridLayout, QCheckBox, QStackedLayout)
+from AnyQt.QtGui import QColor
+from AnyQt.QtCore import QDate, pyqtSignal, Qt, QSize
 
 from Orange.widgets.gui import OWComponent, hBox
 from Orange.widgets import settings
@@ -102,7 +105,7 @@ class QueryBox(QComboBox):
             self.addItem(query)
 
 
-class CheckListLayout(QtGui.QGroupBox):
+class CheckListLayout(QGroupBox):
     def __init__(self, title, master, attr, items, cols=1, callback=None):
         super().__init__(title=title)
         self.master = master
@@ -112,14 +115,14 @@ class CheckListLayout(QtGui.QGroupBox):
 
         self.current_values = getattr(self.master, self.attr)
 
-        layout = QtGui.QGridLayout()
+        layout = QGridLayout()
         self.setLayout(layout)
 
         nrows = len(items) // cols + bool(len(items) % cols)
 
         self.boxes = []
         for i, value in enumerate(self.items):
-            box = QtGui.QCheckBox(value)
+            box = QCheckBox(value)
             box.setChecked(value in self.current_values)
             box.stateChanged.connect(self.synchronize)
             self.boxes.append(box)
@@ -171,7 +174,7 @@ class DatePicker(QDateEdit):
 
         hb = hBox(widget)
         hb.layout().setContentsMargins(*margin)
-        hb.layout().addWidget(QtGui.QLabel(label))
+        hb.layout().addWidget(QLabel(label))
         hb.layout().addWidget(self)
 
         self.setCalendarPopup(calendar_popup)
@@ -185,7 +188,7 @@ class DatePicker(QDateEdit):
 
     @classmethod
     def to_qdate(cls, date):
-        return QtCore.QDate.fromString(date.strftime(cls.PY_DATE_FORMAT),
+        return QDate.fromString(date.strftime(cls.PY_DATE_FORMAT),
                                        cls.QT_DATE_FORMAT)
 
     def synchronize(self):
@@ -212,8 +215,8 @@ class DatePickerInterval(QWidget):
         self.picker_to.setMinimumDate(self.picker_from.date())
 
 
-class FileWidget(QtGui.QWidget):
-    on_open = QtCore.pyqtSignal(str)
+class FileWidget(QWidget):
+    on_open = pyqtSignal(str)
 
     def __init__(self, dialog_title='', dialog_format='',
                  start_dir=os.path.expanduser('~/'),
@@ -250,39 +253,39 @@ class FileWidget(QtGui.QWidget):
         self.allow_empty = allow_empty
         self.empty_file_label = empty_file_label
 
-        layout = QtGui.QHBoxLayout(self)
+        layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
 
         if recent_files is not None:
-            self.file_combo = QtGui.QComboBox()
+            self.file_combo = QComboBox()
             self.file_combo.setMinimumWidth(minimal_width)
             self.file_combo.activated[int].connect(self.select)
             self.update_combo()
             layout.addWidget(self.file_combo)
 
-        self.browse_button = QtGui.QPushButton(browse_label)
-        self.browse_button.setFocusPolicy(QtCore.Qt.NoFocus)
+        self.browse_button = QPushButton(browse_label)
+        self.browse_button.setFocusPolicy(Qt.NoFocus)
         self.browse_button.clicked.connect(self.browse)
         self.browse_button.setIcon(self.style()
-                                   .standardIcon(QtGui.QStyle.SP_DirOpenIcon))
-        self.browse_button.setIconSize(QtCore.QSize(*icon_size))
+                                   .standardIcon(QStyle.SP_DirOpenIcon))
+        self.browse_button.setIconSize(QSize(*icon_size))
         self.browse_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         layout.addWidget(self.browse_button)
 
         if reload_button:
-            self.reload_button = QtGui.QPushButton(reload_label)
-            self.reload_button.setFocusPolicy(QtCore.Qt.NoFocus)
+            self.reload_button = QPushButton(reload_label)
+            self.reload_button.setFocusPolicy(Qt.NoFocus)
             self.reload_button.clicked.connect(self.reload)
             self.reload_button.setIcon(self.style()
-                                       .standardIcon(QtGui.QStyle.SP_BrowserReload))
+                                       .standardIcon(QStyle.SP_BrowserReload))
             self.reload_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-            self.reload_button.setIconSize(QtCore.QSize(*icon_size))
+            self.reload_button.setIconSize(QSize(*icon_size))
             layout.addWidget(self.reload_button)
 
     def browse(self, start_dir=None):
         start_dir = start_dir or self.start_dir
-        path = QtGui.QFileDialog().getOpenFileName(self, self.dialog_title,
-                                                   start_dir, self.dialog_format)
+        path, _ = QFileDialog().getOpenFileName(self, self.dialog_title,
+                                                start_dir, self.dialog_format)
 
         if path and self.recent_files is not None:
             if path in self.recent_files:
@@ -338,7 +341,7 @@ class FileWidget(QtGui.QWidget):
 
 
 class ValidatedLineEdit(QLineEdit):
-    invalid_input_signal = QtCore.pyqtSignal(str)
+    invalid_input_signal = pyqtSignal(str)
 
     def __init__(self, master, attr, validator, *args):
         super().__init__(*args)
@@ -363,12 +366,12 @@ class ValidatedLineEdit(QLineEdit):
 
 
 class AbsoluteRelativeSpinBox(QWidget):
-    editingFinished = QtCore.pyqtSignal()
-    valueChanged = QtCore.pyqtSignal()
+    editingFinished = pyqtSignal()
+    valueChanged = pyqtSignal()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args)
-        layout = QtGui.QStackedLayout(self)
+        layout = QStackedLayout(self)
 
         self.double_spin = QDoubleSpinBox()
         self.double_spin.valueChanged.connect(self.double_value_changed)
@@ -423,8 +426,8 @@ class AbsoluteRelativeSpinBox(QWidget):
 
 
 class RangeWidget(QWidget):
-    valueChanged = QtCore.pyqtSignal()
-    editingFinished = QtCore.pyqtSignal()
+    valueChanged = pyqtSignal()
+    editingFinished = pyqtSignal()
 
     def __init__(self, widget, master, attribute, minimum=0., maximum=1., step=.05,
                  min_label=None, max_label=None, allow_absolute=False, dtype=float,
@@ -454,14 +457,14 @@ class RangeWidget(QWidget):
                 SpinBox = QSpinBox
 
         if self.min_label:
-            layout.addWidget(QtGui.QLabel(self.min_label))
+            layout.addWidget(QLabel(self.min_label))
 
         self.min_spin = SpinBox(value=a)
         self.min_spin.setSingleStep(self.step)
         layout.addWidget(self.min_spin)
 
         if self.max_label:
-            layout.addWidget(QtGui.QLabel(self.max_label))
+            layout.addWidget(QLabel(self.max_label))
 
         self.max_spin = SpinBox(value=b)
         self.max_spin.setSingleStep(self.step)
@@ -501,19 +504,19 @@ class RangeWidget(QWidget):
             self.max_spin.setRange(a, self.max)
 
 
-class ResourceLoader(QtGui.QWidget, OWComponent):
-    valueChanged = QtCore.pyqtSignal(str, str)
+class ResourceLoader(QWidget, OWComponent):
+    valueChanged = pyqtSignal(str, str)
 
     recent_files = settings.Setting([])
     resource_path = settings.Setting('')
 
     def __init__(self, widget, model_format, provider_format,
                  model_button_label='Model', provider_button_label='Provider'):
-        QtGui.QWidget.__init__(self)
+        QWidget.__init__(self)
         OWComponent.__init__(self, widget)
 
         self.model_path = None
-        layout = QtGui.QHBoxLayout(self, spacing=0)
+        layout = QHBoxLayout(self, spacing=0)
         layout.setContentsMargins(0, 0, 0, 0)
 
         self.model_widget = FileWidget(recent_files=self.recent_files, dialog_title='Load model',

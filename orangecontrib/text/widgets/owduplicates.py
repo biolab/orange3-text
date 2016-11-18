@@ -2,8 +2,8 @@ from collections import Counter
 
 import numpy as np
 import pyqtgraph as pg
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
+from AnyQt.QtCore import Qt, QLineF
+from AnyQt.QtWidgets import QApplication, QListView
 
 from Orange.clustering.hierarchical import dist_matrix_linkage
 from Orange.data import Table, DiscreteVariable, Domain

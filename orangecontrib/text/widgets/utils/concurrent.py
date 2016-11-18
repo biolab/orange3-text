@@ -1,6 +1,6 @@
 import threading
 from functools import wraps
-from PyQt4.QtCore import pyqtSlot as Slot, QMetaObject, Qt, Q_ARG
+from AnyQt.QtCore import pyqtSlot as Slot, QMetaObject, Qt, Q_ARG
 
 from Orange.widgets.widget import OWWidget
 

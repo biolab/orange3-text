@@ -4,9 +4,8 @@ from math import pi as PI
 from os import path
 
 import numpy as np
-from PyQt4 import QtCore, QtGui
-from PyQt4.QtCore import Qt
-from PyQt4.QtGui import QItemSelection, QItemSelectionModel
+from AnyQt.QtCore import Qt, QItemSelection, QItemSelectionModel, pyqtSlot
+from AnyQt.QtWidgets import QApplication
 
 from Orange.widgets import widget, gui, settings
 from Orange.widgets.utils.itemmodels import PyTableModel
@@ -85,7 +84,7 @@ class OWWordCloud(widget.OWWidget):
         self._create_layout()
         self.on_corpus_change(None)
 
-    @QtCore.pyqtSlot(str, result=str)
+    @pyqtSlot(str, result=str)
     def word_clicked(self, word):
         """Called from JavaScript"""
         if not word:
@@ -270,7 +269,7 @@ def main():
     table = Table.from_numpy(domain,
                              X=np.zeros((len(words), 0)),
                              metas=data)
-    app = QtGui.QApplication([''])
+    app = QApplication([''])
     w = OWWordCloud()
     w.on_topic_change(table)
     domain = Domain([], metas=[StringVariable('text')])

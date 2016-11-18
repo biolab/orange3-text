@@ -1,27 +1,23 @@
 # coding: utf-8
+import re
+from collections import defaultdict, Counter
+from itertools import chain
+from os import path
 from urllib.parse import urljoin
 from urllib.request import pathname2url
-from itertools import chain
-
-from Orange.widgets.utils.itemmodels import VariableListModel
-from collections import defaultdict, Counter
-from os import path
-from math import pi as PI
-import re
 
 import numpy as np
+from AnyQt.QtCore import Qt, QTimer, pyqtSlot
+from AnyQt.QtWidgets import QApplication, QSizePolicy
 
-from PyQt4 import QtCore, QtGui
-from PyQt4.QtCore import Qt, QTimer
-
-from Orange.widgets import widget, gui, settings
 from Orange.data import Table
+from Orange.widgets import widget, gui, settings
+from Orange.widgets.utils.itemmodels import VariableListModel
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.country_codes import \
     CC_EUROPE, INV_CC_EUROPE, SET_CC_EUROPE, \
     CC_WORLD, INV_CC_WORLD, \
     CC_USA, INV_CC_USA, SET_CC_USA
-
 
 CC_NAMES = re.compile('[\w\s\.\-]+')
 
@@ -53,7 +49,7 @@ class OWGeoMap(widget.OWWidget):
         self.data = None
         self._create_layout()
 
-    @QtCore.pyqtSlot(str, result=str)
+    @pyqtSlot(str, result=str)
     def region_selected(self, regions):
         """Called from JavaScript"""
         if not regions:
@@ -82,8 +78,8 @@ class OWGeoMap(widget.OWWidget):
                                       label='Map type:',
                                       callback=self.on_map_change,
                                       items=Map.all)
-        hexpand = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding,
-                                    QtGui.QSizePolicy.Fixed)
+        hexpand = QSizePolicy(QSizePolicy.Expanding,
+                              QSizePolicy.Fixed)
         self.attr_combo.setSizePolicy(hexpand)
         self.map_combo.setSizePolicy(hexpand)
         html = '''
@@ -180,7 +176,7 @@ html, body, #map {{margin:0px;padding:0px;width:100%;height:100%;}}
 
 
 def main():
-    from Orange.data import Table, Domain, ContinuousVariable, StringVariable
+    from Orange.data import Table, Domain, StringVariable
 
     words = np.column_stack([
         'Slovenia Slovenia SVN USA Iraq Iraq Iraq Iraq France FR'.split(),
@@ -196,7 +192,7 @@ def main():
     table = Table.from_numpy(domain,
                              X=np.zeros((len(words), 0)),
                              metas=words)
-    app = QtGui.QApplication([''])
+    app = QApplication([''])
     w = OWGeoMap()
     w.on_data(table)
     w.show()

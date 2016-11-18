@@ -1,4 +1,5 @@
-from PyQt4 import QtGui, QtCore
+from AnyQt.QtCore import Qt
+from AnyQt.QtWidgets import QApplication, QGridLayout, QLabel, QFormLayout
 
 from Orange.widgets import gui
 from Orange.widgets.credentials import CredentialManager
@@ -36,8 +37,8 @@ class OWTwitter(OWConcurrentWidget):
             self.parent = parent
             self.credentials = None
 
-            form = QtGui.QFormLayout()
-            form.setMargin(5)
+            form = QFormLayout()
+            form.setContentsMargins(5, 5, 5, 5)
             self.key_edit = gui.lineEdit(self, self, 'key_input',
                                          controlWidth=400)
             form.addRow('Key:', self.key_edit)
@@ -120,11 +121,11 @@ class OWTwitter(OWConcurrentWidget):
         gui.button(self.controlArea, self, 'Twitter API Key',
                    callback=self.open_key_dialog,
                    tooltip='Set the API key for this widget.',
-                   focusPolicy=QtCore.Qt.NoFocus)
+                   focusPolicy=Qt.NoFocus)
 
         # Query
         query_box = gui.hBox(self.controlArea, 'Query')
-        layout = QtGui.QGridLayout()
+        layout = QGridLayout()
         layout.setVerticalSpacing(5)
         layout.setColumnStretch(2, 1)           # stretch last columns
         layout.setColumnMinimumWidth(1, 15)     # add some space for checkbox
@@ -133,7 +134,7 @@ class OWTwitter(OWConcurrentWidget):
 
         def add_row(label, items):
             nonlocal ROW, COLUMNS
-            layout.addWidget(QtGui.QLabel(label), ROW, 0)
+            layout.addWidget(QLabel(label), ROW, 0)
             if isinstance(items, tuple):
                 for i, item in enumerate(items):
                     layout.addWidget(item, ROW, 1+i)
@@ -187,7 +188,7 @@ class OWTwitter(OWConcurrentWidget):
 
         self.search_button = gui.button(self.button_box, self, 'Search',
                                         self.start_stop,
-                                        focusPolicy=QtCore.Qt.NoFocus)
+                                        focusPolicy=Qt.NoFocus)
 
         self.mode_toggle()
         self.setFocus()  # to widget itself to show placeholder for query_edit
@@ -277,7 +278,7 @@ class OWTwitter(OWConcurrentWidget):
 
 
 if __name__ == '__main__':
-    app = QtGui.QApplication([])
+    app = QApplication([])
     widget = OWTwitter()
     widget.show()
     app.exec()

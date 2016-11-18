@@ -1,21 +1,20 @@
 import os
 
-from PyQt4 import QtGui, QtCore
-
-from PyQt4.QtCore import (pyqtSignal as Signal, pyqtSlot as Slot)
-from PyQt4.QtGui import (QWidget, QLabel, QHBoxLayout, QVBoxLayout,
-                         QButtonGroup, QRadioButton, QSizePolicy, QFrame,
-                         QApplication, QCheckBox)
+from AnyQt.QtCore import pyqtSignal, pyqtSlot, QSize, Qt
+from AnyQt.QtGui import QIcon
+from AnyQt.QtWidgets import (QWidget, QLabel, QHBoxLayout, QVBoxLayout,
+                             QButtonGroup, QRadioButton, QSizePolicy, QFrame,
+                             QApplication, QCheckBox, QPushButton, QGridLayout,
+                             QScrollArea)
 from nltk.downloader import Downloader
 
 from Orange.widgets import gui, settings, widget
 from Orange.widgets.widget import OWWidget, Msg
+from orangecontrib.text import preprocess
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.tag import StanfordPOSTagger
 from orangecontrib.text.tag import taggers
 from orangecontrib.text.widgets.utils import widgets, ResourceLoader
-
-from orangecontrib.text import preprocess
 from orangecontrib.text.widgets.utils.concurrent import asynchronous, OWConcurrentWidget
 
 
@@ -32,16 +31,16 @@ class Output:
     PP_CORPUS = 'Corpus'
 
 
-class OnOffButton(QtGui.QPushButton):
-    stateChanged = QtCore.pyqtSignal()
+class OnOffButton(QPushButton):
+    stateChanged = pyqtSignal()
 
     def __init__(self, enabled=True, on_button='on_button.png', off_button='off_button.png', size=(26, 26), *__args):
         super().__init__(*__args)
-        self.on_icon = QtGui.QIcon(_i(on_button))
-        self.off_icon = QtGui.QIcon(_i(off_button))
+        self.on_icon = QIcon(_i(on_button))
+        self.off_icon = QIcon(_i(off_button))
         self.setAutoDefault(False)      # do not toggle on Enter
         self.setFlat(True)
-        self.setIconSize(QtCore.QSize(*size))
+        self.setIconSize(QSize(*size))
         self.setStyleSheet('border:none')
         self.state = enabled
         self.clicked.connect(self.change_state)
@@ -56,13 +55,13 @@ class OnOffButton(QtGui.QPushButton):
         self.setIcon(self.on_icon if self.state else self.off_icon)
 
     def sizeHint(self):
-        return QtCore.QSize(26, 26)
+        return QSize(26, 26)
 
 
 class PreprocessorModule(gui.OWComponent, QWidget):
     """The base widget for the pre-processing modules."""
 
-    change_signal = Signal()  # Emitted when the settings are changed.
+    change_signal = pyqtSignal()  # Emitted when the settings are changed.
     title = NotImplemented
     attribute = NotImplemented
     methods = NotImplemented
@@ -70,7 +69,7 @@ class PreprocessorModule(gui.OWComponent, QWidget):
     toggle_enabled = True
     enabled = settings.Setting(True)
     disabled_value = None
-    Layout = QtGui.QGridLayout
+    Layout = QGridLayout
 
     def __init__(self, master):
         QWidget.__init__(self)
@@ -280,7 +279,7 @@ class NormalizationModule(SingleMethodModule):
         super().__init__(master)
 
         label = gui.label(self, self, 'Language:')
-        label.setAlignment(QtCore.Qt.AlignRight)
+        label.setAlignment(Qt.AlignRight)
         self.method_layout.addWidget(label, self.SNOWBALL, 1)
         box = widgets.ComboBox(self, 'snowball_language',
                                items=preprocess.SnowballStemmer.supported_languages)
@@ -541,7 +540,7 @@ class OWPreprocess(OWConcurrentWidget):
     pos_tagger = settings.SettingProvider(POSTaggingModule)
 
     control_area_width = 250
-    buttons_area_orientation = QtCore.Qt.Vertical
+    buttons_area_orientation = Qt.Vertical
 
     UserAdviceMessages = [
         widget.Message(
@@ -586,11 +585,11 @@ class OWPreprocess(OWConcurrentWidget):
             widget.change_signal.connect(self.settings_invalidated)
 
         frame_layout.addStretch()
-        self.scroll = QtGui.QScrollArea()
+        self.scroll = QScrollArea()
         self.scroll.setWidget(frame)
         self.scroll.setWidgetResizable(True)
-        self.scroll.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        self.scroll.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
+        self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         self.scroll.resize(frame_layout.sizeHint())
         self.scroll.setMinimumWidth(frame_layout.sizeHint().width() + 20)  # + scroll bar
         self.scroll.setMinimumHeight(500)
@@ -652,7 +651,7 @@ class OWPreprocess(OWConcurrentWidget):
                 max_width = max(max_width, widget.sizeHint().width())
         self.scroll.setMinimumWidth(max_width + 20)  # + scroll bar
 
-    @Slot()
+    @pyqtSlot()
     def settings_invalidated(self):
         self.commit()
 
