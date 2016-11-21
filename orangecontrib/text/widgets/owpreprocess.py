@@ -15,7 +15,7 @@ from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.tag import StanfordPOSTagger
 from orangecontrib.text.tag import taggers
 from orangecontrib.text.widgets.utils import widgets, ResourceLoader
-from orangecontrib.text.widgets.utils.concurrent import asynchronous, OWConcurrentWidget
+from orangecontrib.text.widgets.utils.concurrent import asynchronous
 
 
 def _i(name, icon_path='icons'):
@@ -75,8 +75,6 @@ class PreprocessorModule(gui.OWComponent, QWidget):
         QWidget.__init__(self)
         gui.OWComponent.__init__(self, master)
         self.master = master
-        self.preprocessor = master.preprocessor
-        self.value = getattr(self.preprocessor, self.attribute)
 
         # Title bar.
         title_holder = QWidget()
@@ -128,7 +126,7 @@ class PreprocessorModule(gui.OWComponent, QWidget):
             self.on_off_button.stateChanged.connect(self.on_toggle)
             self.on_off_button.setContentsMargins(0, 0, 0, 0)
             self.titleArea.addWidget(self.on_off_button)
-            self.display_widget(update_master_width=False)
+            self.display_widget()
 
     @staticmethod
     def get_tooltip(method):
@@ -141,12 +139,9 @@ class PreprocessorModule(gui.OWComponent, QWidget):
 
     @property
     def value(self):
-        return getattr(self.preprocessor, self.attribute)
-
-    @value.setter
-    def value(self, value):
-        setattr(self.preprocessor, self.attribute, value)
-        self.change_signal.emit()
+        if self.enabled:
+            return self.get_value()
+        return self.disabled_value
 
     def setup_method_layout(self):
         raise NotImplementedError
@@ -155,8 +150,9 @@ class PreprocessorModule(gui.OWComponent, QWidget):
         # Activated when the widget is enabled/disabled.
         self.enabled = not self.enabled
         self.display_widget()
+        self.update_value()
 
-    def display_widget(self, update_master_width=True):
+    def display_widget(self):
         if self.enabled:
             self.off_label.hide()
             self.contents.show()
@@ -166,17 +162,11 @@ class PreprocessorModule(gui.OWComponent, QWidget):
             self.contents.hide()
             self.title_label.setStyleSheet('color: #B0B0B0;')
 
-        if update_master_width:
-            self.master.set_minimal_width()
-
-        # set value at the end since widget should be displayed before recalculation is triggered
-        self.value = self.get_value() if self.enabled else self.disabled_value
-
     def get_value(self):
         raise NotImplemented
 
     def update_value(self):
-        self.value = self.get_value()
+        self.change_signal.emit()
 
 
 class SingleMethodModule(PreprocessorModule):
@@ -511,7 +501,7 @@ class POSTaggingModule(SingleMethodModule):
         return self.methods[self.STANFORD]
 
 
-class OWPreprocess(OWConcurrentWidget):
+class OWPreprocess(OWWidget):
 
     name = 'Preprocess Text'
     description = 'Construct a text pre-processing pipeline.'
@@ -578,8 +568,10 @@ class OWPreprocess(OWConcurrentWidget):
         frame_layout.setSpacing(0)
         frame.setLayout(frame_layout)
 
+        self.stages = []
         for stage in self.preprocessors:
             widget = stage(self)
+            self.stages.append(widget)
             setattr(self, stage.attribute, widget)
             frame_layout.addWidget(widget)
             widget.change_signal.connect(self.settings_invalidated)
@@ -591,8 +583,8 @@ class OWPreprocess(OWConcurrentWidget):
         self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         self.scroll.resize(frame_layout.sizeHint())
-        self.scroll.setMinimumWidth(frame_layout.sizeHint().width() + 20)  # + scroll bar
         self.scroll.setMinimumHeight(500)
+        self.set_minimal_width()
         self.mainArea.layout().addWidget(self.scroll)
 
         # Buttons area
@@ -631,25 +623,37 @@ class OWPreprocess(OWConcurrentWidget):
         self.preprocess()
 
     @asynchronous
-    def preprocess(self, **kwargs):
+    def preprocess(self):
+        for module in self.stages:
+            setattr(self.preprocessor, module.attribute, module.value)
         self.corpus.pos_tags = None     # reset pos_tags and ngrams_range
         self.corpus.ngram_range = self.initial_ngram_range
-        return self.preprocessor(self.corpus, inplace=True, **kwargs)
+        return self.preprocessor(self.corpus, inplace=True, on_progress=self.on_progress)
 
+    @preprocess.on_start
+    def on_start(self):
+        self.progressBarInit(None)
+        self.set_minimal_width()
+
+    @preprocess.callback
+    def on_progress(self, i):
+        self.progressBarSet(i, None)
+
+    @preprocess.on_result
     def on_result(self, result):
         self.update_info(result)
         if result is not None and len(result.dictionary) == 0:
             self.Warning.no_token_left()
             result = None
         self.send(Output.PP_CORPUS, result)
+        self.progressBarFinished(None)
 
     def set_minimal_width(self):
-        max_width = 200
-        for p in self.preprocessors:
-            widget = getattr(self, p.attribute)
+        max_width = 250
+        for widget in self.stages:
             if widget.enabled:
                 max_width = max(max_width, widget.sizeHint().width())
-        self.scroll.setMinimumWidth(max_width + 20)  # + scroll bar
+        self.scroll.setMinimumWidth(max_width + 20)
 
     @pyqtSlot()
     def settings_invalidated(self):
