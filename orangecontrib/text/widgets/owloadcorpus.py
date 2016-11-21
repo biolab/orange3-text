@@ -1,11 +1,10 @@
 import os
-from itertools import chain
 
 from Orange.data.io import FileFormat
-from Orange.widgets.settings import Setting
-from Orange.widgets.widget import OWWidget, Msg
 from Orange.widgets import gui
 from Orange.widgets.data.owselectcolumns import VariablesListItemModel, VariablesListItemView
+from Orange.widgets.settings import Setting
+from Orange.widgets.widget import OWWidget, Msg
 from orangecontrib.text.corpus import Corpus, get_sample_corpora_dir
 from orangecontrib.text.widgets.utils import widgets
 
@@ -108,7 +107,7 @@ class OWLoadCorpus(OWWidget):
 
 
 if __name__ == '__main__':
-    from PyQt4.QtGui import QApplication
+    from AnyQt.QtWidgets import QApplication
     app = QApplication([])
     widget = OWLoadCorpus()
     widget.show()

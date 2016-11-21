@@ -1,10 +1,9 @@
-from PyQt4.QtGui import QApplication, QGridLayout, QLabel
+from AnyQt.QtWidgets import QApplication, QGridLayout, QLabel
 
 from Orange.widgets import settings
-from orangecontrib.text.vectorization import BowVectorizer
 from orangecontrib.text.corpus import Corpus
-from orangecontrib.text.widgets.utils import widgets
-from orangecontrib.text.widgets.utils import owbasevectorizer
+from orangecontrib.text.vectorization import BowVectorizer
+from orangecontrib.text.widgets.utils import owbasevectorizer, widgets
 
 
 class OWTBagOfWords(owbasevectorizer.OWBaseVectorizer):

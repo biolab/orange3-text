@@ -1,4 +1,5 @@
-from PyQt4 import QtGui, QtCore
+from AnyQt.QtCore import Qt
+from AnyQt.QtWidgets import QApplication, QGridLayout, QLabel
 
 from Orange.widgets import gui
 from Orange.widgets import settings
@@ -50,23 +51,23 @@ class OWWikipedia(OWConcurrentWidget):
         query_box = gui.hBox(self.controlArea, 'Query')
 
         # Queries configuration
-        layout = QtGui.QGridLayout()
+        layout = QGridLayout()
         layout.setSpacing(7)
 
         row = 0
         query_edit = ListEdit(self, 'query_list', "Each line represents a separate query.", None, self)
-        layout.addWidget(QtGui.QLabel('Query word list:'), row, 0, 1, self.label_width)
+        layout.addWidget(QLabel('Query word list:'), row, 0, 1, self.label_width)
         layout.addWidget(query_edit, row, self.label_width, 1, self.widgets_width)
 
         # Language
         row += 1
         language_edit = ComboBox(self, 'language', tuple(sorted(lang2code.items())))
-        layout.addWidget(QtGui.QLabel('Language:'), row, 0, 1, self.label_width)
+        layout.addWidget(QLabel('Language:'), row, 0, 1, self.label_width)
         layout.addWidget(language_edit, row, self.label_width, 1, self.widgets_width)
 
         # Articles per query
         row += 1
-        layout.addWidget(QtGui.QLabel('Articles per query:'), row, 0, 1, self.label_width)
+        layout.addWidget(QLabel('Articles per query:'), row, 0, 1, self.label_width)
         slider = gui.valueSlider(query_box, self, 'articles_per_query', box='',
                                  values=[1, 3, 5, 10, 25])
         layout.addWidget(slider.box, row, 1, 1, self.widgets_width)
@@ -85,7 +86,7 @@ class OWWikipedia(OWConcurrentWidget):
         self.button_box.layout().addWidget(self.report_button)
 
         self.search_button = gui.button(self.button_box, self, 'Search', self.start_stop)
-        self.search_button.setFocusPolicy(QtCore.Qt.NoFocus)
+        self.search_button.setFocusPolicy(Qt.NoFocus)
 
     def start_stop(self):
         if self.running:
@@ -135,7 +136,7 @@ class OWWikipedia(OWConcurrentWidget):
 
 
 if __name__ == '__main__':
-    app = QtGui.QApplication([])
+    app = QApplication([])
     widget = OWWikipedia()
     widget.show()
     app.exec()

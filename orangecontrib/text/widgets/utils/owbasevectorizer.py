@@ -1,4 +1,4 @@
-from PyQt4 import QtGui
+from AnyQt.QtWidgets import QGroupBox, QHBoxLayout, QVBoxLayout
 
 from Orange.widgets import gui
 from Orange.widgets import settings
@@ -41,11 +41,11 @@ class OWBaseVectorizer(OWWidget):
         self.corpus = None
         self.method = None
 
-        box = QtGui.QGroupBox(title='Options')
+        box = QGroupBox(title='Options')
         box.setLayout(self.create_configuration_layout())
         self.controlArea.layout().addWidget(box)
 
-        buttons_layout = QtGui.QHBoxLayout()
+        buttons_layout = QHBoxLayout()
         buttons_layout.addWidget(self.report_button)
         buttons_layout.addSpacing(15)
         buttons_layout.addWidget(
@@ -77,4 +77,4 @@ class OWBaseVectorizer(OWWidget):
         self.report_items(self.method.report())
 
     def create_configuration_layout(self):
-        return QtGui.QVBoxLayout()
+        return QVBoxLayout()

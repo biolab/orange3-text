@@ -1,8 +1,9 @@
 import functools
 
-from PyQt4 import QtGui
-from PyQt4.QtGui import QVBoxLayout, QButtonGroup, QRadioButton
-from PyQt4 import QtCore
+from AnyQt.QtCore import pyqtSignal, QMutex, QSize
+from AnyQt.QtWidgets import (QVBoxLayout, QButtonGroup, QRadioButton,
+                             QGroupBox, QTreeWidgetItem, QTreeWidget)
+
 from Orange.widgets import settings
 from Orange.widgets import gui
 from Orange.data import Table
@@ -12,15 +13,15 @@ from orangecontrib.text.topics import Topic, LdaWrapper, HdpWrapper, LsiWrapper
 from orangecontrib.text.widgets.utils.concurrent import OWConcurrentWidget, asynchronous
 
 
-class TopicWidget(gui.OWComponent, QtGui.QGroupBox):
+class TopicWidget(gui.OWComponent, QGroupBox):
     Model = NotImplemented
-    valueChanged = QtCore.pyqtSignal(object)
+    valueChanged = pyqtSignal(object)
 
     parameters = ()
     spin_format = '{description}:'
 
     def __init__(self, master, **kwargs):
-        QtGui.QGroupBox.__init__(self, **kwargs)
+        QGroupBox.__init__(self, **kwargs)
         gui.OWComponent.__init__(self, master)
         self.model = self.create_model()
         QVBoxLayout(self)
@@ -129,7 +130,7 @@ class OWTopicModeling(OWConcurrentWidget):
 
     def __init__(self):
         super().__init__()
-        self.apply_mutex = QtCore.QMutex()
+        self.apply_mutex = QMutex()
         self.corpus = None
         self.learning_thread = None
 
@@ -222,7 +223,7 @@ class OWTopicModeling(OWConcurrentWidget):
             self.send(Output.TOPIC, self.model.get_topics_table_by_id(topic_id))
 
 
-class TopicViewerTreeWidgetItem(QtGui.QTreeWidgetItem):
+class TopicViewerTreeWidgetItem(QTreeWidgetItem):
     def __init__(self, topic_id, words, parent):
         super().__init__(parent)
         self.topic_id = topic_id
@@ -232,13 +233,13 @@ class TopicViewerTreeWidgetItem(QtGui.QTreeWidgetItem):
         self.setText(1, ', '.join(words))
 
 
-class TopicViewer(QtGui.QTreeWidget):
+class TopicViewer(QTreeWidget):
     """ Just keeps stuff organized. Holds topic visualization widget and related functions.
 
     """
 
     columns = ['Topic', 'Topic keywords']
-    topicSelected = QtCore.pyqtSignal(object)
+    topicSelected = pyqtSignal(object)
 
     def __init__(self):
         super().__init__()
@@ -273,11 +274,11 @@ class TopicViewer(QtGui.QTreeWidget):
             self.topicSelected.emit(None)
 
     def sizeHint(self):
-        return QtCore.QSize(700, 300)
+        return QSize(700, 300)
 
 
 if __name__ == '__main__':
-    from PyQt4.QtGui import QApplication
+    from AnyQt.QtWidgets import QApplication
 
     app = QApplication([])
     widget = OWTopicModeling()

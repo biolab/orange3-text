@@ -1,10 +1,11 @@
 from datetime import datetime, timedelta, date
 
-from PyQt4 import QtGui, QtCore
+from AnyQt.QtCore import Qt
+from AnyQt.QtWidgets import QApplication, QFormLayout
 
 from Orange.data import StringVariable
-from Orange.widgets.settings import Setting
 from Orange.widgets.credentials import CredentialManager
+from Orange.widgets.settings import Setting
 from Orange.widgets.widget import OWWidget, Msg, gui
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.nyt import NYT, MIN_DATE
@@ -32,8 +33,8 @@ class OWNYT(OWConcurrentWidget):
             self.parent = parent
             self.api = None
 
-            form = QtGui.QFormLayout()
-            form.setMargin(5)
+            form = QFormLayout()
+            form.setContentsMargins(5, 5, 5, 5)
             self.key_edit = gui.lineEdit(self, self, 'key_input', controlWidth=400)
             form.addRow('Key:', self.key_edit)
             self.controlArea.layout().addLayout(form)
@@ -101,7 +102,7 @@ class OWNYT(OWConcurrentWidget):
         self.api_dlg = self.APICredentialsDialog(self)
         self.api_dlg.accept(silent=True)
         gui.button(self.controlArea, self, 'Article API Key', callback=self.api_dlg.exec_,
-                   focusPolicy=QtCore.Qt.NoFocus)
+                   focusPolicy=Qt.NoFocus)
 
         # Query
         query_box = gui.widgetBox(self.controlArea, 'Query', addSpace=True)
@@ -128,7 +129,7 @@ class OWNYT(OWConcurrentWidget):
         self.button_box.layout().addWidget(self.report_button)
 
         self.search_button = gui.button(self.button_box, self, 'Search', self.start_stop,
-                                        focusPolicy=QtCore.Qt.NoFocus)
+                                        focusPolicy=Qt.NoFocus)
 
     def new_query_input(self):
         if self.running:
@@ -197,7 +198,7 @@ class OWNYT(OWConcurrentWidget):
 
 
 if __name__ == '__main__':
-    app = QtGui.QApplication([])
+    app = QApplication([])
     widget = OWNYT()
     widget.show()
     app.exec()

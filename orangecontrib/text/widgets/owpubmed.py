@@ -1,9 +1,9 @@
 import os
 from datetime import date
 
-from PyQt4 import QtGui, QtCore
-from PyQt4.QtCore import Qt, QDate
-from PyQt4.QtGui import *
+from AnyQt.QtCore import QDate, Qt
+from AnyQt.QtWidgets import (QApplication, QComboBox, QDateEdit, QTextEdit,
+                             QFrame, QDialog, QCalendarWidget, QVBoxLayout)
 from validate_email import validate_email
 
 from Orange.widgets import gui
@@ -456,10 +456,10 @@ class CalendarDialog(QDialog):
         self.mainArea = gui.widgetBox(self)
         self.layout().addWidget(self.mainArea)
 
-        self.cal = QtGui.QCalendarWidget(self)
+        self.cal = QCalendarWidget(self)
         self.cal.setGridVisible(True)
         self.cal.move(20, 20)
-        self.cal.clicked[QtCore.QDate].connect(self.set_date)
+        self.cal.clicked[QDate].connect(self.set_date)
         self.mainArea.layout().addWidget(self.cal)
 
         # Set the default date.

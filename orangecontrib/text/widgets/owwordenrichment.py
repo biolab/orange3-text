@@ -1,10 +1,10 @@
-from PyQt4 import QtGui
 import numpy as np
+from AnyQt.QtWidgets import QTreeWidget, QTreeView, QTreeWidgetItem
 
+from Orange.data import Table
 from Orange.widgets import gui
 from Orange.widgets.settings import Setting
 from Orange.widgets.widget import OWWidget, Msg
-from Orange.data import Table
 from orangecontrib.text.stats import false_discovery_rate, hypergeom_p_values
 
 
@@ -75,11 +75,11 @@ class OWWordEnrichment(OWWidget):
 
         # Word's list view
         self.cols = ['Word', 'p-value', 'FDR']
-        self.sig_words = QtGui.QTreeWidget()
+        self.sig_words = QTreeWidget()
         self.sig_words.setColumnCount(len(self.cols))
         self.sig_words.setHeaderLabels(self.cols)
         self.sig_words.setSortingEnabled(True)
-        self.sig_words.setSelectionMode(QtGui.QTreeView.ExtendedSelection)
+        self.sig_words.setSelectionMode(QTreeView.ExtendedSelection)
         self.sig_words.sortByColumn(2, 0)   # 0 is ascending order
         for i in range(len(self.cols)):
             self.sig_words.resizeColumnToContents(i)
@@ -166,7 +166,7 @@ fp = lambda score: "%0.5f" % score if score > 10e-3 else "%0.1e" % score
 fpt = lambda score: "%0.9f" % score if score > 10e-3 else "%0.5e" % score
 
 
-class EATreeWidgetItem(QtGui.QTreeWidgetItem):
+class EATreeWidgetItem(QTreeWidgetItem):
     def __init__(self, word, p_value, f_value, parent):
         super().__init__(parent)
         self.data = [word, p_value, f_value]

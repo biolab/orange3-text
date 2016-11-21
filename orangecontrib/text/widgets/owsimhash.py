@@ -1,9 +1,9 @@
-from PyQt4.QtGui import QApplication, QFormLayout
+from AnyQt.QtWidgets import QApplication, QFormLayout
 
 from Orange.widgets import gui
 from Orange.widgets import settings
-from orangecontrib.text.vectorization import SimhashVectorizer
 from orangecontrib.text.corpus import Corpus
+from orangecontrib.text.vectorization import SimhashVectorizer
 from orangecontrib.text.widgets.utils import owbasevectorizer
 
 
