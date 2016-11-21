@@ -129,15 +129,18 @@ class Corpus(Table):
 
         self._tokens = None     # invalidate tokens
 
-    def extend_attributes(self, X, feature_names, var_attrs=None, compute_values=None):
+    def extend_attributes(self, X, feature_names, feature_values=None,
+                          compute_values=None, var_attrs=None):
         """
-        Append features to corpus.
+        Append features to corpus. If `feature_values` argument is present,
+        features will be Discrete else Continuous.
 
         Args:
-            X (numpy.ndarray or scipy.sparse.csr_matrix): Features to append
+            X (numpy.ndarray or scipy.sparse.csr_matrix): Features values to append
             feature_names (list): List of string containing feature names
-            var_attrs (dict): Additional attributes appended to variable.attributes.
+            feature_values (list): A list of possible values for Discrete features.
             compute_values (list): Compute values for corresponding features.
+            var_attrs (dict): Additional attributes appended to variable.attributes.
         """
         if self.X.size == 0:
             self.X = X
@@ -148,10 +151,15 @@ class Corpus(Table):
 
         if compute_values is None:
             compute_values = [None] * X.shape[1]
+        if feature_values is None:
+            feature_values = [None] * X.shape[1]
 
         new_attr = self.domain.attributes
-        for f, cv in zip(feature_names, compute_values):
-            var = ContinuousVariable(f, compute_value=cv)
+        for f, values, cv in zip(feature_names, feature_values, compute_values):
+            if values is not None:
+                var = DiscreteVariable(f, values=values, compute_value=cv)
+            else:
+                var = ContinuousVariable(f, compute_value=cv)
             if isinstance(var_attrs, dict):
                 var.attributes.update(var_attrs)
             new_attr += (var, )

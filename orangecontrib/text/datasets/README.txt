@@ -41,3 +41,8 @@ This data set originates from the paper about Latent Semantic Analysis [1].
 Dataset: Friends Transcripts
 
 Transcripts from the Friends series. Originating from http://home.versatel.nl/friendspic0102/
+-----------------------------------------------------------------------------------------------------------------------
+Dataset: Election-2016-Tweets.tab
+
+Tweets from the major party candidates for the 2016 US Presidential Election Hillary Clinton and Donald Trump.
+This data set is a simplified version of the data set from: https://www.kaggle.com/benhamner/clinton-trump-tweets
