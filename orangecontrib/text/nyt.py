@@ -35,6 +35,7 @@ class NYT:
         (data.DiscreteVariable('Section'), lambda doc: doc.get('section_name', None)),
     ]
 
+    tv = data.TimeVariable('Publication Date')
     metas = [
         (data.StringVariable('Headline'), lambda doc: doc.get('headline', {}).get('main') or ''),
         (data.StringVariable('Abstract'), lambda doc: doc.get('abstract') or ''),
@@ -46,8 +47,7 @@ class NYT:
         (data.StringVariable('Persons'), lambda doc: NYT.keywords(doc, 'persons')),
         (data.StringVariable('Organizations'), lambda doc: NYT.keywords(doc, 'organizations')),
         (data.StringVariable('Creative Works'), lambda doc: NYT.keywords(doc, 'creative_works')),
-        (data.TimeVariable('Publication Date'),
-            lambda doc: data.TimeVariable().parse(doc.get('pub_date'))),
+        (tv, lambda doc: NYT.tv.parse(doc.get('pub_date'))),
         (data.DiscreteVariable('Article Type'), lambda doc: doc.get('type_of_material', None)),
         (data.DiscreteVariable('Word Count'), lambda doc: doc.get('word_count', None)),
     ]
