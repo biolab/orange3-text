@@ -6,7 +6,7 @@ from Orange.widgets import settings
 from Orange.widgets.widget import OWWidget, Msg
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.language_codes import lang2code, code2lang
-from orangecontrib.text.widgets.utils import ComboBox, ListEdit, CheckListLayout, OWConcurrentWidget, asynchronous
+from orangecontrib.text.widgets.utils import ComboBox, ListEdit, CheckListLayout, asynchronous
 from orangecontrib.text.wikipedia import WikipediaAPI
 
 
@@ -14,7 +14,7 @@ class IO:
     CORPUS = "Corpus"
 
 
-class OWWikipedia(OWConcurrentWidget):
+class OWWikipedia(OWWidget):
     """ Get articles from wikipedia. """
     name = 'Wikipedia'
     priority = 27
@@ -89,33 +89,38 @@ class OWWikipedia(OWConcurrentWidget):
         self.search_button.setFocusPolicy(Qt.NoFocus)
 
     def start_stop(self):
-        if self.running:
-            self.stop()
+        if self.search.running:
+            self.search.stop()
         else:
             self.search()
 
-    @asynchronous(allow_partial_results=True)
-    def search(self, on_progress, should_break):
-        def progress_with_info(progress, n_retrieved):
-            on_progress(100 * progress)
-            self.result_label.setText(self.info_label.format(n_retrieved))
-
+    @asynchronous
+    def search(self):
         return self.api.search(lang=self.language, queries=self.query_list,
                                articles_per_query=self.articles_per_query,
-                               on_progress=progress_with_info,
-                               should_break=should_break)
+                               on_progress=self.progress_with_info,
+                               should_break=self.search.should_break)
 
+    @search.callback
+    def progress_with_info(self, progress, n_retrieved):
+        self.progressBarSet(100 * progress, None)
+        self.result_label.setText(self.info_label.format(n_retrieved))
+
+    @search.on_start
     def on_start(self):
         self.Error.api_error.clear()
+        self.progressBarInit(None)
         self.search_button.setText('Stop')
         self.result_label.setText(self.info_label.format(0))
         self.send(IO.CORPUS, None)
 
+    @search.on_result
     def on_result(self, result):
         self.result = result
         self.result_label.setText(self.info_label.format(len(result) if result else 0))
         self.search_button.setText('Search')
         self.set_text_features()
+        self.progressBarFinished(None)
 
     def set_text_features(self):
         self.Warning.no_text_fields.clear()
