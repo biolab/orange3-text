@@ -129,7 +129,7 @@ class BoundAsyncMethod(QObject):
 
         if self.im_func.finish_callback:
             QMetaObject.invokeMethod(self.im_self, self.im_func.finish_callback,
-                                     Qt.BlockingQueuedConnection, Q_ARG(object, result))
+                                     Qt.DirectConnection, Q_ARG(object, result))
         self.running = False
         return result
 
@@ -142,6 +142,9 @@ class BoundAsyncMethod(QObject):
         """ Waits till task is completed. """
         if self._thread is not None and self._thread.is_alive():
             self._thread.join()
+
+    def should_break(self):
+        return not self.running
 
 
 class AsyncMethod(QObject):
