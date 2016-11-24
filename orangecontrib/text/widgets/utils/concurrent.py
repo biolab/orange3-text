@@ -110,6 +110,7 @@ class BoundAsyncMethod(QObject):
         self._thread = None
 
     def __call__(self, *args, **kwargs):
+        self.stop()
         self.running = True
         self._thread = threading.Thread(target=self.run, args=args, kwargs=kwargs,
                                         daemon=True)
@@ -129,7 +130,7 @@ class BoundAsyncMethod(QObject):
 
         if self.im_func.finish_callback:
             QMetaObject.invokeMethod(self.im_self, self.im_func.finish_callback,
-                                     Qt.DirectConnection, Q_ARG(object, result))
+                                     Qt.QueuedConnection, Q_ARG(object, result))
         self.running = False
         return result
 
