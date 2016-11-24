@@ -13,7 +13,7 @@ from Orange import data
 from Orange.canvas.utils import environ
 from orangecontrib.text.corpus import Corpus
 
-SLEEP = .2
+SLEEP = 1
 MAX_DOCS = 1000
 BATCH_SIZE = 10
 MIN_DATE = date(1851, 1, 1)
@@ -93,12 +93,13 @@ class NYT:
         """
         if not self.api_key_valid():
             raise RuntimeError('The API key is not valid.')
+        sleep(SLEEP)  # due to one call per second limit
         if max_docs is None or max_docs > MAX_DOCS:
             max_docs = MAX_DOCS
 
         # TODO create corpus on the fly and extend, so it stops faster.
         records = []
-        data, cached = self._fetch_page(query, date_from, date_to, 0)
+        data, go_sleep = self._fetch_page(query, date_from, date_to, 0)
         if data is None:
             return None
         records.extend(data['response']['docs'])
@@ -110,18 +111,17 @@ class NYT:
             if callable(should_break) and should_break():
                 break
 
-            data, cached = self._fetch_page(query, date_from, date_to, page)
+            if go_sleep:
+                sleep(SLEEP)
+
+            data, go_sleep = self._fetch_page(query, date_from, date_to, page)
 
             if data is None:
                 break
 
             records.extend(data['response']['docs'])
-
             if callable(on_progress):
                 on_progress(len(records), max_docs)
-
-            if not cached:
-                sleep(SLEEP)
 
         if len(records) > max_docs:
             records = records[:max_docs]
@@ -157,7 +157,7 @@ class NYT:
         cache_url = self._encode_url(query, date_from, date_to, page, for_caching=True)
         data = self._cache_fetch(cache_url)
         if data:
-            return data, True
+            return data, False
         else:
             url = self._encode_url(query, date_from, date_to, page, for_caching=False)
             try:
@@ -171,7 +171,7 @@ class NYT:
                 return None, False
             data = json.loads(data)
             self._cache_store(cache_url, data)
-            return data, False
+            return data, True
 
     def _encode_url(self, query, date_from=None, date_to=None, page=0, for_caching=False):
         """

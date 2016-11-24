@@ -104,8 +104,8 @@ class NYTTests(unittest.TestCase):
 
     def test_nyt_result_caching(self):
         self.nyt._fetch_page('slovenia', None, None, 0)     # assure in cache
-        _, is_cached = self.nyt._fetch_page('slovenia', None, None, 0)
-        self.assertTrue(is_cached)
+        _, go_sleep = self.nyt._fetch_page('slovenia', None, None, 0)
+        self.assertFalse(go_sleep)
 
     def test_on_progress(self):
         n_calls = 0
