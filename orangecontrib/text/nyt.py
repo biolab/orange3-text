@@ -164,6 +164,13 @@ class NYT:
                 with request.urlopen(url) as conn:
                     data = conn.read().decode('utf-8')
             except HTTPError as e:
+                if e.code == 403 and page > 0:
+                    # occasionally some pages return error 403 (Forbidden)
+                    # while all other page numbers seem to work just fine.
+                    # Skip such pages and don't break loading!
+                    warnings.warn('NYT api returned HTTPError with code 403 '
+                                  '(Forbidden)! Skipping this page ...')
+                    return {'response': {'docs': []}}, True
                 if e.code == 429 and callable(self.on_rate_limit):
                     self.on_rate_limit()
                 elif callable(self.on_error):
