@@ -206,13 +206,21 @@ class OWCorpusViewer(OWWidget):
         <meta charset='utf-8'>
         <style>
 
+        table {{ border-collapse: collapse; }}
         mark {{ background: #FFCD28; }}
-        tr > td {{ padding-bottom: 5px; }}
+
+        tr > td {{
+            padding-bottom: 3px;
+            padding-top: 3px;
+        }}
 
         body {{
             font-family: Helvetica;
             font-size: 10pt;
         }}
+
+        .line {{ border-bottom: 1px solid #000; }}
+        .separator {{ height: 5px; }}
 
         .variables {{
             vertical-align: top;
@@ -241,15 +249,17 @@ class OWCorpusViewer(OWWidget):
         if len(self.display_indices) == 0:
             self.Warning.no_feats_display()
 
-        documents = []
         if self.show_tokens:
             tokens = list(self.corpus.ngrams_iterator(include_postags=True))
 
         marked_search_features = [f for i, f in enumerate(self.search_features)
                                   if i in self.search_indices]
 
-        for index in self.doc_list.selectionModel().selectedRows():
-            html = '<table>'
+        html = '<table>'
+        for doc_count, index in enumerate(self.doc_list.selectionModel().selectedRows()):
+            if doc_count > 0:   # add split
+                html += '<tr class="line separator"><td/><td/></tr>' \
+                        '<tr class="separator"><td/><td/></tr>'
 
             row_ind = index.data(Qt.UserRole).row_index
             for ind in self.display_indices:
@@ -263,15 +273,13 @@ class OWCorpusViewer(OWWidget):
             if self.show_tokens:
                 html += '<tr><td class="variables"><strong>Tokens & Tags:</strong></td>' \
                         '<td>{}</td></tr>'.format(''.join('<span class="token">{}</span>'.format(
-                                                      token) for token in tokens[row_ind]))
+                    token) for token in tokens[row_ind]))
 
-            html += '</table>'
-            documents.append(html)
+        html += '</table>'
 
-        self.doc_webview.setHtml(HTML.format('<hr/>'.join(documents)))
-        if documents:
-            self.load_js()
-            self.highlight_docs()
+        self.doc_webview.setHtml(HTML.format(html))
+        self.load_js()
+        self.highlight_docs()
 
     def load_js(self):
         resources = os.path.join(os.path.dirname(__file__), 'resources')
