@@ -5,7 +5,11 @@ Async Module
 Helper utils for Orange GUI programming.
 
 Provides :func:`asynchronous` decorator for making methods calls in async mode.
-Once method is decorated it will have :func:`task.on_result` and :func:`task.callback` decorators for callback wrapping.
+Once method is decorated it will have :func:`task.on_start`, :func:`task.on_result` and :func:`task.callback` decorators for callbacks wrapping.
+
+ - `on_start` must take no arguments
+ - `on_result` must accept one argument (the result)
+ - `callback` can accept any arguments
 
 For instance::
 
@@ -21,6 +25,10 @@ For instance::
                 self.report_progress(i)
             return 'Done'
 
+        @task.on_start
+        def report_start(self):
+            print('`{}` started'.format(self.name))
+
         @task.on_result
         def report_result(self, result):
             print('`{}` result: {}'.format(self.name, result))
@@ -30,7 +38,7 @@ For instance::
             print('`{}` progress: {}'.format(self.name, i))
 
 
-Calling if an asynchronous method will launch a deamon thread::
+Calling an asynchronous method will launch a daemon thread::
 
     first = Widget(name='First')
     first.task()
@@ -43,6 +51,8 @@ Calling if an asynchronous method will launch a deamon thread::
 
 A possible output::
 
+    `First` started
+    `Second` started
     `Second` progress: 0
     `First` progress: 0
     `First` progress: 1
@@ -53,7 +63,7 @@ A possible output::
     `Second` result: Done
 
 
-In order to terminate execution (only if an inner cycle with callbacks is present) call :meth:`stop` method::
+In order to terminate a thread either call :meth:`stop` method or raise :exc:`StopExecution` exception within :meth:`task`::
 
     first.task.stop()
 
@@ -163,6 +173,7 @@ class AsyncMethod(QObject):
         return bounded
 
     def on_start(self, callback):
+        """ On start callback decorator. """
         self.start_callback = callback.__name__
         return Slot()(callback)
 
