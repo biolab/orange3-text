@@ -200,12 +200,6 @@ class AsyncMethod(QObject):
         self.finish_callback = callback.__name__
         return Slot(object)(callback)
 
-    def join(self):
-        """ Unbounded call. No attention is needed. """
-
-    def stop(self):
-        """ Unbounded call. No attention is needed. """
-
 
 def asynchronous(task):
     """ Wraps method of a QObject and replaces it with :class:`AsyncMethod` instance
