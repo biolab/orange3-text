@@ -142,7 +142,6 @@ class BoundAsyncMethod(QObject):
             QMetaObject.invokeMethod(self.im_self, self.im_func.finish_callback,
                                      Qt.QueuedConnection, Q_ARG(object, result))
         self.running = False
-        return result
 
     def stop(self):
         """ Terminates thread execution. """
