@@ -295,6 +295,18 @@ class MockOrange(MagicMock):
         return MockData() if name in cls.__all__ else MagicMock()  # required since Corpus extends Table
 
 
+class MockGUI(MagicMock):
+    __all__ = ['OWComponent', ]
+
+    class MockClasses:
+        def __init__(self, *args, **kwargs):
+            pass
+
+    @classmethod
+    def __getattr__(cls, name):
+        return cls.MockClasses if name in cls.__all__ else MagicMock()
+
+
 MOCK_MODULES = [
     ('Orange', MockOrange),
     ('Orange.data', MockData),
@@ -303,6 +315,8 @@ MOCK_MODULES = [
     ('Orange.data.table', MockData),
     ('Orange.data.variable', MockData),
     ('Orange.canvas.utils', MockData),
+    ('Orange.widgets', MockGUI),
+    ('Orange.widgets.gui', MockGUI),
 ]
 
 for name, mock_class in MOCK_MODULES:
@@ -312,6 +326,7 @@ for name, mock_class in MOCK_MODULES:
 # from Orange.canvas.utils import environ
 # from Orange.data import Table, StringVariable, Domain
 # from Orange import data
+# from Orange.widgets.gui import OWComponent, hBox
 # isinstance(None, Table)
 # isinstance(None, Domain)
 # isinstance(None, StringVariable)
