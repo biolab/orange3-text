@@ -633,7 +633,6 @@ class OWPreprocess(OWWidget):
     @preprocess.on_start
     def on_start(self):
         self.progressBarInit(None)
-        self.set_minimal_width()
 
     @preprocess.callback
     def on_progress(self, i):
@@ -657,6 +656,7 @@ class OWPreprocess(OWWidget):
 
     @pyqtSlot()
     def settings_invalidated(self):
+        self.set_minimal_width()
         self.commit()
 
     def send_report(self):
