@@ -104,8 +104,14 @@ class NYTTests(unittest.TestCase):
 
     def test_nyt_result_caching(self):
         self.nyt._fetch_page('slovenia', None, None, 0)     # assure in cache
-        _, is_cached = self.nyt._fetch_page('slovenia', None, None, 0)
-        self.assertTrue(is_cached)
+        _, go_sleep = self.nyt._fetch_page('slovenia', None, None, 0)
+        self.assertFalse(go_sleep)
+
+    def test_nyt_sleep(self):
+        self.nyt.search('slovenia', max_docs=25)
+        with patch('time.sleep', Mock()) as sleep:
+            self.nyt.search('slovenia', max_docs=25)
+            self.assertEqual(sleep.call_count, 0)
 
     def test_on_progress(self):
         n_calls = 0
@@ -174,3 +180,16 @@ class NYTTestsErrorRaising(unittest.TestCase):
         c = nyt.search('slovenia', max_docs=25)
         self.assertIsNone(c)
 
+
+class Test403(unittest.TestCase):
+    API_KEY = 'api_key'
+
+    def setUp(self):
+        self.nyt = NYT(self.API_KEY)
+
+    @patch('urllib.request.urlopen',
+           Mock(side_effect=HTTPError('', 403, None, None, None)))
+    def test_nyt_http_error_403(self):
+        data, go_sleep = self.nyt._fetch_page('slovenia', None, None, 1)
+        self.assertEqual(len(data['response']['docs']), 0)
+        self.assertTrue(go_sleep)
