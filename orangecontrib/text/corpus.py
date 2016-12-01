@@ -189,7 +189,8 @@ class Corpus(Table):
             for var in sorted(chain(self.domain.metas, self.domain),
                               key=lambda var: var.name,
                               reverse=True):  # reverse so that title < heading < filename
-                if var.name.lower() in ('title', 'heading', 'h1', 'filename'):
+                if var.name.lower() in ('title', 'heading', 'h1', 'filename') \
+                        and not var.attributes.get('hidden', False):    # skip BoW features
                     attrs = [var]
                     break
         if attrs:
