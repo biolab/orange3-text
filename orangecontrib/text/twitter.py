@@ -108,8 +108,8 @@ class TwitterAPI:
         # Callbacks:
         self.on_error = on_error
         self.on_rate_limit = on_rate_limit
-        self.on_progress = on_progress
-        self.should_break = should_break
+        self.on_progress = on_progress or (lambda *args: args)
+        self.should_break = should_break or (lambda *args: False)
 
     @property
     def tweets(self):
@@ -187,11 +187,6 @@ class TwitterAPI:
         return corpus
 
     def fetch(self, cursors, max_tweets):
-        if not self.on_progress:
-            self.on_progress = lambda x, y: (x, y)
-        if not self.should_break:
-            self.should_break = lambda: False
-
         if not isinstance(cursors, list):
             cursors = [cursors]
 

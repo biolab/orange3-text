@@ -214,8 +214,6 @@ class OWTwitter(OWWidget):
 
     @asynchronous
     def search(self):
-        self.api.on_progress = self.update_tweets_num
-        self.api.should_break = self.search.should_break
         max_tweets = self.max_tweets if self.limited_search else 0
 
         if self.mode == self.CONTENT:
@@ -237,7 +235,9 @@ class OWTwitter(OWWidget):
             self.Error.key_missing.clear()
             self.api = twitter.TwitterAPI(key,
                                           on_error=self.Error.api,
-                                          on_rate_limit=self.Error.rate_limit)
+                                          on_rate_limit=self.Error.rate_limit,
+                                          should_break=self.search.should_break,
+                                          on_progress=self.update_tweets_num)
         else:
             self.api = None
 
