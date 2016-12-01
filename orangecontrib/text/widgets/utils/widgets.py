@@ -304,7 +304,7 @@ class FileWidget(QWidget):
             self.open_file(self.recent_files[0])
             self.update_combo()
         elif name == self.empty_file_label:
-            self.open_file(None)
+            self.open_file(self.empty_file_label)
         elif name in self.directory_aliases:
             self.browse(self.directory_aliases[name])
 
@@ -332,9 +332,9 @@ class FileWidget(QWidget):
             for file in to_remove:
                 self.recent_files.remove(file)
 
-    def open_file(self, path=None):
+    def open_file(self, path):
         try:
-            self.on_open.emit(path if path != self.empty_file_label else None)
+            self.on_open.emit(path if path != self.empty_file_label else '')
         except (OSError, IOError):
             self.loading_error_signal.emit('Could not open "{}".'
                                            .format(path))
