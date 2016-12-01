@@ -20,8 +20,10 @@ class OWWordEnrichment(OWWidget):
               ("Data", Table, "set_data"),]
     want_main_area = True
 
-    class Warning(OWWidget.Warning):
-        no_feature_overlap = Msg('No features overlap!')
+    class Error(OWWidget.Error):
+        no_words_overlap = Msg('No words overlap!')
+        empty_selection = Msg('Selected data is empty!')
+        all_selected = Msg('All examples can not be selected!')
 
     # Settings
     filter_by_p = Setting(False)
@@ -95,15 +97,25 @@ class OWWordEnrichment(OWWidget):
         self.check_data()
 
     def check_data(self):
-        self.Warning.clear()
+        self.Error.clear()
         if isinstance(self.data, Table) and \
                 isinstance(self.selected_data, Table):
-            self.selected_data_transformed = Table.from_table(self.data.domain, self.selected_data)
-            if self.selected_data_transformed.X.size > 0:
-                self.apply()
-            else:
+            if len(self.selected_data) == 0:
+                self.Error.empty_selection()
                 self.clear()
-                self.Warning.no_feature_overlap()
+                return
+
+            self.selected_data_transformed = Table.from_table(
+                self.data.domain, self.selected_data)
+
+            if np.sum(self.selected_data_transformed.X) == 0:
+                self.Error.no_words_overlap()
+                self.clear()
+            elif len(self.data) == len(self.selected_data):
+                self.Error.all_selected()
+                self.clear()
+            else:
+                self.apply()
         else:
             self.clear()
 
