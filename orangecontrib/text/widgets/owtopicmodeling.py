@@ -1,16 +1,17 @@
 import functools
 
-from AnyQt.QtCore import pyqtSignal, QMutex, QSize
+from AnyQt.QtCore import pyqtSignal, QSize
 from AnyQt.QtWidgets import (QVBoxLayout, QButtonGroup, QRadioButton,
                              QGroupBox, QTreeWidgetItem, QTreeWidget)
 
 from Orange.widgets import settings
 from Orange.widgets import gui
+from Orange.widgets.widget import OWWidget
 from Orange.data import Table
 from Orange.widgets.data.contexthandlers import DomainContextHandler
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.topics import Topic, LdaWrapper, HdpWrapper, LsiWrapper
-from orangecontrib.text.widgets.utils.concurrent import OWConcurrentWidget, asynchronous
+from orangecontrib.text.widgets.utils.concurrent import asynchronous
 
 
 class TopicWidget(gui.OWComponent, QGroupBox):
@@ -98,7 +99,7 @@ def require(attribute):
     return decorator
 
 
-class OWTopicModeling(OWConcurrentWidget):
+class OWTopicModeling(OWWidget):
     name = "Topic Modelling"
     description = "Uncover the hidden thematic structure in a corpus."
     icon = "icons/TopicModeling.svg"
@@ -130,7 +131,6 @@ class OWTopicModeling(OWConcurrentWidget):
 
     def __init__(self):
         super().__init__()
-        self.apply_mutex = QMutex()
         self.corpus = None
         self.learning_thread = None
 
@@ -187,30 +187,35 @@ class OWTopicModeling(OWConcurrentWidget):
         for i, widget in enumerate(self.widgets):
             widget.setVisible(i == self.method_index)
 
-    def on_progress(self, p):
-        self.progressBarSet(100 * p / len(self.corpus), processEvents=None)
-
     def apply(self):
-        self.stop()
+        self.learning_task.stop()
         if self.corpus:
-            self.start_learning()
+            self.learning_task()
         else:
             self.on_result(None)
 
+    @asynchronous
+    def learning_task(self):
+        return self.model.fit_transform(self.corpus.copy(), chunk_number=100, on_progress=self.on_progress)
+
+    @learning_task.on_start
     def on_start(self):
+        self.progressBarInit(None)
         self.topic_desc.clear()
 
-    @asynchronous
-    def start_learning(self, **kwargs):
-        return self.model.fit_transform(self.corpus.copy(), chunk_number=100, **kwargs)
-
+    @learning_task.on_result
     def on_result(self, corpus):
+        self.progressBarFinished(None)
         self.send(Output.CORPUS, corpus)
         if corpus is None:
             self.topic_desc.clear()
             self.send(Output.TOPIC, None)
         else:
             self.topic_desc.show_model(self.model)
+
+    @learning_task.callback
+    def on_progress(self, p):
+        self.progressBarSet(100 * p / len(self.corpus), processEvents=None)
 
     def send_report(self):
         self.report_items(*self.widgets[self.method_index].report_model())

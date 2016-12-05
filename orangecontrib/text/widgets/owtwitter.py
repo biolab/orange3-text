@@ -9,15 +9,14 @@ from orangecontrib.text import twitter
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.language_codes import lang2code
 from orangecontrib.text.widgets.utils import (ComboBox, ListEdit,
-                                              CheckListLayout, gui_require,
-                                              OWConcurrentWidget, asynchronous)
+                                              CheckListLayout, gui_require, asynchronous)
 
 
 class IO:
     CORPUS = 'Corpus'
 
 
-class OWTwitter(OWConcurrentWidget):
+class OWTwitter(OWWidget):
     class APICredentialsDialog(OWWidget):
         name = 'Twitter API Credentials'
         want_main_area = False
@@ -204,31 +203,17 @@ class OWTwitter(OWConcurrentWidget):
         self.language_combo.setEnabled(self.mode == self.CONTENT)
 
     def start_stop(self):
-        if self.running:
-            self.stop()
+        if self.search.running:
+            self.search.stop()
         else:
-            self.search()
-
-    def update_api(self, key):
-        if key:
-            self.Error.key_missing.clear()
-            self.api = twitter.TwitterAPI(key,
-                                          on_error=self.Error.api,
-                                          on_rate_limit=self.Error.rate_limit)
-        else:
-            self.api = None
+            self.run_search()
 
     @gui_require('api', 'key_missing')
-    @asynchronous(allow_partial_results=True)
-    def search(self, on_progress, should_break):
-        def progress_with_info(total, progress):
-            if self.limited_search or self.mode == self.AUTHOR:
-                on_progress(100 * progress)
-            self.update_tweets_num(total)
+    def run_search(self):
+        self.search()
 
-        self.Error.clear()
-        self.api.on_progress = progress_with_info
-        self.api.should_break = should_break
+    @asynchronous
+    def search(self):
         max_tweets = self.max_tweets if self.limited_search else 0
 
         if self.mode == self.CONTENT:
@@ -245,19 +230,39 @@ class OWTwitter(OWConcurrentWidget):
                                            authors=self.word_list,
                                            collecting=self.collecting)
 
+    def update_api(self, key):
+        if key:
+            self.Error.key_missing.clear()
+            self.api = twitter.TwitterAPI(key,
+                                          on_error=self.Error.api,
+                                          on_rate_limit=self.Error.rate_limit,
+                                          should_break=self.search.should_break,
+                                          on_progress=self.update_tweets_num)
+        else:
+            self.api = None
+
+    @search.on_start
     def on_start(self):
+        self.Error.clear()
+        self.progressBarInit(None)
         self.search_button.setText('Stop')
         self.send(IO.CORPUS, None)
         if self.mode == self.CONTENT and not self.limited_search:
             self.progressBarFinished(None)
 
+    @search.on_result
     def on_result(self, result):
         self.search_button.setText('Search')
-        self.update_tweets_num(len(result) if result else 0)
+        self.tweets_info_label.setText(self.tweets_info.format(len(result) if result else 0))
         self.corpus = result
         self.set_text_features()
+        self.progressBarFinished(None)
 
-    def update_tweets_num(self, num=0):
+    @search.callback(should_raise=False)
+    def update_tweets_num(self, num=0, progress=None):
+        if self.limited_search or self.mode == self.AUTHOR:
+            if progress is not None:
+                self.progressBarSet(100 * progress, None)
         self.tweets_info_label.setText(self.tweets_info.format(num))
 
     def set_text_features(self):

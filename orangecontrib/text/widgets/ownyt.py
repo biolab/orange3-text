@@ -10,14 +10,14 @@ from Orange.widgets.widget import OWWidget, Msg, gui
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.nyt import NYT, MIN_DATE
 from orangecontrib.text.widgets.utils import CheckListLayout, DatePickerInterval, QueryBox, \
-    gui_require, OWConcurrentWidget, asynchronous
+    gui_require, asynchronous
 
 
 class IO:
     CORPUS = "Corpus"
 
 
-class OWNYT(OWConcurrentWidget):
+class OWNYT(OWWidget):
     class APICredentialsDialog(OWWidget):
         name = "New York Times API key"
         want_main_area = False
@@ -132,42 +132,48 @@ class OWNYT(OWConcurrentWidget):
                                         focusPolicy=Qt.NoFocus)
 
     def new_query_input(self):
-        if self.running:
-            self.stop()
+        self.search.stop()
         self.search()
 
     def start_stop(self):
-        if self.running:
-            self.stop()
+        if self.search.running:
+            self.search.stop()
         else:
             self.query_box.synchronize(silent=True)
             self.search()
 
     @gui_require('nyt_api', 'no_api')
     @gui_require('recent_queries', 'no_query')
-    @asynchronous(allow_partial_results=True)
-    def search(self, on_progress, should_break):
+    def run_search(self):
+        self.search()
+
+    @asynchronous
+    def search(self):
+        return self.nyt_api.search(self.recent_queries[0], self.date_from, self.date_to,
+                                   on_progress=self.progress_with_info,
+                                   should_break=self.search.should_break)
+
+    @search.callback(should_raise=False)
+    def progress_with_info(self, n_retrieved, n_all):
+        self.progressBarSet(100 * (n_retrieved / n_all if n_all else 1), None)  # prevent division by 0
+        self.num_all = n_all
+        self.num_retrieved = n_retrieved
+        self.update_info_label()
+
+    @search.on_start
+    def on_start(self):
         self.Error.api_error.clear()
         self.Error.rate_limit.clear()
-        def progress_with_info(n_retrieved, n_all):
-            on_progress(100 * (n_retrieved / n_all if n_all else 1))    # prevent division by 0
-            self.num_all = n_all
-            self.num_retrieved = n_retrieved
-            self.update_info_label()
-
-        self.corpus = self.nyt_api.search(self.recent_queries[0], self.date_from, self.date_to,
-                                          on_progress=progress_with_info,
-                                          should_break=should_break)
-        return self.corpus
-
-    def on_start(self):
+        self.progressBarInit(None)
         self.search_button.setText('Stop')
         self.send(IO.CORPUS, None)
 
+    @search.on_result
     def on_result(self, result):
         self.search_button.setText('Search')
         self.corpus = result
         self.set_text_features()
+        self.progressBarFinished(None)
 
     def update_info_label(self):
         self.output_info = '{}/{}'.format(self.num_retrieved, self.num_all)
