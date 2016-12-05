@@ -1,4 +1,4 @@
-scipy>=0.18.1
+scipy
 nltk
 scikit-learn
 numpy
