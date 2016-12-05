@@ -1,7 +1,7 @@
 # coding: utf-8
 import os
 import re
-from collections import defaultdict, Counter
+from collections import defaultdict
 from itertools import chain
 from urllib.parse import urljoin
 from urllib.request import pathname2url
