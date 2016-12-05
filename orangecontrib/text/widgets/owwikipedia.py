@@ -101,7 +101,7 @@ class OWWikipedia(OWWidget):
                                on_progress=self.progress_with_info,
                                should_break=self.search.should_break)
 
-    @search.callback
+    @search.callback(should_raise=False)
     def progress_with_info(self, progress, n_retrieved):
         self.progressBarSet(100 * progress, None)
         self.result_label.setText(self.info_label.format(n_retrieved))

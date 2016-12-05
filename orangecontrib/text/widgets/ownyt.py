@@ -153,7 +153,7 @@ class OWNYT(OWWidget):
                                    on_progress=self.progress_with_info,
                                    should_break=self.search.should_break)
 
-    @search.callback
+    @search.callback(should_raise=False)
     def progress_with_info(self, n_retrieved, n_all):
         self.progressBarSet(100 * (n_retrieved / n_all if n_all else 1), None)  # prevent division by 0
         self.num_all = n_all

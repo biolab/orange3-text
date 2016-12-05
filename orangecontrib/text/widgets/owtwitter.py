@@ -258,7 +258,7 @@ class OWTwitter(OWWidget):
         self.set_text_features()
         self.progressBarFinished(None)
 
-    @search.callback
+    @search.callback(should_raise=False)
     def update_tweets_num(self, num=0, progress=None):
         if self.limited_search or self.mode == self.AUTHOR:
             if progress is not None:
