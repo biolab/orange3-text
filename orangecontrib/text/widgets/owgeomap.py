@@ -127,13 +127,14 @@ class OWGeoMap(widget.OWWidget):
 
         inv_cc_map, cc_map = {Map.USA: (INV_CC_USA, CC_USA),
                               Map.WORLD: (INV_CC_WORLD, CC_WORLD),
-                              Map.EUROPE: (INV_CC_EUROPE, CC_EUROPE)} [map_code]
-        # Set country counts in JS
+                              Map.EUROPE: (INV_CC_EUROPE, CC_EUROPE)}[map_code]
+        # Set country counts for JS
         data = defaultdict(int)
-        for cc in getattr(self, 'cc_counts', ()):
-            key = inv_cc_map.get(cc, cc)
-            if key in cc_map:
-                data[key] += self.cc_counts[cc]
+        for locations in self._iter_locations():
+            keys = set(inv_cc_map.get(loc, loc) for loc in locations)
+            for key in keys:
+                if key in cc_map:
+                    data[key] += 1
         # Draw the new map
         self.webview.evalJS('DATA = {};'
                             'MAP_CODE = "{}";'
@@ -145,12 +146,8 @@ class OWGeoMap(widget.OWWidget):
     def on_attr_change(self):
         if not self.selected_attr:
             return
-        attr = self.data.domain[self.selected_attr]
-        self.cc_counts = Counter(chain.from_iterable(
-            set(name.strip() for name in CC_NAMES.findall(i.lower())) if len(i) > 3 else (i,)
-            for i in self.data.get_column_view(self.data.domain.index(attr))[0]))
+        values = set(chain.from_iterable(self._iter_locations()))
         # Auto-select region map
-        values = set(self.cc_counts)
         if 0 == len(values - SET_CC_USA):
             map_code = Map.USA
         elif 0 == len(values - SET_CC_EUROPE):
@@ -158,6 +155,16 @@ class OWGeoMap(widget.OWWidget):
         else:
             map_code = Map.WORLD
         self.on_map_change(map_code)
+
+    def _iter_locations(self):
+        """ Iterator that yields an iterable per documents with all its's
+        locations. """
+        attr = self.data.domain[self.selected_attr]
+        for i in self.data.get_column_view(self.data.domain.index(attr))[0]:
+            if len(i) > 3:
+                yield map(lambda x: x.strip(), CC_NAMES.findall(i.lower()))
+            else:
+                yield (i, )
 
 
 def main():
