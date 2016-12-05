@@ -1,13 +1,13 @@
 # coding: utf-8
+import os
 import re
 from collections import defaultdict, Counter
 from itertools import chain
-from os import path
 from urllib.parse import urljoin
 from urllib.request import pathname2url
 
 import numpy as np
-from AnyQt.QtCore import Qt, QTimer, pyqtSlot
+from AnyQt.QtCore import Qt, QTimer, pyqtSlot, QUrl
 from AnyQt.QtWidgets import QApplication, QSizePolicy
 
 from Orange.data import Table
@@ -49,7 +49,7 @@ class OWGeoMap(widget.OWWidget):
         self.data = None
         self._create_layout()
 
-    @pyqtSlot(str, result=str)
+    @pyqtSlot(str)
     def region_selected(self, regions):
         """Called from JavaScript"""
         if not regions:
@@ -82,30 +82,15 @@ class OWGeoMap(widget.OWWidget):
                               QSizePolicy.Fixed)
         self.attr_combo.setSizePolicy(hexpand)
         self.map_combo.setSizePolicy(hexpand)
-        html = '''
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<base href="{}/"/>
-<style>
-html, body, #map {{margin:0px;padding:0px;width:100%;height:100%;}}
-</style>
-<link href="resources/jquery-jvectormap-2.0.2.css" rel="stylesheet">
-<script src="resources/jquery-2.1.4.min.js"></script>
-<script src="resources/jquery-jvectormap-2.0.2.min.js"></script>
-<script src="resources/jquery-jvectormap-world-mill-en.js"></script>
-<script src="resources/jquery-jvectormap-europe-mill-en.js"></script>
-<script src="resources/jquery-jvectormap-us-aea-en.js"></script>
-<script src="resources/geomap-script.js"></script>
-</head>
-<body>
-<div id="map"></div>
-</body>
-</html>'''.format(urljoin('file:', pathname2url(path.abspath(path.dirname(__file__)))))
-        self.webview = gui.WebviewWidget(self.controlArea, self, debug=False)
+
+        url = urljoin('file:',
+                      pathname2url(os.path.join(
+                          os.path.dirname(__file__),
+                          'resources',
+                         'owgeomap.html')))
+        self.webview = gui.WebviewWidget(self.controlArea, self, url=QUrl(url))
         self.controlArea.layout().addWidget(self.webview)
-        self.webview.setHtml(html)
+
         QTimer.singleShot(
             0, lambda: self.webview.evalJS('REGIONS = {};'.format({Map.WORLD: CC_WORLD,
                                                                    Map.EUROPE: CC_EUROPE,

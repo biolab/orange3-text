@@ -66,7 +66,7 @@ function renderMap() {
                 regions.push(selected[i]);
             }
             SELECTED_REGIONS = regions;
-            pybridge.region_selected(regions);
+            pybridge.region_selected(regions.join());
         }
     }).vectorMap('get', 'mapObject');
 
