@@ -70,7 +70,7 @@ In order to terminate a thread either call :meth:`stop` method or raise :exc:`St
 """
 
 import threading
-from functools import wraps
+from functools import wraps, partial
 from AnyQt.QtCore import pyqtSlot as Slot, QMetaObject, Qt, Q_ARG, QObject
 
 
@@ -176,18 +176,21 @@ class AsyncMethod(QObject):
         self.start_callback = callback.__name__
         return Slot()(callback)
 
-    def callback(self, method):
+    def callback(self, method=None, should_raise=True):
         """ Callback decorator. Add checks for thread state.
 
         Raises:
              StopExecution: If thread was stopped (`running = False`).
         """
+        if method is None:
+            return partial(self.callback, should_raise=should_raise)
+
         async_method = callback(method)
 
         @wraps(method)
         def wrapper(instance, *args, **kwargs):
             # This check must take place in the background thread.
-            if not getattr(instance, self.method_name).running:
+            if should_raise and not getattr(instance, self.method_name).running:
                 raise StopExecution
             # This call must be sent to the main thread.
             return async_method.__get__(instance, method)(*args, **kwargs)
