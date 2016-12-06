@@ -1,6 +1,8 @@
 from functools import wraps
 from math import ceil
 
+import numpy as np
+import scipy.sparse as sp
 
 def chunks(iterable, chunk_size):
     """ Splits iterable objects into chunk of fixed size.
@@ -45,3 +47,15 @@ def chunkable(method):
         return res
 
     return wrapper
+
+
+def np_sp_sum(x, axis=None):
+    """ Wrapper for summing either sparse or dense matrices.
+    Required since with scipy==0.17.1 np.sum() crashes."""
+    if sp.issparse(x):
+        r = x.sum(axis=axis)
+        if axis is not None:
+            r = np.array(r).ravel()
+        return r
+    else:
+        return np.sum(x, axis=axis)

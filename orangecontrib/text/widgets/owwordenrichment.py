@@ -5,6 +5,7 @@ from Orange.data import Table
 from Orange.widgets import gui
 from Orange.widgets.settings import Setting
 from Orange.widgets.widget import OWWidget, Msg
+from orangecontrib.text.util import np_sp_sum
 from orangecontrib.text.stats import false_discovery_rate, hypergeom_p_values
 
 
@@ -108,7 +109,7 @@ class OWWordEnrichment(OWWidget):
             self.selected_data_transformed = Table.from_table(
                 self.data.domain, self.selected_data)
 
-            if np.sum(self.selected_data_transformed.X) == 0:
+            if np_sp_sum(self.selected_data_transformed.X) == 0:
                 self.Error.no_words_overlap()
                 self.clear()
             elif len(self.data) == len(self.selected_data):
@@ -148,7 +149,7 @@ class OWWordEnrichment(OWWidget):
             self.sig_words.resizeColumnToContents(i)
 
         self.info_all.setText('Cluster words: {}'.format(len(self.selected_data_transformed.domain.attributes)))
-        self.info_sel.setText('Selected words: {}'.format(np.count_nonzero(np.sum(self.selected_data_transformed.X, axis=0))))
+        self.info_sel.setText('Selected words: {}'.format(np.count_nonzero(np_sp_sum(self.selected_data_transformed.X, axis=0))))
         if not self.filter_by_p and not self.filter_by_fdr:
             self.info_fil.setText('After filtering:')
             self.info_fil.setEnabled(False)

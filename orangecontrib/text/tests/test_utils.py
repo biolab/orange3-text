@@ -1,6 +1,9 @@
 import unittest
 
-from orangecontrib.text.util import chunks
+import numpy as np
+import scipy.sparse as sp
+
+from orangecontrib.text.util import chunks, np_sp_sum
 
 
 class ChunksTest(unittest.TestCase):
@@ -17,3 +20,11 @@ class ChunksTest(unittest.TestCase):
         for chunk in chunks(range(10), 3):
             pass
         self.assertEqual(len(chunk), 1)
+
+
+class TestNpSpSum(unittest.TestCase):
+    def test_np_sp_sum(self):
+        for data in [np.eye(10), sp.csr_matrix(np.eye(10))]:
+            self.assertEqual(np_sp_sum(data), 10)
+            np.testing.assert_equal(np_sp_sum(data, axis=1), np.ones(10))
+            np.testing.assert_equal(np_sp_sum(data, axis=0), np.ones(10))
