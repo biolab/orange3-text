@@ -56,7 +56,7 @@ class WikipediaTests(unittest.TestCase):
 
         # stop inside recursion
         result = api.search('en', ['Scarf'], articles_per_query=3,
-                            should_break=StopingMock(allow_calls=2))
+                            should_break=StopingMock(allow_calls=4))
         self.assertEqual(len(result), 2)
 
     def page(*args, **kwargs):
