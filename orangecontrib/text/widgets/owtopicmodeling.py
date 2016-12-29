@@ -189,7 +189,7 @@ class OWTopicModeling(OWWidget):
 
     def apply(self):
         self.learning_task.stop()
-        if self.corpus:
+        if self.corpus is not None:
             self.learning_task()
         else:
             self.on_result(None)
@@ -219,7 +219,7 @@ class OWTopicModeling(OWWidget):
 
     def send_report(self):
         self.report_items(*self.widgets[self.method_index].report_model())
-        if self.corpus:
+        if self.corpus is not None:
             self.report_items('Topics', [(i+1, ', '.join(self.model.get_top_words_by_id(i)))
                                          for i in range(len(self.model.topic_names))])
 
