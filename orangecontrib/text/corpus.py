@@ -37,7 +37,7 @@ class Corpus(Table):
         """Bypass Table.__new__."""
         return object.__new__(cls)
 
-    def __init__(self, domain=None, X=None, Y=None, metas=None, W=None, text_features=None):
+    def __init__(self, domain=None, X=None, Y=None, metas=None, W=None, text_features=None, ids=None):
         """
         Args:
             domain (Orange.data.Domain): the domain for this Corpus
@@ -47,6 +47,7 @@ class Corpus(Table):
             W (numpy.ndarray): instance weights
             text_features (list): meta attributes that are used for
                 text mining. Infer them if None.
+            ids (numpy.ndarray): Indices
         """
         n_doc = _check_arrays(X, Y, metas)
 
@@ -69,7 +70,10 @@ class Corpus(Table):
         elif domain is not None:
             self.set_text_features(text_features)
 
-        Table._init_ids(self)
+        if ids is not None:
+            self.ids = ids
+        else:
+            Table._init_ids(self)
 
     def set_text_features(self, feats):
         """
@@ -364,7 +368,7 @@ class Corpus(Table):
     @classmethod
     def from_table(cls, domain, source, row_indices=...):
         t = super().from_table(domain, source, row_indices)
-        c = Corpus(t.domain, t.X, t.Y, t.metas, t.W)
+        c = Corpus(t.domain, t.X, t.Y, t.metas, t.W, ids=t.ids)
         Corpus.retain_preprocessing(source, c, row_indices)
         return c
 
