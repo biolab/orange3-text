@@ -133,14 +133,14 @@ class OWNYT(OWWidget):
 
     def new_query_input(self):
         self.search.stop()
-        self.search()
+        self.run_search()
 
     def start_stop(self):
         if self.search.running:
             self.search.stop()
         else:
             self.query_box.synchronize(silent=True)
-            self.search()
+            self.run_search()
 
     @gui_require('nyt_api', 'no_api')
     @gui_require('recent_queries', 'no_query')
