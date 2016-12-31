@@ -49,8 +49,8 @@ To install the add-on from source
     cd orange3-text
 
     # Install the dependencies:
-    pip install requirements.txt
-    pip install requirements-opt.txt # Optional dependecy for PubMed, requires compiler.
+    pip install -r requirements.txt
+    pip install -r requirements-opt.txt # Optional dependecy for PubMed, requires compiler.
 
     # Finally install Orange3-Text in editable/development mode.
     pip install -e .
@@ -64,13 +64,7 @@ Windows setup for biopython library
 -----------------------------------
 
 If you're not using Anaconda distribution, you can manually install biopython library before installing the add-on.
-First, download the compiler and then run the setup with
-
-Windows + [GCC](https://gcc.gnu.org/releases.html):
-
-    python setup.py build_ext --inplace --compiler=mingw32 install
-
-Windows + [Visual Studio](http://landinghub.visualstudio.com/visual-cpp-build-tools):
+First, download the compiler [Visual Studio](http://landinghub.visualstudio.com/visual-cpp-build-tools) and run the setup with:
 
     python setup.py build_ext --inplace --compiler=msvc install
 
