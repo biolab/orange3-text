@@ -297,7 +297,7 @@ class OWCorpusViewer(OWWidget):
             self.refresh_search()
 
     def refresh_search(self):
-        if self.corpus:
+        if self.corpus is not None:
             self.list_docs()
             self.update_info()
 

@@ -2,7 +2,8 @@ import os
 
 from Orange.data.io import FileFormat
 from Orange.widgets import gui
-from Orange.widgets.data.owselectcolumns import VariablesListItemModel, VariablesListItemView
+from Orange.widgets.utils.itemmodels import VariableListModel
+from Orange.widgets.data.owselectcolumns import VariablesListItemView
 from Orange.widgets.settings import Setting
 from Orange.widgets.widget import OWWidget, Msg
 from orangecontrib.text.corpus import Corpus, get_sample_corpora_dir
@@ -56,7 +57,7 @@ class OWLoadCorpus(OWWidget):
         # Used Text Features
         fbox = gui.widgetBox(self.controlArea, orientation=0)
         ubox = gui.widgetBox(fbox, "Used text features", addSpace=True)
-        self.used_attrs = VariablesListItemModel()
+        self.used_attrs = VariableListModel(enable_dnd=True)
         self.used_attrs_view = VariablesListItemView()
         self.used_attrs_view.setModel(self.used_attrs)
         ubox.layout().addWidget(self.used_attrs_view)
@@ -68,7 +69,7 @@ class OWLoadCorpus(OWWidget):
 
         # Ignored Text Features
         ibox = gui.widgetBox(fbox, "Ignored text features", addSpace=True)
-        self.unused_attrs = VariablesListItemModel()
+        self.unused_attrs = VariableListModel(enable_dnd=True)
         self.unused_attrs_view = VariablesListItemView()
         self.unused_attrs_view.setModel(self.unused_attrs)
         ibox.layout().addWidget(self.unused_attrs_view)
