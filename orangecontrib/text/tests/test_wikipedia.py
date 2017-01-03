@@ -7,7 +7,7 @@ from orangecontrib.text.wikipedia import WikipediaAPI
 from orangecontrib.text.corpus import Corpus
 
 
-class StopingMock(mock.Mock):
+class StoppingMock(mock.Mock):
     def __init__(self, allow_calls=0):
         super().__init__()
         self.allow_calls = allow_calls
@@ -56,7 +56,7 @@ class WikipediaTests(unittest.TestCase):
 
         # stop inside recursion
         result = api.search('en', ['Scarf'], articles_per_query=3,
-                            should_break=StopingMock(allow_calls=4))
+                            should_break=StoppingMock(allow_calls=4))
         self.assertEqual(len(result), 2)
 
     def page(*args, **kwargs):
