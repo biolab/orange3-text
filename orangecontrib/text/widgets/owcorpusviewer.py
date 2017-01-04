@@ -3,7 +3,7 @@ import re
 import sre_constants
 from itertools import chain
 
-from AnyQt.QtCore import Qt
+from AnyQt.QtCore import Qt, QUrl
 from AnyQt.QtGui import QStandardItemModel, QStandardItem
 from AnyQt.QtWidgets import (QListView, QSizePolicy, QTableView,
                              QAbstractItemView, QHeaderView, QSplitter,
@@ -235,6 +235,10 @@ class OWCorpusViewer(OWWidget):
             display: inline-block;
         }}
 
+        img {{
+            max-width: 100%;
+        }}
+
         </style>
         </head>
         <body>
@@ -265,7 +269,10 @@ class OWCorpusViewer(OWWidget):
             for ind in self.display_indices:
                 feature = self.display_features[ind]
                 mark = 'class="mark-area"' if feature in marked_search_features else ''
-                value = index.data(Qt.UserRole)[feature.name]
+                value = str(index.data(Qt.UserRole)[feature.name])
+                is_image = feature.attributes.get('type', '') == 'image'
+                if is_image and value != '?':
+                    value = '<img src="{}"></img>'.format(value)
                 html += '<tr><td class="variables"><strong>{}:</strong></td>' \
                         '<td {}>{}</td></tr>'.format(
                     feature.name, mark, value)
@@ -277,7 +284,9 @@ class OWCorpusViewer(OWWidget):
 
         html += '</table>'
 
-        self.doc_webview.setHtml(HTML.format(html))
+        # QUrl is a workaround to allow local resources
+        # https://bugreports.qt.io/browse/QTBUG-55902?focusedCommentId=335945
+        self.doc_webview.setHtml(HTML.format(html), QUrl("file://"))
         self.load_js()
         self.highlight_docs()
 
