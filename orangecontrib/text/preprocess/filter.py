@@ -1,6 +1,7 @@
 import os
-
 import re
+
+from Orange.data.io import detect_encoding
 from gensim import corpora
 from nltk.corpus import stopwords
 
@@ -45,7 +46,8 @@ class WordListMixin:
         if not path:
             self.word_list = []
         else:
-            with open(path) as f:
+            enc = detect_encoding(path)
+            with open(path, encoding=enc) as f:
                 self.word_list = set([line.strip() for line in f])
 
 
