@@ -136,6 +136,10 @@ class OWWordEnrichment(OWWidget):
         self.spin_p.setEnabled(self.filter_by_p)
         self.spin_fdr.setEnabled(self.filter_by_fdr)
         self.sig_words.clear()
+
+        if self.selected_data_transformed is None:  # do nothing when no Data
+            return
+
         count = 0
         if self.words:
             for word, pval, fval in zip(self.words, self.p_values, self.fdr_values):
