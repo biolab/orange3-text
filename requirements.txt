@@ -1,5 +1,5 @@
 scipy
-nltk
+nltk>=3.0.5     # TweetTokenizer introduces in 3.0.5
 scikit-learn
 numpy
 validate_email
