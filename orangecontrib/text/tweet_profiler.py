@@ -29,7 +29,7 @@ class TweetProfiler:
     def transform(self, corpus, meta_var, model_name, output_mode,
                   on_advance=None):
         if not self.assure_server_and_tokens(len(corpus)):
-            return corpus
+            return None
 
         corpus = corpus.copy()
         metas_ind = corpus.domain.metas.index(meta_var)
@@ -46,6 +46,9 @@ class TweetProfiler:
             }
 
             json = self.server_call('tweet_profiler', json=json)
+
+            if json is None:    # something went wrong
+                return None
 
             class_vars = json['classes']
             profile = np.array(json['profile'])
@@ -75,7 +78,9 @@ class TweetProfiler:
                                      feature_names=feature_names,
                                      feature_values=feature_values,
                                      var_attrs=var_attrs)
-        return corpus
+            return corpus
+        else:
+            return None
 
     def get_server_address(self):
         # return 'http://127.0.0.1:8081/'

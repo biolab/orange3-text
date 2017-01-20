@@ -61,6 +61,16 @@ class MockServerCall(unittest.TestCase):
                 }
 
 
+class MockServerCallSuddenlyUnavailable(MockServerCall):
+    # Mock server that becomes unavailable during execution
+    def __call__(self, *args, **kwargs):
+        url = args[0]
+        if url == 'tweet_profiler':
+            return None
+        else:
+            return super().__call__(*args, **kwargs)
+
+
 class TestTweetProfiler(unittest.TestCase):
     @patch(SERVER_CALL, MockServerCall())
     @patch(CHECK_ALIVE, Mock(return_value=True))
@@ -142,8 +152,23 @@ class TestTweetProfiler(unittest.TestCase):
         text_var = self.data.domain.metas[1]
         corp = self.profiler.transform(self.data, text_var,
                                        MODELS[0], 'Classes')
-        self.assertIs(corp, self.data)
+        self.assertIsNone(corp)
 
+    @patch(SERVER_CALL, MockServerCall())
+    @patch(CHECK_ALIVE, Mock(return_value=True))
+    def test_transform_empty_corpus(self):
+        text_var = self.data.domain.metas[1]
+        corp = self.profiler.transform(self.data[:0], text_var,
+                                       'model-mc', 'Classes')
+        self.assertIsNone(corp)
+
+    @patch(SERVER_CALL, MockServerCallSuddenlyUnavailable())
+    @patch(CHECK_ALIVE, Mock(return_value=True))
+    def test_transform_server_call_error(self):
+        text_var = self.data.domain.metas[1]
+        corp = self.profiler.transform(self.data, text_var,
+                                       'model-mc', 'Classes')
+        self.assertIsNone(corp)
 
 response_mock = Mock()
 response_mock.status_code = 200
