@@ -195,7 +195,7 @@ class OWNYT(OWWidget):
 
     def send_report(self):
         self.report_items([
-            ('Query', self.recent_queries[0]),
+            ('Query', self.recent_queries[0] if self.recent_queries else ''),
             ('Date from', self.date_from),
             ('Date to', self.date_to),
             ('Text includes', ', '.join(self.text_includes)),
