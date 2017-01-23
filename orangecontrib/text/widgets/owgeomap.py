@@ -159,12 +159,13 @@ class OWGeoMap(widget.OWWidget):
     def _iter_locations(self):
         """ Iterator that yields an iterable per documents with all its's
         locations. """
-        attr = self.data.domain[self.selected_attr]
-        for i in self.data.get_column_view(self.data.domain.index(attr))[0]:
-            if len(i) > 3:
-                yield map(lambda x: x.strip(), CC_NAMES.findall(i.lower()))
-            else:
-                yield (i, )
+        if self.data is not None:
+            attr = self.data.domain[self.selected_attr]
+            for i in self.data.get_column_view(self.data.domain.index(attr))[0]:
+                if len(i) > 3:
+                    yield map(lambda x: x.strip(), CC_NAMES.findall(i.lower()))
+                else:
+                    yield (i, )
 
 
 def main():
