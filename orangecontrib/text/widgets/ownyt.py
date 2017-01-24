@@ -26,7 +26,8 @@ class OWNYT(OWWidget):
         key_input = ''
 
         class Error(OWWidget.Error):
-            invalid_credentials = Msg('This credentials are invalid.')
+            invalid_credentials = Msg('This credentials are invalid. '
+                                      'Check the key and your internet connection.')
 
         def __init__(self, parent):
             super().__init__()

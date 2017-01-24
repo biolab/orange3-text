@@ -6,7 +6,8 @@ import warnings
 from datetime import date
 from time import sleep
 from urllib import request, parse
-from urllib.error import HTTPError
+from http.client import HTTPException
+from urllib.error import HTTPError, URLError
 
 
 from Orange import data
@@ -72,7 +73,7 @@ class NYT:
             with request.urlopen(url) as connection:
                 if connection.getcode() == 200:
                     return True
-        except HTTPError:
+        except (HTTPError, URLError, HTTPException):
             return False
 
     def search(self, query, date_from=None, date_to=None, max_docs=None,

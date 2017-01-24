@@ -4,7 +4,8 @@ import tempfile
 import unittest
 from contextlib import contextmanager
 from unittest.mock import patch, Mock
-from urllib.error import HTTPError
+from http.client import HTTPException
+from urllib.error import HTTPError, URLError
 
 from Orange.data import TimeVariable
 from orangecontrib.text import Corpus
@@ -179,6 +180,24 @@ class NYTTestsErrorRaising(unittest.TestCase):
         nyt = NYT(self.API_KEY)
         c = nyt.search('slovenia', max_docs=25)
         self.assertIsNone(c)
+
+
+class NYTTestsApiValidErrorRaising(unittest.TestCase):
+    API_KEY = 'api_key'
+
+    def setUp(self):
+        self.nyt = NYT(self.API_KEY)
+
+    def test_api_key_valid_errors(self):
+        errors = [
+            HTTPError(None, 429, None, None, None),
+            URLError(''),
+            HTTPException(),
+        ]
+
+        for e in errors:
+            with patch('urllib.request.urlopen', Mock(side_effect=e)):
+                self.assertFalse(self.nyt.api_key_valid())
 
 
 class Test403(unittest.TestCase):
