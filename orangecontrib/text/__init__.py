@@ -1,3 +1,8 @@
+# Assure NLTK knows where the data is
+import os
+from orangecontrib.text.misc import nltk_data_dir
+os.environ['NLTK_DATA'] = nltk_data_dir()
+
 from .corpus import Corpus
 
 from .version import git_revision as __git_revision__

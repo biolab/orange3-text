@@ -30,11 +30,12 @@ if no preprocessing was applied yet::
     ['human', 'machine', 'interface', 'for', 'lab', 'abc', 'computer', 'applications']
 
 """
-# Ensure NLTK data is present
 import nltk
+from orangecontrib.text.misc import nltk_data_dir
 
+# Ensure NLTK data is present
 NLTK_DATA = ["wordnet", "stopwords", "punkt"]
-nltk.download(NLTK_DATA, quiet=True)
+nltk.download(NLTK_DATA, download_dir=nltk_data_dir(), quiet=True)
 
 from .filter import *
 from .normalize import *
