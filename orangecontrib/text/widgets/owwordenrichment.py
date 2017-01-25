@@ -1,3 +1,5 @@
+import math
+
 import numpy as np
 from AnyQt.QtWidgets import QTreeWidget, QTreeView, QTreeWidgetItem
 
@@ -109,7 +111,8 @@ class OWWordEnrichment(OWWidget):
             self.selected_data_transformed = Table.from_table(
                 self.data.domain, self.selected_data)
 
-            if np_sp_sum(self.selected_data_transformed.X) == 0:
+            sum_X = np_sp_sum(self.selected_data_transformed.X)
+            if sum_X == 0 or math.isnan(sum_X):
                 self.Error.no_words_overlap()
                 self.clear()
             elif len(self.data) == len(self.selected_data):
