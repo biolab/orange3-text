@@ -10,6 +10,7 @@ log = logging.getLogger(__name__)
 
 class TweetProfiler:
     BATCH_SIZE = 50
+    TIMEOUT = 15    # how many seconds to wait for a server to respond
     SERVER_LIST = 'https://raw.githubusercontent.com/biolab/' \
                   'orange3-text/master/SERVERS.txt'
 
@@ -129,7 +130,8 @@ class TweetProfiler:
             return None
 
         try:
-            res = requests.post(self.server + '/' + url, json=json)
+            res = requests.post(self.server + '/' + url, json=json,
+                                timeout=self.TIMEOUT)
             return res.json()
         except requests.exceptions.RequestException as e:
             if callable(self.on_server_down):
