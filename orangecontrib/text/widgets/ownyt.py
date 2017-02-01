@@ -195,6 +195,7 @@ class OWNYT(OWWidget):
 
     def update_api(self, api):
         self.nyt_api = api
+        self.Error.no_api.clear()
         self.nyt_api.on_error = self.Error.api_error
         self.nyt_api.on_rate_limit = self.Error.rate_limit
         self.nyt_api.on_no_connection = self.Error.offline
