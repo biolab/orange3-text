@@ -6,6 +6,7 @@ matrix:
     include:
         - python: '3.4'
         - python: '3.5'
+        - python: '3.6'
         - &docs
           env: BUILD_DOCS=true
           python: '3.5'
