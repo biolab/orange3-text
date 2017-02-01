@@ -110,6 +110,9 @@ class TweetProfiler:
             return False
 
     def assure_server_and_tokens(self, need_coins=0):
+        if not self.server:     # try to obtain server address
+            self.server = self.get_server_address()
+
         if not self.server or not self.check_server_alive(self.server):
             if callable(self.on_server_down):
                 self.on_server_down()
