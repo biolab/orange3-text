@@ -15,6 +15,7 @@ from Orange.canvas.utils import environ
 from orangecontrib.text.corpus import Corpus
 
 SLEEP = 1
+TIMEOUT = 10
 MAX_DOCS = 1000
 BATCH_SIZE = 10
 MIN_DATE = date(1851, 1, 1)
@@ -63,6 +64,7 @@ class NYT:
         self.api_key = api_key
         self.on_error = None
         self.on_rate_limit = None
+        self.on_no_connection = None
         self.cache_path = None
         self._cache_init()
 
@@ -92,9 +94,6 @@ class NYT:
         Returns:
             Corpus: Search results.
         """
-        if not self.api_key_valid():
-            raise RuntimeError('The API key is not valid.')
-        sleep(SLEEP)  # due to one call per second limit
         if max_docs is None or max_docs > MAX_DOCS:
             max_docs = MAX_DOCS
 
@@ -162,7 +161,7 @@ class NYT:
         else:
             url = self._encode_url(query, date_from, date_to, page, for_caching=False)
             try:
-                with request.urlopen(url) as conn:
+                with request.urlopen(url, timeout=TIMEOUT) as conn:
                     data = conn.read().decode('utf-8')
             except HTTPError as e:
                 if e.code == 403 and page > 0:
@@ -177,6 +176,11 @@ class NYT:
                 elif callable(self.on_error):
                     self.on_error(str(e))
                 return None, False
+            except URLError:
+                if callable(self.on_no_connection):
+                    self.on_no_connection()
+                    return None, False
+                raise
             data = json.loads(data)
             self._cache_store(cache_url, data)
             return data, True

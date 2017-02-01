@@ -3,7 +3,7 @@ import os
 import tempfile
 import unittest
 from contextlib import contextmanager
-from unittest.mock import patch, Mock
+from unittest.mock import patch, Mock, MagicMock
 from http.client import HTTPException
 from urllib.error import HTTPError, URLError
 
@@ -25,7 +25,7 @@ class MockUrlOpen:
                     # Last empty line is sometimes missing
                     pass
 
-    def __call__(self, url):
+    def __call__(self, url, **kwargs):
         self.current_url = url
         self.response_code = 200 if url in self.data else 404
 
@@ -46,12 +46,20 @@ CACHE = os.path.join(os.path.dirname(__file__), 'nyt-cache.txt')
 mock_urllib = MockUrlOpen(CACHE)
 
 
-class MockErrors(Mock):
+class MockHTTPErrors(Mock):
     def __call__(self, url, *args, **kwargs):
         if 'test' in url:               # mock api valid check as usual
             return mock_urllib(url)
         else:                           # raise HTTP errors for _fetch_page
             raise HTTPError(None, 429, None, None, None)
+
+
+class MockURLErrors(Mock):
+    def __call__(self, url, *args, **kwargs):
+        if 'test' in url:               # mock api valid check as usual
+            return mock_urllib(url)
+        else:                           # raise URLError errors for _fetch_page
+            raise URLError(None, None)
 
 
 @patch('urllib.request.urlopen', mock_urllib)
@@ -133,7 +141,7 @@ class NYTTests(unittest.TestCase):
         self.assertEqual(len(c), BATCH_SIZE)
 
 
-@patch('urllib.request.urlopen', MockErrors())
+@patch('urllib.request.urlopen', MockHTTPErrors())
 class NYTTestsErrorRaising(unittest.TestCase):
     API_KEY = 'api_key'
 
@@ -180,6 +188,22 @@ class NYTTestsErrorRaising(unittest.TestCase):
         nyt = NYT(self.API_KEY)
         c = nyt.search('slovenia', max_docs=25)
         self.assertIsNone(c)
+
+
+@patch('urllib.request.urlopen', MockURLErrors())
+class NYTTestsErrorRaising(unittest.TestCase):
+    API_KEY = 'api_key'
+
+    def test_url_errors(self):
+        nyt = NYT(self.API_KEY)
+        nyt.on_no_connection = MagicMock()
+        c = nyt.search('slovenia')
+        self.assertIsNone(c)
+        self.assertEqual(nyt.on_no_connection.call_count, 1)
+
+        nyt.on_no_connection = None
+        with self.assertRaises(URLError):
+            nyt.search('slovenia')
 
 
 class NYTTestsApiValidErrorRaising(unittest.TestCase):
