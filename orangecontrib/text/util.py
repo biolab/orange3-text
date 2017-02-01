@@ -40,7 +40,7 @@ def chunkable(method):
                     res.extend(chunk_res)
 
                 progress += len(chunk)
-                on_progress(progress)
+                on_progress(progress/len(data))
         else:
             res = method(self, data, *args, **kwargs)
 

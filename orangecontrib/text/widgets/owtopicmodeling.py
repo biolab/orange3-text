@@ -215,7 +215,7 @@ class OWTopicModeling(OWWidget):
 
     @learning_task.callback
     def on_progress(self, p):
-        self.progressBarSet(100 * p / len(self.corpus), processEvents=None)
+        self.progressBarSet(100 * p, processEvents=None)
 
     def send_report(self):
         self.report_items(*self.widgets[self.method_index].report_model())
