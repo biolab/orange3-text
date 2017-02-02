@@ -10,6 +10,7 @@ log = logging.getLogger(__name__)
 
 class TweetProfiler:
     BATCH_SIZE = 50
+    TIMEOUT = 15    # how many seconds to wait for a server to respond
     SERVER_LIST = 'https://raw.githubusercontent.com/biolab/' \
                   'orange3-text/master/SERVERS.txt'
 
@@ -29,7 +30,7 @@ class TweetProfiler:
     def transform(self, corpus, meta_var, model_name, output_mode,
                   on_advance=None):
         if not self.assure_server_and_tokens(len(corpus)):
-            return corpus
+            return None
 
         corpus = corpus.copy()
         metas_ind = corpus.domain.metas.index(meta_var)
@@ -46,6 +47,9 @@ class TweetProfiler:
             }
 
             json = self.server_call('tweet_profiler', json=json)
+
+            if json is None:    # something went wrong
+                return None
 
             class_vars = json['classes']
             profile = np.array(json['profile'])
@@ -75,7 +79,9 @@ class TweetProfiler:
                                      feature_names=feature_names,
                                      feature_values=feature_values,
                                      var_attrs=var_attrs)
-        return corpus
+            return corpus
+        else:
+            return None
 
     def get_server_address(self):
         # return 'http://127.0.0.1:8081/'
@@ -104,6 +110,9 @@ class TweetProfiler:
             return False
 
     def assure_server_and_tokens(self, need_coins=0):
+        if not self.server:     # try to obtain server address
+            self.server = self.get_server_address()
+
         if not self.server or not self.check_server_alive(self.server):
             if callable(self.on_server_down):
                 self.on_server_down()
@@ -124,7 +133,8 @@ class TweetProfiler:
             return None
 
         try:
-            res = requests.post(self.server + '/' + url, json=json)
+            res = requests.post(self.server + '/' + url, json=json,
+                                timeout=self.TIMEOUT)
             return res.json()
         except requests.exceptions.RequestException as e:
             if callable(self.on_server_down):
