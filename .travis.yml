@@ -2,9 +2,19 @@ language: python
 
 sudo: false   # use container-based infrastructure
 
-python:
-  - "3.4"
-  - "3.5"
+matrix:
+    include:
+        - python: '3.4'
+        - python: '3.5'
+        - python: '3.6'
+        - &docs
+          env: BUILD_DOCS=true
+          python: '3.5'
+          install:
+              - source $TRAVIS_BUILD_DIR/.travis/install_miniconda.sh
+              - source $TRAVIS_BUILD_DIR/.travis/create_conda_env.sh
+              - python setup.py develop
+          script: source $TRAVIS_BUILD_DIR/.travis/build_doc.sh
 
 addons:
     apt:

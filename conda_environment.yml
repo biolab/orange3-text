@@ -1,0 +1,22 @@
+name: orange3-text-env
+channels: !!python/tuple
+- conda-forge
+- defaults
+dependencies:
+- biopython=1.68=np111py35_0
+- scipy
+- nltk>=3.0.5
+- scikit-learn
+- numpy
+- gensim>=0.12.3
+- setuptools-git
+- Orange3>=3.3.9
+- beautifulsoup4
+
+- pip:
+  - validate_email
+  - tweepy
+  - simhash
+  - wikipedia
+  - PyQt5
+  - Sphinx
