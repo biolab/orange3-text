@@ -109,11 +109,7 @@ class OWCorpusViewer(OWWidget):
         self.doc_list.selectionModel().selectionChanged.connect(self.show_docs)
 
         # Document contents
-        # For PyQt5 WebEngine's setHtml grabs the focus and makes typing hard
-        # More info: http://stackoverflow.com/questions/36609489
-        # To bypass the annoying behaviour disable the widget for WebEngine
-        self.doc_webview = gui.WebviewWidget(self.splitter, self,
-                                             debug=True, enabled=HAVE_WEBKIT)
+        self.doc_webview = gui.WebviewWidget(self.splitter, self, debug=True)
 
         self.mainArea.layout().addWidget(self.splitter)
 
