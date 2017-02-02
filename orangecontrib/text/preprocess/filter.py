@@ -50,13 +50,20 @@ class WordListMixin:
             with open(path, encoding=enc) as f:
                 self.word_list = set([line.strip() for line in f])
 
+# get NLTK list of stopwords
+stopwords_listdir = []
+try:
+    stopwords_listdir = [file for file in os.listdir(stopwords._get_root())
+                         if file.islower()]
+except LookupError:     # when no NLTK data is available
+    pass
+
 
 class StopwordsFilter(BaseTokenFilter, WordListMixin):
     """ Remove tokens present in NLTK's language specific lists or a file. """
     name = 'Stopwords'
 
-    supported_languages = [file.capitalize() for file in os.listdir(stopwords._get_root())
-                           if file.islower()]
+    supported_languages = [file.capitalize() for file in stopwords_listdir]
 
     def __init__(self, language='English', word_list=None):
         WordListMixin.__init__(self, word_list)
