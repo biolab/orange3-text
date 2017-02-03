@@ -26,7 +26,8 @@ class OWNYT(OWWidget):
         key_input = ''
 
         class Error(OWWidget.Error):
-            invalid_credentials = Msg('This credentials are invalid.')
+            invalid_credentials = Msg('This credentials are invalid. '
+                                      'Check the key and your internet connection.')
 
         def __init__(self, parent):
             super().__init__()
@@ -87,6 +88,7 @@ class OWNYT(OWWidget):
     class Error(OWWidget.Error):
         no_api = Msg('Please provide a valid API key.')
         no_query = Msg('Please provide a query.')
+        offline = Msg('No internet connection.')
         api_error = Msg('API error: {}')
         rate_limit = Msg('Rate limit exceeded. Please try again later.')
 
@@ -164,6 +166,9 @@ class OWNYT(OWWidget):
     def on_start(self):
         self.Error.api_error.clear()
         self.Error.rate_limit.clear()
+        self.Error.offline.clear()
+        self.num_all, self.num_retrieved = 0, 0
+        self.update_info_label()
         self.progressBarInit(None)
         self.search_button.setText('Stop')
         self.send(IO.CORPUS, None)
@@ -190,8 +195,10 @@ class OWNYT(OWWidget):
 
     def update_api(self, api):
         self.nyt_api = api
+        self.Error.no_api.clear()
         self.nyt_api.on_error = self.Error.api_error
         self.nyt_api.on_rate_limit = self.Error.rate_limit
+        self.nyt_api.on_no_connection = self.Error.offline
 
     def send_report(self):
         self.report_items([
