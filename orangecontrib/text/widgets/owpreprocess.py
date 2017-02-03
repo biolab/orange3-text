@@ -6,12 +6,12 @@ from AnyQt.QtWidgets import (QWidget, QLabel, QHBoxLayout, QVBoxLayout,
                              QButtonGroup, QRadioButton, QSizePolicy, QFrame,
                              QApplication, QCheckBox, QPushButton, QGridLayout,
                              QScrollArea)
-from nltk.downloader import Downloader
 
 from Orange.widgets import gui, settings, widget
 from Orange.widgets.widget import OWWidget, Msg
 from orangecontrib.text import preprocess
 from orangecontrib.text.corpus import Corpus
+from orangecontrib.text.misc import nltk_data_dir
 from orangecontrib.text.tag import StanfordPOSTagger
 from orangecontrib.text.tag import taggers
 from orangecontrib.text.widgets.utils import widgets, ResourceLoader
@@ -535,8 +535,8 @@ class OWPreprocess(OWWidget):
     UserAdviceMessages = [
         widget.Message(
             "Some preprocessing methods require data (like word relationships, stop words, "
-            "punctuation rules etc.) from the NLTK package. This data, if you didn't have it "
-            "already, was downloaded to: {}".format(Downloader().default_download_dir()),
+            "punctuation rules etc.) from the NLTK package. This data was downloaded "
+            "to: {}".format(nltk_data_dir()),
             "nltk_data")]
 
     class Error(OWWidget.Error):
