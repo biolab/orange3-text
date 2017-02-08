@@ -18,7 +18,7 @@ DESCRIPTION = 'Orange3 TextMining add-on.'
 README_FILE = os.path.join(os.path.dirname(__file__), 'README.pypi')
 LONG_DESCRIPTION = open(README_FILE).read()
 AUTHOR = 'Bioinformatics Laboratory, FRI UL'
-AUTHOR_EMAIL = 'contact@orange.biolab.si'
+AUTHOR_EMAIL = 'info@biolab.si'
 URL = "https://github.com/biolab/orange3-text"
 DOWNLOAD_URL = "https://github.com/biolab/orange3-text/tarball/{}".format(VERSION)
 
