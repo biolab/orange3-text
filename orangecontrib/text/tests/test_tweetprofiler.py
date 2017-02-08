@@ -216,6 +216,7 @@ class TestErrorsRaising(unittest.TestCase):
 
     @patch(CHECK_ALIVE, Mock(return_value=True))
     @patch(TOKEN_VALID, Mock(return_value=True))
+    @patch(SERVER_CALL, MockServerCall())
     def test_assure_server_and_tokens_too_little_credit(self):
         self.profiler.on_too_little_credit = Mock()
         r = self.profiler.assure_server_and_tokens(need_coins=COINS+1)
@@ -223,6 +224,7 @@ class TestErrorsRaising(unittest.TestCase):
         self.assertEqual(self.profiler.on_too_little_credit.call_count, 1)
 
     @patch(TOKEN_VALID, Mock(return_value=True))
+    @patch(SERVER_CALL, MockServerCall())
     def test_assure_server_and_tokens_get_server(self):
         self.profiler.server = None
         r = self.profiler.assure_server_and_tokens()
