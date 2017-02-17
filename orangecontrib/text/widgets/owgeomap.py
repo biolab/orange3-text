@@ -7,7 +7,7 @@ from urllib.parse import urljoin
 from urllib.request import pathname2url
 
 import numpy as np
-from AnyQt.QtCore import Qt, QTimer, pyqtSlot, QUrl
+from AnyQt.QtCore import Qt, QTimer, pyqtSlot, QUrl, QObject
 from AnyQt.QtWidgets import QApplication, QSizePolicy
 
 from Orange.data import Table
@@ -49,7 +49,6 @@ class OWGeoMap(widget.OWWidget):
         self.data = None
         self._create_layout()
 
-    @pyqtSlot(str)
     def region_selected(self, regions):
         """Called from JavaScript"""
         if not regions:
@@ -88,7 +87,13 @@ class OWGeoMap(widget.OWWidget):
                           os.path.dirname(__file__),
                           'resources',
                          'owgeomap.html')))
-        self.webview = gui.WebviewWidget(self.controlArea, self, url=QUrl(url))
+
+        class Bridge(QObject):
+            @pyqtSlot(str)
+            def region_selected(_, regions):
+                return self.region_selected(regions)
+
+        self.webview = gui.WebviewWidget(self.controlArea, Bridge(), url=QUrl(url), debug=False)
         self.controlArea.layout().addWidget(self.webview)
 
         QTimer.singleShot(
