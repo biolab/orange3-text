@@ -4,7 +4,8 @@ from math import pi as PI
 from os import path
 
 import numpy as np
-from AnyQt.QtCore import Qt, QItemSelection, QItemSelectionModel, pyqtSlot
+from AnyQt.QtCore import Qt, QItemSelection, QItemSelectionModel, pyqtSlot, \
+    QObject
 from AnyQt.QtWidgets import QApplication
 
 from Orange.widgets import widget, gui, settings
@@ -84,7 +85,6 @@ class OWWordCloud(widget.OWWidget):
         self._create_layout()
         self.on_corpus_change(None)
 
-    @pyqtSlot(str, result=str)
     def word_clicked(self, word):
         """Called from JavaScript"""
         if not word:
@@ -123,7 +123,13 @@ span.selected {color:red !important}
 </html>'''
         if self.webview:
             self.mainArea.layout().removeWidget(self.webview)
-        webview = self.webview = gui.WebviewWidget(self.mainArea, self, debug=False)
+
+        class Bridge(QObject):
+            @pyqtSlot(str, result=str)
+            def word_clicked(_, words):
+                return self.word_clicked(words)
+
+        webview = self.webview = gui.WebviewWidget(self.mainArea, Bridge(), debug=False)
         webview.setHtml(HTML)
         self.mainArea.layout().addWidget(webview)
         for script in ('wordcloud2.js',
