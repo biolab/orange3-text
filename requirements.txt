@@ -10,3 +10,4 @@ tweepy
 beautifulsoup4
 simhash
 wikipedia
+typing
