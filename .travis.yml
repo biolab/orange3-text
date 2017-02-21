@@ -30,11 +30,13 @@ cache:
         - $HOME/.cache/pip
         - $HOME/.ccache
         - $HOME/nltk_data
+        - $TRAVIS_BUILD_DIR/pyqt
 
 before_cache:   # prevent logs from caching
     - rm -f $HOME/.cache/pip/log/debug.log
 
 before_install:
+    - source $TRAVIS_BUILD_DIR/.travis/util.sh
     - pip install -U setuptools pip wheel
     - pip install codecov
     - mkdir -p /home/travis/.local/share/Orange  # create orange app dir
@@ -42,6 +44,7 @@ before_install:
 install:
     - travis_wait pip install -r requirements.txt
     - travis_wait pip install -r requirements-opt.txt
+    - source $TRAVIS_BUILD_DIR/.travis/install_pyqt.sh
     - python setup.py develop   # assure version.py is present; required for imports
 
 script:
