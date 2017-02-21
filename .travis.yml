@@ -47,6 +47,11 @@ install:
     - source $TRAVIS_BUILD_DIR/.travis/install_pyqt.sh
     - python setup.py develop   # assure version.py is present; required for imports
 
+before_script:  # required for widget tests
+    - "export DISPLAY=:99.0"
+    - "sh -e /etc/init.d/xvfb start"
+    - sleep 3 # give xvfb some time to start
+
 script:
     - coverage run setup.py test
 
