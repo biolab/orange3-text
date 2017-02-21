@@ -23,6 +23,7 @@ Welcome to Orange3 Text Mining documentation!
    widgets/wordenrichment
    widgets/wordcloud
    widgets/geomap
+   widgets/concordance
 
 
 .. toctree::
