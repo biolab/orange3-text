@@ -7,6 +7,7 @@ gensim>=0.12.3  # LDA's show topics unified in 0.12.3
 setuptools-git
 Orange3>=3.3.10
 tweepy
+typing    # required for Py3.4
 beautifulsoup4
 simhash
 wikipedia
