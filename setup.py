@@ -3,6 +3,7 @@
 import os
 import subprocess
 import sys
+import unittest
 from setuptools import setup, find_packages
 
 NAME = 'Orange3-Text'
@@ -133,8 +134,15 @@ INSTALL_REQUIRES = sorted(set(
 ) - {''})
 
 if 'test' in sys.argv:
+    # http://stackoverflow.com/a/37033551/892987
+    def discover_tests():
+        return unittest.defaultTestLoader.discover(
+            'orangecontrib.text',
+            pattern='test_*.py',
+            top_level_dir='.')
+
     extra_setuptools_args = dict(
-        test_suite='orangecontrib.text.tests',
+        test_suite='setup.discover_tests'
     )
 else:
     extra_setuptools_args = dict()
