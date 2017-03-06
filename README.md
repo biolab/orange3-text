@@ -21,17 +21,9 @@ for your OS (Python version 3.5). In your Anaconda Prompt first add conda-forge 
 
     conda config --add channels conda-forge
 
-Then install Orange3
+Then install Orange3-Text
 
-    conda install orange3
-
-This will install the latest release of Orange. Install biopython to access PubMed widget (optional!)
-
-    conda install biopython
-
-Biopython is an optional dependency and not installing it will simply result in a missing PubMed widget. Then
-
-    pip install Orange3-Text
+    conda install orange3-text
 
 Run
 
