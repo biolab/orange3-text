@@ -12,6 +12,7 @@ from Orange.widgets.settings import Setting
 from Orange.widgets.widget import OWWidget, Msg
 from nltk import ConcordanceIndex
 from orangecontrib.text.corpus import Corpus
+from orangecontrib.text.topics import Topic
 from orangecontrib.text.preprocess import Preprocessor, WordPunctTokenizer
 
 class HorizontalGridDelegate(QStyledItemDelegate):
@@ -141,13 +142,20 @@ class OWConcordance(OWWidget):
     icon = "icons/Concordance.svg"
     priority = 30000
 
-    inputs = [('Corpus', Table, 'set_corpus')]
+    inputs = [
+        ('Corpus', Table, 'set_corpus'),
+        ('Query Word', Topic, 'set_word_from_input'),
+    ]
     outputs = [('Selected Documents', Table, )]
 
     autocommit = Setting(True)
     context_width = Setting(5)
     word = Setting("")
     # TODO Set selection settings.
+
+    class Warning(OWWidget.Warning):
+        multiple_words_on_input = Msg("Multiple query words on input. "
+                                      "Only the first one is considered!")
 
     def __init__(self):
         super().__init__()
@@ -218,6 +226,16 @@ class OWConcordance(OWWidget):
         self.model.set_corpus(self.corpus)
         self.update_widget()
         self.commit()
+
+    def set_word_from_input(self, topic):
+        self.Warning.multiple_words_on_input.clear()
+        have_word = topic is not None and len(topic) > 0
+        self.input.setEnabled(not have_word)
+        if have_word:
+            if len(topic) > 1:
+                self.Warning.multiple_words_on_input()
+            self.word = topic.metas[0, 0]
+            self.set_word()
 
     def set_word(self):
         self.model.set_word(self.word)
