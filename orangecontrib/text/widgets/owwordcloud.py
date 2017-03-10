@@ -8,6 +8,7 @@ from AnyQt.QtCore import Qt, QItemSelection, QItemSelectionModel, pyqtSlot, \
     QObject
 from AnyQt.QtWidgets import QApplication
 
+from Orange.data import StringVariable, ContinuousVariable, Domain
 from Orange.widgets import widget, gui, settings
 from Orange.widgets.utils.itemmodels import PyTableModel
 from orangecontrib.text.corpus import Corpus
@@ -28,32 +29,49 @@ class SelectedWords(set):
                 if any(i in doc for i in self):
                     filter.add(i)
         if filter:
-            self.widget.send(Output.CORPUS, self.widget.corpus[list(filter), :])
+            self.widget.send(IO.CORPUS, self.widget.corpus[list(filter), :])
         else:
-            self.widget.send(Output.CORPUS, None)
+            self.widget.send(IO.CORPUS, None)
 
     def add(self, word):
         if word not in self:
             super().add(word)
             self._update_webview()
             self._update_filter()
+        self._send_topic()
 
     def remove(self, word):
         if word in self:
             super().remove(word)
             self._update_webview()
             self._update_filter()
+        self._send_topic()
 
     def clear(self):
         super().clear()
+        self._send_topic()
         self._update_webview()
         self._update_filter()
         self.widget.tableview.clearSelection()
 
+    def _send_topic(self):
+        words = list(self)
+        topic = None
+        if len(words):
+            data = np.array(words, dtype=object)[:, None]
+            metas = [StringVariable('Words')]
+            domain = Domain([], metas=metas)
+            topic = Topic.from_numpy(domain,
+                                 X=np.zeros((len(words), 0)),
+                                 metas=data)
+            topic.name = 'Selected Words'
+        self.widget.send(IO.SELECTED_WORDS, topic)
 
-class Output:
+
+class IO:
     CORPUS = 'Corpus'
     TOPIC = 'Topic'
+    SELECTED_WORDS = 'Selected Words'
 
 
 class OWWordCloud(widget.OWWidget):
@@ -61,10 +79,13 @@ class OWWordCloud(widget.OWWidget):
     priority = 10000
     icon = "icons/WordCloud.svg"
     inputs = [
-        (Output.TOPIC, Topic, 'on_topic_change'),
-        (Output.CORPUS, Corpus, 'on_corpus_change'),
+        (IO.TOPIC, Topic, 'on_topic_change'),
+        (IO.CORPUS, Corpus, 'on_corpus_change'),
     ]
-    outputs = [('Corpus', Corpus)]
+    outputs = [
+        (IO.CORPUS, Corpus),
+        (IO.SELECTED_WORDS, Topic),
+    ]
 
     graph_name = 'webview'
 
