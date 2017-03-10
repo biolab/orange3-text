@@ -238,10 +238,11 @@ class OWConcordance(OWWidget):
         self.resize_columns()
         self.conc_view.resizeRowsToContents()
 
-        if self.corpus is not None and self.word:
+        if self.corpus is not None:
             self.n_documents = len(self.corpus)
-            self.n_matching = '{}/{}'.format(self.model.matching_docs(),
-                                             self.n_documents)
+            self.n_matching = '{}/{}'.format(
+                self.model.matching_docs() if self.word else 0,
+                self.n_documents)
             self.n_tokens = sum(map(len, self.corpus.tokens)) \
                 if self.corpus.has_tokens() else 'n/a'
             self.n_types = len(self.corpus.dictionary) \
