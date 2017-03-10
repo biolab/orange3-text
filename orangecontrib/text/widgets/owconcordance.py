@@ -4,7 +4,7 @@ from AnyQt.QtCore import Qt, QAbstractTableModel, QSize, QItemSelectionModel, \
                          QItemSelection
 from AnyQt.QtWidgets import QSizePolicy, QApplication, QTableView, \
     QStyledItemDelegate
-from AnyQt.QtGui import QBrush, QColor
+from AnyQt.QtGui import QColor
 
 from Orange.data import Table
 from Orange.widgets import gui
@@ -14,6 +14,7 @@ from nltk import ConcordanceIndex
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.topics import Topic
 from orangecontrib.text.preprocess import Preprocessor, WordPunctTokenizer
+
 
 class HorizontalGridDelegate(QStyledItemDelegate):
     """Class for setting elide."""
@@ -51,7 +52,7 @@ class DocumentSelectionModel(QItemSelectionModel):
 
 
 class ConcordanceModel(QAbstractTableModel):
-    "A model for constructing concordances from text."
+    """A model for constructing concordances from text."""
 
     def __init__(self):
         QAbstractTableModel.__init__(self)

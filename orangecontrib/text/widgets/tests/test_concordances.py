@@ -126,7 +126,6 @@ class TestConcordanceModel(unittest.TestCase):
         self.assertEqual(model.matching_docs(), 6)
 
 
-
 class TestConcordanceWidget(WidgetTest):
     def setUp(self):
         self.widget = self.create_widget(OWConcordance)  # type: OWConcordance
