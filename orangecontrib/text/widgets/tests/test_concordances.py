@@ -155,7 +155,7 @@ class TestConcordanceWidget(WidgetTest):
 
     def test_set_width(self):
         self.widget.model.set_width = set_width = Mock()
-        self.widget.controls.width.setValue(4)
+        self.widget.controls.context_width.setValue(4)
         set_width.assert_called_with(4)
 
     def test_selection(self):

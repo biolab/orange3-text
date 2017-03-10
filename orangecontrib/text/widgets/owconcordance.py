@@ -9,7 +9,7 @@ from AnyQt.QtGui import QBrush, QColor
 from Orange.data import Table
 from Orange.widgets import gui
 from Orange.widgets.settings import Setting
-from Orange.widgets.widget import OWWidget
+from Orange.widgets.widget import OWWidget, Msg
 from nltk import ConcordanceIndex
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.preprocess import Preprocessor, WordPunctTokenizer
@@ -145,7 +145,7 @@ class OWConcordance(OWWidget):
     outputs = [('Selected Documents', Table, )]
 
     autocommit = Setting(True)
-    width = Setting(5)
+    context_width = Setting(5)
     word = Setting("")
     # TODO Set selection settings.
 
@@ -166,7 +166,7 @@ class OWConcordance(OWWidget):
         gui.label(info_box, self, 'Matching: %(n_matching)s')
 
         # Width parameter
-        gui.spin(self.controlArea, self, 'width', 3, 10, box=True,
+        gui.spin(self.controlArea, self, 'context_width', 3, 10, box=True,
                  label="Number of words:", callback=self.set_width)
 
         gui.rubber(self.controlArea)
@@ -206,7 +206,7 @@ class OWConcordance(OWWidget):
 
     def set_width(self):
         sel = self.conc_view.selectionModel().selection()
-        self.model.set_width(self.width)
+        self.model.set_width(self.context_width)
         if sel:
             self.conc_view.selectionModel().select(sel,
                 QItemSelectionModel.SelectCurrent | QItemSelectionModel.Rows)
