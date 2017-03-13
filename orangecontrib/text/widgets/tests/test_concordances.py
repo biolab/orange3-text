@@ -57,6 +57,19 @@ class TestConcordanceModel(unittest.TestCase):
         self.assertIsInstance(model.data(ind00, Qt.TextAlignmentRole),
                               (Qt.Alignment, type(None)))
 
+    def test_color_proper_rows(self):
+        """Rows are colored corresponding to the document"""
+        model = ConcordanceModel()
+        model.set_width(2)
+        model.set_corpus(self.corpus)
+        model.set_word("of")
+
+        color1 = model.data(model.index(0, 0), Qt.BackgroundRole)
+        self.assertEqual(model.data(model.index(1, 0), Qt.BackgroundRole),
+                         color1)
+        self.assertNotEqual(model.data(model.index(2, 0), Qt.BackgroundRole),
+                            color1)
+
     def test_order_doesnt_matter(self):
         """Setting the word or the corpus first works"""
         model = ConcordanceModel()
