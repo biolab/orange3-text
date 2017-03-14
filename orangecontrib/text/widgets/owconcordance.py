@@ -59,6 +59,7 @@ class ConcordanceModel(QAbstractTableModel):
         self.indices = None
         self.word_index = None
         self.width = 8
+        self.colored_rows = None
 
     def set_word(self, word):
         self.modelAboutToBeReset.emit()
@@ -107,7 +108,7 @@ class ConcordanceModel(QAbstractTableModel):
                     Qt.AlignLeft | Qt.AlignVCenter][col]
 
         elif role == Qt.BackgroundRole:
-            const = self.word_index[row][0] % 2
+            const = self.word_index[row][0] in self.colored_rows
             return QColor(236 + 19 * const, 243 + 12 * const, 255)
 
     def _compute_indices(self):  # type: () -> Optional[None, list]
@@ -122,11 +123,12 @@ class ConcordanceModel(QAbstractTableModel):
 
     def _compute_word_index(self):
         if self.indices is None or self.word is None:
-            self.word_index = None
+            self.word_index = self.colored_rows = None
         else:
             self.word_index = [
                 (doc_idx, offset) for doc_idx, doc in enumerate(self.indices)
                 for offset in doc.offsets(self.word)]
+            self.colored_rows = set(sorted({d[0] for d in self.word_index})[::2])
 
     def matching_docs(self):
         if self.indices and self.word:
