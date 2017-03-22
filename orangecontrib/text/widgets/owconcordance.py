@@ -4,15 +4,17 @@ from AnyQt.QtCore import Qt, QAbstractTableModel, QSize, QItemSelectionModel, \
                          QItemSelection
 from AnyQt.QtWidgets import QSizePolicy, QApplication, QTableView, \
     QStyledItemDelegate
-from AnyQt.QtGui import QBrush, QColor
+from AnyQt.QtGui import QColor
 
 from Orange.data import Table
 from Orange.widgets import gui
 from Orange.widgets.settings import Setting
-from Orange.widgets.widget import OWWidget
+from Orange.widgets.widget import OWWidget, Msg
 from nltk import ConcordanceIndex
 from orangecontrib.text.corpus import Corpus
+from orangecontrib.text.topics import Topic
 from orangecontrib.text.preprocess import Preprocessor, WordPunctTokenizer
+
 
 class HorizontalGridDelegate(QStyledItemDelegate):
     """Class for setting elide."""
@@ -50,7 +52,7 @@ class DocumentSelectionModel(QItemSelectionModel):
 
 
 class ConcordanceModel(QAbstractTableModel):
-    "A model for constructing concordances from text."
+    """A model for constructing concordances from text."""
 
     def __init__(self):
         QAbstractTableModel.__init__(self)
@@ -143,13 +145,20 @@ class OWConcordance(OWWidget):
     icon = "icons/Concordance.svg"
     priority = 30000
 
-    inputs = [('Corpus', Table, 'set_corpus')]
+    inputs = [
+        ('Corpus', Table, 'set_corpus'),
+        ('Query Word', Topic, 'set_word_from_input'),
+    ]
     outputs = [('Selected Documents', Table, )]
 
     autocommit = Setting(True)
-    width = Setting(5)
+    context_width = Setting(5)
     word = Setting("")
     # TODO Set selection settings.
+
+    class Warning(OWWidget.Warning):
+        multiple_words_on_input = Msg("Multiple query words on input. "
+                                      "Only the first one is considered!")
 
     def __init__(self):
         super().__init__()
@@ -168,7 +177,7 @@ class OWConcordance(OWWidget):
         gui.label(info_box, self, 'Matching: %(n_matching)s')
 
         # Width parameter
-        gui.spin(self.controlArea, self, 'width', 3, 10, box=True,
+        gui.spin(self.controlArea, self, 'context_width', 3, 10, box=True,
                  label="Number of words:", callback=self.set_width)
 
         gui.rubber(self.controlArea)
@@ -208,7 +217,7 @@ class OWConcordance(OWWidget):
 
     def set_width(self):
         sel = self.conc_view.selectionModel().selection()
-        self.model.set_width(self.width)
+        self.model.set_width(self.context_width)
         if sel:
             self.conc_view.selectionModel().select(sel,
                 QItemSelectionModel.SelectCurrent | QItemSelectionModel.Rows)
@@ -220,6 +229,16 @@ class OWConcordance(OWWidget):
         self.model.set_corpus(self.corpus)
         self.update_widget()
         self.commit()
+
+    def set_word_from_input(self, topic):
+        self.Warning.multiple_words_on_input.clear()
+        have_word = topic is not None and len(topic) > 0
+        self.input.setEnabled(not have_word)
+        if have_word:
+            if len(topic) > 1:
+                self.Warning.multiple_words_on_input()
+            self.word = topic.metas[0, 0]
+            self.set_word()
 
     def set_word(self):
         self.model.set_word(self.word)
@@ -240,10 +259,11 @@ class OWConcordance(OWWidget):
         self.resize_columns()
         self.conc_view.resizeRowsToContents()
 
-        if self.corpus is not None and self.word:
+        if self.corpus is not None:
             self.n_documents = len(self.corpus)
-            self.n_matching = '{}/{}'.format(self.model.matching_docs(),
-                                             self.n_documents)
+            self.n_matching = '{}/{}'.format(
+                self.model.matching_docs() if self.word else 0,
+                self.n_documents)
             self.n_tokens = sum(map(len, self.corpus.tokens)) \
                 if self.corpus.has_tokens() else 'n/a'
             self.n_types = len(self.corpus.dictionary) \
