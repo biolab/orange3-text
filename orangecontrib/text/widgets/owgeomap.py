@@ -167,10 +167,13 @@ class OWGeoMap(widget.OWWidget):
         if self.data is not None:
             attr = self.data.domain[self.selected_attr]
             for i in self.data.get_column_view(self.data.domain.index(attr))[0]:
-                if len(i) > 3:
-                    yield map(lambda x: x.strip(), CC_NAMES.findall(i.lower()))
-                else:
-                    yield (i, )
+                # If string attr is None instead of empty string skip it.
+                # This happens on data sets from WB Indicators.
+                if i is not None:
+                    if len(i) > 3:
+                        yield map(lambda x: x.strip(), CC_NAMES.findall(i.lower()))
+                    else:
+                        yield (i, )
 
 
 def main():
