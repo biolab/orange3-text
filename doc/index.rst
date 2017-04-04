@@ -6,9 +6,11 @@
 Welcome to Orange3 Text Mining documentation!
 =============================================
 
+Widgets
+-------
+
 .. toctree::
    :maxdepth: 1
-   :caption: Widgets
 
    widgets/corpus
    widgets/nytimes
@@ -25,10 +27,11 @@ Welcome to Orange3 Text Mining documentation!
    widgets/geomap
    widgets/concordance
 
+Scripting
+---------
 
 .. toctree::
    :maxdepth: 2
-   :caption: Scripting
 
    scripting/corpus.rst
    scripting/preprocess.rst
