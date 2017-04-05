@@ -1,5 +1,6 @@
 from typing import Optional
 
+from itertools import chain
 from AnyQt.QtCore import Qt, QAbstractTableModel, QSize, QItemSelectionModel, \
                          QItemSelection
 from AnyQt.QtWidgets import QSizePolicy, QApplication, QTableView, \
@@ -13,7 +14,7 @@ from Orange.widgets.widget import OWWidget, Msg
 from nltk import ConcordanceIndex
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.topics import Topic
-from orangecontrib.text.preprocess import Preprocessor, WordPunctTokenizer
+from orangecontrib.text.preprocess import WordPunctTokenizer
 
 
 class HorizontalGridDelegate(QStyledItemDelegate):
@@ -58,6 +59,9 @@ class ConcordanceModel(QAbstractTableModel):
         QAbstractTableModel.__init__(self)
         self.word = None
         self.corpus = None
+        self.tokens = None
+        self.n_tokens = None
+        self.n_types = None
         self.indices = None
         self.word_index = None
         self.width = 8
@@ -72,9 +76,19 @@ class ConcordanceModel(QAbstractTableModel):
     def set_corpus(self, corpus):
         self.modelAboutToBeReset.emit()
         self.corpus = corpus
+        self.set_tokens()
         self._compute_indices()
         self._compute_word_index()
         self.modelReset.emit()
+
+    def set_tokens(self):
+        if self.corpus is None:
+            self.tokens = None
+            return
+        tokenizer = WordPunctTokenizer()
+        self.tokens = tokenizer(self.corpus.documents)
+        self.n_tokens = sum(map(len, self.tokens))
+        self.n_types = len(set(chain.from_iterable(self.tokens)))
 
     def set_width(self, width):
         self.modelAboutToBeReset.emit()
@@ -96,7 +110,7 @@ class ConcordanceModel(QAbstractTableModel):
         doc, index = self.word_index[row]
 
         if role == Qt.DisplayRole:
-            tokens = self.corpus.tokens
+            tokens = self.tokens
             if col == 0:
                 return ' '.join(tokens[doc][max(index - self.width, 0):index])
             if col == 1:
@@ -117,11 +131,8 @@ class ConcordanceModel(QAbstractTableModel):
         if self.corpus is None:
             self.indices = None
             return
-        if self.corpus and not self.corpus.has_tokens():
-            preprocessor = Preprocessor(tokenizer=WordPunctTokenizer())
-            preprocessor(self.corpus)
         self.indices = [ConcordanceIndex(doc, key=lambda x: x.lower())
-                        for doc in self.corpus.tokens]
+                        for doc in self.tokens]
 
     def _compute_word_index(self):
         if self.indices is None or self.word is None:
@@ -164,14 +175,12 @@ class OWConcordance(OWWidget):
         super().__init__()
 
         self.corpus = None      # Corpus
-        self.n_documents = ''   # Info on docs
         self.n_matching = ''    # Info on docs matching the word
         self.n_tokens = ''      # Info on tokens
         self.n_types = ''       # Info on types (unique tokens)
 
         # Info attributes
         info_box = gui.widgetBox(self.controlArea, 'Info')
-        gui.label(info_box, self, 'Documents: %(n_documents)s')
         gui.label(info_box, self, 'Tokens: %(n_tokens)s')
         gui.label(info_box, self, 'Types: %(n_types)s')
         gui.label(info_box, self, 'Matching: %(n_matching)s')
@@ -243,6 +252,7 @@ class OWConcordance(OWWidget):
     def set_word(self):
         self.model.set_word(self.word)
         self.update_widget()
+        self.commit()
 
     def resize_columns(self):
         col_width = (self.conc_view.width() -
@@ -260,16 +270,12 @@ class OWConcordance(OWWidget):
         self.conc_view.resizeRowsToContents()
 
         if self.corpus is not None:
-            self.n_documents = len(self.corpus)
             self.n_matching = '{}/{}'.format(
                 self.model.matching_docs() if self.word else 0,
-                self.n_documents)
-            self.n_tokens = sum(map(len, self.corpus.tokens)) \
-                if self.corpus.has_tokens() else 'n/a'
-            self.n_types = len(self.corpus.dictionary) \
-                if self.corpus.has_tokens() else 'n/a'
+                len(self.corpus))
+            self.n_tokens = self.model.n_tokens
+            self.n_types = self.model.n_types
         else:
-            self.n_documents = ''
             self.n_matching = ''
             self.n_tokens = ''
             self.n_types = ''
