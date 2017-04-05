@@ -164,6 +164,8 @@ class Corpus(Table):
                 var = DiscreteVariable(f, values=values, compute_value=cv)
             else:
                 var = ContinuousVariable(f, compute_value=cv)
+            if cv is not None:  # set original variable for cv
+                cv.variable = var
             if isinstance(var_attrs, dict):
                 var.attributes.update(var_attrs)
             new_attr += (var, )
