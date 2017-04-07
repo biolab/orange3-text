@@ -7,7 +7,6 @@ from AnyQt.QtWidgets import QSizePolicy, QApplication, QTableView, \
     QStyledItemDelegate
 from AnyQt.QtGui import QColor
 
-from Orange.data import Table
 from Orange.widgets import gui
 from Orange.widgets.settings import Setting
 from Orange.widgets.widget import OWWidget, Msg
@@ -157,10 +156,10 @@ class OWConcordance(OWWidget):
     priority = 30000
 
     inputs = [
-        ('Corpus', Table, 'set_corpus'),
+        ('Corpus', Corpus, 'set_corpus'),
         ('Query Word', Topic, 'set_word_from_input'),
     ]
-    outputs = [('Selected Documents', Table, )]
+    outputs = [('Selected Documents', Corpus, )]
 
     autocommit = Setting(True)
     context_width = Setting(5)
