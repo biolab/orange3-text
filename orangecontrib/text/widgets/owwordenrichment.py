@@ -1,12 +1,11 @@
-import math
-
 import numpy as np
 from AnyQt.QtWidgets import QTreeWidget, QTreeView, QTreeWidgetItem
 
-from Orange.data import Table
+from Orange.data import Table, Domain
 from Orange.widgets import gui
 from Orange.widgets.settings import Setting
 from Orange.widgets.widget import OWWidget, Msg
+from orangecontrib.text import Corpus
 from orangecontrib.text.util import np_sp_sum
 from orangecontrib.text.stats import false_discovery_rate, hypergeom_p_values
 
@@ -24,6 +23,7 @@ class OWWordEnrichment(OWWidget):
     want_main_area = True
 
     class Error(OWWidget.Error):
+        no_bow_features = Msg('No bag-of-words features!')
         no_words_overlap = Msg('No words overlap!')
         empty_selection = Msg('Selected data is empty!')
         all_selected = Msg('All examples can not be selected!')
@@ -99,6 +99,15 @@ class OWWordEnrichment(OWWidget):
     def handleNewSignals(self):
         self.check_data()
 
+    def get_bow_domain(self):
+        domain = self.data.domain
+        return Domain(
+            attributes=[a for a in domain.attributes
+                        if a.attributes.get('bow-feature', False)],
+            class_vars=domain.class_vars,
+            metas=domain.metas,
+            source=domain)
+
     def check_data(self):
         self.Error.clear()
         if isinstance(self.data, Table) and \
@@ -108,11 +117,16 @@ class OWWordEnrichment(OWWidget):
                 self.clear()
                 return
 
-            self.selected_data_transformed = Table.from_table(
-                self.data.domain, self.selected_data)
+            # keep only BoW features
+            bow_domain = self.get_bow_domain()
+            if len(bow_domain.attributes) == 0:
+                self.Error.no_bow_features()
+                self.clear()
+                return
+            self.data = Corpus.from_table(bow_domain, self.data)
+            self.selected_data_transformed = Corpus.from_table(bow_domain, self.selected_data)
 
-            sum_X = np_sp_sum(self.selected_data_transformed.X)
-            if sum_X == 0 or math.isnan(sum_X):
+            if np_sp_sum(self.selected_data_transformed.X) == 0:
                 self.Error.no_words_overlap()
                 self.clear()
             elif len(self.data) == len(self.selected_data):
