@@ -27,7 +27,8 @@ class BaseVectorizer:
     @staticmethod
     def add_features(corpus, X, dictionary, compute_values=None, var_attrs=None):
         order = np.argsort([dictionary[i] for i in range(len(dictionary))])
-        compute_values = np.array(compute_values)[order]
+        if compute_values is not None:
+            compute_values = np.array(compute_values)[order]
 
         variable_attrs = {
             'hidden': True,
