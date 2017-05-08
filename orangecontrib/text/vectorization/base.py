@@ -25,11 +25,20 @@ class BaseVectorizer:
         raise NotImplementedError
 
     @staticmethod
-    def add_features(corpus, X, dictionary, compute_values=None):
+    def add_features(corpus, X, dictionary, compute_values=None, var_attrs=None):
         order = np.argsort([dictionary[i] for i in range(len(dictionary))])
-        compute_values = np.array(compute_values)[order]
+        if compute_values is not None:
+            compute_values = np.array(compute_values)[order]
+
+        variable_attrs = {
+            'hidden': True,
+            'skip-normalization': True,
+        }
+        if isinstance(var_attrs, dict):
+            variable_attrs.update(var_attrs)
+
         corpus.extend_attributes(X[:, order],
                                  feature_names=(dictionary[i] for i in order),
-                                 var_attrs={'hidden': True, 'skip-normalization': True},
+                                 var_attrs=variable_attrs,
                                  compute_values=compute_values)
         corpus.ngrams_corpus = matutils.Sparse2Corpus(X.T)
