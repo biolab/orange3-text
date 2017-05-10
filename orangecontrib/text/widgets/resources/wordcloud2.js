@@ -115,7 +115,7 @@ if (!window.clearImmediate) {
 
   // Find out if the browser impose minium font size by
   // drawing small texts on a canvas and measure it's width.
-  var miniumFontSize = (function getMiniumFontSize() {
+  var minFontSize = (function getMinFontSize() {
     if (!isSupported) {
       return;
     }
@@ -186,6 +186,7 @@ if (!window.clearImmediate) {
       backgroundColor: '#fff',  // opaque white = rgba(255, 255, 255, 1)
 
       gridSize: 8,
+      drawOutOfBound: false,
       origin: null,
 
       drawMask: false,
@@ -198,12 +199,15 @@ if (!window.clearImmediate) {
 
       minRotation: - Math.PI / 2,
       maxRotation: Math.PI / 2,
+      rotationSteps: 0,
 
       shuffle: true,
       rotateRatio: 0.1,
 
       shape: 'circle',
       ellipticity: 0.65,
+
+      classes: null,
 
       hover: null,
       click: null
@@ -316,6 +320,7 @@ if (!window.clearImmediate) {
 
     /* normalize rotation settings */
     var rotationRange = Math.abs(settings.maxRotation - settings.minRotation);
+    var rotationSteps = Math.abs(Math.floor(settings.rotationSteps));
     var minRotation = Math.min(settings.maxRotation, settings.minRotation);
 
     /* information/object available to all functions, set when start() */
@@ -355,16 +360,33 @@ if (!window.clearImmediate) {
         break;
     }
 
+    /* function for getting the classes of the text */
+    var getTextClasses = null;
+    if (typeof settings.classes === 'function') {
+      getTextClasses = settings.classes;
+    }
+
     /* Interactive */
     var interactive = false;
     var infoGrid = [];
     var hovered;
 
-    var getInfoGridFromMouseEvent = function getInfoGridFromMouseEvent(evt) {
+    var getInfoGridFromMouseTouchEvent =
+    function getInfoGridFromMouseTouchEvent(evt) {
       var canvas = evt.currentTarget;
       var rect = canvas.getBoundingClientRect();
-      var eventX = evt.clientX - rect.left;
-      var eventY = evt.clientY - rect.top;
+      var clientX;
+      var clientY;
+      /** Detect if touches are available */
+      if (evt.touches) {
+        clientX = evt.touches[0].clientX;
+        clientY = evt.touches[0].clientY;
+      } else {
+        clientX = evt.clientX;
+        clientY = evt.clientY;
+      }
+      var eventX = clientX - rect.left;
+      var eventY = clientY - rect.top;
 
       var x = Math.floor(eventX * ((canvas.width / rect.width) || 1) / g);
       var y = Math.floor(eventY * ((canvas.height / rect.height) || 1) / g);
@@ -373,7 +395,7 @@ if (!window.clearImmediate) {
     };
 
     var wordcloudhover = function wordcloudhover(evt) {
-      var info = getInfoGridFromMouseEvent(evt);
+      var info = getInfoGridFromMouseTouchEvent(evt);
 
       if (hovered === info) {
         return;
@@ -391,12 +413,13 @@ if (!window.clearImmediate) {
     };
 
     var wordcloudclick = function wordcloudclick(evt) {
-      var info = getInfoGridFromMouseEvent(evt);
+      var info = getInfoGridFromMouseTouchEvent(evt);
       if (!info) {
         return;
       }
 
       settings.click(info.item, info.dimension, evt);
+      evt.preventDefault();
     };
 
     /* Get points on the grid for a given radius away from the center */
@@ -456,7 +479,15 @@ if (!window.clearImmediate) {
         return minRotation;
       }
 
-      return minRotation + Math.random() * rotationRange;
+      if (rotationSteps > 0) {
+        // Min rotation + zero or more steps * span of one step
+        return minRotation +
+          Math.floor(Math.random() * rotationSteps) *
+          rotationRange / (rotationSteps - 1);
+      }
+      else {
+        return minRotation + Math.random() * rotationRange;
+      }
     };
 
     var getTextInfo = function getTextInfo(word, weight, rotateDeg) {
@@ -473,10 +504,10 @@ if (!window.clearImmediate) {
       // the minium font size set by browser.
       // It will always be 1 or 2n.
       var mu = 1;
-      if (fontSize < miniumFontSize) {
+      if (fontSize < minFontSize) {
         mu = (function calculateScaleFactor() {
           var mu = 2;
-          while (mu * fontSize < miniumFontSize) {
+          while (mu * fontSize < minFontSize) {
             mu += 2;
           }
           return mu;
@@ -644,7 +675,14 @@ if (!window.clearImmediate) {
         var px = gx + occupied[i][0];
         var py = gy + occupied[i][1];
 
-        if (px >= ngx || py >= ngy || px < 0 || py < 0 || !grid[px][py]) {
+        if (px >= ngx || py >= ngy || px < 0 || py < 0) {
+          if (!settings.drawOutOfBound) {
+            return false;
+          }
+          continue;
+        }
+
+        if (!grid[px][py]) {
           return false;
         }
       }
@@ -661,6 +699,13 @@ if (!window.clearImmediate) {
         color = getTextColor(word, weight, fontSize, distance, theta);
       } else {
         color = settings.color;
+      }
+
+      var classes;
+      if (getTextClasses) {
+        classes = getTextClasses(word, weight, fontSize, distance, theta);
+      } else {
+        classes = settings.classes;
       }
 
       var dimension;
@@ -730,7 +775,6 @@ if (!window.clearImmediate) {
             'top': ((gy + info.gh / 2) * g + info.fillTextOffsetY) + 'px',
             'width': info.fillTextWidth + 'px',
             'height': info.fillTextHeight + 'px',
-            'color': color,
             'lineHeight': fontSize + 'px',
             'whiteSpace': 'nowrap',
             'transform': transformRule,
@@ -740,6 +784,9 @@ if (!window.clearImmediate) {
             'webkitTransformOrigin': '50% 40%',
             'msTransformOrigin': '50% 40%'
           };
+          if (color) {
+            styleRules.color = color;
+          }
           span.textContent = word;
           for (var cssProp in styleRules) {
             span.style[cssProp] = styleRules[cssProp];
@@ -748,6 +795,9 @@ if (!window.clearImmediate) {
             for (var attribute in attributes) {
               span.setAttribute(attribute, attributes[attribute]);
             }
+          }
+          if (classes) {
+            span.className += classes;
           }
           el.appendChild(span);
         }
@@ -797,8 +847,14 @@ if (!window.clearImmediate) {
 
       var i = occupied.length;
       while (i--) {
-        fillGridAt(gx + occupied[i][0], gy + occupied[i][1],
-                   drawMask, dimension, item);
+        var px = gx + occupied[i][0];
+        var py = gy + occupied[i][1];
+
+        if (px >= ngx || py >= ngy || px < 0 || py < 0) {
+          continue;
+        }
+
+        fillGridAt(px, py, drawMask, dimension, item);
       }
 
       if (drawMask) {
@@ -833,12 +889,15 @@ if (!window.clearImmediate) {
         return false;
       }
 
-      // Skip the loop if we have already know the bounding box of
+      // If drawOutOfBound is set to false,
+      // skip the loop if we have already know the bounding box of
       // word is larger than the canvas.
-      var bounds = info.bounds;
-      if ((bounds[1] - bounds[3] + 1) > ngx ||
-        (bounds[2] - bounds[0] + 1) > ngy) {
-        return false;
+      if (!settings.drawOutOfBound) {
+        var bounds = info.bounds;
+        if ((bounds[1] - bounds[3] + 1) > ngx ||
+          (bounds[2] - bounds[0] + 1) > ngy) {
+          return false;
+        }
       }
 
       // Determine the position to put the text by
@@ -916,12 +975,12 @@ if (!window.clearImmediate) {
       var canvas = elements[0];
 
       if (canvas.getContext) {
-        ngx = Math.floor(canvas.width / g);
-        ngy = Math.floor(canvas.height / g);
+        ngx = Math.ceil(canvas.width / g);
+        ngy = Math.ceil(canvas.height / g);
       } else {
         var rect = canvas.getBoundingClientRect();
-        ngx = Math.floor(rect.width / g);
-        ngy = Math.floor(rect.height / g);
+        ngx = Math.ceil(rect.width / g);
+        ngy = Math.ceil(rect.height / g);
       }
 
       // Sending a wordcloudstart event which cause the previous loop to stop.
@@ -953,6 +1012,7 @@ if (!window.clearImmediate) {
           } else {
             el.textContent = '';
             el.style.backgroundColor = settings.backgroundColor;
+            el.style.position = 'relative';
           }
         });
 
@@ -1024,8 +1084,15 @@ if (!window.clearImmediate) {
           canvas.addEventListener('mousemove', wordcloudhover);
         }
 
+        var touchend = function (e) {
+          e.preventDefault();
+        };
+
         if (settings.click) {
           canvas.addEventListener('click', wordcloudclick);
+          canvas.addEventListener('touchstart', wordcloudclick);
+          canvas.addEventListener('touchend', touchend);
+          canvas.style.webkitTapHighlightColor = 'rgba(0, 0, 0, 0)';
         }
 
         canvas.addEventListener('wordcloudstart', function stopInteraction() {
@@ -1033,6 +1100,8 @@ if (!window.clearImmediate) {
 
           canvas.removeEventListener('mousemove', wordcloudhover);
           canvas.removeEventListener('click', wordcloudclick);
+          canvas.removeEventListener('touchstart', wordcloudclick);
+          canvas.removeEventListener('touchend', touchend);
           hovered = undefined;
         });
       }
@@ -1096,15 +1165,16 @@ if (!window.clearImmediate) {
   };
 
   WordCloud.isSupported = isSupported;
-  WordCloud.miniumFontSize = miniumFontSize;
+  WordCloud.minFontSize = minFontSize;
 
   // Expose the library as an AMD module
-  if (typeof global.define === 'function' && global.define.amd) {
-    global.define('wordcloud', [], function() { return WordCloud; });
-  } else if (typeof global.module !== 'undefined' && global.module.exports) {
-    global.module.exports = WordCloud;
+  if (typeof define === 'function' && define.amd) {
+    global.WordCloud = WordCloud;
+    define('wordcloud', [], function() { return WordCloud; });
+  } else if (typeof module !== 'undefined' && module.exports) {
+    module.exports = WordCloud;
   } else {
     global.WordCloud = WordCloud;
   }
 
-})(window);
+})(this); //jshint ignore:line
