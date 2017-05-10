@@ -34,6 +34,10 @@ class DocumentSelectionModel(QItemSelectionModel):
         # which rows have been selected
         indexes = selection.indexes() if isinstance(selection, QItemSelection) \
                   else [selection]
+        # prevent crashing when deleting the connection
+        if not indexes:
+            super().select(selection, flags)
+            return
         # indexes[0].row() == -1 indicates clicking outside of the table
         if len(indexes) == 1 and indexes[0].row() == -1:
             self.clear()
