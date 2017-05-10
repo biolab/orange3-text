@@ -5,7 +5,7 @@ from os import path
 
 import numpy as np
 from AnyQt.QtCore import Qt, QItemSelection, QItemSelectionModel, pyqtSlot, \
-    QObject
+    QObject, QSortFilterProxyModel
 from AnyQt.QtWidgets import QApplication
 
 from Orange.data import StringVariable, ContinuousVariable, Domain
@@ -125,19 +125,19 @@ span.selected {color:red !important}
                 self.__nope = False
 
             def selectionChanged(self, selected, deselected):
-                nonlocal model
+                nonlocal model, proxymodel
                 super().selectionChanged(selected, deselected)
                 if not self.__nope:
-                    words = {model[index.row()][1]
+                    words = {model[proxymodel.mapToSource(index).row()][1]
                              for index in self.selectionModel().selectedIndexes()}
                     self._parent.update_selection(words, self)
 
             def update_selection(self, words):
-                nonlocal model
+                nonlocal model, proxymodel
                 selection = QItemSelection()
                 for i, (_, word) in enumerate(model):
                     if word in words:
-                        index = model.index(i, 1)
+                        index = proxymodel.mapFromSource(model.index(i, 1))
                         selection.select(index, index)
                 self.__nope = True
                 self.clearSelection()
@@ -147,9 +147,13 @@ span.selected {color:red !important}
                 self.__nope = False
 
         view = self.tableview = TableView(self)
-        model = self.tablemodel = PyTableModel()
+        model = self.tablemodel = PyTableModel(parent=self)
+        proxymodel = QSortFilterProxyModel(self, dynamicSortFilter=True,
+                                           sortCaseSensitivity=Qt.CaseInsensitive,
+                                           sortRole=Qt.EditRole)
+        proxymodel.setSourceModel(model)
         model.setHorizontalHeaderLabels(['Weight', 'Word'])
-        view.setModel(model)
+        view.setModel(proxymodel)
         box.layout().addWidget(view)
 
     def on_cloud_pref_change(self):
