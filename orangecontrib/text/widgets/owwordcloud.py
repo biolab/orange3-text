@@ -9,6 +9,7 @@ from AnyQt.QtCore import Qt, QItemSelection, QItemSelectionModel, pyqtSlot, \
 from AnyQt.QtWidgets import QApplication
 
 from Orange.data import StringVariable, ContinuousVariable, Domain
+from Orange.data.util import scale
 from Orange.widgets import widget, gui, settings
 from Orange.widgets.utils.itemmodels import PyTableModel
 from orangecontrib.text.corpus import Corpus
@@ -91,7 +92,7 @@ class OWWordCloud(widget.OWWidget):
 
     selected_words = settings.ContextSetting(SelectedWords('whatevar (?)'))
     words_color = settings.Setting(True)
-    words_tilt = settings.Setting(0)
+    words_tilt = settings.Setting(2)
 
     def __init__(self):
         super().__init__()
@@ -140,7 +141,10 @@ span:hover {color:OrangeRed !important}
 span.selected {color:red !important}
 </style>
 </head>
-<body id="canvas"></body>
+<body id="canvas">
+<script src="resources/wordcloud2.js"></script>
+<script src="resources/wordcloud-script.js"></script>
+</body>
 </html>'''
         if self.webview:
             self.mainArea.layout().removeWidget(self.webview)
@@ -151,11 +155,8 @@ span.selected {color:red !important}
                 return self.word_clicked(words)
 
         webview = self.webview = gui.WebviewWidget(self.mainArea, Bridge(), debug=False)
-        webview.setHtml(HTML)
+        webview.setHtml(HTML, webview.toFileURL(__file__))
         self.mainArea.layout().addWidget(webview)
-        for script in ('wordcloud2.js',
-                       'wordcloud-script.js'):
-            self.webview.evalJS(open(path.join(path.dirname(__file__), 'resources', script), encoding='utf-8').read())
 
     def _create_layout(self):
         self._new_webview()
@@ -165,7 +166,7 @@ span.selected {color:red !important}
 
         box = gui.widgetBox(self.controlArea, 'Cloud preferences')
         gui.checkBox(box, self, 'words_color', 'Color words', callback=self.on_cloud_pref_change)
-        TILT_VALUES = ('no', 'slight', 'more', 'full')
+        TILT_VALUES = ('no', '30°', '45°', '60°')
         gui.valueSlider(box, self, 'words_tilt', label='Words tilt:',
                         values=list(range(len(TILT_VALUES))),
                         callback=self.on_cloud_pref_change,
@@ -203,13 +204,16 @@ span.selected {color:red !important}
         if self.wordlist is None:
             return
         self._new_webview()
-        self.webview.evalJS('OPTIONS["color"] = "{}"'.format(
-            'random-dark' if self.words_color else 'black'))
+        self.webview.evalJS('''OPTIONS["color"] = function () {
+            return %s[Math.floor(3 * Math.random())];;
+        }''' % (["#da1", "#629", "#787"]
+                if self.words_color else
+                ['#000', '#444', '#777', '#aaa']))
         tilt_ratio, tilt_amount = {
             0: (0, 0),
-            1: (.5,  PI/12),
-            2: (.75, PI/5),
-            3: (.9,  PI/2),
+            1: (1, PI / 6),
+            2: (1, PI / 4),
+            3: (.67, PI / 3),
         }[self.words_tilt]
         self.webview.evalJS('OPTIONS["minRotation"] = {}; \
                              OPTIONS["maxRotation"] = {};'.format(-tilt_amount, tilt_amount))
@@ -227,13 +231,9 @@ span.selected {color:red !important}
             self.tablemodel.append([weight, word])
         self.tableview.sortByColumn(0, Qt.DescendingOrder)
         # Reset wordcloud
-        mean = np.mean(weights)
-        MIN_SIZE, MEAN_SIZE, MAX_SIZE = 8, 18, 40
-
-        def _size(w):
-            return np.clip(w/mean*MEAN_SIZE, MIN_SIZE, MAX_SIZE)
-
-        self.wordlist = [[word, _size(weight)] for word, weight in zip(words, weights)]
+        weights = np.clip(weights, *np.percentile(weights, [2, 98]))
+        weights = scale(weights, 8, 40)
+        self.wordlist = np.c_[words, weights].tolist()
         self.on_cloud_pref_change()
 
     def on_topic_change(self, data):

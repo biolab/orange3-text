@@ -4,16 +4,18 @@ document.body.style.webkitUserSelect = 'none';
 // Options for WordCloud
 var OPTIONS = {
     list: [],
-    fontFamily: 'sans-serif',
-    fontWeight: 'bold',
+    fontFamily: 'Helvetica Neue, serif',
+    fontWeight: 'lighter',
     color: 'UNUSED',
     backgroundColor: 'white',
-    minSize: 6,
+    minSize: 8,
     weightFactor: 1,
+    gridSize: 12,
     clearCanvas: true,
     minRotation: -Math.PI/10,
     maxRotation: Math.PI/10,
-    rotateRatio: .5,
+    rotateRatio: 1,
+    rotationSteps: 3
 };
 
 // Redraw wordcloud when the window size changes
