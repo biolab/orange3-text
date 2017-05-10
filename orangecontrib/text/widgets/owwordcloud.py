@@ -16,59 +16,6 @@ from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.topics import Topic
 
 
-class SelectedWords(set):
-    def __init__(self, widget):
-        self.widget = widget
-
-    def _update_webview(self):
-        self.widget.webview.evalJS('SELECTED_WORDS = {};'.format(list(self)))
-
-    def _update_filter(self):
-        filter = set()
-        if self.widget.corpus is not None:
-            for i, doc in enumerate(self.widget.corpus.ngrams):
-                if any(i in doc for i in self):
-                    filter.add(i)
-        if filter:
-            self.widget.send(IO.CORPUS, self.widget.corpus[list(filter), :])
-        else:
-            self.widget.send(IO.CORPUS, None)
-
-    def add(self, word):
-        if word not in self:
-            super().add(word)
-            self._update_webview()
-            self._update_filter()
-        self._send_topic()
-
-    def remove(self, word):
-        if word in self:
-            super().remove(word)
-            self._update_webview()
-            self._update_filter()
-        self._send_topic()
-
-    def clear(self):
-        super().clear()
-        self._send_topic()
-        self._update_webview()
-        self._update_filter()
-        self.widget.tableview.clearSelection()
-
-    def _send_topic(self):
-        words = list(self)
-        topic = None
-        if len(words):
-            data = np.array(words, dtype=object)[:, None]
-            metas = [StringVariable('Words')]
-            domain = Domain([], metas=metas)
-            topic = Topic.from_numpy(domain,
-                                 X=np.zeros((len(words), 0)),
-                                 metas=data)
-            topic.name = 'Selected Words'
-        self.widget.send(IO.SELECTED_WORDS, topic)
-
-
 class IO:
     CORPUS = 'Corpus'
     TOPIC = 'Topic'
@@ -90,15 +37,18 @@ class OWWordCloud(widget.OWWidget):
 
     graph_name = 'webview'
 
-    selected_words = settings.ContextSetting(SelectedWords('whatevar (?)'))
+    selected_words = settings.Setting(set(), schema_only=True)
+
     words_color = settings.Setting(True)
     words_tilt = settings.Setting(2)
+
+    class Warning(widget.OWWidget.Warning):
+        topic_precedence = widget.Msg('Input signal Topic takes priority over Corpus')
 
     def __init__(self):
         super().__init__()
         self.n_topic_words = 0
         self.documents_info_str = ''
-        self.selected_words = SelectedWords(self)
         self.webview = None
         self.topic = None
         self.corpus = None
@@ -107,28 +57,6 @@ class OWWordCloud(widget.OWWidget):
         self._create_layout()
         self.on_corpus_change(None)
 
-    def word_clicked(self, word):
-        """Called from JavaScript"""
-        if not word:
-            self.selected_words.clear()
-            return ''
-        selection = QItemSelection()
-        for i, row in enumerate(self.tablemodel):
-            for j, val in enumerate(row):
-                if val == word:
-                    index = self.tablemodel.index(i, j)
-                    selection.select(index, index)
-        if word not in self.selected_words:
-            self.selected_words.add(word)
-            self.tableview.selectionModel().select(
-                selection, QItemSelectionModel.Select | QItemSelectionModel.Rows)
-            return 'selected'
-        else:
-            self.selected_words.remove(word)
-            self.tableview.selectionModel().select(
-                selection, QItemSelectionModel.Deselect | QItemSelectionModel.Rows)
-            return ''
-
     def _new_webview(self):
         HTML = '''
 <!doctype html>
@@ -136,7 +64,8 @@ class OWWordCloud(widget.OWWidget):
 <head>
 <meta charset="utf-8">
 <style>
-html, body {margin:0px;padding:0px;width:100%;height:100%;}
+html, body {margin:0px;padding:0px;width:100%;height:100%;
+            cursor:default; -webkit-user-select: none; user-select: none; }
 span:hover {color:OrangeRed !important}
 span.selected {color:red !important}
 </style>
@@ -150,11 +79,16 @@ span.selected {color:red !important}
             self.mainArea.layout().removeWidget(self.webview)
 
         class Bridge(QObject):
-            @pyqtSlot(str, result=str)
-            def word_clicked(_, words):
-                return self.word_clicked(words)
+            @pyqtSlot('QVariantList')
+            def update_selection(_, words):
+                nonlocal webview
+                self.update_selection(words, webview)
 
-        webview = self.webview = gui.WebviewWidget(self.mainArea, Bridge(), debug=False)
+        class Webview(gui.WebviewWidget):
+            def update_selection(self, words):
+                self.evalJS('SELECTED_WORDS = {}; selectWords();'.format(list(words)))
+
+        webview = self.webview = Webview(self.mainArea, Bridge())
         webview.setHtml(HTML, webview.toFileURL(__file__))
         self.mainArea.layout().addWidget(webview)
 
@@ -179,26 +113,44 @@ span.selected {color:red !important}
             def __init__(self, parent):
                 super().__init__(parent)
                 self._parent = parent
+                self.__nope = False
+
+            def setModel(self, model):
+                """Otherwise QTableView.setModel() calls
+                QAbstractItemView.setSelectionModel() which resets selection,
+                calling selectionChanged() and overwriting any selected_words
+                setting that may have been saved."""
+                self.__nope = True
+                super().setModel(model)
+                self.__nope = False
 
             def selectionChanged(self, selected, deselected):
+                nonlocal model
                 super().selectionChanged(selected, deselected)
-                parent = self._parent
-                for index in deselected.indexes():
-                    data = parent.tablemodel[index.row()][1]
-                    self._parent.selected_words.remove(data)
-                for index in selected.indexes():
-                    data = parent.tablemodel[index.row()][1]
-                    self._parent.selected_words.add(data)
-                parent.cloud_reselect()
+                if not self.__nope:
+                    words = {model[index.row()][1]
+                             for index in self.selectionModel().selectedIndexes()}
+                    self._parent.update_selection(words, self)
+
+            def update_selection(self, words):
+                nonlocal model
+                selection = QItemSelection()
+                for i, (_, word) in enumerate(model):
+                    if word in words:
+                        index = model.index(i, 1)
+                        selection.select(index, index)
+                self.__nope = True
+                self.clearSelection()
+                self.selectionModel().select(
+                    selection,
+                    QItemSelectionModel.Select | QItemSelectionModel.Rows)
+                self.__nope = False
 
         view = self.tableview = TableView(self)
         model = self.tablemodel = PyTableModel()
         model.setHorizontalHeaderLabels(['Weight', 'Word'])
         view.setModel(model)
         box.layout().addWidget(view)
-
-    def cloud_reselect(self):
-        self.webview.evalJS('selectWords();')
 
     def on_cloud_pref_change(self):
         if self.wordlist is None:
@@ -221,6 +173,7 @@ span.selected {color:red !important}
         # Trigger cloud redrawing by constructing new webview, because everything else fail Macintosh
         self.webview.evalJS('OPTIONS["list"] = {};'.format(self.wordlist))
         self.webview.evalJS('redrawWordCloud();')
+        self.webview.update_selection(self.selected_words)
 
     def _repopulate_wordcloud(self, words, weights):
         N_BEST = 200
@@ -238,9 +191,10 @@ span.selected {color:red !important}
 
     def on_topic_change(self, data):
         self.topic = data
-        self.topic_info.setVisible(bool(data))
-        if not data and self.corpus:  # Topics aren't, but raw corpus is available
-            return self._apply_corpus()
+        self.topic_info.setVisible(data is not None)
+
+    def _apply_topic(self):
+        data = self.topic
         metas = data.domain.metas if data else []
         try:
             col = next(i for i,var in enumerate(metas) if var.is_string)
@@ -249,8 +203,6 @@ span.selected {color:red !important}
         else:
             words = data.metas[:, col]
             self.n_topic_words = data.metas.shape[0]
-        if not data:
-            weights = np.ones(len(words))
         if data and data.W.any():
             weights = data.W[:]
         elif data and 'weights' in data.domain:
@@ -275,8 +227,47 @@ span.selected {color:red !important}
 
         self.documents_info_str = ('{} documents with {} words'.format(n_docs, n_words)
                                    if data else '(no documents on input)')
-        if not self.topic:
+
+    def handleNewSignals(self):
+        if self.topic is not None:
+            self._apply_topic()
+        elif self.corpus is not None:
             self._apply_corpus()
+
+        self.Warning.topic_precedence(
+            shown=self.corpus is not None and self.topic is not None)
+
+        if self.topic is not None or self.corpus is not None:
+            if self.selected_words:
+                self.update_selection(self.selected_words)
+
+    def update_selection(self, words, skip=None):
+        assert skip is None or skip in (self.webview, self.tableview)
+        self.selected_words = words = set(words)
+
+        if self.tableview != skip:
+            self.tableview.update_selection(words)
+        if self.webview != skip:
+            self.webview.update_selection(words)
+
+        self.commit()
+
+    def commit(self):
+        out = None
+        if self.corpus is not None:
+            rows = [i for i, doc in enumerate(self.corpus.ngrams)
+                    if any(word in doc for word in self.selected_words)]
+            out = self.corpus[rows]
+        self.send(IO.CORPUS, out)
+
+        topic = None
+        words = list(self.selected_words)
+        if words:
+            topic = Topic.from_numpy(Domain([], metas=[StringVariable('Words')]),
+                                     X=np.empty((len(words), 0)),
+                                     metas=np.c_[words].astype(object))
+            topic.name = 'Selected Words'
+        self.send(IO.SELECTED_WORDS, topic)
 
 
 def main():
@@ -303,6 +294,7 @@ def main():
     data = Corpus(domain=domain, metas=np.array([[' '.join(words.flat)]]))
     # data = Corpus.from_numpy(domain, X=np.zeros((1, 0)), metas=np.array([[' '.join(words.flat)]]))
     w.on_corpus_change(data)
+    w.handleNewSignals()
     w.show()
     app.exec()
 
