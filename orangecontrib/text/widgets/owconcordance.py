@@ -173,7 +173,7 @@ class OWConcordance(OWWidget):
     autocommit = Setting(True)
     context_width = Setting(5)
     word = ContextSetting("", exclude_metas=False)
-    # TODO Set selection settings (DataHashContextHandler)
+    selection = Setting([0], schema_only=True)
 
     class Warning(OWWidget.Warning):
         multiple_words_on_input = Msg("Multiple query words on input. "
@@ -240,6 +240,21 @@ class OWConcordance(OWWidget):
             self.conc_view.selectionModel().select(sel,
                 QItemSelectionModel.SelectCurrent | QItemSelectionModel.Rows)
 
+    def _save_selection(self):
+        sel = self.conc_view.selectionModel().selection()
+        selection = sorted(set(cell.row() for cell in sel.indexes()))
+        if selection:
+            self.selection = selection
+
+    def _set_selection(self, selection):
+        if selection:
+            sel = QItemSelection()
+            for row in selection:
+                index = self.conc_view.model().index(row, 0)
+                sel.select(index, index)
+            self.conc_view.selectionModel().select(sel,
+                QItemSelectionModel.SelectCurrent | QItemSelectionModel.Rows)
+
     @Inputs.corpus
     def set_corpus(self, data=None):
         self.closeContext()
@@ -268,6 +283,13 @@ class OWConcordance(OWWidget):
         self.update_widget()
         self.commit()
 
+    def handleNewSignals(self):
+        selection = self.selection
+        if self.corpus:
+            self._set_selection(selection)
+        else:
+            self._set_selection([0])
+
     def resize_columns(self):
         col_width = (self.conc_view.width() -
                      self.conc_view.columnWidth(1)) / 2 - 12
@@ -295,6 +317,7 @@ class OWConcordance(OWWidget):
             self.n_types = ''
 
     def commit(self):
+        self._save_selection()
         rows = [sel_range.top() for sel_range
                 in self.conc_view.selectionModel().selection()]
         selected_docs = sorted(set(self.model.word_index[row][0]
