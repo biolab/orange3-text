@@ -44,6 +44,8 @@ class OWDuplicates(widget.OWWidget):
     LINKAGE = ['Single', 'Average', 'Complete', 'Weighted', 'Ward']
     linkage_method = settings.Setting(1)
 
+    threshold = settings.Setting(.0)
+
     # Cluster variable domain role
     AttributeRole, ClassRole, MetaRole = 0, 1, 2
     CLUSTER_ROLES = ["Attributes", "Class", "Metas"]
@@ -55,7 +57,6 @@ class OWDuplicates(widget.OWWidget):
         self.linkage = None             # hierarchical clustering linkage as returned by Orange
         self.distances = None           # DistMatrix on input
         self.clustering_mask = None     # 1D array of clusters for self.corpus
-        self.threshold = 0              # hierarchical clustering distance threshold
         self.threshold_spin = None
 
         # Info
