@@ -293,7 +293,8 @@ class FileWidget(QWidget):
             self.recent_files.insert(0, path)
             self.update_combo()
 
-        self.open_file(path)
+        if path:
+            self.open_file(path)
 
     def select(self, n):
         name = self.file_combo.currentText()
