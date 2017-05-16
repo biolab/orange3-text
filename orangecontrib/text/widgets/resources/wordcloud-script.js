@@ -1,26 +1,25 @@
-document.body.style.cursor = 'default';
-document.body.style.webkitUserSelect = 'none';
-
 // Options for WordCloud
 var OPTIONS = {
     list: [],
     fontFamily: 'sans-serif',
-    fontWeight: 'bold',
+    fontWeight: 300,
     color: 'UNUSED',
     backgroundColor: 'white',
-    minSize: 6,
+    minSize: 8,
     weightFactor: 1,
+    gridSize: 12,
     clearCanvas: true,
     minRotation: -Math.PI/10,
     maxRotation: Math.PI/10,
-    rotateRatio: .5,
+    rotateRatio: 1,
+    rotationSteps: 3
 };
 
 // Redraw wordcloud when the window size changes
 function redrawWordCloud() {
     WordCloud(document.getElementById('canvas'), OPTIONS);
 }
-window.onresize = redrawWordCloud;
+window.addEventListener('resize', redrawWordCloud);
 
 // Select words or clear selection
 window.addEventListener('click', function(event) {
@@ -30,15 +29,22 @@ window.addEventListener('click', function(event) {
         if (! (event.ctrlKey || event.shiftKey)) {
             clearSelection();
         }
-        var cls = pybridge.word_clicked(span.innerHTML);
-        console.log(cls);
-        span.className = cls;
+        span.className = span.className !== 'selected' ? 'selected': '';
     } else if (span.tagName == 'BODY') {
         clearSelection();
     }
+    // Signal selection back to Qt
+    var words = [],
+        spans = document.getElementsByTagName('span');
+    for (var i=0; i < spans.length; ++i) {
+        var span = spans[i];
+        if (span.className === 'selected')
+            words.push(span.innerHTML);
+    }
+    SELECTED_WORDS = words;
+    pybridge.update_selection(words)
 });
 function clearSelection() {
-    pybridge.word_clicked('');
     var spans = document.getElementsByTagName('span');
     for (var i=0; i < spans.length; ++i) {
         spans[i].className = '';
@@ -47,8 +53,6 @@ function clearSelection() {
 
 // Mark words in SELECTED_WORDS list selected
 var SELECTED_WORDS = [];
-document.getElementById('canvas')
-    .addEventListener('wordclouddrawn', selectWords);
 function selectWords() {
     var lookup = {};
     var spans = document.getElementsByTagName('span');
@@ -56,6 +60,7 @@ function selectWords() {
         lookup[SELECTED_WORDS[i]] = true;
     }
     for (var i=0; i<spans.length; ++i) {
-        spans[i].className = lookup[spans[i].innerHTML] === true ? 'selected' : '';
+        spans[i].className = lookup[spans[i].innerHTML] ? 'selected' : '';
     }
 }
+document.getElementById('canvas').addEventListener('wordcloudstop', selectWords);
