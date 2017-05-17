@@ -4,7 +4,7 @@ from Orange.data.io import FileFormat
 from Orange.widgets import gui
 from Orange.widgets.utils.itemmodels import VariableListModel
 from Orange.widgets.data.owselectcolumns import VariablesListItemView
-from Orange.widgets.settings import Setting
+from Orange.widgets.settings import Setting, ContextSetting, PerfectDomainContextHandler
 from Orange.widgets.widget import OWWidget, Msg
 from orangecontrib.text.corpus import Corpus, get_sample_corpora_dir
 from orangecontrib.text.widgets.utils import widgets
@@ -31,7 +31,12 @@ class OWLoadCorpus(OWWidget):
                   for f in sorted(set(FileFormat.readers.values()),
                                   key=list(FileFormat.readers.values()).index)))
 
+    settingsHandler = PerfectDomainContextHandler(
+        match_values=PerfectDomainContextHandler.MATCH_VALUES_ALL
+    )
+
     recent_files = Setting([])
+    used_vars = ContextSetting([])
 
     class Error(OWWidget.Error):
         read_file = Msg("Can't read file {} ({})")
@@ -78,6 +83,7 @@ class OWLoadCorpus(OWWidget):
         widget.select(0)
 
     def open_file(self, path):
+        self.closeContext()
         self.Error.read_file.clear()
         self.used_attrs[:] = []
         self.unused_attrs[:] = []
@@ -86,9 +92,11 @@ class OWLoadCorpus(OWWidget):
                 self.corpus = Corpus.from_file(path)
                 self.corpus.name = os.path.splitext(os.path.basename(path))[0]
                 self.info_label.setText("Corpus of {} documents.".format(len(self.corpus)))
-                self.used_attrs.extend(self.corpus.text_features)
+                self.used_vars = list(self.corpus.text_features)
+                self.openContext(self.corpus)
+                self.used_attrs.extend(self.used_vars)
                 self.unused_attrs.extend([f for f in self.corpus.domain.metas
-                                          if f.is_string and f not in self.corpus.text_features])
+                                          if f.is_string and f not in self.used_attrs])
             except BaseException as err:
                 self.Error.read_file(path, str(err))
 
@@ -105,6 +113,7 @@ class OWLoadCorpus(OWWidget):
         if self.corpus is not None:
             self.corpus.set_text_features(remove_duplicates(self.used_attrs))
             self.send(Output.CORPUS, self.corpus)
+            self.used_vars = list(self.used_attrs)
 
 
 if __name__ == '__main__':
