@@ -51,7 +51,7 @@ class Corpus(Table):
         """
         n_doc = _check_arrays(X, Y, metas)
 
-        self.X = X if X is not None and X.size else sp.csr_matrix((n_doc, 0))   # prefer sparse (BoW compute values)
+        self.X = X if X is not None else sp.csr_matrix((n_doc, 0))   # prefer sparse (BoW compute values)
         self.Y = Y if Y is not None else np.zeros((n_doc, 0))
         self.metas = metas if metas is not None else np.zeros((n_doc, 0))
         self.W = W if W is not None else np.zeros((n_doc, 0))
@@ -386,7 +386,10 @@ class Corpus(Table):
                 filename = abs_path
 
         table = Table.from_file(filename)
-        return cls(table.domain, table.X, table.Y, table.metas, table.W)
+        X = table.X
+        if not sp.issparse(X) and X.size == 0:
+            X = sp.csr_matrix(X)        # prefer sparse (BoW compute values)
+        return cls(table.domain, X, table.Y, table.metas, table.W)
 
     @staticmethod
     def retain_preprocessing(orig, new, key=...):
