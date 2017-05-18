@@ -4,7 +4,7 @@ from Orange.data.io import FileFormat
 from Orange.widgets import gui
 from Orange.widgets.utils.itemmodels import VariableListModel
 from Orange.widgets.data.owselectcolumns import VariablesListItemView
-from Orange.widgets.settings import Setting
+from Orange.widgets.settings import Setting, ContextSetting, PerfectDomainContextHandler
 from Orange.widgets.widget import OWWidget, Msg
 from orangecontrib.text.corpus import Corpus, get_sample_corpora_dir
 from orangecontrib.text.widgets.utils import widgets
@@ -31,7 +31,12 @@ class OWLoadCorpus(OWWidget):
                   for f in sorted(set(FileFormat.readers.values()),
                                   key=list(FileFormat.readers.values()).index)))
 
+    settingsHandler = PerfectDomainContextHandler(
+        match_values=PerfectDomainContextHandler.MATCH_VALUES_ALL
+    )
+
     recent_files = Setting([])
+    used_attrs = ContextSetting([])
 
     class Error(OWWidget.Error):
         read_file = Msg("Can't read file {} ({})")
@@ -57,38 +62,41 @@ class OWLoadCorpus(OWWidget):
         # Used Text Features
         fbox = gui.widgetBox(self.controlArea, orientation=0)
         ubox = gui.widgetBox(fbox, "Used text features", addSpace=True)
-        self.used_attrs = VariableListModel(enable_dnd=True)
+        self.used_attrs_model = VariableListModel(enable_dnd=True)
         self.used_attrs_view = VariablesListItemView()
-        self.used_attrs_view.setModel(self.used_attrs)
+        self.used_attrs_view.setModel(self.used_attrs_model)
         ubox.layout().addWidget(self.used_attrs_view)
 
-        aa = self.used_attrs
+        aa = self.used_attrs_model
         aa.dataChanged.connect(self.update_feature_selection)
         aa.rowsInserted.connect(self.update_feature_selection)
         aa.rowsRemoved.connect(self.update_feature_selection)
 
         # Ignored Text Features
         ibox = gui.widgetBox(fbox, "Ignored text features", addSpace=True)
-        self.unused_attrs = VariableListModel(enable_dnd=True)
+        self.unused_attrs_model = VariableListModel(enable_dnd=True)
         self.unused_attrs_view = VariablesListItemView()
-        self.unused_attrs_view.setModel(self.unused_attrs)
+        self.unused_attrs_view.setModel(self.unused_attrs_model)
         ibox.layout().addWidget(self.unused_attrs_view)
 
         # load first file
         widget.select(0)
 
     def open_file(self, path):
+        self.closeContext()
         self.Error.read_file.clear()
-        self.used_attrs[:] = []
-        self.unused_attrs[:] = []
+        self.used_attrs_model[:] = []
+        self.unused_attrs_model[:] = []
         if path:
             try:
                 self.corpus = Corpus.from_file(path)
                 self.corpus.name = os.path.splitext(os.path.basename(path))[0]
                 self.info_label.setText("Corpus of {} documents.".format(len(self.corpus)))
-                self.used_attrs.extend(self.corpus.text_features)
-                self.unused_attrs.extend([f for f in self.corpus.domain.metas
-                                          if f.is_string and f not in self.corpus.text_features])
+                self.used_attrs = list(self.corpus.text_features)
+                self.openContext(self.corpus)
+                self.used_attrs_model.extend(self.used_attrs)
+                self.unused_attrs_model.extend([f for f in self.corpus.domain.metas
+                                          if f.is_string and f not in self.used_attrs_model])
             except BaseException as err:
                 self.Error.read_file(path, str(err))
 
@@ -103,8 +111,9 @@ class OWLoadCorpus(OWWidget):
             return unique
 
         if self.corpus is not None:
-            self.corpus.set_text_features(remove_duplicates(self.used_attrs))
+            self.corpus.set_text_features(remove_duplicates(self.used_attrs_model))
             self.send(Output.CORPUS, self.corpus)
+            self.used_attrs = list(self.used_attrs_model)
 
 
 if __name__ == '__main__':
