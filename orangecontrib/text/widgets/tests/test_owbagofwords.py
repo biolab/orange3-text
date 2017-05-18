@@ -1,6 +1,5 @@
 import unittest
 
-from Orange.data import Table
 from Orange.widgets.tests.base import WidgetTest, WidgetOutputsTestMixin
 
 from orangecontrib.text.corpus import Corpus

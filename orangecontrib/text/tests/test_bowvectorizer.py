@@ -95,3 +95,17 @@ class BowVectorizationTest(unittest.TestCase):
 
     def assertEqualCorpus(self, first, second, msg=None):
         np.testing.assert_allclose(first.X.todense(), second.X.todense(), err_msg=msg)
+
+    def test_empty_corpus(self):
+        """
+        Empty data.
+        GH-247
+        """
+        corpus = Corpus.from_file("deerwester")[:0]
+        vect = BowVectorizer(norm=BowVectorizer.L1)
+        out = vect.transform(corpus, copy=False)
+        self.assertEqual(out, corpus)
+
+
+if __name__ == "__main__":
+    unittest.main()

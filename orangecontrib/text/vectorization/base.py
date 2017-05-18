@@ -12,7 +12,7 @@ class BaseVectorizer:
         if copy:
             corpus = corpus.copy()
 
-        if not len(corpus.dictionary) and source_dict is None:
+        if not (len(corpus.dictionary) or source_dict) or not len(corpus):
             return corpus
         else:
             return self._transform(corpus, source_dict)
