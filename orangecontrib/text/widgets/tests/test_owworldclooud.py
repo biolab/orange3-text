@@ -18,6 +18,17 @@ class TestWorldCloudWidget(WidgetTest):
         self.send_signal("Corpus", self.corpus)
         self.send_signal("Corpus", None)
 
+    def test_empty_data(self):
+        """
+        Widget crashes when receives zero length data.
+        GH-244
+        """
+        self.assertTrue(self.widget.documents_info_str == "(no documents on input)")
+        self.send_signal("Corpus", self.corpus)
+        self.assertTrue(self.widget.documents_info_str == "9 documents with 42 words")
+        self.send_signal("Corpus", self.corpus[:0])
+        self.assertTrue(self.widget.documents_info_str == "(no documents on input)")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -233,7 +233,7 @@ span.selected {color:red !important}
     def handleNewSignals(self):
         if self.topic is not None:
             self._apply_topic()
-        elif self.corpus is not None:
+        elif self.corpus is not None and len(self.corpus):
             self._apply_corpus()
         else:
             self.clear()
