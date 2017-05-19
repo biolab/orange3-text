@@ -183,9 +183,7 @@ span.selected {color:red !important}
         N_BEST = 200
         words, weights = words[:N_BEST], weights[:N_BEST]
         # Repopulate table
-        self.tablemodel.clear()
-        for word, weight in zip(words, weights):
-            self.tablemodel.append([weight, word])
+        self.tablemodel.wrap(list(zip(weights, words)))
         self.tableview.sortByColumn(0, Qt.DescendingOrder)
         # Reset wordcloud
         weights = np.clip(weights, *np.percentile(weights, [2, 98]))
@@ -237,6 +235,9 @@ span.selected {color:red !important}
             self._apply_topic()
         elif self.corpus is not None:
             self._apply_corpus()
+        else:
+            self.clear()
+            return
 
         self.Warning.topic_precedence(
             shown=self.corpus is not None and self.topic is not None)
@@ -244,6 +245,12 @@ span.selected {color:red !important}
         if self.topic is not None or self.corpus is not None:
             if self.selected_words:
                 self.update_selection(self.selected_words)
+
+    def clear(self):
+        self._new_webview()
+        self.tablemodel.clear()
+        self.wordlist = None
+        self.commit()
 
     def update_selection(self, words, skip=None):
         assert skip is None or skip in (self.webview, self.tableview)
