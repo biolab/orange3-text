@@ -231,7 +231,7 @@ span.selected {color:red !important}
                                    if data else '(no documents on input)')
 
     def handleNewSignals(self):
-        if self.topic is not None:
+        if self.topic is not None and len(self.topic):
             self._apply_topic()
         elif self.corpus is not None and len(self.corpus):
             self._apply_corpus()
