@@ -9,13 +9,11 @@ class BaseVectorizer:
 
     def transform(self, corpus, copy=True, source_dict=None):
         """Transforms a corpus to a new one with additional attributes. """
+        if not (len(corpus.dictionary) or source_dict) or not len(corpus):
+            return corpus
         if copy:
             corpus = corpus.copy()
-
-        if not len(corpus.dictionary) and source_dict is None:
-            return corpus
-        else:
-            return self._transform(corpus, source_dict)
+        return self._transform(corpus, source_dict)
 
     def _transform(self, corpus, source_dict):
         raise NotImplementedError
