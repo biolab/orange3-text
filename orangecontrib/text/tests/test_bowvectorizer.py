@@ -103,7 +103,7 @@ class BowVectorizationTest(unittest.TestCase):
         """
         corpus = Corpus.from_file("deerwester")[:0]
         vect = BowVectorizer(norm=BowVectorizer.L1)
-        out = vect.transform(corpus, copy=False)
+        out = vect.transform(corpus)
         self.assertEqual(out, corpus)
 
 
