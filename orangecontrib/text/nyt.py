@@ -51,7 +51,7 @@ class NYT:
         (data.StringVariable('Creative Works'), lambda doc: NYT.keywords(doc, 'creative_works')),
         (tv, lambda doc: NYT.tv.parse(doc.get('pub_date'))),
         (data.DiscreteVariable('Article Type'), lambda doc: doc.get('type_of_material', None)),
-        (data.DiscreteVariable('Word Count'), lambda doc: doc.get('word_count', None)),
+        (data.ContinuousVariable('Word Count', number_of_decimals=0), lambda doc: doc.get('word_count', None)),
     ]
 
     text_features = [metas[0][0], metas[1][0]]  # headline + abstract
