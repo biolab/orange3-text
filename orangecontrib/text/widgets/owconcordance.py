@@ -102,7 +102,8 @@ class ConcordanceModel(QAbstractTableModel):
         return Qt.ItemIsEnabled | Qt.ItemIsSelectable
 
     def rowCount(self, parent=None, *args, **kwargs):
-        return 0 if parent.isValid() or self.word_index is None \
+        return 0 if parent is None or parent.isValid() or \
+                    self.word_index is None \
                else len(self.word_index)
 
     def columnCount(self, parent=None, *args, **kwargs):

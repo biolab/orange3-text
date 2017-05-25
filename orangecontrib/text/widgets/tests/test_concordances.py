@@ -206,6 +206,22 @@ class TestConcordanceWidget(WidgetTest):
         selection_model.select(ind_10, selection_model.Select)
         self.assertIsNone(self.get_output("Selected Documents"))
 
+    def test_signal_to_none(self):
+        self.send_signal("Corpus", self.corpus)
+        widget = self.widget
+        widget.controls.word.setText("of")
+        view = self.widget.conc_view
+        nrows = widget.model.rowCount()
+        view.selectRow(1)
+
+        self.send_signal("Corpus", None)
+        self.assertIsNone(self.get_output("Selected Documents"))
+        self.assertEqual(widget.model.rowCount(), 0)
+        self.assertEqual(widget.controls.word.text(), "of")
+
+        self.send_signal("Corpus", self.corpus)
+        self.assertEqual(widget.model.rowCount(), nrows)
+
 
 if __name__ == "__main__":
     unittest.main()
