@@ -13,7 +13,6 @@ from Orange.data import Table
 from Orange.data.domain import filter_visible
 from Orange.widgets import gui, widget
 from Orange.widgets.settings import Setting, ContextSetting, PerfectDomainContextHandler
-from Orange.widgets.utils.webview import HAVE_WEBKIT
 from Orange.widgets.widget import OWWidget, Msg
 from orangecontrib.text.corpus import Corpus
 
@@ -75,7 +74,7 @@ class OWCorpusViewer(OWWidget):
         self.search_listbox = gui.listBox(
             self.controlArea, self, 'search_indices', 'search_features',
             selectionMode=QListView.ExtendedSelection,
-            box='Search features', callback=self.regenerate_docs,)
+            box='Search features', callback=self.search_features_changed)
 
         # Display features
         display_box = gui.widgetBox(self.controlArea, 'Display features')
@@ -136,24 +135,48 @@ class OWCorpusViewer(OWWidget):
             domain = self.corpus.domain
 
             self.search_features = list(filter_visible(chain(domain.variables, domain.metas)))
-            self.display_features = list(filter_visible(chain(domain.variables, domain.metas)))
+            # set names here, openContext will map them to features
+            self.display_features = [f.name for f in filter_visible(chain(domain.variables, domain.metas))]
             self.search_indices = list(range(len(self.search_features)))
             self.display_indices = list(range(len(self.display_features)))
             self.openContext(self.corpus)
+            self.regenerate_docs()
+            self.list_docs()
+            self.update_info()
             self.set_selection()
+            self.show_docs()
             # Enable/disable tokens checkbox
             if not self.corpus.has_tokens():
                 self.show_tokens_checkbox.setCheckState(False)
             self.show_tokens_checkbox.setEnabled(self.corpus.has_tokens())
-            self.regenerate_docs()
-            self.show_docs()
         self.commit()
+
+    def closeContext(self):
+        """ Workaround to store a list of feature names instead of features
+        itself since storing a list of features doesn't yet work. """
+
+        # assigning to display_features deletes indices, hence make a copy
+        indices = self.display_indices[:]
+        # map features to name
+        self.display_features = [f.name for f in self.display_features]
+        # restore selected indices
+        self.display_indices = indices
+        super().closeContext()
+
+    def openContext(self, data):
+        """ Revert features names back to features and keep the indices. """
+        super().openContext(data)
+        domain = self.corpus.domain
+        indices = self.display_indices[:]
+        self.display_features = [domain[domain.index(f)] for f in self.display_features]
+        self.display_indices = indices
 
     def reset_widget(self):
         # Corpus
         self.corpus = None
         self.corpus_docs = None
         self.output_mask = []
+        self.display_features = []
         # Widgets
         self.search_listbox.clear()
         self.display_listbox.clear()
@@ -194,11 +217,11 @@ class OWCorpusViewer(OWWidget):
                 self.doc_list_model.appendRow(item)
                 self.output_mask.append(i)
 
+    def reset_selection(self):
         if self.doc_list_model.rowCount() > 0:
             self.doc_list.selectRow(0)  # Select the first document
         else:
             self.doc_webview.setHtml('')
-        self.commit()
 
     def set_selection(self):
         view = self.doc_list
@@ -316,6 +339,10 @@ class OWCorpusViewer(OWWidget):
         for script in ('jquery-3.1.1.min.js', 'jquery.mark.min.js', 'highlighter.js', ):
             self.doc_webview.evalJS(open(os.path.join(resources, script), encoding='utf-8').read())
 
+    def search_features_changed(self):
+        self.regenerate_docs()
+        self.refresh_search()
+
     def regenerate_docs(self):
         self.corpus_docs = None
         self.Warning.no_feats_search.clear()
@@ -324,12 +351,13 @@ class OWCorpusViewer(OWWidget):
             if len(feats) == 0:
                 self.Warning.no_feats_search()
             self.corpus_docs = self.corpus.documents_from_features(feats)
-            self.refresh_search()
 
     def refresh_search(self):
         if self.corpus is not None:
             self.list_docs()
+            self.reset_selection()
             self.update_info()
+            self.commit()
 
     def highlight_docs(self):
         search_keyword = self.regexp_filter.\
