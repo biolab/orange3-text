@@ -5,7 +5,6 @@ sudo: false   # use container-based infrastructure
 matrix:
     include:
         - python: '3.4'
-        - python: '3.5'
         - &docs
           env: BUILD_DOCS=true
           python: '3.5'
