@@ -58,6 +58,7 @@ class OWCorpusViewer(OWWidget):
         self.output_mask = []           # Output corpus indices
         self.doc_webview = None         # WebView for showing content
         self.search_features = []       # two copies are needed since Display allows drag & drop
+        self.display_list_indices = [0]
 
         # Info attributes
         self.update_info()
@@ -79,7 +80,7 @@ class OWCorpusViewer(OWWidget):
         # Display features
         display_box = gui.widgetBox(self.controlArea, 'Display features')
         self.display_listbox = gui.listBox(
-            display_box, self, 'display_indices', 'display_features',
+            display_box, self, 'display_list_indices', 'display_features',
             selectionMode=QListView.ExtendedSelection,
             callback=self.show_docs, enableDragDrop=True)
         self.show_tokens_checkbox = gui.checkBox(display_box, self, 'show_tokens',
@@ -135,11 +136,11 @@ class OWCorpusViewer(OWWidget):
             domain = self.corpus.domain
 
             self.search_features = list(filter_visible(chain(domain.variables, domain.metas)))
-            # set names here, openContext will map them to features
-            self.display_features = [f.name for f in filter_visible(chain(domain.variables, domain.metas))]
+            self.display_features = list(filter_visible(chain(domain.variables, domain.metas)))
             self.search_indices = list(range(len(self.search_features)))
             self.display_indices = list(range(len(self.display_features)))
             self.openContext(self.corpus)
+            self.display_list_indices = self.display_indices
             self.regenerate_docs()
             self.list_docs()
             self.update_info()
@@ -150,26 +151,6 @@ class OWCorpusViewer(OWWidget):
                 self.show_tokens_checkbox.setCheckState(False)
             self.show_tokens_checkbox.setEnabled(self.corpus.has_tokens())
         self.commit()
-
-    def closeContext(self):
-        """ Workaround to store a list of feature names instead of features
-        itself since storing a list of features doesn't yet work. """
-
-        # assigning to display_features deletes indices, hence make a copy
-        indices = self.display_indices[:]
-        # map features to name
-        self.display_features = [f.name for f in self.display_features]
-        # restore selected indices
-        self.display_indices = indices
-        super().closeContext()
-
-    def openContext(self, data):
-        """ Revert features names back to features and keep the indices. """
-        super().openContext(data)
-        domain = self.corpus.domain
-        indices = self.display_indices[:]
-        self.display_features = [domain[domain.index(f)] for f in self.display_features]
-        self.display_indices = indices
 
     def reset_widget(self):
         # Corpus
@@ -287,6 +268,7 @@ class OWCorpusViewer(OWWidget):
         </body>
         </html>
         '''
+        self.display_indices = self.display_list_indices
         if self.corpus is None:
             return
 
