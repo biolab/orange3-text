@@ -14,6 +14,17 @@ from orangecontrib.text.tag import pos_tagger
 
 
 class CorpusTests(unittest.TestCase):
+    def test_init_preserve_shape_of_empty_x(self):
+        c = Corpus.from_file('bookexcerpts')
+        d = c.domain
+        new_domain = Domain((ContinuousVariable('c1'),), d.class_vars, d.metas)
+
+        empty_X = csr_matrix((len(c), 1))
+        new = Corpus(new_domain, X=empty_X, Y=c.Y, metas=c.metas)
+
+        self.assertEqual(empty_X.nnz, 0)
+        self.assertEqual(new.X.shape, empty_X.shape)
+
     def test_corpus_from_file(self):
         c = Corpus.from_file('bookexcerpts')
         self.assertEqual(len(c), 140)
