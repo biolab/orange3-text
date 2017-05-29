@@ -51,8 +51,12 @@ class OWTwitter(OWWidget):
             self.load_credentials()
 
         def load_credentials(self):
-            self.key_edit.setText(self.cm_key.key)
-            self.secret_edit.setText(self.cm_secret.key)
+            key = self.cm_key.key
+            secret_key = self.cm_secret.key
+            if key:
+                self.key_edit.setText(key)
+            if secret_key:
+                self.secret_edit.setText(secret_key)
 
         def save_credentials(self):
             self.cm_key.key = self.key_input
