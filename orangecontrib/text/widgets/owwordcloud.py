@@ -27,8 +27,8 @@ class OWWordCloud(widget.OWWidget):
     priority = 10000
     icon = "icons/WordCloud.svg"
     inputs = [
+        (IO.CORPUS, Corpus, 'on_corpus_change', widget.Default),
         (IO.TOPIC, Topic, 'on_topic_change'),
-        (IO.CORPUS, Corpus, 'on_corpus_change'),
     ]
     outputs = [
         (IO.CORPUS, Corpus),
