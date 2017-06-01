@@ -8,7 +8,8 @@ import numpy as np
 import scipy.sparse as sp
 from gensim import corpora
 
-from Orange.data import Table, Domain, ContinuousVariable, DiscreteVariable
+from Orange.data import ContinuousVariable, DiscreteVariable, \
+    Domain, RowInstance, Table
 from orangecontrib.text.vectorization import BowVectorizer
 
 
@@ -364,7 +365,8 @@ class Corpus(Table):
 
     def __getitem__(self, key):
         c = super().__getitem__(key)
-        Corpus.retain_preprocessing(self, c, key)
+        if isinstance(c, (Corpus, RowInstance)):
+            Corpus.retain_preprocessing(self, c, key)
         return c
 
     @classmethod
