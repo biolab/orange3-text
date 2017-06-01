@@ -8,7 +8,7 @@ from AnyQt.QtWidgets import QSizePolicy, QApplication, QTableView, \
 from AnyQt.QtGui import QColor
 
 from Orange.widgets import gui
-from Orange.widgets.settings import Setting
+from Orange.widgets.settings import Setting, ContextSetting, PerfectDomainContextHandler
 from Orange.widgets.widget import OWWidget, Msg
 from nltk import ConcordanceIndex
 from orangecontrib.text.corpus import Corpus
@@ -166,10 +166,13 @@ class OWConcordance(OWWidget):
     ]
     outputs = [('Selected Documents', Corpus, )]
 
+    settingsHandler = PerfectDomainContextHandler(
+        match_values = PerfectDomainContextHandler.MATCH_VALUES_ALL
+    )
     autocommit = Setting(True)
     context_width = Setting(5)
-    word = Setting("")
-    # TODO Set selection settings.
+    word = ContextSetting("", exclude_metas=False)
+    # TODO Set selection settings (DataHashContextHandler)
 
     class Warning(OWWidget.Warning):
         multiple_words_on_input = Msg("Multiple query words on input. "
@@ -182,6 +185,7 @@ class OWConcordance(OWWidget):
         self.n_matching = ''    # Info on docs matching the word
         self.n_tokens = ''      # Info on tokens
         self.n_types = ''       # Info on types (unique tokens)
+        self.is_word_on_input = False
 
         # Info attributes
         info_box = gui.widgetBox(self.controlArea, 'Info')
@@ -236,18 +240,21 @@ class OWConcordance(OWWidget):
                 QItemSelectionModel.SelectCurrent | QItemSelectionModel.Rows)
 
     def set_corpus(self, data=None):
+        self.closeContext()
         self.corpus = data
         if data is not None and not isinstance(data, Corpus):
             self.corpus = Corpus.from_table(data.domain, data)
         self.model.set_corpus(self.corpus)
-        self.update_widget()
-        self.commit()
+        if not self.is_word_on_input:
+            self.word = ""
+            self.openContext(self.corpus)
+        self.set_word()
 
     def set_word_from_input(self, topic):
         self.Warning.multiple_words_on_input.clear()
-        have_word = topic is not None and len(topic) > 0
-        self.input.setEnabled(not have_word)
-        if have_word:
+        self.is_word_on_input = topic is not None and len(topic) > 0
+        self.input.setEnabled(not self.is_word_on_input)
+        if self.is_word_on_input:
             if len(topic) > 1:
                 self.Warning.multiple_words_on_input()
             self.word = topic.metas[0, 0]

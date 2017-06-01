@@ -217,7 +217,7 @@ class TestConcordanceWidget(WidgetTest):
         self.send_signal("Corpus", None)
         self.assertIsNone(self.get_output("Selected Documents"))
         self.assertEqual(widget.model.rowCount(), 0)
-        self.assertEqual(widget.controls.word.text(), "of")
+        self.assertEqual(widget.controls.word.text(), "")
 
         self.send_signal("Corpus", self.corpus)
         self.assertEqual(widget.model.rowCount(), nrows)
