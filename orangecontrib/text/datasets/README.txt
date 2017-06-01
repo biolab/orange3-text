@@ -46,3 +46,18 @@ Dataset: Election-2016-Tweets.tab
 
 Tweets from the major party candidates for the 2016 US Presidential Election Hillary Clinton and Donald Trump.
 This data set is a simplified version of the data set from: https://www.kaggle.com/benhamner/clinton-trump-tweets
+
+-----------------------------------------------------------------------------------------------------------------------
+Dataset: Andersen.tab
+
+Three Andersen's stories.  Originating from: http://hca.gilead.org.il
+
+-----------------------------------------------------------------------------------------------------------------------
+Dataset: Grimm-tales.tab
+
+Selected Grimm tales. Originating from: http://www.pitt.edu/~dash/grimmtales.html
+
+-----------------------------------------------------------------------------------------------------------------------
+Dataset: Grimm-tales-short.tab
+
+Animal tales and tales of magic. Originating from: http://www.pitt.edu/~dash/grimmtales.html
