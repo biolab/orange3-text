@@ -38,7 +38,8 @@ class Corpus(Table):
         """Bypass Table.__new__."""
         return object.__new__(cls)
 
-    def __init__(self, domain=None, X=None, Y=None, metas=None, W=None, text_features=None, ids=None):
+    def __init__(self, domain=None, X=None, Y=None, metas=None, W=None,
+                 text_features=None, ids=None):
         """
         Args:
             domain (Orange.data.Domain): the domain for this Corpus
@@ -110,6 +111,22 @@ class Corpus(Table):
         if len(include_feats) == 0 and first:
             include_feats.append(first)
         self.set_text_features(include_feats)
+
+    def extend(self, instances):
+        if self.domain != instances.domain:
+            raise NotImplementedError(
+                'Extending corpora with different domains is not supported.')
+        super().extend(instances)
+        if self._tokens is None or instances._tokens is None:
+            self._tokens = None
+        else:
+            self._tokens = np.append(self._tokens, instances._tokens)
+        self._dictionary = corpora.Dictionary(self._tokens)
+        if self.pos_tags is None or instances.pos_tags is None:
+            self.pos_tags = None
+        else:
+            self.pos_tags = np.append(self.pos_tags, instances.pos_tags)
+        self._ngrams_corpus = None  # Todo: extend instead of reset
 
     def extend_corpus(self, metadata, Y):
         """
