@@ -41,7 +41,7 @@ class OWCorpusViewer(OWWidget):
     display_features = ContextSetting([], exclude_metas=False)
     regexp_filter = ContextSetting("")
 
-    selection = Setting([0], schema_only=True)
+    selection = [0]  # TODO: DataHashContextHandler
 
     show_tokens = Setting(False)
     autocommit = Setting(True)
@@ -139,6 +139,7 @@ class OWCorpusViewer(OWWidget):
             self.display_features = list(filter_visible(chain(domain.variables, domain.metas)))
             self.search_indices = list(range(len(self.search_features)))
             self.display_indices = list(range(len(self.display_features)))
+            self.selection = [0]
             self.openContext(self.corpus)
             self.display_list_indices = self.display_indices
             self.regenerate_docs()
