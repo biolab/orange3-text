@@ -44,8 +44,9 @@ class OWGuardian(OWWidget):
             self.load_credentials()
 
         def load_credentials(self):
-            if self.cm_key.key:
-                self.key_edit.setText(self.cm_key.key)
+            key = self.cm_key.key
+            if key:
+                self.key_edit.setText(key)
 
         def save_credentials(self):
             self.cm_key.key = self.key_input
@@ -62,6 +63,7 @@ class OWGuardian(OWWidget):
             if not silent: self.Error.invalid_credentials.clear()
             self.check_credentials()
             if self.api:
+
                 self.parent.update_api(self.api)
                 super().accept()
             elif not silent:

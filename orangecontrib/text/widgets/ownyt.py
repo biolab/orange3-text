@@ -44,7 +44,9 @@ class OWNYT(OWWidget):
             self.load_credentials()
 
         def load_credentials(self):
-            self.key_edit.setText(self.cm_key.key)
+            key = self.cm_key.key
+            if key:
+                self.key_edit.setText(key)
 
         def save_credentials(self):
             self.cm_key.key = self.key_input
