@@ -134,6 +134,10 @@ class OWCorpusViewer(OWWidget):
             if not isinstance(data, Corpus):
                 self.corpus = Corpus.from_table(data.domain, data)
             domain = self.corpus.domain
+            # Enable/disable tokens checkbox
+            if not self.corpus.has_tokens():
+                self.show_tokens_checkbox.setCheckState(False)
+            self.show_tokens_checkbox.setEnabled(self.corpus.has_tokens())
 
             self.search_features = list(filter_visible(chain(domain.variables, domain.metas)))
             self.display_features = list(filter_visible(chain(domain.variables, domain.metas)))
@@ -147,10 +151,6 @@ class OWCorpusViewer(OWWidget):
             self.update_info()
             self.set_selection()
             self.show_docs()
-            # Enable/disable tokens checkbox
-            if not self.corpus.has_tokens():
-                self.show_tokens_checkbox.setCheckState(False)
-            self.show_tokens_checkbox.setEnabled(self.corpus.has_tokens())
         self.commit()
 
     def reset_widget(self):
