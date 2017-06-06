@@ -1,9 +1,12 @@
 import nltk
 import numpy as np
 
+from orangecontrib.text.misc import nltk_data_dir
 from orangecontrib.text.util import chunkable
 
-nltk.download(['averaged_perceptron_tagger', 'maxent_treebank_pos_tagger'], quiet=True)
+nltk.download(["wordnet", "stopwords", "punkt", "opinion_lexicon",
+               'averaged_perceptron_tagger', 'maxent_treebank_pos_tagger'],
+              download_dir=nltk_data_dir(), quiet=False)
 
 
 class POSTagger:

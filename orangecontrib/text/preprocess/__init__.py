@@ -34,8 +34,8 @@ import nltk
 from orangecontrib.text.misc import nltk_data_dir
 
 # Ensure NLTK data is present
-NLTK_DATA = ["wordnet", "stopwords", "punkt"]
-nltk.download(NLTK_DATA, download_dir=nltk_data_dir(), quiet=True)
+NLTK_DATA = ["wordnet", "stopwords", "punkt", "opinion_lexicon", 'averaged_perceptron_tagger', 'maxent_treebank_pos_tagger']
+nltk.download(NLTK_DATA, download_dir=nltk_data_dir(), quiet=False)
 
 from .filter import *
 from .normalize import *
