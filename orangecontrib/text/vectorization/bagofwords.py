@@ -20,7 +20,8 @@ class BoWPreprocessTransform:
         self.dictionary = dictionary
 
     def __call__(self, new_corpus):
-        new_corpus = self.preprocessor(new_corpus)
+        if self.preprocessor is not None:
+            new_corpus = self.preprocessor(new_corpus)
         bow_corpus = self.bow_vectorizer.transform(new_corpus, copy=True, source_dict=self.dictionary)
         # store name to indices mapping so BoWComputeValue can run faster
         bow_corpus.feature_name_to_index = {attr.name: i for i, attr in enumerate(bow_corpus.domain.attributes)}

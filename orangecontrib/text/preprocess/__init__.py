@@ -34,7 +34,8 @@ import nltk
 from orangecontrib.text.misc import nltk_data_dir
 
 # Ensure NLTK data is present
-NLTK_DATA = ["wordnet", "stopwords", "punkt"]
+NLTK_DATA = ["wordnet", "stopwords", "punkt", "opinion_lexicon",
+             "vader_lexicon"]
 nltk.download(NLTK_DATA, download_dir=nltk_data_dir(), quiet=True)
 
 from .filter import *
