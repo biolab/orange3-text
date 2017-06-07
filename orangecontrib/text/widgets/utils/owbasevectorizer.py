@@ -2,16 +2,8 @@ from AnyQt.QtWidgets import QGroupBox, QHBoxLayout, QVBoxLayout
 
 from Orange.widgets import gui
 from Orange.widgets import settings
-from Orange.widgets.widget import OWWidget
+from Orange.widgets.widget import OWWidget, Input, Output
 from orangecontrib.text.corpus import Corpus
-
-
-class Input:
-    CORPUS = 'Corpus'
-
-
-class Output:
-    CORPUS = 'Corpus'
 
 
 class OWBaseVectorizer(OWWidget):
@@ -21,12 +13,11 @@ class OWBaseVectorizer(OWWidget):
         Ensure that `create_configuration_layout` and `update_method` are overwritten.
     """
     # Input/output
-    inputs = [
-        (Input.CORPUS, Corpus, 'set_data'),
-    ]
-    outputs = [
-        (Output.CORPUS, Corpus)
-    ]
+    class Inputs:
+        corpus = Input("Corpus", Corpus)
+
+    class Outputs:
+        corpus = Output("Corpus", Corpus)
 
     want_main_area = False
     resizing_enabled = False
@@ -54,6 +45,7 @@ class OWBaseVectorizer(OWWidget):
         self.controlArea.layout().addLayout(buttons_layout)
         self.update_method()
 
+    @Inputs.corpus
     def set_data(self, data):
         self.corpus = data
         self.commit()
@@ -64,7 +56,7 @@ class OWBaseVectorizer(OWWidget):
     def apply(self):
         if self.corpus is not None:
             new_corpus = self.method.transform(self.corpus)
-            self.send(Output.CORPUS, new_corpus)
+            self.Outputs.corpus.send(new_corpus)
 
     def update_method(self):
         self.method = self.Method()
