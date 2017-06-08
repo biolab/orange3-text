@@ -5,13 +5,9 @@ from Orange.widgets import gui
 from Orange.widgets.utils.itemmodels import VariableListModel
 from Orange.widgets.data.owselectcolumns import VariablesListItemView
 from Orange.widgets.settings import Setting, ContextSetting, PerfectDomainContextHandler
-from Orange.widgets.widget import OWWidget, Msg
+from Orange.widgets.widget import OWWidget, Msg, Output
 from orangecontrib.text.corpus import Corpus, get_sample_corpora_dir
 from orangecontrib.text.widgets.utils import widgets
-
-
-class Output:
-    CORPUS = "Corpus"
 
 
 class OWLoadCorpus(OWWidget):
@@ -20,7 +16,9 @@ class OWLoadCorpus(OWWidget):
     icon = "icons/TextFile.svg"
     priority = 10
 
-    outputs = [(Output.CORPUS, Corpus)]
+    class Outputs:
+        corpus = Output("Corpus", Corpus)
+
     want_main_area = False
     resizing_enabled = False
 
@@ -112,7 +110,7 @@ class OWLoadCorpus(OWWidget):
 
         if self.corpus is not None:
             self.corpus.set_text_features(remove_duplicates(self.used_attrs_model))
-            self.send(Output.CORPUS, self.corpus)
+            self.Outputs.corpus.send(self.corpus)
             self.used_attrs = list(self.used_attrs_model)
 
 
