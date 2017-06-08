@@ -13,14 +13,8 @@ from Orange.data import Table
 from Orange.data.domain import filter_visible
 from Orange.widgets import gui, widget
 from Orange.widgets.settings import Setting, ContextSetting, PerfectDomainContextHandler
-from Orange.widgets.widget import OWWidget, Msg
+from Orange.widgets.widget import OWWidget, Msg, Input, Output
 from orangecontrib.text.corpus import Corpus
-
-
-class IO:
-    DATA = 'Data'
-    MATCHED = "Matching Docs"
-    UNMATCHED = "Other Docs"
 
 
 class OWCorpusViewer(OWWidget):
@@ -29,8 +23,12 @@ class OWCorpusViewer(OWWidget):
     icon = "icons/CorpusViewer.svg"
     priority = 70
 
-    inputs = [(IO.DATA, Table, 'set_data')]
-    outputs = [(IO.MATCHED, Corpus, widget.Default), (IO.UNMATCHED, Corpus)]
+    class Inputs:
+        data = Input("Data", Table)
+
+    class Outputs:
+        matching_docs = Output("Matching Docs", Corpus, default=True)
+        other_docs = Output("Other Docs", Corpus)
 
     settingsHandler = PerfectDomainContextHandler(
         match_values = PerfectDomainContextHandler.MATCH_VALUES_ALL
@@ -125,6 +123,7 @@ class OWCorpusViewer(OWWidget):
         text = self.doc_webview.selectedText()
         QApplication.clipboard().setText(text)
 
+    @Inputs.data
     def set_data(self, data=None):
         self.closeContext()
         self.reset_widget()
@@ -372,11 +371,12 @@ class OWCorpusViewer(OWWidget):
             output_mask = set(self.output_mask)
             unmatched_mask = [i for i in range(len(self.corpus)) if i not in output_mask]
             unmatched = self.corpus[unmatched_mask]
-            self.send(IO.MATCHED, matched)
-            self.send(IO.UNMATCHED, unmatched)
+            self.Outputs.matching_docs.send(matched)
+            self.Outputs.other_docs.send(unmatched)
         else:
-            self.send(IO.MATCHED, None)
-            self.send(IO.UNMATCHED, None)
+            self.Outputs.matching_docs.send(None)
+            self.Outputs.other_docs.send(None)
+
 
 if __name__ == '__main__':
     from orangecontrib.text.tag import pos_tagger
