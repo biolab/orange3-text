@@ -6,15 +6,11 @@ from AnyQt.QtWidgets import QApplication, QFormLayout
 from Orange.data import StringVariable
 from Orange.widgets.credentials import CredentialManager
 from Orange.widgets.settings import Setting
-from Orange.widgets.widget import OWWidget, Msg, gui
+from Orange.widgets.widget import OWWidget, Msg, gui, Output
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.nyt import NYT, MIN_DATE
 from orangecontrib.text.widgets.utils import CheckListLayout, DatePickerInterval, QueryBox, \
     gui_require, asynchronous
-
-
-class IO:
-    CORPUS = "Corpus"
 
 
 class OWNYT(OWWidget):
@@ -71,7 +67,9 @@ class OWNYT(OWWidget):
     icon = "icons/NYTimes.svg"
     priority = 20
 
-    outputs = [(IO.CORPUS, Corpus)]
+    class Outputs:
+        corpus = Output("Corpus", Corpus)
+
     want_main_area = False
     resizing_enabled = False
 
@@ -171,7 +169,7 @@ class OWNYT(OWWidget):
         self.update_info_label()
         self.progressBarInit(None)
         self.search_button.setText('Stop')
-        self.send(IO.CORPUS, None)
+        self.Outputs.corpus.send(None)
 
     @search.on_result
     def on_result(self, result):
@@ -191,7 +189,7 @@ class OWNYT(OWWidget):
         if self.corpus is not None:
             vars_ = [var for var in self.corpus.domain.metas if var.name in self.text_includes]
             self.corpus.set_text_features(vars_ or None)
-            self.send(IO.CORPUS, self.corpus)
+            self.Outputs.corpus.send(self.corpus)
 
     def update_api(self, api):
         self.nyt_api = api
