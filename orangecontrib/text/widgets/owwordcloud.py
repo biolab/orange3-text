@@ -12,30 +12,24 @@ from Orange.data import StringVariable, ContinuousVariable, Domain, Table
 from Orange.data.util import scale
 from Orange.widgets import widget, gui, settings
 from Orange.widgets.utils.itemmodels import PyTableModel
+from Orange.widgets.widget import Input, Output
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.topics import Topic
-
-
-class IO:
-    CORPUS = 'Corpus'
-    TOPIC = 'Topic'
-    SELECTED_WORDS = 'Selected Words'
-    WORD_COUNTS = 'Word Counts'
 
 
 class OWWordCloud(widget.OWWidget):
     name = "Word Cloud"
     priority = 10000
     icon = "icons/WordCloud.svg"
-    inputs = [
-        (IO.CORPUS, Corpus, 'on_corpus_change', widget.Default),
-        (IO.TOPIC, Topic, 'on_topic_change'),
-    ]
-    outputs = [
-        (IO.CORPUS, Corpus),
-        (IO.SELECTED_WORDS, Topic),
-        (IO.WORD_COUNTS, Table)
-    ]
+
+    class Inputs:
+        corpus = Input("Corpus", Corpus, default=True)
+        topic = Input("Topic", Topic)
+
+    class Outputs:
+        corpus = Output("Corpus", Corpus)
+        selected_words = Output("Selected Words", Topic, dynamic=False)
+        word_counts = Output("Word Counts", Table)
 
     graph_name = 'webview'
 
@@ -193,6 +187,7 @@ span.selected {color:red !important}
         self.wordlist = np.c_[words, weights].tolist()
         self.on_cloud_pref_change()
 
+    @Inputs.topic
     def on_topic_change(self, data):
         self.topic = data
         self.topic_info.setVisible(data is not None)
@@ -235,8 +230,9 @@ span.selected {color:red !important}
                             metas=[StringVariable('Word')])
             wc_table = Table.from_numpy(domain, X=w_count, metas=words)
             wc_table.name = 'Word Counts'
-        self.send(IO.WORD_COUNTS, wc_table)
+        self.Outputs.word_counts.send(wc_table)
 
+    @Inputs.corpus
     def on_corpus_change(self, data):
         self.corpus = data
 
@@ -289,7 +285,7 @@ span.selected {color:red !important}
             rows = [i for i, doc in enumerate(self.corpus.ngrams)
                     if any(word in doc for word in self.selected_words)]
             out = self.corpus[rows]
-        self.send(IO.CORPUS, out)
+        self.Outputs.corpus.send(out)
 
         topic = None
         words = list(self.selected_words)
@@ -298,7 +294,7 @@ span.selected {color:red !important}
                                      X=np.empty((len(words), 0)),
                                      metas=np.c_[words].astype(object))
             topic.name = 'Selected Words'
-        self.send(IO.SELECTED_WORDS, topic)
+        self.Outputs.selected_words.send(topic)
 
 
 def main():
