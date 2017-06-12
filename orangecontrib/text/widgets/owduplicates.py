@@ -10,15 +10,8 @@ from Orange.data import Table, DiscreteVariable, Domain
 from Orange.misc import DistMatrix
 from Orange.widgets import gui, widget, settings
 from Orange.widgets.utils.itemmodels import PyTableModel
-from Orange.widgets.widget import Msg, OWWidget
+from Orange.widgets.widget import Msg, OWWidget, Input, Output
 from orangecontrib.text import Corpus
-
-
-class IO:
-    distances = 'Distances'
-    corpus = 'Corpus'
-    corpus_without_duplicates = 'Corpus Without Duplicates'
-    duplicates = 'Duplicates Cluster'
 
 
 class OWDuplicates(widget.OWWidget):
@@ -27,12 +20,13 @@ class OWDuplicates(widget.OWWidget):
     icon = 'icons/Duplicates.svg'
     priority = 45
 
-    inputs = [(IO.distances, DistMatrix, 'set_distances')]
-    outputs = [
-        (IO.corpus_without_duplicates, Corpus),
-        (IO.duplicates, Corpus),
-        (IO.corpus, Corpus),
-    ]
+    class Inputs:
+        distances = Input("Distances", DistMatrix)
+
+    class Outputs:
+        corpus_without_duplicates = Output("Corpus Without Duplicates", Corpus)
+        duplicates = Output("Duplicates Cluster", Corpus)
+        corpus = Output("Corpus", Corpus)
 
     resizing_enabled = True
 
@@ -115,6 +109,7 @@ class OWDuplicates(widget.OWWidget):
         self.table_model.clear()
         self.histogram.setValues([])
 
+    @Inputs.distances
     def set_distances(self, distances):
         self.Error.clear()
         self.distances = distances
@@ -217,9 +212,9 @@ class OWDuplicates(widget.OWWidget):
             domain = Domain(attrs, class_, metas)
             corpus = corpus.from_table(domain, corpus)
             corpus.get_column_view(cluster_var)[0][:] = self.clustering_mask
-            self.send(IO.corpus, corpus)
+            self.Outputs.corpus.send(corpus)
         else:
-            self.send(IO.corpus, None)
+            self.Outputs.corpus.send(None)
 
     def send_corpus_without_duplicates(self):
         if self.clustering_mask is not None:
@@ -228,17 +223,17 @@ class OWDuplicates(widget.OWWidget):
                     for i in set(self.clustering_mask)]
             c = self.corpus[mask]
             c.name = '{} (Without Duplicates)'.format(self.corpus.name)
-            self.send(IO.corpus_without_duplicates, c)
+            self.Outputs.corpus_without_duplicates.send(c)
         else:
-            self.send(IO.corpus_without_duplicates, None)
+            self.Outputs.corpus_without_duplicates.send(None)
 
     def send_duplicates(self):
         index = self.table_view.selectionModel().currentIndex().row()
         cluster = self.table_model[index][0]
         mask = np.flatnonzero(self.clustering_mask == cluster.id)
         c = self.corpus[mask]
-        c.name = '{} {}'.format(IO.duplicates, cluster)
-        self.send(IO.duplicates, c)
+        c.name = '{} {}'.format(self.Outputs.duplicates.name, cluster)
+        self.Outputs.duplicates.send(c)
 
     def send_report(self):
         self.report_items([
