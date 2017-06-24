@@ -329,8 +329,8 @@ class FilteringModule(MultipleMethodModule):
 
     pattern = settings.Setting('\.|,|:|;|!|\?|\(|\)|\||\+|\'|\"|‘|’|“|”|\'|\’'
                                '|…|\-|–|—|\$|&|\*|>|<')
-    min_df = settings.Setting(0.)
-    max_df = settings.Setting(1.)
+    min_df = settings.Setting(0.1)
+    max_df = settings.Setting(0.9)
     keep_n = settings.Setting(100)
     use_keep_n = settings.Setting(False)
     use_df = settings.Setting(False)
