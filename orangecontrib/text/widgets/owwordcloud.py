@@ -8,7 +8,7 @@ from AnyQt.QtCore import Qt, QItemSelection, QItemSelectionModel, pyqtSlot, \
     QObject, QSortFilterProxyModel
 from AnyQt.QtWidgets import QApplication
 
-from Orange.data import StringVariable, ContinuousVariable, Domain
+from Orange.data import StringVariable, ContinuousVariable, Domain, Table
 from Orange.data.util import scale
 from Orange.widgets import widget, gui, settings
 from Orange.widgets.utils.itemmodels import PyTableModel
@@ -20,6 +20,7 @@ class IO:
     CORPUS = 'Corpus'
     TOPIC = 'Topic'
     SELECTED_WORDS = 'Selected Words'
+    WORD_COUNTS = 'Word Counts'
 
 
 class OWWordCloud(widget.OWWidget):
@@ -33,6 +34,7 @@ class OWWordCloud(widget.OWWidget):
     outputs = [
         (IO.CORPUS, Corpus),
         (IO.SELECTED_WORDS, Topic),
+        (IO.WORD_COUNTS, Table)
     ]
 
     graph_name = 'webview'
@@ -215,9 +217,25 @@ span.selected {color:red !important}
         self._repopulate_wordcloud(words, weights)
 
     def _apply_corpus(self):
+        words, freq = self.word_frequencies()
+        self._repopulate_wordcloud(words, freq)
+
+    def word_frequencies(self):
         counts = self.corpus_counter.most_common()
         words, freq = zip(*counts) if counts else ([], [])
-        self._repopulate_wordcloud(words, freq)
+        return words, freq
+
+    def create_weight_list(self):
+        wc_table = None
+        if self.corpus is not None:
+            words, freq = self.word_frequencies()
+            words = np.array(words)[:, None]
+            w_count = np.array(freq)[:, None]
+            domain = Domain([ContinuousVariable('Word Count')],
+                            metas=[StringVariable('Word')])
+            wc_table = Table.from_numpy(domain, X=w_count, metas=words)
+            wc_table.name = 'Word Counts'
+        self.send(IO.WORD_COUNTS, wc_table)
 
     def on_corpus_change(self, data):
         self.corpus = data
@@ -229,6 +247,8 @@ span.selected {color:red !important}
 
         self.documents_info_str = ('{} documents with {} words'.format(n_docs, n_words)
                                    if data else '(no documents on input)')
+
+        self.create_weight_list()
 
     def handleNewSignals(self):
         if self.topic is not None and len(self.topic):
