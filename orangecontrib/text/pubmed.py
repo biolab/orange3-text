@@ -149,7 +149,8 @@ def _corpus_from_records(records, includes_metadata):
             meta_vars.append(StringVariable.make(field_name))
 
     class_vars = [
-        DiscreteVariable('section_name', values=list(set(class_values)))
+        DiscreteVariable('section_name',
+                         values=list(set(filter(None, class_values))))
     ]
     domain = Domain([], class_vars=class_vars, metas=meta_vars)
 
