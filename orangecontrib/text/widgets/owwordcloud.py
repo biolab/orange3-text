@@ -234,7 +234,7 @@ span.selected {color:red !important}
             domain = Domain([ContinuousVariable('Word Count')],
                             metas=[StringVariable('Word')])
             wc_table = Table.from_numpy(domain, X=w_count, metas=words)
-            wc_table.name = 'Word Count'
+            wc_table.name = 'Word Counts'
         self.send(IO.WORD_COUNTS, wc_table)
 
     def on_corpus_change(self, data):
