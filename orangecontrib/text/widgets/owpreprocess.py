@@ -396,11 +396,13 @@ class FilteringModule(MultipleMethodModule):
         if self.FREQUENCY in self.checked:
             self.frequency_filter.min_df = self.min_df
             self.frequency_filter.max_df = self.max_df
+        else:
+            checked.append(self.FREQUENCY)
+            self.frequency_filter.min_df = 0
+            self.frequency_filter.max_df = 1.0
 
         if self.KEEP_N in checked:
             checked.pop(checked.index(self.KEEP_N))
-            if self.FREQUENCY not in self.checked:
-                checked.append(self.FREQUENCY)
             self.frequency_filter.keep_n = self.keep_n
         else:
             self.frequency_filter.keep_n = None
