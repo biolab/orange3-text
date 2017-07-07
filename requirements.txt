@@ -11,3 +11,7 @@ typing    # required for Py3.4
 beautifulsoup4
 simhash
 wikipedia
+pdfminer3k>=1.3.1
+odfpy>=1.3.5
+docx2txt>=0.6
+lxml
