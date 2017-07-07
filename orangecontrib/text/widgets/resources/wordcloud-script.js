@@ -5,7 +5,7 @@ var OPTIONS = {
     fontWeight: 300,
     color: 'UNUSED',
     backgroundColor: 'white',
-    minSize: 8,
+    minSize: 7,
     weightFactor: 1,
     gridSize: 12,
     clearCanvas: true,
