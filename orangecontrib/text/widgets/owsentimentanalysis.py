@@ -12,7 +12,7 @@ METHODS = [Liu_Hu_Sentiment(),
 class OWSentimentAnalysis(OWWidget):
     name = "Sentiment Analysis"
     description = "Predict sentiment from text."
-    icon = "icons/SentimentAnalysis"
+    icon = "icons/SentimentAnalysis.svg"
     priority = 30001
 
     class Inputs:
