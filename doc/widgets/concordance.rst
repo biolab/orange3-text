@@ -19,14 +19,14 @@ Signals
 
 -  **Selected Documents**
 
-	A :ref:`Corpus` instance.   
+   A :ref:`Corpus` instance.   
 
 Description
 -----------
 
 **Concordance** finds the queried word in a text and displays the context in which this word is used. It can output selected documents for further analysis.
 
-.. figure:: images/Concordance.png
+.. figure:: images/Concordance-stamped.png
 
 1. *Information*:
 	- *Documents*: number of documents on the input.
