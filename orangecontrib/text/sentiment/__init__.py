@@ -4,7 +4,8 @@ from nltk.corpus import opinion_lexicon
 from nltk.sentiment import SentimentIntensityAnalyzer
 from orangecontrib.text import Corpus
 from orangecontrib.text.preprocess import WordPunctTokenizer
-from orangecontrib.text.vectorization.bagofwords import BoWPreprocessTransform, BoWComputeValue
+from orangecontrib.text.vectorization.base import SharedTransform,\
+    VectorizationComputeValue
 
 
 class Liu_Hu_Sentiment:
@@ -15,9 +16,8 @@ class Liu_Hu_Sentiment:
 
     def __init__(self):
         super().__init__()
-        self.dic = {0: 'sentiment'}
 
-    def transform(self, corpus):
+    def transform(self, corpus, copy=True):
         scores = []
         tokenizer = WordPunctTokenizer()
         tokens = tokenizer(corpus.documents)
@@ -29,10 +29,12 @@ class Liu_Hu_Sentiment:
         X = np.array(scores).reshape((-1, len(self.sentiments)))
 
         # set  compute values
-        shared_cv = BoWPreprocessTransform(None, self, self.dic)
-        cv = [BoWComputeValue(self.dic[i], shared_cv) for i in range(len(self.dic))]
+        shared_cv = SharedTransform(self)
+        cv = [VectorizationComputeValue(shared_cv, col)
+              for col in self.sentiments]
 
-        corpus = corpus.copy()
+        if copy:
+            corpus = corpus.copy()
         corpus.extend_attributes(X, self.sentiments, compute_values=cv)
         return corpus
 
@@ -44,9 +46,8 @@ class Vader_Sentiment:
     def __init__(self):
         super().__init__()
         self.vader = SentimentIntensityAnalyzer()
-        self.dic = dict(enumerate(self.sentiments))
 
-    def transform(self, corpus):
+    def transform(self, corpus, copy=True):
         scores = []
         for text in corpus.documents:
             pol_sc = self.vader.polarity_scores(text)
@@ -54,10 +55,12 @@ class Vader_Sentiment:
         X = np.array(scores).reshape((-1, len(self.sentiments)))
 
         # set  compute values
-        shared_cv = BoWPreprocessTransform(None, self, self.dic)
-        cv = [BoWComputeValue(self.dic[i], shared_cv) for i in range(len(self.dic))]
+        shared_cv = SharedTransform(self)
+        cv = [VectorizationComputeValue(shared_cv, col)
+              for col in self.sentiments]
 
-        corpus = corpus.copy()
+        if copy:
+            corpus = corpus.copy()
         corpus.extend_attributes(X, self.sentiments, compute_values=cv)
         return corpus
 
