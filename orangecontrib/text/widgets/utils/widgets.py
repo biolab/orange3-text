@@ -245,13 +245,18 @@ class FileWidget(QWidget):
         self.dialog_format = dialog_format
         self.start_dir = start_dir
 
-        self.recent_files = recent_files
+        # Recent files should also contain `empty_file_label` so
+        # when (none) is selected this is stored in settings.
+        self.recent_files = recent_files if recent_files is not None else []
         self.directory_aliases = directory_aliases or {}
-        self.check_existence()
-
-        self.on_open.connect(on_open)
         self.allow_empty = allow_empty
         self.empty_file_label = empty_file_label
+        if self.empty_file_label not in self.recent_files \
+                and (self.allow_empty or not self.recent_files):
+            self.recent_files.append(self.empty_file_label)
+
+        self.check_existence()
+        self.on_open.connect(on_open)
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -298,25 +303,31 @@ class FileWidget(QWidget):
 
     def select(self, n):
         name = self.file_combo.currentText()
-        if n < len(self.recent_files):
-            name = self.recent_files[n]
+        if name == self.empty_file_label:
             del self.recent_files[n]
-            self.recent_files.insert(0, name)
-            self.open_file(self.recent_files[0])
+            self.recent_files.insert(0, self.empty_file_label)
             self.update_combo()
-        elif name == self.empty_file_label:
             self.open_file(self.empty_file_label)
         elif name in self.directory_aliases:
             self.browse(self.directory_aliases[name])
+        elif n < len(self.recent_files):
+            name = self.recent_files[n]
+            del self.recent_files[n]
+            self.recent_files.insert(0, name)
+            self.update_combo()
+            self.open_file(self.recent_files[0])
 
     def update_combo(self):
+        """ Sync combo values to the changes in self.recent_files. """
         if self.recent_files is not None:
             self.file_combo.clear()
-            for file in self.recent_files:
-                self.file_combo.addItem(os.path.split(file)[1])
-
-            if self.allow_empty or not self.recent_files:
-                self.file_combo.addItem(self.empty_file_label)
+            for i, file in enumerate(self.recent_files):
+                # remove (none) when we have some files and allow_empty=False
+                if file == self.empty_file_label and \
+                        not self.allow_empty and len(self.recent_files) > 1:
+                    del self.recent_files[i]
+                else:
+                    self.file_combo.addItem(os.path.split(file)[1])
 
             for alias in self.directory_aliases.keys():
                 self.file_combo.addItem(alias)
@@ -328,7 +339,8 @@ class FileWidget(QWidget):
     def check_existence(self):
         if self.recent_files:
             to_remove = [
-                file for file in self.recent_files if not os.path.exists(file)
+                file for file in self.recent_files
+                if file != self.empty_file_label and not os.path.exists(file)
             ]
             for file in to_remove:
                 self.recent_files.remove(file)
