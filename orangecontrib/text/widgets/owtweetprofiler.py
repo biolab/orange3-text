@@ -6,13 +6,9 @@ from Orange.data import StringVariable
 from Orange.widgets import gui
 from Orange.widgets.settings import Setting
 from Orange.widgets.utils.itemmodels import VariableListModel
-from Orange.widgets.widget import OWWidget, Msg
+from Orange.widgets.widget import OWWidget, Msg, Input, Output
 from orangecontrib.text.tweet_profiler import TweetProfiler
 from orangecontrib.text.corpus import Corpus
-
-
-class IO:
-    CORPUS = "Corpus"
 
 
 class OWTweetProfiler(OWWidget):
@@ -22,8 +18,11 @@ class OWTweetProfiler(OWWidget):
     icon = "icons/TweetProfiler.svg"
     priority = 46
 
-    inputs = [(IO.CORPUS, Corpus, 'set_corpus')]
-    outputs = [(IO.CORPUS, Corpus)]
+    class Inputs:
+        corpus = Input("Corpus", Corpus)
+
+    class Outputs:
+        corpus = Output("Corpus", Corpus)
 
     want_main_area = False
     resizing_enabled = False
@@ -113,6 +112,7 @@ class OWTweetProfiler(OWWidget):
         box.setLayout(layout)
         return box
 
+    @Inputs.corpus
     def set_corpus(self, corpus):
         self.corpus = corpus
 
@@ -144,9 +144,9 @@ class OWTweetProfiler(OWWidget):
                     self.corpus, self.strings_attrs[self.tweet_attr],
                     self.model_name, self.output_mode,
                     on_advance=pb.advance)
-            self.send(IO.CORPUS, out)
+            self.Outputs.corpus.send(out)
         else:
-            self.send(IO.CORPUS, None)
+            self.Outputs.corpus.send(None)
 
         self.refresh_token_info()
 

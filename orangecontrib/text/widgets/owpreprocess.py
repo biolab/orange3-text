@@ -8,7 +8,7 @@ from AnyQt.QtWidgets import (QWidget, QLabel, QHBoxLayout, QVBoxLayout,
                              QScrollArea)
 
 from Orange.widgets import gui, settings, widget
-from Orange.widgets.widget import OWWidget, Msg
+from Orange.widgets.widget import OWWidget, Msg, Input, Output
 from orangecontrib.text import preprocess
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.misc import nltk_data_dir
@@ -21,14 +21,6 @@ from orangecontrib.text.widgets.utils.concurrent import asynchronous
 def _i(name, icon_path='icons'):
     widget_path = os.path.dirname(os.path.abspath(__file__))
     return os.path.join(widget_path, icon_path, name)
-
-
-class Input:
-    CORPUS = 'Corpus'
-
-
-class Output:
-    PP_CORPUS = 'Corpus'
 
 
 class OnOffButton(QPushButton):
@@ -510,8 +502,11 @@ class OWPreprocess(OWWidget):
     icon = 'icons/TextPreprocess.svg'
     priority = 30
 
-    inputs = [(Input.CORPUS, Corpus, 'set_data')]
-    outputs = [(Output.PP_CORPUS, Corpus)]
+    class Inputs:
+        corpus = Input("Corpus", Corpus)
+
+    class Outputs:
+        corpus = Output("Corpus", Corpus)
 
     autocommit = settings.Setting(True)
 
@@ -598,6 +593,7 @@ class OWPreprocess(OWWidget):
 
         self.buttonsArea.layout().addWidget(commit_button)
 
+    @Inputs.corpus
     def set_data(self, data=None):
         self.corpus = data.copy() if data is not None else None
         self.initial_ngram_range = data.ngram_range if data is not None else None
@@ -619,7 +615,7 @@ class OWPreprocess(OWWidget):
             self.apply()
         else:
             self.update_info()
-            self.send(Output.PP_CORPUS, None)
+            self.Outputs.corpus.send(None)
 
     def apply(self):
         self.preprocess()
@@ -646,7 +642,7 @@ class OWPreprocess(OWWidget):
         if result is not None and len(result.dictionary) == 0:
             self.Warning.no_token_left()
             result = None
-        self.send(Output.PP_CORPUS, result)
+        self.Outputs.corpus.send(result)
         self.progressBarFinished(None)
 
     def set_minimal_width(self):

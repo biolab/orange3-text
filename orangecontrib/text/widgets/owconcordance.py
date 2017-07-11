@@ -9,7 +9,7 @@ from AnyQt.QtGui import QColor
 
 from Orange.widgets import gui
 from Orange.widgets.settings import Setting, ContextSetting, PerfectDomainContextHandler
-from Orange.widgets.widget import OWWidget, Msg
+from Orange.widgets.widget import OWWidget, Msg, Input, Output
 from nltk import ConcordanceIndex
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.topics import Topic
@@ -160,11 +160,12 @@ class OWConcordance(OWWidget):
     icon = "icons/Concordance.svg"
     priority = 30000
 
-    inputs = [
-        ('Corpus', Corpus, 'set_corpus'),
-        ('Query Word', Topic, 'set_word_from_input'),
-    ]
-    outputs = [('Selected Documents', Corpus, )]
+    class Inputs:
+        corpus = Input("Corpus", Corpus)
+        query_word = Input("Query Word", Topic)
+
+    class Outputs:
+        selected_documents = Output("Selected Documents", Corpus)
 
     settingsHandler = PerfectDomainContextHandler(
         match_values = PerfectDomainContextHandler.MATCH_VALUES_ALL
@@ -239,6 +240,7 @@ class OWConcordance(OWWidget):
             self.conc_view.selectionModel().select(sel,
                 QItemSelectionModel.SelectCurrent | QItemSelectionModel.Rows)
 
+    @Inputs.corpus
     def set_corpus(self, data=None):
         self.closeContext()
         self.corpus = data
@@ -250,6 +252,7 @@ class OWConcordance(OWWidget):
             self.openContext(self.corpus)
         self.set_word()
 
+    @Inputs.query_word
     def set_word_from_input(self, topic):
         self.Warning.multiple_words_on_input.clear()
         self.is_word_on_input = topic is not None and len(topic) > 0
@@ -298,9 +301,9 @@ class OWConcordance(OWWidget):
                                    for row in rows))
         if selected_docs:
             selected = self.corpus[selected_docs]
-            self.send("Selected Documents", selected)
+            self.Outputs.selected_documents.send(selected)
         else:
-            self.send("Selected Documents", None)
+            self.Outputs.selected_documents.send(None)
 
 
 if __name__ == '__main__': # pragma: no cover

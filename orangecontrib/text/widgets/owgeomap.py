@@ -13,6 +13,7 @@ from AnyQt.QtWidgets import QApplication, QSizePolicy
 from Orange.data import Table
 from Orange.widgets import widget, gui, settings
 from Orange.widgets.utils.itemmodels import VariableListModel
+from Orange.widgets.widget import Input, Output
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.country_codes import \
     CC_EUROPE, INV_CC_EUROPE, SET_CC_EUROPE, \
@@ -35,8 +36,12 @@ class OWGeoMap(widget.OWWidget):
     name = "GeoMap"
     priority = 20000
     icon = "icons/GeoMap.svg"
-    inputs = [("Data", Table, "on_data")]
-    outputs = [('Corpus', Corpus)]
+
+    class Inputs:
+        data = Input("Data", Table)
+
+    class Outputs:
+        corpus = Output("Corpus", Corpus)
 
     want_main_area = False
 
@@ -54,13 +59,13 @@ class OWGeoMap(widget.OWWidget):
         if not regions:
             self.regions = []
         if not regions or self.data is None:
-            return self.send('Corpus', None)
+            return self.Outputs.corpus.send(None)
         self.regions = regions.split(',')
         attr = self.data.domain[self.selected_attr]
         if attr.is_discrete: return  # TODO, FIXME: make this work for discrete attrs also
         from Orange.data.filter import FilterRegex
         filter = FilterRegex(attr, r'\b{}\b'.format(r'\b|\b'.join(self.regions)), re.IGNORECASE)
-        self.send('Corpus', self.data._filter_values(filter))
+        self.Outputs.corpus.send(self.data._filter_values(filter))
 
     def _create_layout(self):
         box = gui.widgetBox(self.controlArea,
@@ -113,6 +118,7 @@ class OWGeoMap(widget.OWWidget):
                                    if var.name.lower().startswith(('country', 'location', 'region'))),
                                   vars[0].name if vars else '')
 
+    @Inputs.data
     def on_data(self, data):
         if data and not isinstance(data, Corpus):
             data = Corpus.from_table(data.domain, data)

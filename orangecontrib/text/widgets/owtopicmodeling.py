@@ -6,7 +6,7 @@ from AnyQt.QtWidgets import (QVBoxLayout, QButtonGroup, QRadioButton,
 
 from Orange.widgets import settings
 from Orange.widgets import gui
-from Orange.widgets.widget import OWWidget
+from Orange.widgets.widget import OWWidget, Input, Output
 from Orange.data import Table
 from Orange.widgets.data.contexthandlers import DomainContextHandler
 from orangecontrib.text.corpus import Corpus
@@ -84,11 +84,6 @@ class HdpWidget(TopicWidget):
     tau = settings.Setting(64)
 
 
-class Output:
-    CORPUS = "Corpus"
-    TOPIC = "Topic"
-
-
 def require(attribute):
     def decorator(func):
         @functools.wraps(func)
@@ -108,9 +103,13 @@ class OWTopicModeling(OWWidget):
     settingsHandler = DomainContextHandler()
 
     # Input/output
-    inputs = [("Corpus", Corpus, "set_data")]
-    outputs = [(Output.CORPUS, Table),
-               (Output.TOPIC, Topic)]
+    class Inputs:
+        corpus = Input("Corpus", Corpus)
+
+    class Outputs:
+        corpus = Output("Corpus", Table)
+        topic = Output("Topic", Topic)
+
     want_main_area = True
 
     methods = [
@@ -165,6 +164,7 @@ class OWTopicModeling(OWWidget):
         self.mainArea.layout().addWidget(self.topic_desc)
         self.topic_desc.setFocus()
 
+    @Inputs.corpus
     def set_data(self, data=None):
         self.corpus = data
         self.apply()
@@ -206,10 +206,10 @@ class OWTopicModeling(OWWidget):
     @learning_task.on_result
     def on_result(self, corpus):
         self.progressBarFinished(None)
-        self.send(Output.CORPUS, corpus)
+        self.Outputs.corpus.send(corpus)
         if corpus is None:
             self.topic_desc.clear()
-            self.send(Output.TOPIC, None)
+            self.Outputs.topic.send(None)
         else:
             self.topic_desc.show_model(self.model)
 
@@ -225,7 +225,7 @@ class OWTopicModeling(OWWidget):
 
     def send_topic_by_id(self, topic_id=None):
         if self.model.model and topic_id is not None:
-            self.send(Output.TOPIC, self.model.get_topics_table_by_id(topic_id))
+            self.Outputs.topic.send(self.model.get_topics_table_by_id(topic_id))
 
 
 class TopicViewerTreeWidgetItem(QTreeWidgetItem):

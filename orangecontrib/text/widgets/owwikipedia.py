@@ -3,15 +3,11 @@ from AnyQt.QtWidgets import QApplication, QGridLayout, QLabel
 
 from Orange.widgets import gui
 from Orange.widgets import settings
-from Orange.widgets.widget import OWWidget, Msg
+from Orange.widgets.widget import OWWidget, Msg, Output
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.language_codes import lang2code, code2lang
 from orangecontrib.text.widgets.utils import ComboBox, ListEdit, CheckListLayout, asynchronous
 from orangecontrib.text.wikipedia import WikipediaAPI
-
-
-class IO:
-    CORPUS = "Corpus"
 
 
 class OWWikipedia(OWWidget):
@@ -20,7 +16,9 @@ class OWWikipedia(OWWidget):
     priority = 27
     icon = 'icons/Wikipedia.svg'
 
-    outputs = [(IO.CORPUS, Corpus)]
+    class Outputs:
+        corpus = Output("Corpus", Corpus)
+
     want_main_area = False
     resizing_enabled = False
 
@@ -112,7 +110,7 @@ class OWWikipedia(OWWidget):
         self.progressBarInit(None)
         self.search_button.setText('Stop')
         self.result_label.setText(self.info_label.format(0))
-        self.send(IO.CORPUS, None)
+        self.Outputs.corpus.send(None)
 
     @search.on_result
     def on_result(self, result):
@@ -130,7 +128,7 @@ class OWWikipedia(OWWidget):
         if self.result is not None:
             vars_ = [var for var in self.result.domain.metas if var.name in self.text_includes]
             self.result.set_text_features(vars_ or None)
-            self.send(IO.CORPUS, self.result)
+            self.Outputs.corpus.send(self.result)
 
     def send_report(self):
         if self.result:

@@ -4,7 +4,7 @@ from AnyQt.QtWidgets import QTreeWidget, QTreeView, QTreeWidgetItem
 from Orange.data import Table, Domain
 from Orange.widgets import gui
 from Orange.widgets.settings import Setting
-from Orange.widgets.widget import OWWidget, Msg
+from Orange.widgets.widget import OWWidget, Msg, Input
 from orangecontrib.text import Corpus
 from orangecontrib.text.util import np_sp_sum
 from orangecontrib.text.stats import false_discovery_rate, hypergeom_p_values
@@ -18,8 +18,10 @@ class OWWordEnrichment(OWWidget):
     priority = 60
 
     # Input/output
-    inputs = [("Selected Data", Table, "set_data_selected"),
-              ("Data", Table, "set_data"),]
+    class Inputs:
+        selected_data = Input("Selected Data", Table)
+        data = Input("Data", Table)
+
     want_main_area = True
 
     class Error(OWWidget.Error):
@@ -90,9 +92,11 @@ class OWWordEnrichment(OWWidget):
             self.sig_words.resizeColumnToContents(i)
         self.mainArea.layout().addWidget(self.sig_words)
 
+    @Inputs.data
     def set_data(self, data=None):
         self.data = data
 
+    @Inputs.selected_data
     def set_data_selected(self, data=None):
         self.selected_data = data
 

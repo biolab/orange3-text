@@ -4,16 +4,12 @@ from AnyQt.QtWidgets import QApplication, QGridLayout, QLabel, QFormLayout
 from Orange.widgets import gui
 from Orange.widgets.credentials import CredentialManager
 from Orange.widgets.settings import Setting
-from Orange.widgets.widget import OWWidget, Msg
+from Orange.widgets.widget import OWWidget, Msg, Output
 from orangecontrib.text import twitter
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.language_codes import lang2code
 from orangecontrib.text.widgets.utils import (ComboBox, ListEdit,
                                               CheckListLayout, gui_require, asynchronous)
-
-
-class IO:
-    CORPUS = 'Corpus'
 
 
 class OWTwitter(OWWidget):
@@ -81,7 +77,9 @@ class OWTwitter(OWWidget):
     icon = 'icons/Twitter.svg'
     priority = 25
 
-    outputs = [(IO.CORPUS, Corpus)]
+    class Outputs:
+        corpus = Output("Corpus", Corpus)
+
     want_main_area = False
     resizing_enabled = False
 
@@ -246,7 +244,7 @@ class OWTwitter(OWWidget):
         self.Error.clear()
         self.progressBarInit(None)
         self.search_button.setText('Stop')
-        self.send(IO.CORPUS, None)
+        self.Outputs.corpus.send(None)
         if self.mode == self.CONTENT and not self.limited_search:
             self.progressBarFinished(None)
 
@@ -274,7 +272,7 @@ class OWTwitter(OWWidget):
             vars_ = [var for var in self.corpus.domain.metas
                      if var.name in self.text_includes]
             self.corpus.set_text_features(vars_ or None)
-            self.send(IO.CORPUS, self.corpus)
+            self.Outputs.corpus.send(self.corpus)
 
     @gui_require('api', 'key_missing')
     def send_report(self):
