@@ -54,8 +54,8 @@ class OWLoadCorpus(OWWidget):
 
         # Corpus info
         ibox = gui.widgetBox(self.controlArea, "Corpus info", addSpace=True)
-        corp_info = "Corpus of 0 documents."
-        self.info_label = gui.label(ibox, self, corp_info)
+        self.info_label = gui.label(ibox, self, "")
+        self.update_info()
 
         # Used Text Features
         fbox = gui.widgetBox(self.controlArea, orientation=0)
@@ -89,7 +89,7 @@ class OWLoadCorpus(OWWidget):
             try:
                 self.corpus = Corpus.from_file(path)
                 self.corpus.name = os.path.splitext(os.path.basename(path))[0]
-                self.info_label.setText("Corpus of {} documents.".format(len(self.corpus)))
+                self.update_info()
                 self.used_attrs = list(self.corpus.text_features)
                 self.openContext(self.corpus)
                 self.used_attrs_model.extend(self.used_attrs)
@@ -97,6 +97,32 @@ class OWLoadCorpus(OWWidget):
                                           if f.is_string and f not in self.used_attrs_model])
             except BaseException as err:
                 self.Error.read_file(path, str(err))
+
+    def update_info(self):
+        def describe(corpus):
+            dom = corpus.domain
+            text_feats = sum(m.is_string for m in dom.metas)
+            other_feats = len(dom.attributes) + len(dom.metas) - text_feats
+            text = \
+                "{} document(s), {} text features(s), {} other feature(s).". \
+                format(len(corpus), text_feats, other_feats)
+            if dom.has_continuous_class:
+                text += "<br/>Regression; numerical class."
+            elif dom.has_discrete_class:
+                text += "<br/>Classification; discrete class with {} values.". \
+                    format(len(dom.class_var.values))
+            elif corpus.domain.class_vars:
+                text += "<br/>Multi-target; {} target variables.".format(
+                    len(corpus.domain.class_vars))
+            else:
+                text += "<br/>Data has no target variable."
+            text += "</p>"
+            return text
+
+        if self.corpus is None:
+            self.info_label.setText("No corpus loaded.")
+        else:
+            self.info_label.setText(describe(self.corpus))
 
     def update_feature_selection(self):
         # TODO fix VariablesListItemView so it does not emit
