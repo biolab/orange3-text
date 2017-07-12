@@ -20,7 +20,7 @@ class OWLoadCorpus(OWWidget):
         corpus = Output("Corpus", Corpus)
 
     want_main_area = False
-    resizing_enabled = False
+    resizing_enabled = True
 
     dlgFormats = (
         "All readable files ({});;".format(
@@ -57,7 +57,7 @@ class OWLoadCorpus(OWWidget):
             on_open=self.open_file, dialog_format=self.dlgFormats,
             dialog_title='Open Orange Document Corpus',
             reload_label='Reload', browse_label='Browse',
-            allow_empty=False,
+            allow_empty=False, minimal_width=250,
         )
         fbox.layout().addWidget(self.file_widget)
 
@@ -68,7 +68,7 @@ class OWLoadCorpus(OWWidget):
 
         # Used Text Features
         fbox = gui.widgetBox(self.controlArea, orientation=0)
-        ubox = gui.widgetBox(fbox, "Used text features", addSpace=True)
+        ubox = gui.widgetBox(fbox, "Used text features", addSpace=False)
         self.used_attrs_model = VariableListModel(enable_dnd=True)
         self.used_attrs_view = VariablesListItemView()
         self.used_attrs_view.setModel(self.used_attrs_model)
@@ -80,7 +80,7 @@ class OWLoadCorpus(OWWidget):
         aa.rowsRemoved.connect(self.update_feature_selection)
 
         # Ignored Text Features
-        ibox = gui.widgetBox(fbox, "Ignored text features", addSpace=True)
+        ibox = gui.widgetBox(fbox, "Ignored text features", addSpace=False)
         self.unused_attrs_model = VariableListModel(enable_dnd=True)
         self.unused_attrs_view = VariablesListItemView()
         self.unused_attrs_view.setModel(self.unused_attrs_model)
