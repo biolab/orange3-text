@@ -12,7 +12,7 @@ from orangecontrib.text.widgets.utils import widgets
 
 class OWLoadCorpus(OWWidget):
     name = "Corpus"
-    description = "Load a corpus of text documents, (optionally) tagged with categories."
+    description = "Load a corpus of text documents."
     icon = "icons/TextFile.svg"
     priority = 10
 
