@@ -218,6 +218,7 @@ class DatePickerInterval(QWidget):
 class FileWidget(QWidget):
     on_open = pyqtSignal(str)
 
+    # TODO consider removing directory_aliases since it is not used any more
     def __init__(self, dialog_title='', dialog_format='',
                  start_dir=os.path.expanduser('~/'),
                  icon_size=(12, 20), minimal_width=200,
@@ -351,6 +352,12 @@ class FileWidget(QWidget):
         except (OSError, IOError):
             self.loading_error_signal.emit('Could not open "{}".'
                                            .format(path))
+
+    def get_selected_filename(self):
+        if self.recent_files:
+            return self.recent_files[0]
+        else:
+            return self.empty_file_label
 
 
 class ValidatedLineEdit(QLineEdit):

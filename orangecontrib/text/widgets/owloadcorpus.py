@@ -46,11 +46,14 @@ class OWLoadCorpus(OWWidget):
 
         # Browse file box
         fbox = gui.widgetBox(self.controlArea, "Corpus file", orientation=0)
-        widget = widgets.FileWidget(recent_files=self.recent_files, icon_size=(16, 16), on_open=self.open_file,
-                                    directory_aliases={"Browse documentation corpora ...": get_sample_corpora_dir()},
-                                    dialog_format=self.dlgFormats, dialog_title='Open Orange Document Corpus',
-                                    allow_empty=False, reload_label='Reload', browse_label='Browse')
-        fbox.layout().addWidget(widget)
+        self.file_widget = widgets.FileWidget(
+            recent_files=self.recent_files, icon_size=(16, 16),
+            on_open=self.open_file, dialog_format=self.dlgFormats,
+            dialog_title='Open Orange Document Corpus',
+            reload_label='Reload', browse_label='Browse',
+            allow_empty=False,
+        )
+        fbox.layout().addWidget(self.file_widget)
 
         # Corpus info
         ibox = gui.widgetBox(self.controlArea, "Corpus info", addSpace=True)
@@ -77,8 +80,17 @@ class OWLoadCorpus(OWWidget):
         self.unused_attrs_view.setModel(self.unused_attrs_model)
         ibox.layout().addWidget(self.unused_attrs_view)
 
+        # Documentation Data Sets & Report
+        box = gui.hBox(self.controlArea)
+        gui.button(box, self, "Browse documentation corpora",
+                   callback=lambda: self.file_widget.browse(
+                       get_sample_corpora_dir()),
+                   autoDefault=False,
+                   )
+        box.layout().addWidget(self.report_button)
+
         # load first file
-        widget.select(0)
+        self.file_widget.select(0)
 
     def open_file(self, path):
         self.closeContext()
@@ -143,6 +155,24 @@ class OWLoadCorpus(OWWidget):
             dom = self.corpus.domain
             empty = not (dom.variables or dom.metas) or len(self.corpus) == 0
             self.Outputs.corpus.send(self.corpus if not empty else None)
+
+    def send_report(self):
+        def describe(features):
+            if len(features):
+                return ', '.join([f.name for f in features])
+            else:
+                return '(none)'
+
+        if self.corpus is not None:
+            domain = self.corpus.domain
+            self.report_items('Corpus', (
+                ("File", self.file_widget.get_selected_filename()),
+                ("Documents", len(self.corpus)),
+                ("Used text features", describe(self.used_attrs_model)),
+                ("Ignored text features", describe(self.unused_attrs_model)),
+                ('Other features', describe(domain.attributes)),
+                ('Target', describe(domain.class_vars)),
+            ))
 
 
 if __name__ == '__main__':
