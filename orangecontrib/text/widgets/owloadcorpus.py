@@ -33,7 +33,13 @@ class OWLoadCorpus(OWWidget):
         match_values=PerfectDomainContextHandler.MATCH_VALUES_ALL
     )
 
-    recent_files = Setting([])
+    recent_files = Setting([
+        "bookexcerpts.tab",
+        "Grimm-tales-selected.tab",
+        "Election-2016-Tweets.tab",
+        "friends-transcripts.tab",
+        "Andersen.tab",
+    ])
     used_attrs = ContextSetting([])
 
     class Error(OWWidget.Error):

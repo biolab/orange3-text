@@ -11,6 +11,8 @@ from AnyQt.QtCore import QDate, pyqtSignal, Qt, QSize
 from Orange.widgets.gui import OWComponent, hBox
 from Orange.widgets import settings
 
+from orangecontrib.text.corpus import get_sample_corpora_dir
+
 
 class ListEdit(QTextEdit):
     PLACEHOLDER_COLOR = QColor(128, 128, 128)
@@ -339,10 +341,12 @@ class FileWidget(QWidget):
 
     def check_existence(self):
         if self.recent_files:
-            to_remove = [
-                file for file in self.recent_files
-                if file != self.empty_file_label and not os.path.exists(file)
-            ]
+            to_remove = []
+            for file in self.recent_files:
+                doc_path = os.path.join(get_sample_corpora_dir(), file)
+                exists = any(os.path.exists(f) for f in [file, doc_path])
+                if file != self.empty_file_label and not exists:
+                    to_remove.append(file)
             for file in to_remove:
                 self.recent_files.remove(file)
 
