@@ -109,9 +109,14 @@ class OWLoadCorpus(OWWidget):
             return unique
 
         if self.corpus is not None:
-            self.corpus.set_text_features(remove_duplicates(self.used_attrs_model))
-            self.Outputs.corpus.send(self.corpus)
+            self.corpus.set_text_features(
+                remove_duplicates(self.used_attrs_model))
             self.used_attrs = list(self.used_attrs_model)
+
+            # prevent sending "empty" corpora
+            dom = self.corpus.domain
+            empty = not (dom.variables or dom.metas) or len(self.corpus) == 0
+            self.Outputs.corpus.send(self.corpus if not empty else None)
 
 
 if __name__ == '__main__':
