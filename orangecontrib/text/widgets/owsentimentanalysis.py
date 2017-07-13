@@ -6,8 +6,10 @@ from Orange.widgets.widget import OWWidget
 from orangecontrib.text import Corpus
 from orangecontrib.text.sentiment import Vader_Sentiment, Liu_Hu_Sentiment
 
+
 METHODS = [Liu_Hu_Sentiment(),
            Vader_Sentiment()]
+
 
 class OWSentimentAnalysis(OWWidget):
     name = "Sentiment Analysis"
