@@ -95,7 +95,7 @@ class BowVectorizationTest(unittest.TestCase):
 
     def test_compute_values_to_different_domain(self):
         source = Corpus.from_file('deerwester')
-        destination = Corpus.from_file('bookexcerpts')
+        destination = Corpus.from_file('book-excerpts')
 
         self.assertFalse(source.domain.attributes)
         self.assertFalse(destination.domain.attributes)
