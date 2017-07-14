@@ -160,7 +160,7 @@ class CorpusTests(unittest.TestCase):
         c = Corpus.from_file('deerwester')
         tf = c.text_features
         self.assertEqual(len(tf), 1)
-        self.assertEqual(tf[0].name, 'text')
+        self.assertEqual(tf[0].name, 'Text')
 
     def test_documents(self):
         c = Corpus.from_file('book-excerpts')
