@@ -10,11 +10,12 @@ from orangecontrib.text.corpus import Corpus, get_sample_corpora_dir
 from orangecontrib.text.widgets.utils import widgets
 
 
-class OWLoadCorpus(OWWidget):
+class OWCorpus(OWWidget):
     name = "Corpus"
     description = "Load a corpus of text documents."
     icon = "icons/TextFile.svg"
     priority = 10
+    replaces = ["orangecontrib.text.widgets.owloadcorpus.OWLoadCorpus"]
 
     class Outputs:
         corpus = Output("Corpus", Corpus)
@@ -184,7 +185,7 @@ class OWLoadCorpus(OWWidget):
 if __name__ == '__main__':
     from AnyQt.QtWidgets import QApplication
     app = QApplication([])
-    widget = OWLoadCorpus()
+    widget = OWCorpus()
     widget.show()
     app.exec()
     widget.saveSettings()
