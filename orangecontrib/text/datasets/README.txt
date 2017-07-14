@@ -1,12 +1,12 @@
 The following files originate from the Ana Cardoso Cachopo's Homepage:
 [http://ana.cachopo.org/datasets-for-single-label-text-categorization]
 and primarily focus on single-topic text categorization.
-    * 20ng-test-all-terms.txt   [20Newsgroups dataset]
-    * 20ng-train-all-terms.txt  [20Newsgroups dataset]
-    * r8-test-all-terms.txt     [Reuters-21578 dataset]
-    * r8-train-all-terms.txt    [Reuters-21578 dataset]
-    * r52-test-all-terms.txt    [Reuters-21578 dataset]
-    * r52-train-all-terms.txt   [Reuters-21578 dataset]
+    * 20newsgroups-train.tab    [20Newsgroups dataset]
+    * 20newsgroups-test.tab     [20Newsgroups dataset]
+    * reuters-r8-train.tab      [Reuters-21578 dataset]
+    * reuters-r8-test.tab       [Reuters-21578 dataset]
+    * reuters-r52-train.tab     [Reuters-21578 dataset]
+    * reuters-r52-test.tab      [Reuters-21578 dataset]
 
 About the data sets:
     * 20Newsgroups dataset: This dataset is a collection of approximately 20,000 newsgroup documents, partitioned
@@ -42,7 +42,7 @@ Dataset: Friends Transcripts
 
 Transcripts from the Friends series. Originating from http://home.versatel.nl/friendspic0102/
 -----------------------------------------------------------------------------------------------------------------------
-Dataset: Election-2016-Tweets.tab
+Dataset: Election Tweets 2016
 
 Tweets from the major party candidates for the 2016 US Presidential Election Hillary Clinton and Donald Trump.
 This data set is a simplified version of the data set from: https://www.kaggle.com/benhamner/clinton-trump-tweets

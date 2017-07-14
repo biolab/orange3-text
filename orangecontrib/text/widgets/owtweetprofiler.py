@@ -177,7 +177,7 @@ class OWTweetProfiler(OWWidget):
 
 if __name__ == '__main__':
     app = QtGui.QApplication([])
-    corpus = Corpus.from_file('Election-2016-Tweets.tab')
+    corpus = Corpus.from_file('election-tweets-2016.tab')
     widget = OWTweetProfiler()
     widget.set_corpus(corpus[:100])
     widget.show()

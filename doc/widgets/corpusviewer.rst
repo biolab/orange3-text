@@ -47,7 +47,7 @@ Example
 -------
 
 *Corpus Viewer* can be used for displaying all or some documents in corpus. In this example, we will first load
-*bookexcerpts.tab*, that already comes with the add-on, into :doc:`Corpus<corpus>` widget. Then we will preprocess the text into words, filter out the stopwords, create bi-grams and add POS tags (more on preprocessing in :doc:`Preprocess Text<preprocesstext>`). Now we want to see the results of preprocessing. In *Corpus Viewer* we can see, how many unique tokens we got and what they are (tick *Show Tokens & Tags*). Since we used also POS tagger to show part-of-speech labels, they will be displayed alongside tokens underneath the text.
+*book-excerpts.tab*, that already comes with the add-on, into :doc:`Corpus<corpus>` widget. Then we will preprocess the text into words, filter out the stopwords, create bi-grams and add POS tags (more on preprocessing in :doc:`Preprocess Text<preprocesstext>`). Now we want to see the results of preprocessing. In *Corpus Viewer* we can see, how many unique tokens we got and what they are (tick *Show Tokens & Tags*). Since we used also POS tagger to show part-of-speech labels, they will be displayed alongside tokens underneath the text.
 
 Now we will filter out just the documents talking about a character Bill. We use regular expression *\\bBill\\b* to find the documents containing only the word Bill. You can output matching or non-matching documents, view them in another *Corpus Viewer* or further analyse them.
 

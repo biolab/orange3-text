@@ -3,7 +3,7 @@
 To use preprocessing you should create a corpus::
 
     >>> from orangecontrib.text import Corpus
-    >>> corpus = Corpus.from_file('bookexcerpts')
+    >>> corpus = Corpus.from_file('book-excerpts')
 
 And create a :class:`Preprocessor` objects with methods you want:
 

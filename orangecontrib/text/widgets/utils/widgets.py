@@ -11,6 +11,8 @@ from AnyQt.QtCore import QDate, pyqtSignal, Qt, QSize
 from Orange.widgets.gui import OWComponent, hBox
 from Orange.widgets import settings
 
+from orangecontrib.text.corpus import get_sample_corpora_dir
+
 
 class ListEdit(QTextEdit):
     PLACEHOLDER_COLOR = QColor(128, 128, 128)
@@ -218,6 +220,7 @@ class DatePickerInterval(QWidget):
 class FileWidget(QWidget):
     on_open = pyqtSignal(str)
 
+    # TODO consider removing directory_aliases since it is not used any more
     def __init__(self, dialog_title='', dialog_format='',
                  start_dir=os.path.expanduser('~/'),
                  icon_size=(12, 20), minimal_width=200,
@@ -338,10 +341,12 @@ class FileWidget(QWidget):
 
     def check_existence(self):
         if self.recent_files:
-            to_remove = [
-                file for file in self.recent_files
-                if file != self.empty_file_label and not os.path.exists(file)
-            ]
+            to_remove = []
+            for file in self.recent_files:
+                doc_path = os.path.join(get_sample_corpora_dir(), file)
+                exists = any(os.path.exists(f) for f in [file, doc_path])
+                if file != self.empty_file_label and not exists:
+                    to_remove.append(file)
             for file in to_remove:
                 self.recent_files.remove(file)
 
@@ -351,6 +356,12 @@ class FileWidget(QWidget):
         except (OSError, IOError):
             self.loading_error_signal.emit('Could not open "{}".'
                                            .format(path))
+
+    def get_selected_filename(self):
+        if self.recent_files:
+            return self.recent_files[0]
+        else:
+            return self.empty_file_label
 
 
 class ValidatedLineEdit(QLineEdit):

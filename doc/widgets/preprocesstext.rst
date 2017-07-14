@@ -90,7 +90,7 @@ Here are some useful regular expressions for quick filtering:
 Examples
 --------
 
-In the first example we will observe the effects of preprocessing on our text. We are working with *bookexcerpts.tab* that we've loaded with :doc:`Corpus <corpus>` widget. We have connected **Preprocess Text** to **Corpus** and retained default preprocessing methods (lowercase, per-word tokenization and stopword removal). The only additional parameter we've added as outputting only the first 100 most frequent tokens. Then we connected **Preprocess Text** with :doc:`Word Cloud <wordcloud>` to observe words that are the most frequent in our text. Play around with different parameters, to see how they transform the output.
+In the first example we will observe the effects of preprocessing on our text. We are working with *book-excerpts.tab* that we've loaded with :doc:`Corpus <corpus>` widget. We have connected **Preprocess Text** to **Corpus** and retained default preprocessing methods (lowercase, per-word tokenization and stopword removal). The only additional parameter we've added as outputting only the first 100 most frequent tokens. Then we connected **Preprocess Text** with :doc:`Word Cloud <wordcloud>` to observe words that are the most frequent in our text. Play around with different parameters, to see how they transform the output.
 
 .. figure:: images/Preprocess-Text-Example1.png
 
