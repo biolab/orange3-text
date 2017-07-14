@@ -40,7 +40,7 @@ Description
 Example
 -------
 
-*Concordance* can be used for displaying word contexts in a corpus. First, we load *bookexcerpts.tab* in :doc:`Corpus <corpus>`. Then we connect **Corpus** to **Concordances** and search for concordances of a word "doctor". The widget displays all documents containing the word "doctor" together with their surrounding (contextual) words. Note that the widget finds only exact matches of a word.
+*Concordance* can be used for displaying word contexts in a corpus. First, we load *book-excerpts.tab* in :doc:`Corpus <corpus>`. Then we connect **Corpus** to **Concordances** and search for concordances of a word "doctor". The widget displays all documents containing the word "doctor" together with their surrounding (contextual) words. Note that the widget finds only exact matches of a word.
 
 Now we can select those documents that contain interesting contexts and output them to :doc:`Corpus Viewer <corpusviewer>` to inspect them further.
 

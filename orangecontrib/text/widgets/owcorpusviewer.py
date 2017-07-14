@@ -383,7 +383,7 @@ if __name__ == '__main__':
     app = QApplication([])
     widget = OWCorpusViewer()
     widget.show()
-    corpus = Corpus.from_file('bookexcerpts')
+    corpus = Corpus.from_file('book-excerpts')
     corpus = corpus[:3]
     corpus = pos_tagger.tag_corpus(corpus)
     corpus.ngram_range = (1, 2)

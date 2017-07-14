@@ -309,7 +309,7 @@ class OWConcordance(OWWidget):
 if __name__ == '__main__': # pragma: no cover
     app = QApplication([])
     widget = OWConcordance()
-    corpus = Corpus.from_file('bookexcerpts')
+    corpus = Corpus.from_file('book-excerpts')
     corpus = corpus[:3]
     widget.set_corpus(corpus)
     widget.show()

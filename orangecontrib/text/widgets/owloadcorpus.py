@@ -34,11 +34,11 @@ class OWLoadCorpus(OWWidget):
     )
 
     recent_files = Setting([
-        "bookexcerpts.tab",
-        "Grimm-tales-selected.tab",
-        "Election-2016-Tweets.tab",
+        "book-excerpts.tab",
+        "grimm-tales-selected.tab",
+        "election-tweets-2016.tab",
         "friends-transcripts.tab",
-        "Andersen.tab",
+        "andersen.tab",
     ])
     used_attrs = ContextSetting([])
 

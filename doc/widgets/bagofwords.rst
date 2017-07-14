@@ -49,11 +49,11 @@ Description
 Example
 -------
 
-In the first example we will simply check how the bag of words model looks like. Load *bookexcerpts.tab* with :doc:`Corpus <corpus>` widget and connect it to **Bag of Words**. Here we kept the defaults - a simple count of term frequencies. Check what the **Bag of Words** outputs with **Data Table**. The final column in white represents term frequencies for each document.
+In the first example we will simply check how the bag of words model looks like. Load *book-excerpts.tab* with :doc:`Corpus <corpus>` widget and connect it to **Bag of Words**. Here we kept the defaults - a simple count of term frequencies. Check what the **Bag of Words** outputs with **Data Table**. The final column in white represents term frequencies for each document.
 
 .. figure:: images/Bag-of-Words-Example1.png
 
-In the second example we will try to predict document category. We are still using the *bookexcerpts.tab* data set, which we sent through :doc:`Preprocess Text <preprocesstext>` with default parameters. Then we connected **Preprocess Text** to **Bag of Words** to obtain term frequencies by which we will compute the model.
+In the second example we will try to predict document category. We are still using the *book-excerpts.tab* data set, which we sent through :doc:`Preprocess Text <preprocesstext>` with default parameters. Then we connected **Preprocess Text** to **Bag of Words** to obtain term frequencies by which we will compute the model.
 
 .. figure:: images/Bag-of-Words-Example2.png
 

@@ -15,7 +15,7 @@ from orangecontrib.text.tag import pos_tagger
 
 class CorpusTests(unittest.TestCase):
     def test_init_preserve_shape_of_empty_x(self):
-        c = Corpus.from_file('bookexcerpts')
+        c = Corpus.from_file('book-excerpts')
         d = c.domain
         new_domain = Domain((ContinuousVariable('c1'),), d.class_vars, d.metas)
 
@@ -26,7 +26,7 @@ class CorpusTests(unittest.TestCase):
         self.assertEqual(new.X.shape, empty_X.shape)
 
     def test_corpus_from_file(self):
-        c = Corpus.from_file('bookexcerpts')
+        c = Corpus.from_file('book-excerpts')
         self.assertEqual(len(c), 140)
         self.assertEqual(len(c.domain), 1)
         self.assertEqual(len(c.domain.metas), 1)
@@ -39,15 +39,15 @@ class CorpusTests(unittest.TestCase):
         self.assertEqual(c.metas.shape, (9, 1))
 
     def test_corpus_from_file_abs_path(self):
-        c = Corpus.from_file('bookexcerpts')
+        c = Corpus.from_file('book-excerpts')
         path = os.path.dirname(__file__)
-        file = os.path.abspath(os.path.join(path, '..', 'datasets', 'bookexcerpts.tab'))
+        file = os.path.abspath(os.path.join(path, '..', 'datasets', 'book-excerpts.tab'))
         c2 = Corpus.from_file(file)
         self.assertEqual(c, c2)
 
     def test_corpus_from_file_with_tab(self):
-        c = Corpus.from_file('bookexcerpts')
-        c2 = Corpus.from_file('bookexcerpts.tab')
+        c = Corpus.from_file('book-excerpts')
+        c2 = Corpus.from_file('book-excerpts.tab')
         self.assertEqual(c, c2)
 
     def test_corpus_from_file_missing(self):
@@ -55,7 +55,7 @@ class CorpusTests(unittest.TestCase):
             Corpus.from_file('missing_file')
 
     def test_corpus_from_init(self):
-        c = Corpus.from_file('bookexcerpts')
+        c = Corpus.from_file('book-excerpts')
         c2 = Corpus(c.domain, c.X, c.Y, c.metas, c.text_features)
         self.assertEqual(c, c2)
 
@@ -85,7 +85,7 @@ class CorpusTests(unittest.TestCase):
         self.assertEqual(len(c.pos_tags), n + 10)
 
     def test_extend_corpus(self):
-        c = Corpus.from_file('bookexcerpts')
+        c = Corpus.from_file('book-excerpts')
         n_classes = len(c.domain.class_var.values)
         c_copy = c.copy()
         new_y = [c.domain.class_var.values[int(i)] for i in c.Y]
@@ -100,7 +100,7 @@ class CorpusTests(unittest.TestCase):
 
     def test_extend_attributes(self):
         # corpus without features
-        c = Corpus.from_file('bookexcerpts')
+        c = Corpus.from_file('book-excerpts')
         X = np.random.random((len(c), 3))
         c.extend_attributes(X, ['1', '2', '3'])
         self.assertEqual(c.X.shape, (len(c), 3))
@@ -115,7 +115,7 @@ class CorpusTests(unittest.TestCase):
         self.assertTrue(issparse(c.X))
 
     def test_corpus_not_eq(self):
-        c = Corpus.from_file('bookexcerpts')
+        c = Corpus.from_file('book-excerpts')
         n_doc = c.X.shape[0]
 
         c2 = Corpus(c.domain, c.X, c.Y, c.metas, c.W, [])
@@ -163,7 +163,7 @@ class CorpusTests(unittest.TestCase):
         self.assertEqual(tf[0].name, 'text')
 
     def test_documents(self):
-        c = Corpus.from_file('bookexcerpts')
+        c = Corpus.from_file('book-excerpts')
         docs = c.documents
         types = set(type(i) for i in docs)
 
@@ -172,7 +172,7 @@ class CorpusTests(unittest.TestCase):
         self.assertIn(str, types)
 
     def test_titles(self):
-        c = Corpus.from_file('bookexcerpts')
+        c = Corpus.from_file('book-excerpts')
 
         # no title feature set
         titles = c.titles
@@ -195,7 +195,7 @@ class CorpusTests(unittest.TestCase):
             self.assertIn(title, c.domain.class_var.values)
 
     def test_documents_from_features(self):
-        c = Corpus.from_file('bookexcerpts')
+        c = Corpus.from_file('book-excerpts')
         docs = c.documents_from_features([c.domain.class_var])
         types = set(type(i) for i in docs)
 
@@ -232,7 +232,7 @@ class CorpusTests(unittest.TestCase):
             self.assertIn(first_attr, d)
 
     def test_getitem(self):
-        c = Corpus.from_file('bookexcerpts')
+        c = Corpus.from_file('book-excerpts')
 
         # without preprocessing
         self.assertEqual(len(c[:, :]), len(c))
@@ -274,7 +274,7 @@ class CorpusTests(unittest.TestCase):
         self.assertEqual(c.set_text_features(None), c2._infer_text_features())
 
     def test_asserting_errors(self):
-        c = Corpus.from_file('bookexcerpts')
+        c = Corpus.from_file('book-excerpts')
 
         with self.assertRaises(TypeError):
             Corpus(1.0, c.Y, c.metas, c.domain, c.text_features)

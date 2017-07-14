@@ -57,6 +57,6 @@ if __name__ == '__main__':
     app = QApplication([])
     widget = OWTBagOfWords()
     widget.show()
-    corpus = Corpus.from_file('bookexcerpts')
+    corpus = Corpus.from_file('book-excerpts')
     widget.set_data(corpus)
     app.exec()

@@ -287,7 +287,7 @@ if __name__ == '__main__':
 
     app = QApplication([])
     widget = OWTopicModeling()
-    # widget.set_data(Corpus.from_file('bookexcerpts'))
+    # widget.set_data(Corpus.from_file('book-excerpts'))
     widget.set_data(Corpus.from_file('deerwester'))
     widget.show()
     app.exec()

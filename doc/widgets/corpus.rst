@@ -53,7 +53,7 @@ add-on, and inspected it in **Corpus Viewer**.
 
 The second example demonstrates how to quickly visualize your corpus with :doc:`Word Cloud <wordcloud>`.
 We could connect **Word Cloud** directly to **Corpus**, but instead we decided to apply some preprocessing
-with :doc:`Preprocess Text <preprocesstext>`. We are again working with *bookexcerpts.tab*. We've
+with :doc:`Preprocess Text <preprocesstext>`. We are again working with *book-excerpts.tab*. We've
 put all text to lowercase, tokenized (split) the text to words only, filtered out English stopwords and selected a 100 most frequent tokens.
 
 .. figure:: images/Corpus-Example2.png

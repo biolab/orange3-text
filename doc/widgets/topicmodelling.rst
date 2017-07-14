@@ -53,7 +53,7 @@ Description
 Example
 -------
 
-In the first example, we present a simple use of the **Topic Modelling** widget. First we load *bookexcerpts.tab* data set and use :doc:`Preprocess Text <preprocesstext>` to tokenize by words only. Then we connect **Preprocess Text** to **Topic Modelling**, where we use a simple *Latent Semantic Indexing* to find 10 topics in the text.
+In the first example, we present a simple use of the **Topic Modelling** widget. First we load *book-excerpts.tab* data set and use :doc:`Preprocess Text <preprocesstext>` to tokenize by words only. Then we connect **Preprocess Text** to **Topic Modelling**, where we use a simple *Latent Semantic Indexing* to find 10 topics in the text.
 
 .. figure:: images/Topic-Modelling-Example1.png
 

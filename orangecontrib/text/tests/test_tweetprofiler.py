@@ -75,7 +75,7 @@ class TestTweetProfiler(unittest.TestCase):
     @patch(SERVER_CALL, MockServerCall())
     @patch(CHECK_ALIVE, Mock(return_value=True))
     def setUp(self):
-        self.data = Corpus.from_file('Election-2016-Tweets.tab')[:100]
+        self.data = Corpus.from_file('election-tweets-2016.tab')[:100]
         self.profiler = TweetProfiler()
 
     @patch(CHECK_ALIVE, Mock(return_value=True))
