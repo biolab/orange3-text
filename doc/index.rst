@@ -26,6 +26,7 @@ Widgets
    widgets/wordcloud
    widgets/geomap
    widgets/concordance
+   widgets/sentimentanalysis
 
 Scripting
 ---------

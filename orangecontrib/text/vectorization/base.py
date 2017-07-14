@@ -1,6 +1,7 @@
 import numpy as np
 from gensim import matutils
-from gensim.corpora import Dictionary
+
+from Orange.data.util import SharedComputeValue
 
 
 class BaseVectorizer:
@@ -40,3 +41,36 @@ class BaseVectorizer:
                                  var_attrs=variable_attrs,
                                  compute_values=compute_values)
         corpus.ngrams_corpus = matutils.Sparse2Corpus(X.T)
+
+
+class SharedTransform:
+    """ Shared computation for transforming new data sets.
+    Used as a "shared" part within compute values. """
+    def __init__(self, vectorizer, preprocessor=None, **kwargs):
+        self.preprocessor = preprocessor
+        self.vectorizer = vectorizer
+        self.kwargs = kwargs
+
+    def __call__(self, corpus):
+        if callable(self.preprocessor):
+            corpus = self.preprocessor(corpus)
+        corpus = self.vectorizer.transform(corpus,
+                                           copy=True,
+                                           **self.kwargs)
+        # store name to indices mapping so SharedComputeValue can run faster
+        corpus.feature_name_to_index = {
+            attr.name: i
+            for i, attr in enumerate(corpus.domain.attributes)
+        }
+        return corpus
+
+
+class VectorizationComputeValue(SharedComputeValue):
+    """ Compute Value for vectorization features. """
+    def __init__(self, compute_shared, name):
+        super().__init__(compute_shared)
+        self.name = name
+
+    def compute(self, _, shared_data):
+        ind = shared_data.feature_name_to_index[self.name]
+        return shared_data.X[:, ind]

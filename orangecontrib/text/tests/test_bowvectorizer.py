@@ -93,6 +93,18 @@ class BowVectorizationTest(unittest.TestCase):
         self.assertEqual(bow.domain, computed.domain)
         self.assertEqual((bow.X != computed.X).nnz, 0)
 
+    def test_compute_values_to_different_domain(self):
+        source = Corpus.from_file('deerwester')
+        destination = Corpus.from_file('book-excerpts')
+
+        self.assertFalse(source.domain.attributes)
+        self.assertFalse(destination.domain.attributes)
+
+        bow = BowVectorizer().transform(source)
+        computed = destination.transform(bow.domain)
+
+        self.assertEqual(bow.domain.attributes, computed.domain.attributes)
+
     def assertEqualCorpus(self, first, second, msg=None):
         np.testing.assert_allclose(first.X.todense(), second.X.todense(), err_msg=msg)
 
