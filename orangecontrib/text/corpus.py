@@ -136,6 +136,9 @@ class Corpus(Table):
             metadata (numpy.ndarray): Meta data
             Y (numpy.ndarray): Class variables
         """
+        if np.prod(self.X.shape) != 0:
+            raise ValueError("Extending corpus only works when X is empty"
+                             "while the shape of X is {}".format(self.X.shape))
 
         self.metas = np.vstack((self.metas, metadata))
 
@@ -146,7 +149,7 @@ class Corpus(Table):
         new_Y = np.array([cv.to_val(i) for i in Y])[:, None]
         self._Y = np.vstack((self._Y, new_Y))
 
-        self.X = self.W = np.zeros((len(self), 0))
+        self.X = self.W = np.zeros((self.metas.shape[0], 0))
         Table._init_ids(self)
 
         self._tokens = None     # invalidate tokens

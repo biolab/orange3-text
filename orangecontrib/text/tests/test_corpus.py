@@ -98,6 +98,11 @@ class CorpusTests(unittest.TestCase):
         self.assertEqual(c.metas.shape[1], c_copy.metas.shape[1])
         self.assertEqual(len(c_copy.domain.class_var.values), n_classes+1)
 
+    def test_extend_corpus_non_empty_X(self):
+        c = Corpus.from_file('election-tweets-2016')[:10]
+        with self.assertRaises(ValueError):
+            c.extend_corpus(c.metas, c.Y)
+
     def test_extend_attributes(self):
         # corpus without features
         c = Corpus.from_file('book-excerpts')
