@@ -66,7 +66,7 @@ class TheGuardianAPI:
         (data.StringVariable('Tags'),
             lambda doc: ', '.join(tag['webTitle'] for tag in doc['tags'])),
         (data.StringVariable('URL'), lambda doc: doc['webUrl']),
-        (data.ContinuousVariable('Word Count'),
+        (data.ContinuousVariable('Word Count', number_of_decimals=0),
             lambda doc: doc['fields']['wordcount']),
     ]
 

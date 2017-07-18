@@ -20,8 +20,10 @@ class WikipediaAPI:
         (data.StringVariable('Content'), lambda doc: getattr(doc, 'content')),
         (data.StringVariable('Summary'), lambda doc: getattr(doc, 'summary')),
         (data.StringVariable('Url'), lambda doc: getattr(doc, 'url')),
-        (data.ContinuousVariable('Page ID'), lambda doc: int(getattr(doc, 'pageid'))),
-        (data.ContinuousVariable('Revision ID'), lambda doc: int(getattr(doc, 'revision_id'))),
+        (data.ContinuousVariable('Page ID', number_of_decimals=0),
+         lambda doc: int(getattr(doc, 'pageid'))),
+        (data.ContinuousVariable('Revision ID', number_of_decimals=0),
+         lambda doc: int(getattr(doc, 'revision_id'))),
         (data.DiscreteVariable('Query'), lambda doc: getattr(doc, 'query')),
     ]
 
