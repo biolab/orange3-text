@@ -437,9 +437,6 @@ class Corpus(Table):
             new.attributes = orig.attributes
             new.used_preprocessor = orig.used_preprocessor
 
-    def __len__(self):
-        return len(self.metas)
-
     def __eq__(self, other):
         def arrays_equal(a, b):
             if sp.issparse(a) != sp.issparse(b):
