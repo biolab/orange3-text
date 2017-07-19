@@ -1,11 +1,11 @@
-import numpy as np
-
 import nltk
+import numpy as np
 from nltk.corpus import opinion_lexicon
 from nltk.sentiment import SentimentIntensityAnalyzer
+
 from orangecontrib.text import Corpus
 from orangecontrib.text.preprocess import WordPunctTokenizer
-from orangecontrib.text.vectorization.base import SharedTransform,\
+from orangecontrib.text.vectorization.base import SharedTransform, \
     VectorizationComputeValue
 
 nltk.download(["opinion_lexicon", "vader_lexicon"])
