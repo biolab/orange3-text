@@ -53,7 +53,7 @@ class Corpus(Table):
         """
         n_doc = _check_arrays(X, Y, metas)
 
-        self.X = X if X is not None else sp.csr_matrix((n_doc, 0))   # prefer sparse (BoW compute values)
+        self.X = X if X is not None else np.zeros((n_doc, 0))
         self.Y = Y if Y is not None else np.zeros((n_doc, 0))
         self.metas = metas if metas is not None else np.zeros((n_doc, 0))
         self.W = W if W is not None else np.zeros((n_doc, 0))
@@ -155,7 +155,7 @@ class Corpus(Table):
         self._tokens = None     # invalidate tokens
 
     def extend_attributes(self, X, feature_names, feature_values=None,
-                          compute_values=None, var_attrs=None):
+                          compute_values=None, var_attrs=None, sparse=False):
         """
         Append features to corpus. If `feature_values` argument is present,
         features will be Discrete else Continuous.
@@ -166,6 +166,7 @@ class Corpus(Table):
             feature_values (list): A list of possible values for Discrete features.
             compute_values (list): Compute values for corresponding features.
             var_attrs (dict): Additional attributes appended to variable.attributes.
+            sparse (bool): Whether the features should be marked as sparse.
         """
         if self.X.size == 0:
             self.X = X
@@ -185,7 +186,8 @@ class Corpus(Table):
                 var = DiscreteVariable(f, values=values, compute_value=cv)
             else:
                 var = ContinuousVariable(f, compute_value=cv)
-            if cv is not None:  # set original variable for cv
+            var.sparse = sparse     # don't pass this to constructor so this works with Orange < 3.8.0
+            if cv is not None:      # set original variable for cv
                 cv.variable = var
             if isinstance(var_attrs, dict):
                 var.attributes.update(var_attrs)
@@ -408,10 +410,7 @@ class Corpus(Table):
                 filename = abs_path
 
         table = Table.from_file(filename)
-        X = table.X
-        if not sp.issparse(X) and X.size == 0:
-            X = sp.csr_matrix(X)        # prefer sparse (BoW compute values)
-        return cls(table.domain, X, table.Y, table.metas, table.W)
+        return cls(table.domain, table.X, table.Y, table.metas, table.W)
 
     @staticmethod
     def retain_preprocessing(orig, new, key=...):

@@ -39,7 +39,8 @@ class BaseVectorizer:
         corpus.extend_attributes(X[:, order],
                                  feature_names=(dictionary[i] for i in order),
                                  var_attrs=variable_attrs,
-                                 compute_values=compute_values)
+                                 compute_values=compute_values,
+                                 sparse=True)
         corpus.ngrams_corpus = matutils.Sparse2Corpus(X.T)
 
 
