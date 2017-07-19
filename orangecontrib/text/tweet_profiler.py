@@ -58,9 +58,11 @@ class TweetProfiler:
             feature_values = None
             var_attrs = None
 
-            if output_mode in ['Embeddings', 'Probabilities']:
+            if output_mode == 'Embeddings':
                 feature_names = class_vars
                 var_attrs = {'hidden': True}
+            elif output_mode == 'Probabilities':
+                feature_names = class_vars
             elif output_mode == 'Classes' and target_mode == 'mc':
                 feature_names = ['Emotion']
                 feature_values = [class_vars]
