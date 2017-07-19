@@ -40,11 +40,6 @@ class OWTweetProfiler(OWWidget):
         self.strings_attrs = []
         self.profiler = TweetProfiler(on_server_down=self.Error.server_down)
 
-        # Info box
-        self.n_documents = ''
-        box = gui.widgetBox(self.controlArea, "Info")
-        gui.label(box, self, 'Documents: %(n_documents)s')
-
         # Settings
         self.controlArea.layout().addWidget(self.generate_grid_layout())
 
@@ -109,7 +104,6 @@ class OWTweetProfiler(OWWidget):
             if ind:
                 self.tweet_attr = ind[0]
 
-            self.n_documents = len(corpus)
         self.commit()
 
     def apply(self):
@@ -130,7 +124,6 @@ class OWTweetProfiler(OWWidget):
 
     def send_report(self):
         self.report_items([
-            ('Documents', self.n_documents),
             ('Attribute', self.strings_attrs[self.tweet_attr]
                 if len(self.strings_attrs) > self.tweet_attr else ''),
             ('Emotions', self.model_name),
