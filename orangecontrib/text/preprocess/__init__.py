@@ -35,7 +35,7 @@ import nltk
 # Ensure NLTK data is present
 NLTK_DATA = ["wordnet", "stopwords", "punkt", "opinion_lexicon",
              "vader_lexicon"]
-nltk.download(NLTK_DATA, quiet=True)
+nltk.download(NLTK_DATA)
 
 from .filter import *
 from .normalize import *
