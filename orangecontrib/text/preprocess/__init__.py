@@ -32,10 +32,7 @@ if no preprocessing was applied yet::
 """
 import nltk
 
-# Ensure NLTK data is present
-NLTK_DATA = ["wordnet", "stopwords", "punkt", "opinion_lexicon",
-             "vader_lexicon"]
-nltk.download(NLTK_DATA)
+nltk.download(["wordnet", "stopwords", "punkt"])
 
 from .filter import *
 from .normalize import *
