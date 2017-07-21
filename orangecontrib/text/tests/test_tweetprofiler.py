@@ -7,12 +7,8 @@ from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.tweet_profiler import TweetProfiler
 
 SERVER_CALL = 'orangecontrib.text.tweet_profiler.TweetProfiler.server_call'
-TOKEN_VALID = 'orangecontrib.text.tweet_profiler.TweetProfiler.is_token_valid'
 CHECK_ALIVE = 'orangecontrib.text.tweet_profiler.TweetProfiler.check_server_alive'
 
-COINS = 100
-VALID = True
-TOKEN = 'testing123'
 MODELS = ['model-mc', 'model-ml']
 MODES = ['Embeddings', 'Probabilities', 'Classes']
 PROFILE_CLASSES = ['c1', 'c2', 'c3']
@@ -27,19 +23,10 @@ class MockServerCall(unittest.TestCase):
 
         if url == 'get_configurations':
             return {'models': MODELS, 'output_modes': MODES}
-        elif url == 'get_token':
-            return {'token': TOKEN}
-        elif url == 'check_token_valid':
-            self.assertIn('token', json)
-            return {'valid': VALID}
-        elif url == 'coin_count':
-            self.assertIn('token', json)
-            return {'coins': COINS}
         elif url == 'tweet_profiler':
             self.assertIn('tweets', json)
             self.assertIn('model_name', json)
             self.assertIn('output_mode', json)
-            self.assertIn('token', json)
 
             n_tweets = len(json['tweets'])
             output_mode = json['output_mode']
@@ -87,20 +74,6 @@ class TestTweetProfiler(unittest.TestCase):
     def test_get_configuration(self):
         self.assertEqual(self.profiler.model_names, MODELS)
         self.assertEqual(self.profiler.output_modes, MODES)
-
-    @patch(SERVER_CALL, MockServerCall())
-    def test_get_token(self):
-        self.assertIsNone(self.profiler.token)
-        self.profiler.new_token()
-        self.assertEqual(self.profiler.token, TOKEN)
-
-    @patch(SERVER_CALL, MockServerCall())
-    def test_is_token_valid(self):
-        self.assertEqual(self.profiler.is_token_valid(), VALID)
-
-    @patch(SERVER_CALL, MockServerCall())
-    def test_get_credit(self):
-        self.assertEqual(self.profiler.get_credit(), COINS)
 
     @patch(SERVER_CALL, MockServerCall())
     @patch(CHECK_ALIVE, Mock(return_value=True))
@@ -202,32 +175,14 @@ class TestErrorsRaising(unittest.TestCase):
     @patch(CHECK_ALIVE, Mock(return_value=False))
     def test_assure_server_and_tokens_server_down(self):
         self.profiler.on_server_down = Mock()
-        r = self.profiler.assure_server_and_tokens()
+        r = self.profiler.assure_server()
         self.assertFalse(r)
         self.assertEqual(self.profiler.on_server_down.call_count, 1)
 
-    @patch(CHECK_ALIVE, Mock(return_value=True))
-    @patch(TOKEN_VALID, Mock(return_value=False))
-    def test_assure_server_and_tokens_invalid_token(self):
-        self.profiler.on_invalid_token = Mock()
-        r = self.profiler.assure_server_and_tokens()
-        self.assertFalse(r)
-        self.assertEqual(self.profiler.on_invalid_token.call_count, 1)
-
-    @patch(CHECK_ALIVE, Mock(return_value=True))
-    @patch(TOKEN_VALID, Mock(return_value=True))
-    @patch(SERVER_CALL, MockServerCall())
-    def test_assure_server_and_tokens_too_little_credit(self):
-        self.profiler.on_too_little_credit = Mock()
-        r = self.profiler.assure_server_and_tokens(need_coins=COINS+1)
-        self.assertFalse(r)
-        self.assertEqual(self.profiler.on_too_little_credit.call_count, 1)
-
-    @patch(TOKEN_VALID, Mock(return_value=True))
     @patch(SERVER_CALL, MockServerCall())
     def test_assure_server_and_tokens_get_server(self):
         self.profiler.server = None
-        r = self.profiler.assure_server_and_tokens()
+        r = self.profiler.assure_server()
         self.assertTrue(r)
 
     def test_server_call_server_missing(self):
@@ -246,11 +201,3 @@ class TestErrorsRaising(unittest.TestCase):
         r = self.profiler.server_call('', {})
         self.assertIsNone(r)
         self.assertEqual(self.profiler.on_server_down.call_count, 1)
-
-    @patch(SERVER_CALL, Mock(return_value=None))
-    def test_is_token_valid_no_response(self):
-        self.assertFalse(self.profiler.is_token_valid())
-
-    @patch(SERVER_CALL, Mock(return_value=None))
-    def test_get_credit_no_response(self):
-        self.assertEqual(self.profiler.get_credit(), 0)
