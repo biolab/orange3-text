@@ -31,6 +31,7 @@ class GensimWrapper:
         self.kwargs = kwargs
         self.model = None
         self.topic_names = []
+        self.n_words = 0
         self.running = False
 
     def fit(self, corpus, **kwargs):
@@ -44,6 +45,7 @@ class GensimWrapper:
         self.reset_model(corpus)
         self.running = True
         self.update(corpus.ngrams_corpus, **kwargs)
+        self.n_words = len(corpus.dictionary)
         self.topic_names = ['Topic{} ({})'.format(i, ', '.join(words))
                             for i, words in enumerate(self._topics_words(3), 1)]
         self.running = False
@@ -100,6 +102,26 @@ class GensimWrapper:
                              metas=data)
         t.W = data[:, 1]
         t.name = 'Topic_{}'.format(topic_id + 1)
+        return t
+
+    def get_all_topics_table(self):
+        """ Transform all topics from gensim model to table. """
+        all_words = self._topics_words(self.n_words)
+        all_weights = self._topics_weights(self.n_words)
+        sorted_words = sorted(all_words[0])
+
+        X = []
+        for words, weights in zip(all_words, all_weights):
+            weights = [we for wo, we in sorted(zip(words, weights))]
+            X.append(weights)
+        X = np.array(X).T
+
+        domain = Domain([ContinuousVariable(n) for n in self.topic_names],
+                        metas=[StringVariable('Word')])
+        t = Table.from_numpy(domain,
+                             X=X,
+                             metas=np.array(sorted_words)[:, None])
+        t.name = 'All topics'
         return t
 
     def get_top_words_by_id(self, topic_id, num_of_words=10):
