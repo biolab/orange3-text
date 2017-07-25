@@ -143,7 +143,7 @@ class Corpus(Table):
         self.metas = np.vstack((self.metas, metadata))
 
         cv = self.domain.class_var
-        for val in set(Y):
+        for val in set(filter(None, Y)):
             if val not in cv.values:
                 cv.add_value(val)
         new_Y = np.array([cv.to_val(i) for i in Y])[:, None]
