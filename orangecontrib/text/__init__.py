@@ -1,4 +1,4 @@
-# Assure NLTK knows where the data is
+# Set where NLTK data is downloaded
 import os
 from orangecontrib.text.misc import nltk_data_dir
 os.environ['NLTK_DATA'] = nltk_data_dir()

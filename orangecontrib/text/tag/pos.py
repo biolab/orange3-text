@@ -3,7 +3,7 @@ import numpy as np
 
 from orangecontrib.text.util import chunkable
 
-nltk.download(['averaged_perceptron_tagger', 'maxent_treebank_pos_tagger'], quiet=True)
+nltk.download(['averaged_perceptron_tagger', 'maxent_treebank_pos_tagger'])
 
 
 class POSTagger:
