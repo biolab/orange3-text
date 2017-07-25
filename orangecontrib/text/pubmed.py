@@ -66,13 +66,12 @@ def _date_to_iso(date):
         date = date.replace(season, month)
     date = date.split('-')[0]  # 2015 Sep-Dec --> 2015 Sep
 
-    time_var = TimeVariable()
     for date_format in possible_date_formats:
         try:
             date_string = datetime.strptime(
                     date, date_format
             ).date().isoformat()
-            return time_var.parse(date_string)
+            return date_string
         except ValueError:
             continue  # Try the next format.
 
@@ -80,10 +79,10 @@ def _date_to_iso(date):
             'Could not parse "{}" into a date.'.format(date),
             RuntimeWarning
     )
-    return time_var.parse(np.nan)
+    return np.nan
 
 
-def _records_to_corpus_entries(records, includes_metadata):
+def _records_to_corpus_entries(records, includes_metadata, time_var):
     """Create corpus entries from records.
 
     Args:
@@ -113,7 +112,7 @@ def _records_to_corpus_entries(records, includes_metadata):
             elif field_name == PUBMED_FIELD_URL:
                 fields.append('{}{}'.format(BASE_ENTRY_URL, field_value))
             elif field_name == PUBMED_FIELD_DATE:
-                fields.append(_date_to_iso(field_value))
+                fields.append(time_var.parse(_date_to_iso(field_value)))
             else:
                 fields.append(field_value)
 
@@ -137,18 +136,22 @@ def _corpus_from_records(records, includes_metadata):
     Returns:
         corpus: The output Corpus.
     """
-    meta_values, class_values = _records_to_corpus_entries(
-            records,
-            includes_metadata=includes_metadata
-    )
     meta_vars = []
+    time_var = None
     for field_name, _ in includes_metadata:
         if field_name == PUBMED_FIELD_DATE:
-            meta_vars.append(TimeVariable(field_name))
+            time_var = TimeVariable(field_name)
+            meta_vars.append(time_var)
         else:
             meta_vars.append(StringVariable.make(field_name))
             if field_name == PUBMED_FIELD_TITLE:
                 meta_vars[-1].attributes["title"] = True
+
+    meta_values, class_values = _records_to_corpus_entries(
+        records,
+        includes_metadata=includes_metadata,
+        time_var=time_var,
+    )
 
     class_vars = [
         DiscreteVariable('section',
@@ -398,14 +401,16 @@ class Pubmed:
                 if self.progress_callback:
                     self.progress_callback()
 
-                meta_values, class_values = _records_to_corpus_entries(
-                        records,
-                        includes_metadata=includes_metadata
-                )
-
                 if corpus is None:
                     corpus = _corpus_from_records(records, includes_metadata)
                 else:  # Update the corpus.
+                    time_var = corpus.domain[PUBMED_FIELD_DATE]
+                    meta_values, class_values = _records_to_corpus_entries(
+                        records,
+                        includes_metadata=includes_metadata,
+                        time_var=time_var,
+                    )
+
                     corpus.extend_corpus(meta_values, class_values)
 
         return corpus

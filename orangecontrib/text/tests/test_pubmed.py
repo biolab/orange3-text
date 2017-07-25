@@ -6,7 +6,7 @@ from unittest.mock import patch
 import numpy as np
 
 from orangecontrib.text.pubmed import (
-    Pubmed, PUBMED_TEXT_FIELDS,
+    Pubmed, PUBMED_TEXT_FIELDS, PUBMED_FIELD_DATE,
     _mesh_headings_to_class,
     _date_to_iso, _corpus_from_records,
     _records_to_corpus_entries
@@ -102,10 +102,10 @@ class PubmedTests(unittest.TestCase):
         ]
 
         correct_results = [
-            1446336000.0,
-            1420070400.0,
-            1441065600.0,
-            1441065600.0,
+            '2015-11-01',
+            '2015-01-01',
+            '2015-09-01',
+            '2015-09-01',
         ]
 
         for date, result in zip(input_dates, correct_results):
@@ -148,11 +148,12 @@ class PubmedTests(unittest.TestCase):
         ])
 
         # Perform asserting.
+        corpus = _corpus_from_records(mock_records, PUBMED_TEXT_FIELDS)
         meta_values, class_values = _records_to_corpus_entries(
                 mock_records,
-                PUBMED_TEXT_FIELDS
+                PUBMED_TEXT_FIELDS,
+                corpus.domain[PUBMED_FIELD_DATE]
         )
-        corpus = _corpus_from_records(mock_records, PUBMED_TEXT_FIELDS)
         self.assertCountEqual(meta_values[0], correct_metas[0])
         self.assertCountEqual(class_values, correct_classes)
         self.assertIsNotNone(corpus)
