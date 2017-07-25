@@ -1,6 +1,4 @@
-from PyQt4 import QtGui
-from PyQt4.QtGui import QGridLayout
-from PyQt4.QtGui import QLabel
+from AnyQt.QtWidgets import QApplication, QGridLayout, QLabel, QGroupBox, QHBoxLayout
 
 from Orange.data import StringVariable
 from Orange.widgets import gui
@@ -27,7 +25,6 @@ class OWTweetProfiler(OWWidget):
     want_main_area = False
     resizing_enabled = False
 
-    token = Setting('')
     model_name = Setting('')
     output_mode = Setting('')
     tweet_attr = Setting(0)
@@ -36,38 +33,19 @@ class OWTweetProfiler(OWWidget):
     class Error(OWWidget.Error):
         server_down = Msg('Our servers are not responding. '
                           'Please try again later.')
-        invalid_token = Msg('This token is invalid')
-        no_credit = Msg('Too little credits for this data set')
 
     def __init__(self):
         super().__init__()
         self.corpus = None
+        self.last_config = None     # to avoid reruns with the same params
         self.strings_attrs = []
-        self.profiler = TweetProfiler(
-            token=self.token,
-            on_server_down=self.Error.server_down,
-            on_invalid_token=self.Error.invalid_token,
-            on_too_little_credit=self.Error.no_credit,
-        )
-
-        # Info box
-        self.n_documents = ''
-        self.credit = 0
-        box = gui.widgetBox(self.controlArea, "Info")
-        gui.label(box, self, 'Documents: %(n_documents)s')
-        gui.label(box, self, 'Credits: %(credit)s')
+        self.profiler = TweetProfiler(on_server_down=self.Error.server_down)
 
         # Settings
         self.controlArea.layout().addWidget(self.generate_grid_layout())
 
-        # Server token
-        box = gui.vBox(self.controlArea, 'Server Token')
-        gui.lineEdit(box, self, 'token', callback=self.token_changed,
-                     controlWidth=300)
-        gui.button(box, self, 'Get Token', callback=self.get_new_token)
-
         # Auto commit
-        buttons_layout = QtGui.QHBoxLayout()
+        buttons_layout = QHBoxLayout()
         buttons_layout.addWidget(self.report_button)
         buttons_layout.addSpacing(15)
         buttons_layout.addWidget(
@@ -75,10 +53,8 @@ class OWTweetProfiler(OWWidget):
         )
         self.controlArea.layout().addLayout(buttons_layout)
 
-        self.refresh_token_info()
-
     def generate_grid_layout(self):
-        box = QtGui.QGroupBox(title='Options')
+        box = QGroupBox(title='Options')
 
         layout = QGridLayout()
         layout.setSpacing(10)
@@ -129,16 +105,20 @@ class OWTweetProfiler(OWWidget):
             if ind:
                 self.tweet_attr = ind[0]
 
-            self.n_documents = len(corpus)
         self.commit()
 
     def apply(self):
-        self.commit()
+        if self.last_config != self._get_config():
+            self.commit()
+
+    def _get_config(self):
+        return self.tweet_attr, self.model_name, self.output_mode
 
     def commit(self):
         self.Error.clear()
 
         if self.corpus is not None:
+            self.last_config = self._get_config()
             with self.progressBar(iterations=len(self.corpus)) as pb:
                 out = self.profiler.transform(
                     self.corpus, self.strings_attrs[self.tweet_attr],
@@ -148,26 +128,8 @@ class OWTweetProfiler(OWWidget):
         else:
             self.Outputs.corpus.send(None)
 
-        self.refresh_token_info()
-
-    def get_new_token(self):
-        self.Warning.clear()
-        self.profiler.new_token()
-        self.token = self.profiler.token
-        self.refresh_token_info()
-        self.commit()
-
-    def token_changed(self):
-        self.profiler.token = self.token
-        self.refresh_token_info()
-        self.commit()
-
-    def refresh_token_info(self):
-        self.credit = str(self.profiler.get_credit())
-
     def send_report(self):
         self.report_items([
-            ('Documents', self.n_documents),
             ('Attribute', self.strings_attrs[self.tweet_attr]
                 if len(self.strings_attrs) > self.tweet_attr else ''),
             ('Emotions', self.model_name),
@@ -176,7 +138,7 @@ class OWTweetProfiler(OWWidget):
 
 
 if __name__ == '__main__':
-    app = QtGui.QApplication([])
+    app = QApplication([])
     corpus = Corpus.from_file('election-tweets-2016.tab')
     widget = OWTweetProfiler()
     widget.set_corpus(corpus[:100])

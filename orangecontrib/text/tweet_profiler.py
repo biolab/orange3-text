@@ -3,8 +3,6 @@ import logging
 import numpy as np
 import requests
 
-from Orange.data import Domain, DiscreteVariable
-
 log = logging.getLogger(__name__)
 
 
@@ -14,22 +12,18 @@ class TweetProfiler:
     SERVER_LIST = 'https://raw.githubusercontent.com/biolab/' \
                   'orange3-text/master/SERVERS.txt'
 
-    def __init__(self, server=None, token=None, on_server_down=None,
-                 on_invalid_token=None, on_too_little_credit=None):
+    def __init__(self, server=None, on_server_down=None):
         self.server = server or self.get_server_address()
         self.on_server_down = on_server_down
-        self.on_invalid_token = on_invalid_token
-        self.on_too_little_credit = on_too_little_credit
-        self.token = token
         self.model_names = []
         self.output_modes = []
 
-        self.assure_server_and_tokens()
+        self.assure_server()
         self.set_configuration()
 
     def transform(self, corpus, meta_var, model_name, output_mode,
                   on_advance=None):
-        if not self.assure_server_and_tokens(len(corpus)):
+        if not self.assure_server():
             return None
 
         corpus = corpus.copy()
@@ -43,7 +37,6 @@ class TweetProfiler:
             json = {'tweets': tweets[i: i+self.BATCH_SIZE],
                     'model_name': model_name,
                     'output_mode': output_mode,
-                    'token': self.token,
             }
 
             json = self.server_call('tweet_profiler', json=json)
@@ -65,9 +58,11 @@ class TweetProfiler:
             feature_values = None
             var_attrs = None
 
-            if output_mode in ['Embeddings', 'Probabilities']:
+            if output_mode == 'Embeddings':
                 feature_names = class_vars
                 var_attrs = {'hidden': True}
+            elif output_mode == 'Probabilities':
+                feature_names = class_vars
             elif output_mode == 'Classes' and target_mode == 'mc':
                 feature_names = ['Emotion']
                 feature_values = [class_vars]
@@ -109,7 +104,7 @@ class TweetProfiler:
             log.error('Server {} is not responding.'.format(server))
             return False
 
-    def assure_server_and_tokens(self, need_coins=0):
+    def assure_server(self):
         if not self.server:     # try to obtain server address
             self.server = self.get_server_address()
 
@@ -117,15 +112,6 @@ class TweetProfiler:
             if callable(self.on_server_down):
                 self.on_server_down()
             return False
-        else:
-            if not self.is_token_valid():
-                if callable(self.on_invalid_token):
-                    self.on_invalid_token()
-                return False
-            elif need_coins > self.get_credit():
-                if callable(self.on_too_little_credit):
-                    self.on_too_little_credit()
-                return False
         return True
 
     def server_call(self, url, json=None):
@@ -146,24 +132,3 @@ class TweetProfiler:
         if json:
             self.model_names = json['models']
             self.output_modes = json['output_modes']
-
-    def new_token(self):
-        json = self.server_call('get_token')
-        if json:
-            self.token = json['token']
-
-    def is_token_valid(self):
-        json = {'token': self.token}
-        json = self.server_call('check_token_valid', json=json)
-        if json:
-            return json['valid']
-        else:
-            return False
-
-    def get_credit(self):
-        json = {'token': self.token}
-        json = self.server_call('coin_count', json=json)
-        if json:
-            return json['coins']
-        else:
-            return 0
