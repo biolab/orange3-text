@@ -1,0 +1,95 @@
+<?xml version='1.0' encoding='utf-8'?>
+<scheme description="We have three folk tales for which we would like to
+predict the type. Are they Animal Tales or Tales of Magic?&#10;&#10;First train
+a model by passing Grimm (train) corpus to Bag of Words and further to Logistic
+ Regression. Once the model is trained, we can apply it on a new corpus of
+ Andersen tales and observe the predicted type for each tale."
+title="Text Prediction" version="2.0">
+	<nodes>
+		<node id="0" name="Corpus" position="(156.0, 145.0)" project_name="Orange3-Text" qualified_name="orangecontrib.text.widgets.owcorpus.OWCorpus" title="Corpus Grimms" version="" />
+		<node id="1" name="Preprocess Text" position="(259.0, 145.0)" project_name="Orange3-Text" qualified_name="orangecontrib.text.widgets.owpreprocess.OWPreprocess" title="Preprocess Text" version="" />
+		<node id="2" name="Bag of Words" position="(360.0, 145.0)" project_name="Orange3-Text" qualified_name="orangecontrib.text.widgets.owbagofwords.OWTBagOfWords" title="Bag of Words" version="" />
+		<node id="3" name="Logistic Regression" position="(493.0, 186.0)" project_name="Orange3" qualified_name="Orange.widgets.model.owlogisticregression.OWLogisticRegression" title="Logistic Regression" version="" />
+		<node id="4" name="Predictions" position="(635.0, 250.0)" project_name="Orange3" qualified_name="Orange.widgets.evaluate.owpredictions.OWPredictions" title="Predictions" version="" />
+		<node id="5" name="Corpus" position="(328.0, 282.0)" project_name="Orange3-Text" qualified_name="orangecontrib.text.widgets.owcorpus.OWCorpus" title="Corpus Andersen" version="" />
+	</nodes>
+	<links>
+		<link enabled="true" id="0" sink_channel="Corpus" sink_node_id="1" source_channel="Corpus" source_node_id="0" />
+		<link enabled="true" id="1" sink_channel="Corpus" sink_node_id="2" source_channel="Corpus" source_node_id="1" />
+		<link enabled="true" id="2" sink_channel="Data" sink_node_id="3" source_channel="Corpus" source_node_id="2" />
+		<link enabled="true" id="3" sink_channel="Predictors" sink_node_id="4" source_channel="Classifier" source_node_id="3" />
+		<link enabled="true" id="4" sink_channel="Data" sink_node_id="4" source_channel="Corpus" source_node_id="5" />
+	</links>
+	<annotations>
+		<arrow end="(327.0, 338.0)" fill="#39B54A" id="0" start="(326.0, 391.0)" />
+		<text font-family="Helvetica" font-size="16" id="1" rect="(242.0, 397.0, 184.0, 84.0)" type="text/plain">Load 'andersen.tab'. We will try to predict the type of the tale on 3 new Andersen tales.</text>
+		<arrow end="(590.0, 296.0)" fill="#C1272D" id="2" start="(561.0, 371.0)" />
+		<text font-family="Helvetica" font-size="16" id="3" rect="(488.0, 383.0, 150.0, 60.0)" type="text/plain">Open the widget to inspect prediction results.</text>
+	</annotations>
+	<thumbnail />
+	<node_properties>
+		<properties format="pickle" node_id="0">gAN9cQAoWBMAAABzYXZlZFdpZGdldEdlb21ldHJ5cQFDMgHZ0MsAAgAAAAAAAAAAABcAAAI3AAAB
+3wAAAAAAAAAtAAACNwAAAd8AAAAAAAAAAAWgcQJYDAAAAHJlY2VudF9maWxlc3EDXXEEKFgYAAAA
+Z3JpbW0tdGFsZXMtc2VsZWN0ZWQudGFicQVYEQAAAGJvb2stZXhjZXJwdHMudGFicQZYGAAAAGVs
+ZWN0aW9uLXR3ZWV0cy0yMDE2LnRhYnEHWBcAAABmcmllbmRzLXRyYW5zY3JpcHRzLnRhYnEIWAwA
+AABhbmRlcnNlbi50YWJxCWVYEAAAAGNvbnRleHRfc2V0dGluZ3NxCl1xCyhjT3JhbmdlLndpZGdl
+dHMuc2V0dGluZ3MKQ29udGV4dApxDCmBcQ19cQ4oWAQAAAB0aW1lcQ9HQdZaiRv92+xYCgAAAGNs
+YXNzX3ZhcnNxEFgJAAAAQVRVIFRvcGljcRFdcRIoWAwAAABBbmltYWwgVGFsZXNxE1gOAAAAVGFs
+ZXMgb2YgTWFnaWNxFGWGcRWFcRZYDgAAAG9yZGVyZWRfZG9tYWlucRddcRhoEUsBhnEZYVgKAAAA
+YXR0cmlidXRlc3EaKVgFAAAAbWV0YXNxGyhYBQAAAFRpdGxlcRxLA4ZxHVgIAAAAQWJzdHJhY3Rx
+HksDhnEfWAcAAABDb250ZW50cSBLA4ZxIVgNAAAAQVRVIE51bWVyaWNhbHEiSwOGcSNYCAAAAEFU
+VSBUeXBlcSRdcSUoWBAAAABEb21lc3RpYyBBbmltYWxzcSZYGQAAAE90aGVyIEFuaW1hbHMgYW5k
+IE9iamVjdHNxJ1gfAAAAT3RoZXIgVGFsZXMgb2YgdGhlIFN1cGVybmF0dXJhbHEoWBgAAABTdXBl
+cm5hdHVyYWwgQWR2ZXJzYXJpZXNxKVgUAAAAU3VwZXJuYXR1cmFsIEhlbHBlcnNxKlggAAAAU3Vw
+ZXJuYXR1cmFsIFBvd2VycyBvciBLbm93bGVkZ2VxK1gSAAAAU3VwZXJuYXR1cmFsIFRhc2tzcSxY
+IwAAAFN1cGVybmF0dXJhbCBvciBFbmNoYW50ZWQgUmVsYXRpdmVzcS1YIAAAAFdpbGQgQW5pbWFs
+IGFuZCBEb21lc3RpYyBBbmltYWxzcS5YDAAAAFdpbGQgQW5pbWFsc3EvWBcAAABXaWxkIEFuaW1h
+bHMgYW5kIEh1bWFuc3EwZYZxMXRxMlgGAAAAdmFsdWVzcTN9cTQoWAoAAAB1c2VkX2F0dHJzcTVd
+cTZjT3JhbmdlLmRhdGEudmFyaWFibGUKbWFrZV92YXJpYWJsZQpxN2NPcmFuZ2UuZGF0YS52YXJp
+YWJsZQpTdHJpbmdWYXJpYWJsZQpxOE5YBwAAAENvbnRlbnRxOYdxOlJxO31xPChoGn1xPVgHAAAA
+aW5jbHVkZXE+WAQAAABUcnVlcT9zWAcAAABfY29sb3JzcUBOWAsAAAB1bmtub3duX3N0cnFBY2J1
+aWx0aW5zCnNldApxQl1xQyhYAAAAAHFER3/4AAAAAAAATlgCAAAATkFxRVgDAAAAbmFucUZYAQAA
+AH5xR1gBAAAAP3FIWAEAAAAucUllhXFKUnFLWAQAAABuYW1lcUxoOVgOAAAAX2NvbXB1dGVfdmFs
+dWVxTU5YDwAAAHNvdXJjZV92YXJpYWJsZXFOTlgGAAAAbWFzdGVycU9oO3ViYVgLAAAAX192ZXJz
+aW9uX19xUEsBdXViaAwpgXFRfXFSKGgPR0HWWokUYIGyaBBYCAAAAENhdGVnb3J5cVNdcVQoWAUA
+AABhZHVsdHFVWAgAAABjaGlsZHJlbnFWZYZxV4VxWGgXXXFZaFNLAYZxWmFoGiloG1gEAAAAVGV4
+dHFbSwOGcVyFcV1oM31xXihoNV1xX2g3aDhOaFuHcWBScWF9cWIoaBp9cWNYBwAAAGluY2x1ZGVx
+ZFgEAAAAVHJ1ZXFlc2hATmhBaEJdcWYoR3/4AAAAAAAAaEROWAIAAABOQXFnWAMAAABuYW5xaGhH
+aEhoSWWFcWlScWpoTGhbaE1OaE5OaE9oYXViYWhQSwF1dWJlaFBLAXUu
+</properties>
+		<properties format="literal" node_id="1">{'filters': {'keep_n': 100, 'max_df': 0.9, 'enabled': True, 'use_df': False, 'pattern': '\\.|,|:|;|!|\\?|\\(|\\)|\\||\\+|\'|"|‘|’|“|”|\'|\\’|…|\\-|–|—|\\$|&amp;|\\*|&gt;|&lt;', 'min_df': 0.1, 'recent_lexicon_files': ['(none)'], 'recent_sw_files': ['(none)'], 'use_keep_n': False, 'stopwords_language': 'English', 'checked': [0]}, 'savedWidgetGeometry': None, 'tokenizer': {'pattern': '\\w+', 'enabled': True, 'method_index': 3}, '__version__': 1, 'transformers': {'checked': [0], 'enabled': True}, 'ngrams_range': {'ngrams_range': (1, 2), 'enabled': False}, 'normalizer': {'snowball_language': 'English', 'enabled': False, 'method_index': 0}, 'pos_tagger': {'stanford': {'recent_files': ['(none)'], 'resource_path': ''}, 'enabled': False, 'method_index': 0}, 'autocommit': True}</properties>
+		<properties format="literal" node_id="2">{'savedWidgetGeometry': None, 'autocommit': True, 'normalization': '(None)', '__version__': 1, 'wlocal': 'Count', 'wglobal': '(None)'}</properties>
+		<properties format="literal" node_id="3">{'savedWidgetGeometry': None, '__version__': 1, 'penalty_type': 1, 'C_index': 61, 'auto_apply': True, 'learner_name': 'Logistic Regression'}</properties>
+		<properties format="pickle" node_id="4">gAN9cQAoWBIAAABvdXRwdXRfcHJlZGljdGlvbnNxAYhYFAAAAG91dHB1dF9wcm9iYWJpbGl0aWVz
+cQKIWBMAAABzYXZlZFdpZGdldEdlb21ldHJ5cQNDMgHZ0MsAAgAAAAABlAAAALsAAASCAAAC2AAA
+AZQAAADRAAAEggAAAtgAAAAAAAAAAAWgcQRYEAAAAGNvbnRleHRfc2V0dGluZ3NxBV1xBihjT3Jh
+bmdlLndpZGdldHMuc2V0dGluZ3MKQ29udGV4dApxBymBcQh9cQkoWAQAAAB0aW1lcQpHQdZaiSCf
+JDpYBgAAAHZhbHVlc3ELfXEMKFgQAAAAc2VsZWN0ZWRfY2xhc3Nlc3ENXXEOKEsASwFlWAsAAABf
+X3ZlcnNpb25fX3EPSwF1WAcAAABjbGFzc2VzcRBdcREoWAwAAABBbmltYWwgVGFsZXNxElgOAAAA
+VGFsZXMgb2YgTWFnaWNxE2V1YmgHKYFxFH1xFShoCkdB1lqJGELdxmgLfXEWKGgNXXEXKEsASwFl
+aA9LAXVoEF1xGChYBQAAAGFkdWx0cRlYCAAAAGNoaWxkcmVucRpldWJlWBAAAABzaG93X3ByZWRp
+Y3Rpb25zcRuIWBIAAABzaG93X3Byb2JhYmlsaXRpZXNxHIhYCgAAAHNob3dfYXR0cnNxHYhYDAAA
+AG91dHB1dF9hdHRyc3EeiGgPSwFYCQAAAGRyYXdfZGlzdHEfiHUu
+</properties>
+		<properties format="pickle" node_id="5">gAN9cQAoWBMAAABzYXZlZFdpZGdldEdlb21ldHJ5cQFDMgHZ0MsAAgAAAAAAAAAAABcAAAI3AAAB
+zwAAAAAAAAAtAAACNwAAAc8AAAAAAAAAAAWgcQJYDAAAAHJlY2VudF9maWxlc3EDXXEEKFgMAAAA
+YW5kZXJzZW4udGFicQVYEQAAAGJvb2stZXhjZXJwdHMudGFicQZYGAAAAGdyaW1tLXRhbGVzLXNl
+bGVjdGVkLnRhYnEHWBgAAABlbGVjdGlvbi10d2VldHMtMjAxNi50YWJxCFgXAAAAZnJpZW5kcy10
+cmFuc2NyaXB0cy50YWJxCWVYEAAAAGNvbnRleHRfc2V0dGluZ3NxCl1xCyhjT3JhbmdlLndpZGdl
+dHMuc2V0dGluZ3MKQ29udGV4dApxDCmBcQ19cQ4oWAQAAAB0aW1lcQ9HQdZaiSCcq0dYCgAAAGNs
+YXNzX3ZhcnNxEClYDgAAAG9yZGVyZWRfZG9tYWlucRFdcRJYCgAAAGF0dHJpYnV0ZXNxEylYBQAA
+AG1ldGFzcRRYBQAAAFRpdGxlcRVLA4ZxFlgHAAAAQ29udGVudHEXSwOGcRiGcRlYBgAAAHZhbHVl
+c3EafXEbKFgKAAAAdXNlZF9hdHRyc3EcXXEdY09yYW5nZS5kYXRhLnZhcmlhYmxlCm1ha2VfdmFy
+aWFibGUKcR5jT3JhbmdlLmRhdGEudmFyaWFibGUKU3RyaW5nVmFyaWFibGUKcR9OaBeHcSBScSF9
+cSIoaBN9cSNYBwAAAGluY2x1ZGVxJFgEAAAAVHJ1ZXElc1gHAAAAX2NvbG9yc3EmTlgLAAAAdW5r
+bm93bl9zdHJxJ2NidWlsdGlucwpzZXQKcShdcSkoWAAAAABxKkd/+AAAAAAAAE5YAgAAAE5BcStY
+AwAAAG5hbnEsWAEAAAB+cS1YAQAAAD9xLlgBAAAALnEvZYVxMFJxMVgEAAAAbmFtZXEyaBdYDgAA
+AF9jb21wdXRlX3ZhbHVlcTNOWA8AAABzb3VyY2VfdmFyaWFibGVxNE5YBgAAAG1hc3RlcnE1aCF1
+YmFYCwAAAF9fdmVyc2lvbl9fcTZLAXV1YmgMKYFxN31xOChoD0dB1lqJDQzKm2gQWAgAAABDYXRl
+Z29yeXE5XXE6KFgFAAAAYWR1bHRxO1gIAAAAY2hpbGRyZW5xPGWGcT2FcT5oEV1xP2g5SwGGcUBh
+aBMpaBRYBAAAAFRleHRxQUsDhnFChXFDaBp9cUQoaBxdcUVoHmgfTmhBh3FGUnFHfXFIKGgTfXFJ
+WAcAAABpbmNsdWRlcUpYBAAAAFRydWVxS3NoJk5oJ2goXXFMKEd/+AAAAAAAAGgqTlgCAAAATkFx
+TVgDAAAAbmFucU5oLWguaC9lhXFPUnFQaDJoQWgzTmg0Tmg1aEd1YmFoNksBdXViZWg2SwF1Lg==
+</properties>
+	</node_properties>
+</scheme>

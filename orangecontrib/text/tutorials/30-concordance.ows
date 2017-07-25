@@ -1,0 +1,123 @@
+<?xml version='1.0' encoding='utf-8'?>
+<scheme description="Interactive data exploration is a key feature of Orange
+and most visualizations support passing the selected data to downstream
+widgets.&#10;&#10;Select a word from Word Cloud and pass it to Concordance to
+observe the context in which the selected word appears. Explore different
+words by selecting them in a Word Cloud and immediately observing the results
+in Concordance widget."
+title="Concordance" version="2.0">
+	<nodes>
+		<node id="0" name="Corpus" position="(117.0, 91.0)" project_name="Orange3-Text" qualified_name="orangecontrib.text.widgets.owcorpus.OWCorpus" title="Corpus" version="" />
+		<node id="1" name="Word Cloud" position="(362.0, 158.0)" project_name="Orange3-Text" qualified_name="orangecontrib.text.widgets.owwordcloud.OWWordCloud" title="Word Cloud" version="" />
+		<node id="2" name="Preprocess Text" position="(249.0, 158.0)" project_name="Orange3-Text" qualified_name="orangecontrib.text.widgets.owpreprocess.OWPreprocess" title="Preprocess Text" version="" />
+		<node id="3" name="Corpus Viewer" position="(608.0, 89.0)" project_name="Orange3-Text" qualified_name="orangecontrib.text.widgets.owcorpusviewer.OWCorpusViewer" title="Corpus Viewer" version="" />
+		<node id="4" name="Concordance" position="(485.0, 89.0)" project_name="Orange3-Text" qualified_name="orangecontrib.text.widgets.owconcordance.OWConcordance" title="Concordance" version="" />
+	</nodes>
+	<links>
+		<link enabled="true" id="0" sink_channel="Corpus" sink_node_id="2" source_channel="Corpus" source_node_id="0" />
+		<link enabled="true" id="1" sink_channel="Corpus" sink_node_id="1" source_channel="Corpus" source_node_id="2" />
+		<link enabled="true" id="2" sink_channel="Query Word" sink_node_id="4" source_channel="Selected Words" source_node_id="1" />
+		<link enabled="true" id="3" sink_channel="Corpus" sink_node_id="4" source_channel="Corpus" source_node_id="0" />
+		<link enabled="true" id="4" sink_channel="Data" sink_node_id="3" source_channel="Selected Documents" source_node_id="4" />
+	</links>
+	<annotations>
+		<text font-family="Helvetica" font-size="16" id="0" rect="(42.0, 257.0, 111.0, 59.0)" type="text/plain">We have loaded 'grimm-tales-selected.tab'.</text>
+		<arrow end="(239.00000000000006, 213.0)" fill="#C1272D" id="1" start="(230.00000000000006, 368.0)" />
+		<text font-family="Helvetica" font-size="16" id="2" rect="(154.0, 374.0, 150.0, 76.0)" type="text/plain">Preprocess Text defines the core units of the analysis - tokens.</text>
+		<arrow end="(365.0, 215.0)" fill="#C1272D" id="3" start="(380.0, 310.0)" />
+		<text font-family="Helvetica" font-size="16" id="4" rect="(315.0, 316.0, 150.0, 172.0)" type="text/plain">Select a word in Word Cloud. We have already selected the word 'king', but you can change that. Selected word will be sent to Concordance as the query word.</text>
+		<arrow end="(494.00000000000006, 146.0)" fill="#C1272D" id="5" start="(522.0, 252.0)" />
+		<text font-family="Helvetica" font-size="16" id="6" rect="(476.0, 257.0, 150.0, 156.0)" type="text/plain">Concordance finds all occurrences of the word from Word Cloud in the corpus. Select interesting documents and observe them in Corpus Viewer.</text>
+		<arrow end="(115.0, 145.0)" fill="#C1272D" id="7" start="(100.0, 237.0)" />
+	</annotations>
+	<thumbnail />
+	<node_properties>
+		<properties format="pickle" node_id="0">gAN9cQAoWBMAAABzYXZlZFdpZGdldEdlb21ldHJ5cQFDMgHZ0MsAAgAAAAAAAAAAABcAAAI3AAAB
+3wAAAAAAAAAtAAACNwAAAd8AAAAAAAAAAAWgcQJYDAAAAHJlY2VudF9maWxlc3EDXXEEKFgYAAAA
+Z3JpbW0tdGFsZXMtc2VsZWN0ZWQudGFicQVYEQAAAGJvb2stZXhjZXJwdHMudGFicQZYGAAAAGVs
+ZWN0aW9uLXR3ZWV0cy0yMDE2LnRhYnEHWBcAAABmcmllbmRzLXRyYW5zY3JpcHRzLnRhYnEIWAwA
+AABhbmRlcnNlbi50YWJxCWVYEAAAAGNvbnRleHRfc2V0dGluZ3NxCl1xCyhjT3JhbmdlLndpZGdl
+dHMuc2V0dGluZ3MKQ29udGV4dApxDCmBcQ19cQ4oWAQAAAB0aW1lcQ9HQdZaiJ1wnw5YCgAAAGNs
+YXNzX3ZhcnNxEFgJAAAAQVRVIFRvcGljcRFdcRIoWAwAAABBbmltYWwgVGFsZXNxE1gOAAAAVGFs
+ZXMgb2YgTWFnaWNxFGWGcRWFcRZYDgAAAG9yZGVyZWRfZG9tYWlucRddcRhoEUsBhnEZYVgKAAAA
+YXR0cmlidXRlc3EaKVgFAAAAbWV0YXNxGyhYBQAAAFRpdGxlcRxLA4ZxHVgIAAAAQWJzdHJhY3Rx
+HksDhnEfWAcAAABDb250ZW50cSBLA4ZxIVgNAAAAQVRVIE51bWVyaWNhbHEiSwOGcSNYCAAAAEFU
+VSBUeXBlcSRdcSUoWBAAAABEb21lc3RpYyBBbmltYWxzcSZYGQAAAE90aGVyIEFuaW1hbHMgYW5k
+IE9iamVjdHNxJ1gfAAAAT3RoZXIgVGFsZXMgb2YgdGhlIFN1cGVybmF0dXJhbHEoWBgAAABTdXBl
+cm5hdHVyYWwgQWR2ZXJzYXJpZXNxKVgUAAAAU3VwZXJuYXR1cmFsIEhlbHBlcnNxKlggAAAAU3Vw
+ZXJuYXR1cmFsIFBvd2VycyBvciBLbm93bGVkZ2VxK1gSAAAAU3VwZXJuYXR1cmFsIFRhc2tzcSxY
+IwAAAFN1cGVybmF0dXJhbCBvciBFbmNoYW50ZWQgUmVsYXRpdmVzcS1YIAAAAFdpbGQgQW5pbWFs
+IGFuZCBEb21lc3RpYyBBbmltYWxzcS5YDAAAAFdpbGQgQW5pbWFsc3EvWBcAAABXaWxkIEFuaW1h
+bHMgYW5kIEh1bWFuc3EwZYZxMXRxMlgGAAAAdmFsdWVzcTN9cTQoWAoAAAB1c2VkX2F0dHJzcTVd
+cTZjT3JhbmdlLmRhdGEudmFyaWFibGUKbWFrZV92YXJpYWJsZQpxN2NPcmFuZ2UuZGF0YS52YXJp
+YWJsZQpTdHJpbmdWYXJpYWJsZQpxOE5YBwAAAENvbnRlbnRxOYdxOlJxO31xPChoGn1xPVgHAAAA
+aW5jbHVkZXE+WAQAAABUcnVlcT9zWAcAAABfY29sb3JzcUBOWAsAAAB1bmtub3duX3N0cnFBY2J1
+aWx0aW5zCnNldApxQl1xQyhYAAAAAHFER3/4AAAAAAAATlgCAAAATkFxRVgDAAAAbmFucUZYAQAA
+AH5xR1gBAAAAP3FIWAEAAAAucUllhXFKUnFLWAQAAABuYW1lcUxoOVgOAAAAX2NvbXB1dGVfdmFs
+dWVxTU5YDwAAAHNvdXJjZV92YXJpYWJsZXFOTlgGAAAAbWFzdGVycU9oO3ViYVgLAAAAX192ZXJz
+aW9uX19xUEsBdXViaAwpgXFRfXFSKGgPR0HWWoiYHAmBaBBYCAAAAENhdGVnb3J5cVNdcVQoWAUA
+AABhZHVsdHFVWAgAAABjaGlsZHJlbnFWZYZxV4VxWGgXXXFZaFNLAYZxWmFoGiloG1gEAAAAVGV4
+dHFbSwOGcVyFcV1oM31xXihoNV1xX2g3aDhOaFuHcWBScWF9cWIoaBp9cWNYBwAAAGluY2x1ZGVx
+ZFgEAAAAVHJ1ZXFlc2hATmhBaEJdcWYoR3/4AAAAAAAAaEROWAIAAABOQXFnWAMAAABuYW5xaGhH
+aEhoSWWFcWlScWpoTGhbaE1OaE5OaE9oYXViYWhQSwF1dWJlaFBLAXUu
+</properties>
+		<properties format="pickle" node_id="1">gAN9cQAoWAsAAAB3b3Jkc19jb2xvcnEBiFgKAAAAd29yZHNfdGlsdHECSwBYDgAAAHNlbGVjdGVk
+X3dvcmRzcQNjYnVpbHRpbnMKc2V0CnEEXXEFWAQAAABraW5ncQZhhXEHUnEIWBMAAABzYXZlZFdp
+ZGdldEdlb21ldHJ5cQlDMgHZ0MsAAgAAAAACKgAAAO8AAAXCAAADaAAAAioAAAEFAAAFwgAAA2gA
+AAAAAAAAAAgAcQpYCwAAAF9fdmVyc2lvbl9fcQtLAXUu
+</properties>
+		<properties format="literal" node_id="2">{'filters': {'keep_n': 100, 'max_df': 0.9, 'enabled': True, 'use_df': False, 'pattern': '\\.|,|:|;|!|\\?|\\(|\\)|\\||\\+|\'|"|‘|’|“|”|\'|\\’|…|\\-|–|—|\\$|&amp;|\\*|&gt;|&lt;', 'min_df': 0.1, 'recent_lexicon_files': ['(none)'], 'recent_sw_files': ['(none)'], 'use_keep_n': False, 'stopwords_language': 'English', 'checked': [0]}, 'savedWidgetGeometry': b'\x01\xd9\xd0\xcb\x00\x02\x00\x00\x00\x00\x02\xa7\x00\x00\x01!\x00\x00\x05\xf3\x00\x00\x036\x00\x00\x02\xa7\x00\x00\x017\x00\x00\x05\xf3\x00\x00\x036\x00\x00\x00\x00\x00\x00\x00\x00\x08\x00', 'tokenizer': {'pattern': '\\w+', 'enabled': True, 'method_index': 3}, '__version__': 1, 'transformers': {'checked': [0], 'enabled': True}, 'ngrams_range': {'ngrams_range': (1, 2), 'enabled': False}, 'normalizer': {'snowball_language': 'English', 'enabled': False, 'method_index': 0}, 'pos_tagger': {'stanford': {'recent_files': ['(none)'], 'resource_path': ''}, 'enabled': False, 'method_index': 0}, 'autocommit': True}</properties>
+		<properties format="pickle" node_id="3">gAN9cQAoWAsAAABzaG93X3Rva2Vuc3EBiVgTAAAAc2F2ZWRXaWRnZXRHZW9tZXRyeXECQzIB2dDL
+AAIAAAAAAOYAAABhAAAEpQAAAs4AAADmAAAAdwAABKUAAALOAAAAAAAAAAAFoHEDWAoAAABhdXRv
+Y29tbWl0cQSIWBAAAABjb250ZXh0X3NldHRpbmdzcQVdcQZjT3JhbmdlLndpZGdldHMuc2V0dGlu
+Z3MKQ29udGV4dApxBymBcQh9cQkoWAQAAAB0aW1lcQpHQdZah6cgFdNYCgAAAGNsYXNzX3ZhcnNx
+C1gJAAAAQVRVIFRvcGljcQxdcQ0oWAwAAABBbmltYWwgVGFsZXNxDlgOAAAAVGFsZXMgb2YgTWFn
+aWNxD2WGcRCFcRFYDgAAAG9yZGVyZWRfZG9tYWlucRJdcRMoaAxLAYZxFFgFAAAAVGl0bGVxFUsD
+hnEWWAgAAABBYnN0cmFjdHEXSwOGcRhYBwAAAENvbnRlbnRxGUsDhnEaWA0AAABBVFUgTnVtZXJp
+Y2FscRtLA4ZxHFgIAAAAQVRVIFR5cGVxHUsBhnEeZVgKAAAAYXR0cmlidXRlc3EfKVgFAAAAbWV0
+YXNxIChoFUsDhnEhaBdLA4ZxImgZSwOGcSNoG0sDhnEkaB1dcSUoWBAAAABEb21lc3RpYyBBbmlt
+YWxzcSZYGQAAAE90aGVyIEFuaW1hbHMgYW5kIE9iamVjdHNxJ1gfAAAAT3RoZXIgVGFsZXMgb2Yg
+dGhlIFN1cGVybmF0dXJhbHEoWBgAAABTdXBlcm5hdHVyYWwgQWR2ZXJzYXJpZXNxKVgUAAAAU3Vw
+ZXJuYXR1cmFsIEhlbHBlcnNxKlggAAAAU3VwZXJuYXR1cmFsIFBvd2VycyBvciBLbm93bGVkZ2Vx
+K1gSAAAAU3VwZXJuYXR1cmFsIFRhc2tzcSxYIwAAAFN1cGVybmF0dXJhbCBvciBFbmNoYW50ZWQg
+UmVsYXRpdmVzcS1YIAAAAFdpbGQgQW5pbWFsIGFuZCBEb21lc3RpYyBBbmltYWxzcS5YDAAAAFdp
+bGQgQW5pbWFsc3EvWBcAAABXaWxkIEFuaW1hbHMgYW5kIEh1bWFuc3EwZYZxMXRxMlgGAAAAdmFs
+dWVzcTN9cTQoWA8AAABkaXNwbGF5X2luZGljZXNxNV1xNihLAEsBSwJLA0sESwVlWBAAAABkaXNw
+bGF5X2ZlYXR1cmVzcTddcTgoY09yYW5nZS5kYXRhLnZhcmlhYmxlCm1ha2VfdmFyaWFibGUKcTko
+Y09yYW5nZS5kYXRhLnZhcmlhYmxlCkRpc2NyZXRlVmFyaWFibGUKcTpOWAkAAABBVFUgVG9waWNx
+O11xPChYDAAAAEFuaW1hbCBUYWxlc3E9WA4AAABUYWxlcyBvZiBNYWdpY3E+ZYlK/////3RxP1Jx
+QH1xQShYCwAAAHVua25vd25fc3RycUJjYnVpbHRpbnMKc2V0CnFDXXFEKEd/+AAAAAAAAFgAAAAA
+cUVOWAIAAABOQXFGWAMAAABuYW5xR1gBAAAAfnFIWAEAAAA/cUlYAQAAAC5xSmWFcUtScUxYBAAA
+AG5hbWVxTWg7WAoAAABiYXNlX3ZhbHVlcU5K/////2gffXFPWA4AAABfY29tcHV0ZV92YWx1ZXFQ
+TlgPAAAAc291cmNlX3ZhcmlhYmxlcVFOWAcAAABfY29sb3JzcVJjbnVtcHkuY29yZS5tdWx0aWFy
+cmF5Cl9yZWNvbnN0cnVjdApxU2NudW1weQpuZGFycmF5CnFUSwCFcVVDAWJxVodxV1JxWChLAUsC
+SwOGcVljbnVtcHkKZHR5cGUKcVpYAgAAAHUxcVtLAEsBh3FcUnFdKEsDWAEAAAB8cV5OTk5K////
+/0r/////SwB0cV9iiUMGRr767UYvcWB0cWFiaDNoPFgGAAAAbWFzdGVycWJoQFgHAAAAb3JkZXJl
+ZHFjiXViaDljT3JhbmdlLmRhdGEudmFyaWFibGUKU3RyaW5nVmFyaWFibGUKcWROWAUAAABUaXRs
+ZXFlh3FmUnFnfXFoKGhCaExoTWhlaB99cWloUE5oUU5oUk5oYmhndWJoOWhkTlgIAAAAQWJzdHJh
+Y3Rxaodxa1JxbH1xbShoQmhMaE1oamgffXFuaFBOaFFOaFJOaGJobHViaDloZE5YBwAAAENvbnRl
+bnRxb4dxcFJxcX1xcihoH31xc1gHAAAAaW5jbHVkZXF0WAQAAABUcnVlcXVzaFJOaEJoQ11xdiho
+RUd/+AAAAAAAAE5YAgAAAE5BcXdYAwAAAG5hbnF4aEhoSWhKZYVxeVJxemhNaG9oUE5oUU5oYmhx
+dWJoOWhkTlgNAAAAQVRVIE51bWVyaWNhbHF7h3F8UnF9fXF+KGhCaExoTWh7aB99cX9oUE5oUU5o
+Uk5oYmh9dWJoOShoOk5YCAAAAEFUVSBUeXBlcYBdcYEoWBAAAABEb21lc3RpYyBBbmltYWxzcYJY
+GQAAAE90aGVyIEFuaW1hbHMgYW5kIE9iamVjdHNxg1gfAAAAT3RoZXIgVGFsZXMgb2YgdGhlIFN1
+cGVybmF0dXJhbHGEWBgAAABTdXBlcm5hdHVyYWwgQWR2ZXJzYXJpZXNxhVgUAAAAU3VwZXJuYXR1
+cmFsIEhlbHBlcnNxhlggAAAAU3VwZXJuYXR1cmFsIFBvd2VycyBvciBLbm93bGVkZ2Vxh1gSAAAA
+U3VwZXJuYXR1cmFsIFRhc2tzcYhYIwAAAFN1cGVybmF0dXJhbCBvciBFbmNoYW50ZWQgUmVsYXRp
+dmVzcYlYIAAAAFdpbGQgQW5pbWFsIGFuZCBEb21lc3RpYyBBbmltYWxzcYpYDAAAAFdpbGQgQW5p
+bWFsc3GLWBcAAABXaWxkIEFuaW1hbHMgYW5kIEh1bWFuc3GMZYlK/////3RxjVJxjn1xjyhoQmhM
+aE1ogGhOSv////9oH31xkGhQTmhRTmhSTmgzaIFoYmiOaGOJdWJlWA4AAABzZWFyY2hfaW5kaWNl
+c3GRXXGSKEsASwFLAksDSwRLBWVYDQAAAHJlZ2V4cF9maWx0ZXJxk2hFSv////+GcZRYCwAAAF9f
+dmVyc2lvbl9fcZVLAXV1YmFolUsBdS4=
+</properties>
+		<properties format="pickle" node_id="4">gAN9cQAoWBMAAABzYXZlZFdpZGdldEdlb21ldHJ5cQFDMgHZ0MsAAgAAAAAAAAAAABcAAAO3AAAB
+jwAAAAAAAAAtAAADtwAAAY8AAAAAAAAAAAWgcQJYCwAAAF9fdmVyc2lvbl9fcQNLAVgKAAAAYXV0
+b2NvbW1pdHEEiFgQAAAAY29udGV4dF9zZXR0aW5nc3EFXXEGY09yYW5nZS53aWRnZXRzLnNldHRp
+bmdzCkNvbnRleHQKcQcpgXEIfXEJKFgEAAAAdGltZXEKR0HWWoiYZ2hRWAoAAABjbGFzc192YXJz
+cQtYCAAAAENhdGVnb3J5cQxdcQ0oWAUAAABhZHVsdHEOWAgAAABjaGlsZHJlbnEPZYZxEIVxEVgO
+AAAAb3JkZXJlZF9kb21haW5xEl1xEyhoDEsBhnEUWAQAAABUZXh0cRVLA4ZxFmVYCgAAAGF0dHJp
+YnV0ZXNxFylYBQAAAG1ldGFzcRhoFUsDhnEZhXEaWAYAAAB2YWx1ZXNxG31xHChYBAAAAHdvcmRx
+HVgEAAAAa2luZ3EeSv////+GcR9oA0sBdXViYVgNAAAAY29udGV4dF93aWR0aHEgSwV1Lg==
+</properties>
+	</node_properties>
+</scheme>

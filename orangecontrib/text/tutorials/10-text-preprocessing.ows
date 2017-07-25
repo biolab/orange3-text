@@ -1,0 +1,110 @@
+<?xml version='1.0' encoding='utf-8'?>
+<scheme description="The first step in text mining is preprocessing, which
+defines the core units of the analysis - tokens.&#10;&#10;This workflow
+demonstrates how to preprocess the data, tokenize it, normalize it and filter
+ the unnecessary parts. Results of preprocessing can be observed in an
+ interactive Word Cloud visualization."
+title="Text Preprocessing" version="2.0">
+	<nodes>
+		<node id="0" name="Corpus" position="(126.0, 159.0)" project_name="Orange3-Text" qualified_name="orangecontrib.text.widgets.owcorpus.OWCorpus" title="Corpus" version="" />
+		<node id="1" name="Corpus Viewer" position="(280.0, 115.0)" project_name="Orange3-Text" qualified_name="orangecontrib.text.widgets.owcorpusviewer.OWCorpusViewer" title="Corpus Viewer" version="" />
+		<node id="2" name="Word Cloud" position="(442.0, 222.0)" project_name="Orange3-Text" qualified_name="orangecontrib.text.widgets.owwordcloud.OWWordCloud" title="Word Cloud" version="" />
+		<node id="3" name="Preprocess Text" position="(281.0, 223.0)" project_name="Orange3-Text" qualified_name="orangecontrib.text.widgets.owpreprocess.OWPreprocess" title="Preprocess Text" version="" />
+	</nodes>
+	<links>
+		<link enabled="true" id="0" sink_channel="Data" sink_node_id="1" source_channel="Corpus" source_node_id="0" />
+		<link enabled="true" id="1" sink_channel="Corpus" sink_node_id="3" source_channel="Corpus" source_node_id="0" />
+		<link enabled="true" id="2" sink_channel="Corpus" sink_node_id="2" source_channel="Corpus" source_node_id="3" />
+	</links>
+	<annotations>
+		<text font-family="Helvetica" font-size="16" id="0" rect="(60.0, 320.0, 158.0, 64.0)" type="text/plain">Load 'grimm-tales-selected.tab'.</text>
+		<arrow end="(125.99999999999999, 215.0)" fill="#39B54A" id="1" start="(121.0, 305.0)" />
+		<arrow end="(283.0, 284.0)" fill="#C1272D" id="2" start="(288.0, 370.0)" />
+		<text font-family="Helvetica" font-size="16" id="3" rect="(233.0, 386.0, 183.0, 112.0)" type="text/plain">Preprocess Text transforms text to lowercase, splits it into tokens, and filters out redundant words (stopwords.)</text>
+		<arrow end="(455.0, 284.0)" fill="#C1272D" id="4" start="(468.00000000000006, 354.0)" />
+		<text font-family="Helvetica" font-size="16" id="5" rect="(431.0, 363.0, 140.0, 64.0)" type="text/plain">Observe results of preprocessing in a Word Cloud.</text>
+		<arrow end="(323.0, 111.99999999999999)" fill="#C1272D" id="6" start="(453.0, 98.99999999999999)" />
+		<text font-family="Helvetica" font-size="16" id="7" rect="(463.0, 66.0, 150.0, 76.0)" type="text/plain">Check the output of Corpus in a Corpus Viewer.</text>
+	</annotations>
+	<thumbnail />
+	<node_properties>
+		<properties format="pickle" node_id="0">gAN9cQAoWAsAAABfX3ZlcnNpb25fX3EBSwFYDAAAAHJlY2VudF9maWxlc3ECXXEDKFgYAAAAZ3Jp
+bW0tdGFsZXMtc2VsZWN0ZWQudGFicQRYEQAAAGJvb2stZXhjZXJwdHMudGFicQVYGAAAAGVsZWN0
+aW9uLXR3ZWV0cy0yMDE2LnRhYnEGWBcAAABmcmllbmRzLXRyYW5zY3JpcHRzLnRhYnEHWAwAAABh
+bmRlcnNlbi50YWJxCGVYEwAAAHNhdmVkV2lkZ2V0R2VvbWV0cnlxCUMyAdnQywACAAAAAAGqAAAA
+tAAAA+EAAAJ8AAABqgAAAMoAAAPhAAACfAAAAAAAAAAABaBxClgQAAAAY29udGV4dF9zZXR0aW5n
+c3ELXXEMKGNPcmFuZ2Uud2lkZ2V0cy5zZXR0aW5ncwpDb250ZXh0CnENKYFxDn1xDyhYBgAAAHZh
+bHVlc3EQfXERKFgKAAAAdXNlZF9hdHRyc3ESXXETY09yYW5nZS5kYXRhLnZhcmlhYmxlCm1ha2Vf
+dmFyaWFibGUKcRRjT3JhbmdlLmRhdGEudmFyaWFibGUKU3RyaW5nVmFyaWFibGUKcRVOWAcAAABD
+b250ZW50cRaHcRdScRh9cRkoWAYAAABtYXN0ZXJxGmgYWAsAAAB1bmtub3duX3N0cnEbY2J1aWx0
+aW5zCnNldApxHF1xHShYAAAAAHEeR3/4AAAAAAAATlgBAAAAP3EfWAEAAAAucSBYAwAAAG5hbnEh
+WAIAAABOQXEiWAEAAAB+cSNlhXEkUnElWA4AAABfY29tcHV0ZV92YWx1ZXEmTlgHAAAAX2NvbG9y
+c3EnTlgEAAAAbmFtZXEoaBZYCgAAAGF0dHJpYnV0ZXNxKX1xKlgHAAAAaW5jbHVkZXErWAQAAABU
+cnVlcSxzWA8AAABzb3VyY2VfdmFyaWFibGVxLU51YmFoAUsBdVgFAAAAbWV0YXNxLihYBQAAAFRp
+dGxlcS9LA4ZxMFgIAAAAQWJzdHJhY3RxMUsDhnEyWAcAAABDb250ZW50cTNLA4ZxNFgNAAAAQVRV
+IE51bWVyaWNhbHE1SwOGcTZYCAAAAEFUVSBUeXBlcTddcTgoWBAAAABEb21lc3RpYyBBbmltYWxz
+cTlYGQAAAE90aGVyIEFuaW1hbHMgYW5kIE9iamVjdHNxOlgfAAAAT3RoZXIgVGFsZXMgb2YgdGhl
+IFN1cGVybmF0dXJhbHE7WBgAAABTdXBlcm5hdHVyYWwgQWR2ZXJzYXJpZXNxPFgUAAAAU3VwZXJu
+YXR1cmFsIEhlbHBlcnNxPVggAAAAU3VwZXJuYXR1cmFsIFBvd2VycyBvciBLbm93bGVkZ2VxPlgS
+AAAAU3VwZXJuYXR1cmFsIFRhc2tzcT9YIwAAAFN1cGVybmF0dXJhbCBvciBFbmNoYW50ZWQgUmVs
+YXRpdmVzcUBYIAAAAFdpbGQgQW5pbWFsIGFuZCBEb21lc3RpYyBBbmltYWxzcUFYDAAAAFdpbGQg
+QW5pbWFsc3FCWBcAAABXaWxkIEFuaW1hbHMgYW5kIEh1bWFuc3FDZYZxRHRxRWgpKVgEAAAAdGlt
+ZXFGR0HWWolOLCaFWA4AAABvcmRlcmVkX2RvbWFpbnFHXXFIWAkAAABBVFUgVG9waWNxSUsBhnFK
+YVgKAAAAY2xhc3NfdmFyc3FLaEldcUwoWAwAAABBbmltYWwgVGFsZXNxTVgOAAAAVGFsZXMgb2Yg
+TWFnaWNxTmWGcU+FcVB1YmgNKYFxUX1xUihoEH1xUyhoEl1xVGgUaBVOWAQAAABUZXh0cVWHcVZS
+cVd9cVgoaCdOaC1OaBpoV2gbaBxdcVkoR3/4AAAAAAAAaB5OaB9oIFgDAAAAbmFucVpYAgAAAE5B
+cVtoI2WFcVxScV1oJk5oKGhVaCl9cV5YBwAAAGluY2x1ZGVxX1gEAAAAVHJ1ZXFgc3ViYWgBSwF1
+aC5YBAAAAFRleHRxYUsDhnFihXFjaCkpaEZHQdZaiU048UpoR11xZFgIAAAAQ2F0ZWdvcnlxZUsB
+hnFmYWhLaGVdcWcoWAUAAABhZHVsdHFoWAgAAABjaGlsZHJlbnFpZYZxaoVxa3ViZXUu
+</properties>
+		<properties format="pickle" node_id="1">gAN9cQAoWAsAAABfX3ZlcnNpb25fX3EBSwFYCgAAAGF1dG9jb21taXRxAohYEwAAAHNhdmVkV2lk
+Z2V0R2VvbWV0cnlxA0MyAdnQywACAAAAAADmAAAAYQAABKUAAALOAAAA5gAAAHcAAASlAAACzgAA
+AAAAAAAABaBxBFgQAAAAY29udGV4dF9zZXR0aW5nc3EFXXEGKGNPcmFuZ2Uud2lkZ2V0cy5zZXR0
+aW5ncwpDb250ZXh0CnEHKYFxCH1xCShYBgAAAHZhbHVlc3EKfXELKFgNAAAAcmVnZXhwX2ZpbHRl
+cnEMWAAAAABxDUr/////hnEOaAFLAVgOAAAAc2VhcmNoX2luZGljZXNxD11xEChLAEsBSwJLA0sE
+SwVlWBAAAABkaXNwbGF5X2ZlYXR1cmVzcRFdcRIoY09yYW5nZS5kYXRhLnZhcmlhYmxlCm1ha2Vf
+dmFyaWFibGUKcRMoY09yYW5nZS5kYXRhLnZhcmlhYmxlCkRpc2NyZXRlVmFyaWFibGUKcRROWAkA
+AABBVFUgVG9waWNxFV1xFihYDAAAAEFuaW1hbCBUYWxlc3EXWA4AAABUYWxlcyBvZiBNYWdpY3EY
+ZYlK/////3RxGVJxGn1xGyhYBgAAAG1hc3RlcnEcaBpoCmgWWAsAAAB1bmtub3duX3N0cnEdY2J1
+aWx0aW5zCnNldApxHl1xHyhHf/gAAAAAAABoDU5YAQAAAD9xIFgBAAAALnEhWAMAAABuYW5xIlgC
+AAAATkFxI1gBAAAAfnEkZYVxJVJxJlgOAAAAX2NvbXB1dGVfdmFsdWVxJ05YBwAAAF9jb2xvcnNx
+KGNudW1weS5jb3JlLm11bHRpYXJyYXkKX3JlY29uc3RydWN0CnEpY251bXB5Cm5kYXJyYXkKcSpL
+AIVxK0MBYnEsh3EtUnEuKEsBSwJLA4ZxL2NudW1weQpkdHlwZQpxMFgCAAAAdTFxMUsASwGHcTJS
+cTMoSwNYAQAAAHxxNE5OTkr/////Sv////9LAHRxNWKJQwZGvvrtRi9xNnRxN2JYCgAAAGJhc2Vf
+dmFsdWVxOEr/////WAQAAABuYW1lcTloFVgKAAAAYXR0cmlidXRlc3E6fXE7WAcAAABvcmRlcmVk
+cTyJWA8AAABzb3VyY2VfdmFyaWFibGVxPU51YmgTY09yYW5nZS5kYXRhLnZhcmlhYmxlClN0cmlu
+Z1ZhcmlhYmxlCnE+TlgFAAAAVGl0bGVxP4dxQFJxQX1xQihoHGhBaB1oJmgnTmgoTmg5aD9oOn1x
+Q2g9TnViaBNoPk5YCAAAAEFic3RyYWN0cUSHcUVScUZ9cUcoaBxoRmgdaCZoJ05oKE5oOWhEaDp9
+cUhoPU51YmgTaD5OWAcAAABDb250ZW50cUmHcUpScUt9cUwoaBxoS2gdaB5dcU0oaA1Hf/gAAAAA
+AABOaCBoIVgDAAAAbmFucU5YAgAAAE5BcU9oJGWFcVBScVFoJ05oKE5oOWhJaDp9cVJYBwAAAGlu
+Y2x1ZGVxU1gEAAAAVHJ1ZXFUc2g9TnViaBNoPk5YDQAAAEFUVSBOdW1lcmljYWxxVYdxVlJxV31x
+WChoHGhXaB1oJmgnTmgoTmg5aFVoOn1xWWg9TnViaBMoaBROWAgAAABBVFUgVHlwZXFaXXFbKFgQ
+AAAARG9tZXN0aWMgQW5pbWFsc3FcWBkAAABPdGhlciBBbmltYWxzIGFuZCBPYmplY3RzcV1YHwAA
+AE90aGVyIFRhbGVzIG9mIHRoZSBTdXBlcm5hdHVyYWxxXlgYAAAAU3VwZXJuYXR1cmFsIEFkdmVy
+c2FyaWVzcV9YFAAAAFN1cGVybmF0dXJhbCBIZWxwZXJzcWBYIAAAAFN1cGVybmF0dXJhbCBQb3dl
+cnMgb3IgS25vd2xlZGdlcWFYEgAAAFN1cGVybmF0dXJhbCBUYXNrc3FiWCMAAABTdXBlcm5hdHVy
+YWwgb3IgRW5jaGFudGVkIFJlbGF0aXZlc3FjWCAAAABXaWxkIEFuaW1hbCBhbmQgRG9tZXN0aWMg
+QW5pbWFsc3FkWAwAAABXaWxkIEFuaW1hbHNxZVgXAAAAV2lsZCBBbmltYWxzIGFuZCBIdW1hbnNx
+ZmWJSv////90cWdScWh9cWkoaBxoaGgKaFtoHWgmaCdOaChOaDhK/////2g5aFpoOn1xamg8iWg9
+TnViZVgPAAAAZGlzcGxheV9pbmRpY2VzcWtdcWwoSwBLAUsCSwNLBEsFZXVYBQAAAG1ldGFzcW0o
+aD9LA4ZxbmhESwOGcW9oSUsDhnFwaFVLA4ZxcWhaXXFyKGhcaF1oXmhfaGBoYWhiaGNoZGhlaGZl
+hnFzdHF0aDopWAQAAAB0aW1lcXVHQdZaiU4tiLVYDgAAAG9yZGVyZWRfZG9tYWlucXZdcXcoaBVL
+AYZxeGg/SwOGcXloREsDhnF6aElLA4Zxe2hVSwOGcXxoWksBhnF9ZVgKAAAAY2xhc3NfdmFyc3F+
+aBVdcX8oaBdoGGWGcYCFcYF1YmgHKYFxgn1xgyhoCn1xhChoDGgNSv////+GcYVoAUsBaA9dcYYo
+SwBLAWVoEV1xhyhoEyhoFE5YCAAAAENhdGVnb3J5cYhdcYkoWAUAAABhZHVsdHGKWAgAAABjaGls
+ZHJlbnGLZYlK/////3RxjFJxjX1xjihoHGiNaApoiWgdaB5dcY8oR3/4AAAAAAAAaA1YAgAAAE5B
+cZBOaCBYAwAAAG5hbnGRaCFoJGWFcZJScZNoJ05oKE5oOEr/////aDloiGg6fXGUaDyJaD1OdWJo
+E2g+TlgEAAAAVGV4dHGVh3GWUnGXfXGYKGgoTmg9TmgcaJdoHWgeXXGZKEd/+AAAAAAAAGgNTmgg
+aCFYAwAAAG5hbnGaWAIAAABOQXGbaCRlhXGcUnGdaCdOaDlolWg6fXGeWAcAAABpbmNsdWRlcZ9Y
+BAAAAFRydWVxoHN1YmVoa11xoShLAEsBZXVobWiVSwOGcaKFcaNoOilodUdB1lqJTUre32h2XXGk
+KGiISwGGcaVolUsDhnGmZWh+aIhdcacoaIpoi2WGcaiFcal1YmVYCwAAAHNob3dfdG9rZW5zcaqJ
+dS4=
+</properties>
+		<properties format="pickle" node_id="2">gAN9cQAoWAsAAABfX3ZlcnNpb25fX3EBSwFYCgAAAHdvcmRzX3RpbHRxAksCWA4AAABzZWxlY3Rl
+ZF93b3Jkc3EDY2J1aWx0aW5zCnNldApxBF1xBYVxBlJxB1gLAAAAd29yZHNfY29sb3JxCIhYEwAA
+AHNhdmVkV2lkZ2V0R2VvbWV0cnlxCUMyAdnQywACAAAAAAD6AAAAYQAABJIAAALOAAAA+gAAAHcA
+AASSAAACzgAAAAAAAAAABaBxCnUu
+</properties>
+		<properties format="literal" node_id="3">{'savedWidgetGeometry': b'\x01\xd9\xd0\xcb\x00\x02\x00\x00\x00\x00\x01w\x00\x00\x00\x8d\x00\x00\x04\xc3\x00\x00\x02\xa2\x00\x00\x01w\x00\x00\x00\xa3\x00\x00\x04\xc3\x00\x00\x02\xa2\x00\x00\x00\x00\x00\x00\x00\x00\x05\xa0', 'autocommit': True, '__version__': 1, 'tokenizer': {'method_index': 3, 'enabled': True, 'pattern': '\\w+'}, 'normalizer': {'method_index': 0, 'enabled': False, 'snowball_language': 'English'}, 'filters': {'use_df': False, 'recent_lexicon_files': ['(none)'], 'use_keep_n': False, 'recent_sw_files': ['(none)'], 'enabled': True, 'min_df': 0.1, 'keep_n': 100, 'max_df': 0.9, 'checked': [0], 'stopwords_language': 'English', 'pattern': '\\.|,|:|;|!|\\?|\\(|\\)|\\||\\+|\'|"|‘|’|“|”|\'|\\’|…|\\-|–|—|\\$|&amp;|\\*|&gt;|&lt;'}, 'ngrams_range': {'ngrams_range': (1, 2), 'enabled': False}, 'transformers': {'checked': [0], 'enabled': True}, 'pos_tagger': {'method_index': 0, 'enabled': False, 'stanford': {'resource_path': '', 'recent_files': ['(none)']}}}</properties>
+	</node_properties>
+</scheme>

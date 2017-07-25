@@ -1,4 +1,4 @@
-Is retweet	Time	Language	Retweet count	Favorite count	Longitude	Latitude	Author	Source URL	Contente	Original author	Place
+Is retweet	Time	Language	Retweet count	Favorite count	Longitude	Latitude	Author	Source URL	Content	Original author	Place
 discrete	time	discrete	continuous	continuous	continuous	continuous	discrete	string	string	string	string
 							class	meta	meta include=True title=True	meta	meta
 False	2016-09-28 00:22:34	en	218.0	651.0			HillaryClinton	https://studio.twitter.com	The question in this election: Who can put the plans into action that will make your life better? https://t.co/XreEY9OicG		
