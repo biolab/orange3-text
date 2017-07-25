@@ -1,5 +1,10 @@
 <?xml version='1.0' encoding='utf-8'?>
-<scheme description="" title="Model Evaluation on Text" version="2.0">
+<scheme description="Which classification technique works best on my data?
+And how to inspect a model?&#10;&#10;Pass the bag of words matrix to Logistic
+ Regression and inspect a model with Nomogram. To evaluate model's
+ performance, use Test and Score. Inspect misclassifications from Confusion
+ Matrix with Corpus Viewer."
+ title="Model Evaluation on Text" version="2.0">
 	<nodes>
 		<node id="0" name="Corpus" position="(70.0, 152.0)" project_name="Orange3-Text" qualified_name="orangecontrib.text.widgets.owcorpus.OWCorpus" title="Corpus" version="" />
 		<node id="1" name="Preprocess Text" position="(164.0, 152.0)" project_name="Orange3-Text" qualified_name="orangecontrib.text.widgets.owpreprocess.OWPreprocess" title="Preprocess Text" version="" />

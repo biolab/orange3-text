@@ -1,5 +1,11 @@
 <?xml version='1.0' encoding='utf-8'?>
-<scheme description="" title="Concordance" version="2.0">
+<scheme description="Interactive data exploration is a key feature of Orange
+and most visualizations support passing the selected data to downstream
+widgets.&#10;&#10;Select a word from Word Cloud and pass it to Concordance to
+observe the context in which the selected word appears. Explore different
+words by selecting them in a Word Cloud and immediately observing the results
+in Concordance widget."
+title="Concordance" version="2.0">
 	<nodes>
 		<node id="0" name="Corpus" position="(117.0, 91.0)" project_name="Orange3-Text" qualified_name="orangecontrib.text.widgets.owcorpus.OWCorpus" title="Corpus" version="" />
 		<node id="1" name="Word Cloud" position="(362.0, 158.0)" project_name="Orange3-Text" qualified_name="orangecontrib.text.widgets.owwordcloud.OWWordCloud" title="Word Cloud" version="" />

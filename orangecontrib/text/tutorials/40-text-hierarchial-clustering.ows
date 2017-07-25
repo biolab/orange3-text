@@ -1,5 +1,10 @@
 <?xml version='1.0' encoding='utf-8'?>
-<scheme description="" title="Hierarchical Clustering on Text" version="2.0">
+<scheme description="Hierarchical Clustering helps us find groups of
+similar documents.&#10;&#10;First, we need to define what we mean by similar.
+Distances computes cosine distance between documents based on word count
+provided in Bag of Words. Then, Hierarchical Clustering plots a dendrogram - a
+ hierarchical structure of documents by their similarity."
+title="Hierarchical Clustering on Text" version="2.0">
 	<nodes>
 		<node id="0" name="Corpus" position="(70.0, 152.0)" project_name="Orange3-Text" qualified_name="orangecontrib.text.widgets.owcorpus.OWCorpus" title="Corpus" version="" />
 		<node id="1" name="Preprocess Text" position="(179.0, 152.0)" project_name="Orange3-Text" qualified_name="orangecontrib.text.widgets.owpreprocess.OWPreprocess" title="Preprocess Text" version="" />

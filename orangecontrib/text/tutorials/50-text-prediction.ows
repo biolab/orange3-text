@@ -1,5 +1,10 @@
 <?xml version='1.0' encoding='utf-8'?>
-<scheme description="" title="Text Prediction" version="2.0">
+<scheme description="We have three folk tales for which we would like to
+predict the type. Are they Animal Tales or Tales of Magic?&#10;&#10;First train
+a model by passing Grimm (train) corpus to Bag of Words and further to Logistic
+ Regression. Once the model is trained, we can apply it on a new corpus of
+ Andersen tales and observe the predicted type for each tale."
+title="Text Prediction" version="2.0">
 	<nodes>
 		<node id="0" name="Corpus" position="(156.0, 145.0)" project_name="Orange3-Text" qualified_name="orangecontrib.text.widgets.owcorpus.OWCorpus" title="Corpus Grimms" version="" />
 		<node id="1" name="Preprocess Text" position="(259.0, 145.0)" project_name="Orange3-Text" qualified_name="orangecontrib.text.widgets.owpreprocess.OWPreprocess" title="Preprocess Text" version="" />

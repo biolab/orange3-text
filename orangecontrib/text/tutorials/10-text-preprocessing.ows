@@ -1,5 +1,10 @@
 <?xml version='1.0' encoding='utf-8'?>
-<scheme description="" title="Text Preprocessing" version="2.0">
+<scheme description="The first step in text mining is preprocessing, which
+defines the core units of the analysis - tokens.&#10;&#10;This workflow
+demonstrates how to preprocess the data, tokenize it, normalize it and filter
+ the unnecessary parts. Results of preprocessing can be observed in an
+ interactive Word Cloud visualization."
+title="Text Preprocessing" version="2.0">
 	<nodes>
 		<node id="0" name="Corpus" position="(126.0, 159.0)" project_name="Orange3-Text" qualified_name="orangecontrib.text.widgets.owcorpus.OWCorpus" title="Corpus" version="" />
 		<node id="1" name="Corpus Viewer" position="(280.0, 115.0)" project_name="Orange3-Text" qualified_name="orangecontrib.text.widgets.owcorpusviewer.OWCorpusViewer" title="Corpus Viewer" version="" />
