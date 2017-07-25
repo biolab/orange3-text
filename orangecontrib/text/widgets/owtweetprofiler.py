@@ -37,6 +37,7 @@ class OWTweetProfiler(OWWidget):
     def __init__(self):
         super().__init__()
         self.corpus = None
+        self.last_config = None     # to avoid reruns with the same params
         self.strings_attrs = []
         self.profiler = TweetProfiler(on_server_down=self.Error.server_down)
 
@@ -107,12 +108,17 @@ class OWTweetProfiler(OWWidget):
         self.commit()
 
     def apply(self):
-        self.commit()
+        if self.last_config != self._get_config():
+            self.commit()
+
+    def _get_config(self):
+        return self.tweet_attr, self.model_name, self.output_mode
 
     def commit(self):
         self.Error.clear()
 
         if self.corpus is not None:
+            self.last_config = self._get_config()
             with self.progressBar(iterations=len(self.corpus)) as pb:
                 out = self.profiler.transform(
                     self.corpus, self.strings_attrs[self.tweet_attr],
