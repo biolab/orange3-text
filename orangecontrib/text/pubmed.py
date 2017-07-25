@@ -15,11 +15,11 @@ from orangecontrib.text.corpus import Corpus
 BASE_ENTRY_URL = 'http://www.ncbi.nlm.nih.gov/pubmed/?term='
 
 PUBMED_FIELD_AUTHORS = 'authors'
-PUBMED_FIELD_TITLE = 'article_title'
-PUBMED_FIELD_HEADINGS = 'mesh_headings'
+PUBMED_FIELD_TITLE = 'title'
+PUBMED_FIELD_HEADINGS = 'MESH headings'
 PUBMED_FIELD_ABSTRACT = 'abstract'
 PUBMED_FIELD_URL = 'url'
-PUBMED_FIELD_DATE = 'pub_date'
+PUBMED_FIELD_DATE = 'date'
 PUBMED_TEXT_FIELDS = [
     (PUBMED_FIELD_AUTHORS, 'FAU'),
     (PUBMED_FIELD_TITLE, 'TI'),
@@ -143,14 +143,16 @@ def _corpus_from_records(records, includes_metadata):
     )
     meta_vars = []
     for field_name, _ in includes_metadata:
-        if field_name == 'pub_date':
+        if field_name == PUBMED_FIELD_DATE:
             meta_vars.append(TimeVariable(field_name))
         else:
             meta_vars.append(StringVariable.make(field_name))
+            if field_name == PUBMED_FIELD_TITLE:
+                meta_vars[-1].attributes["title"] = True
 
     class_vars = [
-        DiscreteVariable('section_name',
-                         values=list(set(filter(None, class_values))))
+        DiscreteVariable('section',
+                         values=list(map(str, set(filter(None, class_values)))))
     ]
     domain = Domain([], class_vars=class_vars, metas=meta_vars)
 
