@@ -234,22 +234,26 @@ class OWTopicModeling(OWWidget):
 
 
 class TopicViewerTreeWidgetItem(QTreeWidgetItem):
-    def __init__(self, topic_id, words, weights, parent):
+    def __init__(self, topic_id, words, weights, parent,
+                 color_by_weights=False):
         super().__init__(parent)
         self.topic_id = topic_id
         self.words = words
         self.weights = weights
+        self.color_by_weights = color_by_weights
 
         self.setText(0, '{:d}'.format(topic_id + 1))
         self.setText(1, ', '.join(self._color(word, weight)
                                   for word, weight in zip(words, weights)))
 
-    @staticmethod
-    def _color(word, weight):
-        red = '#ff6600'
-        green = '#00cc00'
-        color = green if weight > 0 else red
-        return '<span style="color: {}">{}</span>'.format(color, word)
+    def _color(self, word, weight):
+        if self.color_by_weights:
+            red = '#ff6600'
+            green = '#00cc00'
+            color = green if weight > 0 else red
+            return '<span style="color: {}">{}</span>'.format(color, word)
+        else:
+            return word
 
 
 class TopicViewer(QTreeWidget):
@@ -278,7 +282,9 @@ class TopicViewer(QTreeWidget):
             for i in range(topic_model.num_topics):
                 words, weights = topic_model.get_top_words_by_id(i)
                 if words:
-                    it = TopicViewerTreeWidgetItem(i, words, weights, self)
+                    it = TopicViewerTreeWidgetItem(
+                        i, words, weights, self,
+                        color_by_weights=topic_model.has_negative_weights)
                     self.addTopLevelItem(it)
 
             self.resize_columns()

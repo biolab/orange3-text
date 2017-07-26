@@ -24,6 +24,7 @@ class GensimWrapper:
     name = NotImplemented
     Model = NotImplemented
     num_topics = NotImplemented
+    has_negative_weights = False    # whether words can negatively contibute to a topic
 
     def __init__(self, **kwargs):
         for k, v in kwargs.items():
