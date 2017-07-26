@@ -25,7 +25,7 @@ class BaseTests:
 
     def test_top_words_by_topic(self):
         self.model.fit(self.corpus)
-        words = self.model.get_top_words_by_id(1, num_of_words=10)
+        words, _ = self.model.get_top_words_by_id(1, num_of_words=10)
         self.assertTrue(all([isinstance(word, str) for word in words]))
         self.assertEqual(len(words), 10)
 
