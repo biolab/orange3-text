@@ -47,8 +47,8 @@ class GensimWrapper:
         self.running = True
         self.update(corpus.ngrams_corpus, **kwargs)
         self.n_words = len(corpus.dictionary)
-        self.topic_names = ['Topic{} ({})'.format(i, ', '.join(words))
-                            for i, words in enumerate(self._topics_words(3), 1)]
+        self.topic_names = ['Topic {}'.format(i+1)
+                            for i in range(self.num_topics)]
         self.running = False
 
     def dummy_method(self, *args, **kwargs):
@@ -94,7 +94,7 @@ class GensimWrapper:
         data[:, 1] = weights[topic_id]
 
         metas = [StringVariable(self.topic_names[topic_id]),
-                 ContinuousVariable("Topic{}_weights".format(topic_id + 1))]
+                 ContinuousVariable("Topic {} weights".format(topic_id + 1))]
         metas[-1]._out_format = '%.2e'
 
         domain = Domain([], metas=metas)
