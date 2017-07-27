@@ -13,6 +13,7 @@ Widgets
    :maxdepth: 1
 
    widgets/corpus
+   widgets/importdocuments
    widgets/nytimes
    widgets/guardian
    widgets/twitter
