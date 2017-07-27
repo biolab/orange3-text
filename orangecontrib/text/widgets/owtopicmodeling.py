@@ -225,8 +225,7 @@ class OWTopicModeling(OWWidget):
     def send_report(self):
         self.report_items(*self.widgets[self.method_index].report_model())
         if self.corpus is not None:
-            self.report_items('Topics', [(i+1, ', '.join(self.model.get_top_words_by_id(i)[0]))
-                                         for i in range(len(self.model.topic_names))])
+            self.report_items('Topics', self.topic_desc.report())
 
     def send_topic_by_id(self, topic_id=None):
         if self.model.model and topic_id is not None:
@@ -254,6 +253,9 @@ class TopicViewerTreeWidgetItem(QTreeWidgetItem):
             return '<span style="color: {}">{}</span>'.format(color, word)
         else:
             return word
+
+    def report(self):
+        return self.text(0), self.text(1)
 
 
 class TopicViewer(QTreeWidget):
@@ -298,6 +300,12 @@ class TopicViewer(QTreeWidget):
             self.topicSelected.emit(topic_id)
         else:
             self.topicSelected.emit(None)
+
+    def report(self):
+        root = self.invisibleRootItem()
+        child_count = root.childCount()
+        return [root.child(i).report()
+                for i in range(child_count)]
 
     def sizeHint(self):
         return QSize(700, 300)
