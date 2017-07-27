@@ -13,17 +13,21 @@ Signals
 
 -  **Corpus**
 
-Corpus instance.
+   Corpus instance.
 
 **Outputs**:
 
 -  **Data**
 
-Data with topic weights appended.
+   Data with topic weights appended.
 
 -  **Topics**
 
-Selected topics with word weights.
+   Selected topics with word weights.
+
+-  **All Topics**
+
+   Topic weights by tokens.
 
 Description
 -----------
@@ -53,21 +57,28 @@ Description
 Example
 -------
 
-In the first example, we present a simple use of the **Topic Modelling** widget. First we load *book-excerpts.tab* data set and use :doc:`Preprocess Text <preprocesstext>` to tokenize by words only. Then we connect **Preprocess Text** to **Topic Modelling**, where we use a simple *Latent Semantic Indexing* to find 10 topics in the text.
+In the first example, we present a simple use of the **Topic Modelling** widget. First we load *grimm-tales-selected.tab* data set and use :doc:`Preprocess Text <preprocesstext>` to tokenize by words only and remove stopwords. Then we connect **Preprocess Text** to **Topic Modelling**, where we use a simple *Latent Semantic Indexing* to find 10 topics in the text.
 
 .. figure:: images/Topic-Modelling-Example1.png
 
-We then select the first topic and display the most frequent words in the topic in :doc:`Word Cloud <wordcloud>`. We also connected **Preprocess Text** to **Word Cloud** in order to be able to output selected documents. Now we can select a specific word in the word cloud, say *polly*. It will be colored red and also highlighted in the word list on the left.
+LSI provides both positive and negative weights per topic. A positive weight means the word is highly representative of a topic, while a negative weight means the word is highly unrepresentative of a topic (the less it occurs in a text, the more likely the topic). Positive words are colored green and negative words are colored red.
 
-Now we can observe all the documents containing the word *polly* in :doc:`Corpus Viewer <corpusviewer>`.
+We then select the first topic and display the most frequent words in the topic in :doc:`Word Cloud <wordcloud>`. We also connected **Preprocess Text** to **Word Cloud** in order to be able to output selected documents. Now we can select a specific word in the word cloud, say *little*. It will be colored red and also highlighted in the word list on the left.
 
+Now we can observe all the documents containing the word *little* in :doc:`Corpus Viewer <corpusviewer>`.
 
-The second example will show how to use a more complex schema to find highly relevant words in a topic. We loaded a data set with recent tweets containing words 'Slovenia' and 'Germany'. We've done that with :doc:`Twitter <twitter>` widget and saved it with **Save Data**. Since the data set was very big, we gathered the tweets and saved it to .tab format. Later we can always reload the saved data with :doc:`Corpus <corpus>`.
+In the second example, we will look at the correlation between topics and words/documents. Connect **Topic Modelling** to **Heat Map**. Ensure the link is set to *All Topics* - *Data*. **Topic Modelling** will output a matrix of topic weights by words from text (more precisely, tokens).
+
+We can observe the output in a **Data Table**. Tokens are in rows and retrieved topics in colums. Values represent how much a word is represented in a topic.
+
+.. figure:: images/Topic-Modelling-DataTable.png
+
+To visualize this matrix, open **Heat Map**. Select *Merge by k-means* and *Cluster* - *Rows* to merge similar rows into one and sort them by similarity, which makes the visualization more compact.
+
+In the upper part of the visualization, we have words that highly define topics 1-3 and in the lower part those that define topics 5 and 10.
+
+We can similarly observe topic representation across documents. We connect another **Heat Map** to **Topic Modelling** and set link to *Corpus* - *Data*. We set *Merge* and *Cluster* as above.
+
+In this visualization we see how much is a topic represented in a document. Looks like Topic 1 is represented almost across the entire corpus, while other topics are more specific. To observe a specific set of document, select either a clustering node or a row in the visualization. Then pass the data to :doc:`Corpus Viewer <corpusviewer>`.
 
 .. figure:: images/Topic-Modelling-Example2.png
-
-Then we used :doc:`Preprocess Text <preprocesstext>` to tokenize by words and filter out numbers. Then we have to pass the data through :doc:`Bag of Words <bagofwords>` in order to be able to use the corpus on :doc:`Word Enrichment <wordenrichment>`.
-
-We pass the output of **Bag of Words** to **Topic Modelling**, where we select the first topic for inspection. We can already inspect word frequency of Topic 1 in **Word Cloud**.
-
-Finally, we can use **Select Rows** to retrieve only those documents that have a weight of Topic 1 higher than 0.9 (meaning Topic 1 is represented in more than 9/10 of the document). Finally we connect **Select Rows** and **Bag of Words** to **Word Enrichment**. In **Word Enrichment** we can observe the most significant words in Topic 1.
