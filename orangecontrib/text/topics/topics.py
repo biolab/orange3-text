@@ -110,6 +110,7 @@ class GensimWrapper:
         all_words = self._topics_words(self.n_words)
         all_weights = self._topics_weights(self.n_words)
         sorted_words = sorted(all_words[0])
+        n_topics = len(all_words)
 
         X = []
         for words, weights in zip(all_words, all_weights):
@@ -117,11 +118,13 @@ class GensimWrapper:
             X.append(weights)
         X = np.array(X).T
 
-        domain = Domain([ContinuousVariable(n) for n in self.topic_names],
-                        metas=[StringVariable('Word')])
-        t = Table.from_numpy(domain,
-                             X=X,
-                             metas=np.array(sorted_words)[:, None])
+        # take only first n_topics; e.g. when user requested 10, but gensim
+        # returns only 9 — when the rank is lower than num_topics requested
+        attrs = [ContinuousVariable(n)
+                 for n in self.topic_names[:n_topics]]
+
+        t = Table.from_numpy(Domain(attrs, metas=[StringVariable('Word')]),
+                             X=X, metas=np.array(sorted_words)[:, None])
         t.name = 'All topics'
         return t
 
