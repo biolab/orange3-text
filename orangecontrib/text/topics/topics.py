@@ -24,6 +24,7 @@ class GensimWrapper:
     name = NotImplemented
     Model = NotImplemented
     num_topics = NotImplemented
+    has_negative_weights = False    # whether words can negatively contibute to a topic
 
     def __init__(self, **kwargs):
         for k, v in kwargs.items():
@@ -46,8 +47,8 @@ class GensimWrapper:
         self.running = True
         self.update(corpus.ngrams_corpus, **kwargs)
         self.n_words = len(corpus.dictionary)
-        self.topic_names = ['Topic{} ({})'.format(i, ', '.join(words))
-                            for i, words in enumerate(self._topics_words(3), 1)]
+        self.topic_names = ['Topic {}'.format(i+1)
+                            for i in range(self.num_topics)]
         self.running = False
 
     def dummy_method(self, *args, **kwargs):
@@ -93,7 +94,7 @@ class GensimWrapper:
         data[:, 1] = weights[topic_id]
 
         metas = [StringVariable(self.topic_names[topic_id]),
-                 ContinuousVariable("Topic{}_weights".format(topic_id + 1))]
+                 ContinuousVariable("Topic {} weights".format(topic_id + 1))]
         metas[-1]._out_format = '%.2e'
 
         domain = Domain([], metas=metas)
@@ -109,6 +110,7 @@ class GensimWrapper:
         all_words = self._topics_words(self.n_words)
         all_weights = self._topics_weights(self.n_words)
         sorted_words = sorted(all_words[0])
+        n_topics = len(all_words)
 
         X = []
         for words, weights in zip(all_words, all_weights):
@@ -116,21 +118,24 @@ class GensimWrapper:
             X.append(weights)
         X = np.array(X).T
 
-        domain = Domain([ContinuousVariable(n) for n in self.topic_names],
-                        metas=[StringVariable('Word')])
-        t = Table.from_numpy(domain,
-                             X=X,
-                             metas=np.array(sorted_words)[:, None])
+        # take only first n_topics; e.g. when user requested 10, but gensim
+        # returns only 9 — when the rank is lower than num_topics requested
+        attrs = [ContinuousVariable(n)
+                 for n in self.topic_names[:n_topics]]
+
+        t = Table.from_numpy(Domain(attrs, metas=[StringVariable('Word')]),
+                             X=X, metas=np.array(sorted_words)[:, None])
         t.name = 'All topics'
         return t
 
     def get_top_words_by_id(self, topic_id, num_of_words=10):
         topics = self._topics_words(num_of_words=num_of_words)
+        weights = self._topics_weights(num_of_words=num_of_words)
         if not 0 <= topic_id < self.num_topics:
             raise ValueError("Invalid {}".format(topic_id))
         elif topic_id >= len(topics):
-            return []
-        return topics[topic_id]
+            return [], []
+        return topics[topic_id], weights[topic_id]
 
     def _topics_words(self, num_of_words):
         """ Returns list of list of topic words. """

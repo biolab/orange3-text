@@ -1,8 +1,10 @@
 import functools
 
+from AnyQt import QtGui, QtCore
 from AnyQt.QtCore import pyqtSignal, QSize
 from AnyQt.QtWidgets import (QVBoxLayout, QButtonGroup, QRadioButton,
-                             QGroupBox, QTreeWidgetItem, QTreeWidget)
+                             QGroupBox, QTreeWidgetItem, QTreeWidget,
+                             QStyleOptionViewItem, QStyledItemDelegate, QStyle)
 
 from Orange.widgets import settings
 from Orange.widgets import gui
@@ -223,8 +225,7 @@ class OWTopicModeling(OWWidget):
     def send_report(self):
         self.report_items(*self.widgets[self.method_index].report_model())
         if self.corpus is not None:
-            self.report_items('Topics', [(i+1, ', '.join(self.model.get_top_words_by_id(i)))
-                                         for i in range(len(self.model.topic_names))])
+            self.report_items('Topics', self.topic_desc.report())
 
     def send_topic_by_id(self, topic_id=None):
         if self.model.model and topic_id is not None:
@@ -232,13 +233,29 @@ class OWTopicModeling(OWWidget):
 
 
 class TopicViewerTreeWidgetItem(QTreeWidgetItem):
-    def __init__(self, topic_id, words, parent):
+    def __init__(self, topic_id, words, weights, parent,
+                 color_by_weights=False):
         super().__init__(parent)
         self.topic_id = topic_id
         self.words = words
+        self.weights = weights
+        self.color_by_weights = color_by_weights
 
         self.setText(0, '{:d}'.format(topic_id + 1))
-        self.setText(1, ', '.join(words))
+        self.setText(1, ', '.join(self._color(word, weight)
+                                  for word, weight in zip(words, weights)))
+
+    def _color(self, word, weight):
+        if self.color_by_weights:
+            red = '#ff6600'
+            green = '#00cc00'
+            color = green if weight > 0 else red
+            return '<span style="color: {}">{}</span>'.format(color, word)
+        else:
+            return word
+
+    def report(self):
+        return self.text(0), self.text(1)
 
 
 class TopicViewer(QTreeWidget):
@@ -255,6 +272,7 @@ class TopicViewer(QTreeWidget):
         self.setHeaderLabels(self.columns)
         self.resize_columns()
         self.itemSelectionChanged.connect(self.selected_topic_changed)
+        self.setItemDelegate(HTMLDelegate())    # enable colors
 
     def resize_columns(self):
         for i in range(self.columnCount()):
@@ -264,9 +282,11 @@ class TopicViewer(QTreeWidget):
         self.clear()
         if topic_model.model:
             for i in range(topic_model.num_topics):
-                words = topic_model.get_top_words_by_id(i)
+                words, weights = topic_model.get_top_words_by_id(i)
                 if words:
-                    it = TopicViewerTreeWidgetItem(i, words, self)
+                    it = TopicViewerTreeWidgetItem(
+                        i, words, weights, self,
+                        color_by_weights=topic_model.has_negative_weights)
                     self.addTopLevelItem(it)
 
             self.resize_columns()
@@ -281,8 +301,54 @@ class TopicViewer(QTreeWidget):
         else:
             self.topicSelected.emit(None)
 
+    def report(self):
+        root = self.invisibleRootItem()
+        child_count = root.childCount()
+        return [root.child(i).report()
+                for i in range(child_count)]
+
     def sizeHint(self):
         return QSize(700, 300)
+
+
+class HTMLDelegate(QStyledItemDelegate):
+    """ This delegate enables coloring of words in QTreeWidgetItem. 
+    Adopted from https://stackoverflow.com/a/5443112/892987 """
+    def paint(self, painter, option, index):
+        options = QStyleOptionViewItem(option)
+        self.initStyleOption(options,index)
+
+        style = QApplication.style() if options.widget is None else options.widget.style()
+
+        doc = QtGui.QTextDocument()
+        doc.setHtml(options.text)
+
+        options.text = ""
+        style.drawControl(QStyle.CE_ItemViewItem, options, painter)
+
+        ctx = QtGui.QAbstractTextDocumentLayout.PaintContext()
+
+        if options.state & QStyle.State_Selected:
+            ctx.palette.setColor(QtGui.QPalette.Text,
+                                 options.palette.color(QtGui.QPalette.Active,
+                                                       QtGui.QPalette.HighlightedText))
+
+        textRect = style.subElementRect(QStyle.SE_ItemViewItemText, options)
+        painter.save()
+        painter.translate(textRect.topLeft())
+        painter.setClipRect(textRect.translated(-textRect.topLeft()))
+        doc.documentLayout().draw(painter, ctx)
+
+        painter.restore()
+
+    def sizeHint(self, option, index):
+        options = QStyleOptionViewItem(option)
+        self.initStyleOption(options,index)
+
+        doc = QtGui.QTextDocument()
+        doc.setHtml(options.text)
+        doc.setTextWidth(options.rect.width())
+        return QtCore.QSize(doc.idealWidth(), doc.size().height())
 
 
 if __name__ == '__main__':
