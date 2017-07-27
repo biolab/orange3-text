@@ -102,7 +102,7 @@ class GensimWrapper:
                              X=np.zeros((num_words, 0)),
                              metas=data)
         t.W = data[:, 1]
-        t.name = 'Topic_{}'.format(topic_id + 1)
+        t.name = 'Topic {}'.format(topic_id + 1)
         return t
 
     def get_all_topics_table(self):
