@@ -108,7 +108,8 @@ class OWTopicModeling(OWWidget):
 
     class Outputs:
         corpus = Output("Corpus", Table)
-        topic = Output("Topic", Topic)
+        selected_topic = Output("Selected Topic", Topic)
+        all_topics = Output("All Topics", Table)
 
     want_main_area = True
 
@@ -207,9 +208,11 @@ class OWTopicModeling(OWWidget):
     def on_result(self, corpus):
         self.progressBarFinished(None)
         self.Outputs.corpus.send(corpus)
+        self.Outputs.all_topics.send(self.model.get_all_topics_table())
         if corpus is None:
             self.topic_desc.clear()
-            self.Outputs.topic.send(None)
+            self.Outputs.selected_topic.send(None)
+            self.Outputs.all_topics.send(None)
         else:
             self.topic_desc.show_model(self.model)
 
@@ -225,7 +228,7 @@ class OWTopicModeling(OWWidget):
 
     def send_topic_by_id(self, topic_id=None):
         if self.model.model and topic_id is not None:
-            self.Outputs.topic.send(self.model.get_topics_table_by_id(topic_id))
+            self.Outputs.selected_topic.send(self.model.get_topics_table_by_id(topic_id))
 
 
 class TopicViewerTreeWidgetItem(QTreeWidgetItem):
