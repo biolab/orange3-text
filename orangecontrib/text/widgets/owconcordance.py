@@ -158,7 +158,7 @@ class OWConcordance(OWWidget):
     name = "Concordance"
     description = "Display the context of the word."
     icon = "icons/Concordance.svg"
-    priority = 30000
+    priority = 520
 
     class Inputs:
         corpus = Input("Corpus", Corpus)

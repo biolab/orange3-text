@@ -67,7 +67,7 @@ class OWGuardian(OWWidget):
     name = 'The Guardian'
     description = 'Fetch articles from The Guardian API.'
     icon = 'icons/TheGuardian.svg'
-    priority = 20
+    priority = 120
 
     class Outputs:
         corpus = Output("Corpus", Corpus)

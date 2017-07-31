@@ -75,7 +75,7 @@ class OWTwitter(OWWidget):
     name = 'Twitter'
     description = 'Load tweets from the Twitter API.'
     icon = 'icons/Twitter.svg'
-    priority = 25
+    priority = 150
 
     class Outputs:
         corpus = Output("Corpus", Corpus)

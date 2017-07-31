@@ -14,7 +14,7 @@ class OWCorpus(OWWidget):
     name = "Corpus"
     description = "Load a corpus of text documents."
     icon = "icons/TextFile.svg"
-    priority = 10
+    priority = 100
     replaces = ["orangecontrib.text.widgets.owloadcorpus.OWLoadCorpus"]
 
     class Outputs:

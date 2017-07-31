@@ -14,7 +14,7 @@ class OWTweetProfiler(OWWidget):
     description = "Detect Ekman's, Plutchik's or Profile of Mood States's " \
                   "emotions in tweets."
     icon = "icons/TweetProfiler.svg"
-    priority = 46
+    priority = 330
 
     class Inputs:
         corpus = Input("Corpus", Corpus)

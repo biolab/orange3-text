@@ -28,7 +28,7 @@ class OWPubmed(OWWidget):
     name = 'Pubmed'
     description = 'Fetch data from Pubmed.'
     icon = 'icons/Pubmed.svg'
-    priority = 20
+    priority = 140
 
     outputs = [(Output.CORPUS, Corpus)]
     want_main_area = False

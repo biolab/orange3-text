@@ -500,7 +500,7 @@ class OWPreprocess(OWWidget):
     name = 'Preprocess Text'
     description = 'Construct a text pre-processing pipeline.'
     icon = 'icons/TextPreprocess.svg'
-    priority = 30
+    priority = 200
 
     class Inputs:
         corpus = Input("Corpus", Corpus)
