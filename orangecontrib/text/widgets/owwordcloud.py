@@ -36,7 +36,7 @@ class OWWordCloud(widget.OWWidget):
     selected_words = settings.Setting(set(), schema_only=True)
 
     words_color = settings.Setting(True)
-    words_tilt = settings.Setting(2)
+    words_tilt = settings.Setting(0)
 
     class Warning(widget.OWWidget.Warning):
         topic_precedence = widget.Msg('Input signal Topic takes priority over Corpus')
