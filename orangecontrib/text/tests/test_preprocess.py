@@ -26,20 +26,13 @@ class PreprocessTests(unittest.TestCase):
         self.corpus = Corpus.from_file('deerwester')
 
     def test_string_processor(self):
-        class StripStringTransformer(preprocess.BaseTransformer):
-            @classmethod
-            def transform(cls, string):
-                return string[:-1]
-        p = Preprocessor(transformers=StripStringTransformer())
+        p = Preprocessor(transformers=preprocess.LowercaseTransformer())
+        tokens = p(self.corpus).tokens
+        p2 = Preprocessor(transformers=[])
+        tokens2 = p2(self.corpus).tokens
 
-        np.testing.assert_equal(p(self.corpus).tokens,
-                                np.array([[doc[:-1]] for doc in self.corpus.documents]))
-
-        p = Preprocessor(transformers=[StripStringTransformer(),
-                                       preprocess.LowercaseTransformer()])
-
-        np.testing.assert_equal(p(self.corpus).tokens,
-                                np.array([[doc[:-1].lower()] for doc in self.corpus.documents]))
+        np.testing.assert_equal(tokens,
+                                [[t.lower() for t in doc] for doc in tokens2])
 
         self.assertRaises(TypeError, Preprocessor, string_transformers=1)
 
@@ -59,9 +52,12 @@ class PreprocessTests(unittest.TestCase):
             def normalize(cls, token):
                 return token.capitalize()
         p = Preprocessor(normalizer=CapTokenNormalizer())
+        tokens = p(self.corpus).tokens
+        p2 = Preprocessor(normalizer=None)
+        tokens2 = p2(self.corpus).tokens
 
-        np.testing.assert_equal(p(self.corpus).tokens,
-                                np.array([[sent.capitalize()] for sent in self.corpus.documents]))
+        np.testing.assert_equal(
+            tokens, [[t.capitalize() for t in doc] for doc in tokens2])
 
     def test_token_filter(self):
         class SpaceTokenizer(preprocess.BaseTokenizer):

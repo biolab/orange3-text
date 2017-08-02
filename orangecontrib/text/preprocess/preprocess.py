@@ -1,6 +1,12 @@
-from orangecontrib.text.preprocess import FrequencyFilter
+from orangecontrib.text.preprocess import (
+    FrequencyFilter, LowercaseTransformer, WordPunctTokenizer)
 
-__all__ = ['Preprocessor']
+
+__all__ = ['Preprocessor', 'base_preprocessor']
+
+
+BASE_TOKENIZER = WordPunctTokenizer()
+BASE_TRANSFORMERS = [LowercaseTransformer()]
 
 
 class Preprocessor:
@@ -87,7 +93,7 @@ class Preprocessor:
         if self.tokenizer:
             tokens = self.tokenizer.tokenize(document)
         else:
-            tokens = [document]
+            tokens = BASE_TOKENIZER.tokenize(document)
 
         if self.normalizer:
             tokens = self.normalizer(tokens)
@@ -133,3 +139,7 @@ class Preprocessor:
             ('Frequency filter', str(self.freq_filter)),
             ('Pos tagger', str(self.pos_tagger)),
         )
+
+
+base_preprocessor = Preprocessor(transformers=BASE_TRANSFORMERS,
+                                 tokenizer=BASE_TOKENIZER)
