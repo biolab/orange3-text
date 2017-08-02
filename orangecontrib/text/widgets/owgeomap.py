@@ -34,7 +34,7 @@ class Map:
 
 class OWGeoMap(widget.OWWidget):
     name = "GeoMap"
-    priority = 20000
+    priority = 530
     icon = "icons/GeoMap.svg"
 
     class Inputs:

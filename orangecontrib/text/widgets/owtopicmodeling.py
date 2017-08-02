@@ -100,7 +100,7 @@ class OWTopicModeling(OWWidget):
     name = "Topic Modelling"
     description = "Uncover the hidden thematic structure in a corpus."
     icon = "icons/TopicModeling.svg"
-    priority = 50
+    priority = 400
 
     settingsHandler = DomainContextHandler()
 

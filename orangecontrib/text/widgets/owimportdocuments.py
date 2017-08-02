@@ -71,7 +71,7 @@ class OWImportDocuments(widget.OWWidget):
     name = "Import Documents"
     description = "Import text documents from folders."
     icon = "icons/ImportDocuments.svg"
-    priority = 11
+    priority = 110
 
     class Outputs:
         data = Output("Corpus", Corpus)

@@ -13,7 +13,7 @@ from orangecontrib.text.wikipedia import WikipediaAPI
 class OWWikipedia(OWWidget):
     """ Get articles from wikipedia. """
     name = 'Wikipedia'
-    priority = 27
+    priority = 160
     icon = 'icons/Wikipedia.svg'
 
     class Outputs:

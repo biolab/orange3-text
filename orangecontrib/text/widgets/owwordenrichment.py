@@ -15,7 +15,7 @@ class OWWordEnrichment(OWWidget):
     name = "Word Enrichment"
     description = "Word enrichment analysis for selected documents."
     icon = "icons/SetEnrichment.svg"
-    priority = 60
+    priority = 600
 
     # Input/output
     class Inputs:

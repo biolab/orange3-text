@@ -19,7 +19,7 @@ from orangecontrib.text.topics import Topic
 
 class OWWordCloud(widget.OWWidget):
     name = "Word Cloud"
-    priority = 10000
+    priority = 510
     icon = "icons/WordCloud.svg"
 
     class Inputs:
