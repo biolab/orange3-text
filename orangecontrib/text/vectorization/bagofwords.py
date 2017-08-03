@@ -1,3 +1,26 @@
+""" This module constructs a new corpus with tokens as features.
+
+First create a corpus::
+
+    >>> from orangecontrib.text import Corpus
+    >>> corpus = Corpus.from_file('deerwester')
+    >>> corpus.domain
+    [ | Category] {Text}
+
+Then create :class:`BowVectorizer` object and call transform:
+
+    >>> from orangecontrib.text.vectorization.bagofwords import BowVectorizer
+    >>> bow = BowVectorizer()
+    >>> new_corpus = bow.transform(corpus)
+    >>> new_corpus.domain
+    [a, abc, and, applications, binary, computer, engineering, eps, error, for,
+    generation, graph, human, in, interface, intersection, iv, lab, machine,
+    management, measurement, minors, of, opinion, ordering, paths, perceived,
+    quasi, random, relation, response, survey, system, testing, the, time, to,
+    trees, unordered, user, well, widths | Category] {Text}
+
+"""
+
 from collections import OrderedDict
 from functools import partial
 

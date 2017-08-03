@@ -41,6 +41,7 @@ Scripting
    scripting/nyt.rst
    scripting/guardian.rst
    scripting/wikipedia.rst
+   scripting/bagofwords.rst
    scripting/topicmodeling.rst
    scripting/tag.rst
    scripting/async.rst
