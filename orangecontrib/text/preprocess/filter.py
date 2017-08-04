@@ -5,6 +5,8 @@ from Orange.data.io import detect_encoding
 from gensim import corpora
 from nltk.corpus import stopwords
 
+from orangecontrib.text.misc import wait_nltk_data
+
 __all__ = ['BaseTokenFilter', 'StopwordsFilter', 'LexiconFilter', 'RegexpFilter', 'FrequencyFilter']
 
 
@@ -65,6 +67,7 @@ class StopwordsFilter(BaseTokenFilter, WordListMixin):
 
     supported_languages = [file.capitalize() for file in stopwords_listdir]
 
+    @wait_nltk_data
     def __init__(self, language='English', word_list=None):
         WordListMixin.__init__(self, word_list)
         super().__init__()

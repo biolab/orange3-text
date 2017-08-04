@@ -5,6 +5,7 @@ from orangecontrib.text.preprocess import (
 __all__ = ['Preprocessor', 'base_preprocessor']
 
 
+# don't use anything that requires NLTK data to assure async download
 BASE_TOKENIZER = WordPunctTokenizer()
 BASE_TRANSFORMERS = [LowercaseTransformer()]
 
