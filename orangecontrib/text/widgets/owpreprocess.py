@@ -12,8 +12,8 @@ from Orange.widgets.widget import OWWidget, Msg, Input, Output
 from orangecontrib.text import preprocess
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.misc import nltk_data_dir
-from orangecontrib.text.tag import StanfordPOSTagger
-from orangecontrib.text.tag import taggers
+from orangecontrib.text.tag import StanfordPOSTagger, AveragedPerceptronTagger, \
+    MaxEntTagger
 from orangecontrib.text.widgets.utils import widgets, ResourceLoader
 from orangecontrib.text.widgets.utils.concurrent import asynchronous
 
@@ -453,14 +453,20 @@ class POSTaggingModule(SingleMethodModule):
     attribute = 'pos_tagger'
     enabled = settings.Setting(False)
 
-    STANFORD = len(taggers)
     stanford = settings.SettingProvider(ResourceLoader)
 
-    methods = taggers + [StanfordPOSTagger]
+    methods = [AveragedPerceptronTagger, MaxEntTagger, StanfordPOSTagger]
+    STANFORD = 2
+
     initialize_methods = False
 
     def setup_method_layout(self):
         super().setup_method_layout()
+        # initialize all methods except StanfordPOSTagger
+        # cannot be done in superclass due to StanfordPOSTagger
+        for i, method in enumerate(self.methods[:self.STANFORD]):
+            self.methods[i] = method()
+
         self.stanford = ResourceLoader(widget=self.master, model_format='Stanford model (*.model *.tagger)',
                                        provider_format='Java file (*.jar)',
                                        model_button_label='Model', provider_button_label='Tagger')
