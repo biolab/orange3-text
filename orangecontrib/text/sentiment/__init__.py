@@ -1,24 +1,23 @@
-import nltk
 import numpy as np
 from nltk.corpus import opinion_lexicon
 from nltk.sentiment import SentimentIntensityAnalyzer
 
 from orangecontrib.text import Corpus
+from orangecontrib.text.misc import wait_nltk_data
 from orangecontrib.text.preprocess import WordPunctTokenizer
 from orangecontrib.text.vectorization.base import SharedTransform, \
     VectorizationComputeValue
 
-nltk.download(["opinion_lexicon", "vader_lexicon"])
-
 
 class Liu_Hu_Sentiment:
-    positive = set(opinion_lexicon.positive())
-    negative = set(opinion_lexicon.negative())
     sentiments = ('sentiment',)
     name = 'Liu Hu'
 
+    @wait_nltk_data
     def __init__(self):
         super().__init__()
+        self.positive = set(opinion_lexicon.positive())
+        self.negative = set(opinion_lexicon.negative())
 
     def transform(self, corpus, copy=True):
         scores = []
@@ -46,6 +45,7 @@ class Vader_Sentiment:
     sentiments = ('pos', 'neg', 'neu', 'compound')
     name = 'Vader'
 
+    @wait_nltk_data
     def __init__(self):
         super().__init__()
         self.vader = SentimentIntensityAnalyzer()
