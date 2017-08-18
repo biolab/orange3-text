@@ -49,6 +49,7 @@ class OWCorpus(OWWidget):
 
     class Error(OWWidget.Error):
         read_file = Msg("Can't read file {} ({})")
+        no_text_features_used = Msg("At least one text feature must be used.")
         corpus_without_text_features = Msg("Corpus doesn't have any textual features.")
 
     def __init__(self):
@@ -121,8 +122,8 @@ class OWCorpus(OWWidget):
     def open_file(self, path=None, data=None):
         self.closeContext()
         self.Error.clear()
-        self.used_attrs_model[:] = []
         self.unused_attrs_model[:] = []
+        self.used_attrs_model[:] = []
         if data:
             self.corpus = Corpus.from_table(data.domain, data)
         elif path:
@@ -173,6 +174,7 @@ class OWCorpus(OWWidget):
             self.info_label.setText(describe(self.corpus))
 
     def update_feature_selection(self):
+        self.Error.no_text_features_used.clear()
         # TODO fix VariablesListItemView so it does not emit
         # duplicated data when reordering inside a single window
         def remove_duplicates(l):
@@ -187,9 +189,14 @@ class OWCorpus(OWWidget):
                 remove_duplicates(self.used_attrs_model))
             self.used_attrs = list(self.used_attrs_model)
 
+            if len(self.unused_attrs_model) > 0 and not self.corpus.text_features:
+                self.Error.no_text_features_used()
+
             # prevent sending "empty" corpora
             dom = self.corpus.domain
-            empty = not (dom.variables or dom.metas) or len(self.corpus) == 0
+            empty = not (dom.variables or dom.metas) \
+                or len(self.corpus) == 0 \
+                or not self.corpus.text_features
             self.Outputs.corpus.send(self.corpus if not empty else None)
 
     def send_report(self):
