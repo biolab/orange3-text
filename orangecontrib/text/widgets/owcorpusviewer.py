@@ -9,7 +9,6 @@ from AnyQt.QtWidgets import (QListView, QSizePolicy, QTableView,
                              QAbstractItemView, QHeaderView, QSplitter,
                              QApplication)
 
-from Orange.data import Table
 from Orange.data.domain import filter_visible
 from Orange.widgets import gui, widget
 from Orange.widgets.settings import Setting, ContextSetting, PerfectDomainContextHandler
@@ -24,7 +23,7 @@ class OWCorpusViewer(OWWidget):
     priority = 500
 
     class Inputs:
-        data = Input("Data", Table)
+        corpus = Input("Corpus", Corpus)
 
     class Outputs:
         matching_docs = Output("Matching Docs", Corpus, default=True)
@@ -123,15 +122,13 @@ class OWCorpusViewer(OWWidget):
         text = self.doc_webview.selectedText()
         QApplication.clipboard().setText(text)
 
-    @Inputs.data
-    def set_data(self, data=None):
+    @Inputs.corpus
+    def set_data(self, corpus=None):
         self.closeContext()
         self.reset_widget()
-        self.corpus = data
+        self.corpus = corpus
         self.search_features = []
-        if data is not None:
-            if not isinstance(data, Corpus):
-                self.corpus = Corpus.from_table(data.domain, data)
+        if corpus is not None:
             domain = self.corpus.domain
             # Enable/disable tokens checkbox
             if not self.corpus.has_tokens():
