@@ -49,6 +49,7 @@ class OWCorpus(OWWidget):
 
     class Error(OWWidget.Error):
         read_file = Msg("Can't read file {} ({})")
+        corpus_without_text_features = Msg("Corpus doesn't have any textual features.")
 
     def __init__(self):
         super().__init__()
@@ -119,7 +120,7 @@ class OWCorpus(OWWidget):
 
     def open_file(self, path=None, data=None):
         self.closeContext()
-        self.Error.read_file.clear()
+        self.Error.clear()
         self.used_attrs_model[:] = []
         self.unused_attrs_model[:] = []
         if data:
@@ -135,6 +136,10 @@ class OWCorpus(OWWidget):
 
         self.update_info()
         self.used_attrs = list(self.corpus.text_features)
+        if not self.corpus.text_features:
+            self.Error.corpus_without_text_features()
+            self.Outputs.corpus.send(None)
+            return
         self.openContext(self.corpus)
         self.used_attrs_model.extend(self.used_attrs)
         self.unused_attrs_model.extend(
