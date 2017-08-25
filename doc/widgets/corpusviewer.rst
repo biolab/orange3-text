@@ -11,9 +11,9 @@ Signals
 
 **Inputs**:
 
--  **Data**
+-  **Corpus**
 
-   Data instance.
+   Corpus instance.
 
 **Outputs**:
 
@@ -24,8 +24,7 @@ Signals
 Description
 -----------
 
-**Corpus Viewer** is primarily meant for viewing text files (instances of :ref:`Corpus <corpus>`), but
-it can also display other data files from **File** widget. **Corpus Viewer** will always output an instance
+**Corpus Viewer** is meant for viewing text files (instances of :ref:`Corpus <corpus>`). It will always output an instance
 of corpus. If *RegExp* filtering is used, the widget will output only matching documents.
 
 .. figure:: images/Corpus-Viewer-stamped.png
