@@ -23,7 +23,7 @@ class OWCorpusViewer(OWWidget):
     priority = 500
 
     class Inputs:
-        corpus = Input("Corpus", Corpus)
+        corpus = Input("Corpus", Corpus, replaces=["Data"])
 
     class Outputs:
         matching_docs = Output("Matching Docs", Corpus, default=True)
