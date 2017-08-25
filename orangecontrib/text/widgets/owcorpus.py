@@ -1,11 +1,12 @@
 import os
 
+from Orange.data import Table
 from Orange.data.io import FileFormat
 from Orange.widgets import gui
 from Orange.widgets.utils.itemmodels import VariableListModel
 from Orange.widgets.data.owselectcolumns import VariablesListItemView
 from Orange.widgets.settings import Setting, ContextSetting, PerfectDomainContextHandler
-from Orange.widgets.widget import OWWidget, Msg, Output
+from Orange.widgets.widget import OWWidget, Msg, Input, Output
 from orangecontrib.text.corpus import Corpus, get_sample_corpora_dir
 from orangecontrib.text.widgets.utils import widgets
 
@@ -17,8 +18,11 @@ class OWCorpus(OWWidget):
     priority = 100
     replaces = ["orangecontrib.text.widgets.owloadcorpus.OWLoadCorpus"]
 
+    class Inputs:
+        data = Input('Data', Table)
+
     class Outputs:
-        corpus = Output("Corpus", Corpus)
+        corpus = Output('Corpus', Corpus)
 
     want_main_area = False
     resizing_enabled = True
@@ -45,6 +49,8 @@ class OWCorpus(OWWidget):
 
     class Error(OWWidget.Error):
         read_file = Msg("Can't read file {} ({})")
+        no_text_features_used = Msg("At least one text feature must be used.")
+        corpus_without_text_features = Msg("Corpus doesn't have any textual features.")
 
     def __init__(self):
         super().__init__()
@@ -89,33 +95,57 @@ class OWCorpus(OWWidget):
 
         # Documentation Data Sets & Report
         box = gui.hBox(self.controlArea)
-        gui.button(box, self, "Browse documentation corpora",
-                   callback=lambda: self.file_widget.browse(
-                       get_sample_corpora_dir()),
-                   autoDefault=False,
-                   )
+        self.browse_documentation = gui.button(
+            box, self, "Browse documentation corpora",
+            callback=lambda: self.file_widget.browse(
+                get_sample_corpora_dir()),
+            autoDefault=False,
+        )
         box.layout().addWidget(self.report_button)
 
         # load first file
         self.file_widget.select(0)
 
-    def open_file(self, path):
+    @Inputs.data
+    def set_data(self, data):
+        have_data = data is not None
+
+        # Enable/Disable command when data from input
+        self.file_widget.setEnabled(not have_data)
+        self.browse_documentation.setEnabled(not have_data)
+
+        if have_data:
+            self.open_file(data=data)
+        else:
+            self.file_widget.reload()
+
+    def open_file(self, path=None, data=None):
         self.closeContext()
-        self.Error.read_file.clear()
-        self.used_attrs_model[:] = []
+        self.Error.clear()
         self.unused_attrs_model[:] = []
-        if path:
+        self.used_attrs_model[:] = []
+        if data:
+            self.corpus = Corpus.from_table(data.domain, data)
+        elif path:
             try:
                 self.corpus = Corpus.from_file(path)
                 self.corpus.name = os.path.splitext(os.path.basename(path))[0]
-                self.update_info()
-                self.used_attrs = list(self.corpus.text_features)
-                self.openContext(self.corpus)
-                self.used_attrs_model.extend(self.used_attrs)
-                self.unused_attrs_model.extend([f for f in self.corpus.domain.metas
-                                          if f.is_string and f not in self.used_attrs_model])
             except BaseException as err:
                 self.Error.read_file(path, str(err))
+        else:
+            return
+
+        self.update_info()
+        self.used_attrs = list(self.corpus.text_features)
+        if not self.corpus.text_features:
+            self.Error.corpus_without_text_features()
+            self.Outputs.corpus.send(None)
+            return
+        self.openContext(self.corpus)
+        self.used_attrs_model.extend(self.used_attrs)
+        self.unused_attrs_model.extend(
+            [f for f in self.corpus.domain.metas
+             if f.is_string and f not in self.used_attrs_model])
 
     def update_info(self):
         def describe(corpus):
@@ -144,6 +174,7 @@ class OWCorpus(OWWidget):
             self.info_label.setText(describe(self.corpus))
 
     def update_feature_selection(self):
+        self.Error.no_text_features_used.clear()
         # TODO fix VariablesListItemView so it does not emit
         # duplicated data when reordering inside a single window
         def remove_duplicates(l):
@@ -158,9 +189,14 @@ class OWCorpus(OWWidget):
                 remove_duplicates(self.used_attrs_model))
             self.used_attrs = list(self.used_attrs_model)
 
+            if len(self.unused_attrs_model) > 0 and not self.corpus.text_features:
+                self.Error.no_text_features_used()
+
             # prevent sending "empty" corpora
             dom = self.corpus.domain
-            empty = not (dom.variables or dom.metas) or len(self.corpus) == 0
+            empty = not (dom.variables or dom.metas) \
+                or len(self.corpus) == 0 \
+                or not self.corpus.text_features
             self.Outputs.corpus.send(self.corpus if not empty else None)
 
     def send_report(self):
