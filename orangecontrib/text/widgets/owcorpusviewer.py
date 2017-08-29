@@ -312,7 +312,7 @@ class OWCorpusViewer(OWWidget):
             for ind in self.display_indices:
                 feature = self.display_features[ind]
                 mark = 'class="mark-area"' if feature in marked_search_features else ''
-                value = str(index.data(Qt.UserRole)[feature.name])
+                value = str(index.data(Qt.UserRole)[feature.name]).replace('\n', '<br/>')
                 is_image = feature.attributes.get('type', '') == 'image'
                 if is_image and value != '?':
                     value = '<img src="{}"></img>'.format(value)
