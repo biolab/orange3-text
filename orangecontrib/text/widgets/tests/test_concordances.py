@@ -152,12 +152,6 @@ class TestConcordanceWidget(WidgetTest):
         self.send_signal("Corpus", None)
         set_corpus.assert_called_with(None)
 
-        data = Table("zoo")
-        with patch("orangecontrib.text.corpus.Corpus",
-                   return_value=self.corpus):
-            self.send_signal("Corpus", data)
-            set_corpus.assert_called_with(self.corpus)
-
     def test_set_word(self):
         self.widget.model.set_word = set_word = Mock()
         self.widget.controls.word.setText("foo")
