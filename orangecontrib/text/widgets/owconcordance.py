@@ -173,7 +173,7 @@ class OWConcordance(OWWidget):
     autocommit = Setting(True)
     context_width = Setting(5)
     word = ContextSetting("", exclude_metas=False)
-    # TODO Set selection settings (DataHashContextHandler)
+    selected_rows = Setting([], schema_only=True)
 
     class Warning(OWWidget.Warning):
         multiple_words_on_input = Msg("Multiple query words on input. "
@@ -217,10 +217,7 @@ class OWConcordance(OWWidget):
         self.conc_view.setSelectionBehavior(QTableView.SelectRows)
         self.conc_view.setSelectionModel(DocumentSelectionModel(self.model))
         self.conc_view.setItemDelegate(HorizontalGridDelegate())
-        # connect selectionChanged to self.commit(), which will be
-        # updated by gui.auto_commit()
-        self.conc_view.selectionModel().selectionChanged.connect(lambda:
-                                                                 self.commit())
+        self.conc_view.selectionModel().selectionChanged.connect(self.selection_changed)
         self.conc_view.horizontalHeader().hide()
         self.conc_view.setShowGrid(False)
         self.mainArea.layout().addWidget(self.conc_view)
@@ -240,21 +237,39 @@ class OWConcordance(OWWidget):
             self.conc_view.selectionModel().select(sel,
                 QItemSelectionModel.SelectCurrent | QItemSelectionModel.Rows)
 
+    def selection_changed(self):
+        selection = self.conc_view.selectionModel().selection()
+        self.selected_rows = sorted(set(cell.row() for cell in selection.indexes()))
+        self.commit()
+
+    def set_selection(self, selection):
+        if selection:
+            sel = QItemSelection()
+            for row in selection:
+                index = self.conc_view.model().index(row, 0)
+                sel.select(index, index)
+            self.conc_view.selectionModel().select(sel,
+                QItemSelectionModel.SelectCurrent | QItemSelectionModel.Rows)
+
     @Inputs.corpus
     def set_corpus(self, data=None):
         self.closeContext()
         self.corpus = data
-        if data is not None and not isinstance(data, Corpus):
-            self.corpus = Corpus.from_table(data.domain, data)
-        self.model.set_corpus(self.corpus)
+        if data is None:    # data removed, clear selection
+            self.selected_rows = []
+
         if not self.is_word_on_input:
             self.word = ""
             self.openContext(self.corpus)
+
+        self.model.set_corpus(self.corpus)
         self.set_word()
 
     @Inputs.query_word
     def set_word_from_input(self, topic):
         self.Warning.multiple_words_on_input.clear()
+        if self.is_word_on_input:   # word changed, clear selection
+            self.selected_rows = []
         self.is_word_on_input = topic is not None and len(topic) > 0
         self.input.setEnabled(not self.is_word_on_input)
         if self.is_word_on_input:
@@ -267,6 +282,9 @@ class OWConcordance(OWWidget):
         self.model.set_word(self.word)
         self.update_widget()
         self.commit()
+
+    def handleNewSignals(self):
+        self.set_selection(self.selected_rows)
 
     def resize_columns(self):
         col_width = (self.conc_view.width() -
@@ -295,10 +313,8 @@ class OWConcordance(OWWidget):
             self.n_types = ''
 
     def commit(self):
-        rows = [sel_range.top() for sel_range
-                in self.conc_view.selectionModel().selection()]
         selected_docs = sorted(set(self.model.word_index[row][0]
-                                   for row in rows))
+                                   for row in self.selected_rows))
         if selected_docs:
             selected = self.corpus[selected_docs]
             self.Outputs.selected_documents.send(selected)
