@@ -210,13 +210,13 @@ class OWTopicModeling(OWWidget):
     def on_result(self, corpus):
         self.progressBarFinished(None)
         self.Outputs.corpus.send(corpus)
-        self.Outputs.all_topics.send(self.model.get_all_topics_table())
         if corpus is None:
             self.topic_desc.clear()
             self.Outputs.selected_topic.send(None)
             self.Outputs.all_topics.send(None)
         else:
             self.topic_desc.show_model(self.model)
+            self.Outputs.all_topics.send(self.model.get_all_topics_table())
 
     @learning_task.callback
     def on_progress(self, p):
