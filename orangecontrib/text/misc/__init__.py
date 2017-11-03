@@ -1,1 +1,1 @@
-from .environ import *
+from .nltk_data_download import *

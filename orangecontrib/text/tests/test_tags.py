@@ -10,7 +10,7 @@ from orangecontrib.text import preprocess
 class POSTaggerTests(unittest.TestCase):
     def test_POSTagger(self):
         corpus = Corpus.from_file('deerwester')
-        tagger = tag.pos_tagger
+        tagger = tag.AveragedPerceptronTagger()
         result = tagger.tag_corpus(corpus)
         self.assertTrue(hasattr(result, 'pos_tags'))
         # for token in itertools.chain(*result.tokens):
@@ -33,7 +33,7 @@ class POSTaggerTests(unittest.TestCase):
 
     def test_preprocess(self):
         pr = preprocess.Preprocessor(tokenizer=preprocess.RegexpTokenizer('\w+'),
-                                     pos_tagger=tag.taggers[0])
+                                     pos_tagger=tag.AveragedPerceptronTagger())
         corpus = Corpus.from_file('deerwester')
         pr(corpus, inplace=True)
         self.assertIsNotNone(corpus.pos_tags)

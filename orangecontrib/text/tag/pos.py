@@ -2,8 +2,10 @@ import nltk
 import numpy as np
 
 from orangecontrib.text.util import chunkable
+from orangecontrib.text.misc import wait_nltk_data
 
-nltk.download(['averaged_perceptron_tagger', 'maxent_treebank_pos_tagger'])
+
+__all__ = ['POSTagger', 'StanfordPOSTagger', 'AveragedPerceptronTagger', 'MaxEntTagger']
 
 
 class POSTagger:
@@ -62,8 +64,18 @@ class StanfordPOSTagger(nltk.StanfordPOSTagger, POSTagger):
         return "{} (model: {})".format(self.name, self._stanford_model)
 
 
-taggers = [
-    POSTagger(nltk.PerceptronTagger(), 'Averaged Perceptron Tagger'),
-    POSTagger(nltk.data.load('taggers/maxent_treebank_pos_tagger/english.pickle'),
-              'Treebank POS Tagger (MaxEnt)'),
-]
+class AveragedPerceptronTagger(POSTagger):
+    name = 'Averaged Perceptron Tagger'
+
+    @wait_nltk_data
+    def __init__(self):
+        super().__init__(nltk.PerceptronTagger(), self.name)
+
+
+class MaxEntTagger(POSTagger):
+    name = 'Treebank POS Tagger (MaxEnt)'
+
+    @wait_nltk_data
+    def __init__(self):
+        tagger = nltk.data.load('taggers/maxent_treebank_pos_tagger/english.pickle')
+        super().__init__(tagger, self.name)

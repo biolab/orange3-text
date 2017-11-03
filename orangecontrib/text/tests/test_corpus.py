@@ -10,10 +10,13 @@ from Orange.data import Table, DiscreteVariable, StringVariable, Domain, Continu
 
 from orangecontrib.text import preprocess
 from orangecontrib.text.corpus import Corpus
-from orangecontrib.text.tag import pos_tagger
+from orangecontrib.text.tag import AveragedPerceptronTagger
 
 
 class CorpusTests(unittest.TestCase):
+    def setUp(self):
+        self.pos_tagger = AveragedPerceptronTagger()
+
     def test_init_preserve_shape_of_empty_x(self):
         c = Corpus.from_file('book-excerpts')
         d = c.domain
@@ -66,7 +69,7 @@ class CorpusTests(unittest.TestCase):
         c2 = c[:5]
         self.assertEqual(len(c2), 5)
         n = len(c)
-        pos_tagger.tag_corpus(c)
+        self.pos_tagger.tag_corpus(c)
         self.assertIsNot(c._tokens, None)
         self.assertIsNot(c.pos_tags, None)
         self.assertIs(c2._tokens, None)
@@ -77,8 +80,8 @@ class CorpusTests(unittest.TestCase):
         self.assertIs(c._tokens, None)
         self.assertIs(c.pos_tags, None)
 
-        pos_tagger.tag_corpus(c)
-        pos_tagger.tag_corpus(c2)
+        self.pos_tagger.tag_corpus(c)
+        self.pos_tagger.tag_corpus(c2)
         c.extend(c2)
         self.assertEqual(len(c), n + 10)
         self.assertEqual(len(c._tokens), n + 10)
@@ -330,7 +333,7 @@ class CorpusTests(unittest.TestCase):
             self.assertIn(ngram, list(c.ngrams_iterator(join_with=None))[0])
             self.assertIn('-'.join(ngram), list(c.ngrams_iterator(join_with='-'))[0])
 
-        pos_tagger.tag_corpus(c)
+        self.pos_tagger.tag_corpus(c)
         c.ngram_range = (1, 1)
         for doc in c.ngrams_iterator(join_with='_', include_postags=True):
             for token in doc:

@@ -7,10 +7,6 @@ from orangecontrib.text import Corpus
 from orangecontrib.text.sentiment import Vader_Sentiment, Liu_Hu_Sentiment
 
 
-METHODS = [Liu_Hu_Sentiment(),
-           Vader_Sentiment()]
-
-
 class OWSentimentAnalysis(OWWidget):
     name = "Sentiment Analysis"
     description = "Predict sentiment from text."
@@ -30,10 +26,14 @@ class OWSentimentAnalysis(OWWidget):
 
     def __init__(self):
         super().__init__()
+        self.METHODS = [
+            Liu_Hu_Sentiment(),
+            Vader_Sentiment()
+        ]
         self.corpus = None
 
         gui.radioButtons(self.controlArea, self, "method_idx", box="Method",
-                         btnLabels=[m.name for m in METHODS],
+                         btnLabels=[m.name for m in self.METHODS],
                          callback=self._method_changed)
 
         ac = gui.auto_commit(self.controlArea, self, 'autocommit', 'Commit',
@@ -51,7 +51,7 @@ class OWSentimentAnalysis(OWWidget):
 
     def commit(self):
         if self.corpus is not None:
-            method = METHODS[self.method_idx]
+            method = self.METHODS[self.method_idx]
             out = method.transform(self.corpus)
             self.Outputs.corpus.send(out)
         else:
@@ -59,7 +59,7 @@ class OWSentimentAnalysis(OWWidget):
 
     def send_report(self):
         self.report_items((
-            ('Method', METHODS[self.method_idx].name),
+            ('Method', self.METHODS[self.method_idx].name),
         ))
 
 

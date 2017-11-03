@@ -1,6 +1,7 @@
 import re
 from nltk import tokenize
 
+from orangecontrib.text.misc import wait_nltk_data
 
 __all__ = ['BaseTokenizer', 'WordPunctTokenizer', 'PunktSentenceTokenizer',
            'RegexpTokenizer', 'WhitespaceTokenizer', 'TweetTokenizer']
@@ -47,6 +48,10 @@ class PunktSentenceTokenizer(BaseTokenizer):
     """ Split by full-stop, keeping entire sentences. """
     tokenizer = tokenize.PunktSentenceTokenizer()
     name = 'Sentence'
+
+    @wait_nltk_data
+    def __init__(self):
+        super().__init__()
 
 
 class WhitespaceTokenizer(BaseTokenizer):

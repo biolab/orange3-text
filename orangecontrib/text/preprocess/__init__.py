@@ -30,10 +30,6 @@ if no preprocessing was applied yet::
     ['human', 'machine', 'interface', 'for', 'lab', 'abc', 'computer', 'applications']
 
 """
-import nltk
-
-nltk.download(["wordnet", "stopwords", "punkt"])
-
 from .filter import *
 from .normalize import *
 from .tokenize import *

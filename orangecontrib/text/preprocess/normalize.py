@@ -1,5 +1,7 @@
 from nltk import stem
 
+from orangecontrib.text.misc import wait_nltk_data
+
 __all__ = ['BaseNormalizer', 'WordNetLemmatizer', 'PorterStemmer',
            'SnowballStemmer', 'DictionaryLookupNormalizer']
 
@@ -34,6 +36,10 @@ class BaseNormalizer:
 class WordNetLemmatizer(BaseNormalizer):
     name = 'WordNet Lemmatizer'
     normalizer = stem.WordNetLemmatizer().lemmatize
+
+    @wait_nltk_data
+    def __init__(self):
+        super().__init__()
 
 
 class DictionaryLookupNormalizer(BaseNormalizer):
