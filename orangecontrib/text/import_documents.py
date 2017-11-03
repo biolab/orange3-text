@@ -152,12 +152,16 @@ class XmlReader(Reader):
 
 
 class ImportDocuments:
-    def __init__(self, startdir, formats=DefaultFormats, report_progress=None):
+    def __init__(self, startdir=None, formats=DefaultFormats, report_progress=None):
         self.startdir = startdir
         self.formats = formats
         self._report_progress = report_progress
         self.cancelled = False
         self._text_data = []
+
+    def __call__(self, startdir):
+        self.startdir = startdir
+        self.run()
 
     def run(self):
         text_data = []
