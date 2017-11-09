@@ -389,3 +389,15 @@ class CorpusTests(unittest.TestCase):
         self.assertEqual([engine_dv.repr_val(v) for v in c.X[:, 0]],
                          [d['engine'] for d in documents])
 
+    def test_corpus_remove_text_features(self):
+        """
+        Remove those text features which do not have a column in metas.
+        GH-324
+        GH-325
+        """
+        c = Corpus.from_file('deerwester')
+        domain = Domain(attributes=c.domain.attributes, class_vars=c.domain.class_vars)
+        d = c.transform(domain)
+        self.assertFalse(len(d.text_features))
+        # Make sure that copying works.
+        d.copy()

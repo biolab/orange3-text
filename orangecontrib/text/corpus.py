@@ -58,7 +58,7 @@ class Corpus(Table):
         self.metas = metas if metas is not None else np.zeros((n_doc, 0))
         self.W = W if W is not None else np.zeros((n_doc, 0))
         self.domain = domain
-        self.text_features = None    # list of text features for mining
+        self.text_features = []    # list of text features for mining
         self._tokens = None
         self._dictionary = None
         self._ngrams_corpus = None
@@ -434,8 +434,8 @@ class Corpus(Table):
                 else:
                     raise TypeError('Indexing by type {} not supported.'.format(type(key)))
                 new._dictionary = orig._dictionary
-
-            new.text_features = orig.text_features
+            new_domain_metas = set(new.domain.metas)
+            new.text_features = [tf for tf in orig.text_features if tf in new_domain_metas]
             new.ngram_range = orig.ngram_range
             new.attributes = orig.attributes
             new.used_preprocessor = orig.used_preprocessor
