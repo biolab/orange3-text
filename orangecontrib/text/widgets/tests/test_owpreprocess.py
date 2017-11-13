@@ -13,3 +13,8 @@ class TestConcordanceWidget(WidgetTest):
         Just basic test.
         """
         self.send_signal("Corpus", self.corpus)
+
+    def test_multiple_instances(self):
+        # GH-327
+        widget2 = self.create_widget(OWPreprocess)
+        widget3 = self.create_widget(OWPreprocess)

@@ -464,8 +464,7 @@ class POSTaggingModule(SingleMethodModule):
         super().setup_method_layout()
         # initialize all methods except StanfordPOSTagger
         # cannot be done in superclass due to StanfordPOSTagger
-        for i, method in enumerate(self.methods[:self.STANFORD]):
-            self.methods[i] = method()
+        self.methods = [method() for method in self.methods[:self.STANFORD]]
 
         self.stanford = ResourceLoader(widget=self.master, model_format='Stanford model (*.model *.tagger)',
                                        provider_format='Java file (*.jar)',
