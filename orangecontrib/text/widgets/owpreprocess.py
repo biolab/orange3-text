@@ -66,7 +66,7 @@ class PreprocessorModule(gui.OWComponent, QWidget):
     def __init__(self, master):
         QWidget.__init__(self)
         gui.OWComponent.__init__(self, master)
-        self.master = master
+        self.master = master  # type: OWPreprocess
 
         # Title bar.
         title_holder = QWidget()
@@ -418,13 +418,23 @@ class FilteringModule(MultipleMethodModule):
             self.frequency_filter.keep_n = self.keep_n
             self.change_signal.emit()
 
+    def _read_file(self, method, path):
+        self.master.Error.encoding.clear()
+        self.master.Error.error_reading_file.clear()
+        try:
+            self.methods[method].from_file(path)
+        except UnicodeError:
+            self.master.Error.encoding()
+        except Exception as e:
+            self.master.Error.error_reading_file(e)
+
     def read_stopwords_file(self, path):
-        self.methods[self.STOPWORDS].from_file(path)
+        self._read_file(self.STOPWORDS, path)
         if self.STOPWORDS in self.checked:
             self.change_signal.emit()
 
     def read_lexicon_file(self, path):
-        self.methods[self.LEXICON].from_file(path)
+        self._read_file(self.LEXICON, path)
         if self.LEXICON in self.checked:
             self.change_signal.emit()
 
@@ -543,6 +553,8 @@ class OWPreprocess(OWWidget):
 
     class Error(OWWidget.Error):
         stanford_tagger = Msg("Problem while loading Stanford POS Tagger\n{}")
+        encoding = Msg("Invalid file encoding. Please save the file as UTF-8 and try again.")
+        error_reading_file = Msg("Error reading file: {}")
 
     class Warning(OWWidget.Warning):
         no_token_left = Msg('No tokens on output! Please, change configuration.')

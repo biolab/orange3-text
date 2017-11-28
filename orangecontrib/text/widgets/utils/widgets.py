@@ -351,11 +351,7 @@ class FileWidget(QWidget):
                 self.recent_files.remove(file)
 
     def open_file(self, path):
-        try:
-            self.on_open.emit(path if path != self.empty_file_label else '')
-        except (OSError, IOError):
-            self.loading_error_signal.emit('Could not open "{}".'
-                                           .format(path))
+        self.on_open.emit(path if path != self.empty_file_label else '')
 
     def get_selected_filename(self):
         if self.recent_files:
