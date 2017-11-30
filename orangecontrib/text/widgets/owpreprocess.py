@@ -418,23 +418,29 @@ class FilteringModule(MultipleMethodModule):
             self.frequency_filter.keep_n = self.keep_n
             self.change_signal.emit()
 
-    def _read_file(self, method, path):
-        self.master.Error.encoding.clear()
-        self.master.Error.error_reading_file.clear()
-        try:
-            self.methods[method].from_file(path)
-        except UnicodeError:
-            self.master.Error.encoding()
-        except Exception as e:
-            self.master.Error.error_reading_file(e)
-
     def read_stopwords_file(self, path):
-        self._read_file(self.STOPWORDS, path)
+        self.master.Error.stopwords_encoding.clear()
+        self.master.Error.error_reading_stopwords.clear()
+        try:
+            self.methods[self.STOPWORDS].from_file(path)
+        except UnicodeError:
+            self.master.Error.stopwords_encoding()
+        except Exception as e:
+            self.master.Error.error_reading_stopwords(e)
+
         if self.STOPWORDS in self.checked:
             self.change_signal.emit()
 
     def read_lexicon_file(self, path):
-        self._read_file(self.LEXICON, path)
+        self.master.Error.lexicon_encoding.clear()
+        self.master.Error.error_reading_lexicon.clear()
+        try:
+            self.methods[self.LEXICON].from_file(path)
+        except UnicodeError:
+            self.master.Error.lexicon_encoding()
+        except Exception as e:
+            self.master.Error.error_reading_lexicon(e)
+
         if self.LEXICON in self.checked:
             self.change_signal.emit()
 
@@ -553,8 +559,10 @@ class OWPreprocess(OWWidget):
 
     class Error(OWWidget.Error):
         stanford_tagger = Msg("Problem while loading Stanford POS Tagger\n{}")
-        encoding = Msg("Invalid file encoding. Please save the file as UTF-8 and try again.")
-        error_reading_file = Msg("Error reading file: {}")
+        stopwords_encoding = Msg("Invalid stopwords file encoding. Please save the file as UTF-8 and try again.")
+        lexicon_encoding = Msg("Invalid lexicon file encoding. Please save the file as UTF-8 and try again.")
+        error_reading_stopwords = Msg("Error reading file: {}")
+        error_reading_lexicon = Msg("Error reading file: {}")
 
     class Warning(OWWidget.Warning):
         no_token_left = Msg('No tokens on output! Please, change configuration.')
