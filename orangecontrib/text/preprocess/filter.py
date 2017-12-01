@@ -45,12 +45,21 @@ class WordListMixin:
 
     def from_file(self, path):
         self.file_path = path
+        self.word_list = []
         if not path:
-            self.word_list = []
-        else:
-            enc = detect_encoding(path)
-            with open(path, encoding=enc) as f:
-                self.word_list = set([line.strip() for line in f])
+            return
+
+        for encoding in ('utf-8',
+                         None,  # sys.getdefaultencoding()
+                         detect_encoding(path)):
+            try:
+                with open(path, encoding=encoding) as f:
+                    self.word_list = set(line.strip() for line in f)
+            except UnicodeDecodeError:
+                continue
+            return
+        # No encoding worked, raise
+        raise UnicodeError("Couldn't determine file encoding")
 
 # get NLTK list of stopwords
 stopwords_listdir = []
