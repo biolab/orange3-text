@@ -48,7 +48,6 @@ before_install:
 
 install:
     - travis_wait pip install -r requirements.txt
-    - travis_wait pip install -r requirements-opt.txt
     - source $TRAVIS_BUILD_DIR/.travis/install_pyqt.sh
     - python setup.py develop   # assure version.py is present; required for imports
 

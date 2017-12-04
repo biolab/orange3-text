@@ -42,7 +42,6 @@ To install the add-on from source
 
     # Install the dependencies:
     pip install -r requirements.txt
-    pip install -r requirements-opt.txt # Optional dependecy for PubMed, requires compiler.
 
     # Finally install Orange3-Text in editable/development mode.
     pip install -e .
