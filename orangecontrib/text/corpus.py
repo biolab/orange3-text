@@ -371,9 +371,9 @@ class Corpus(Table):
 
         if documents:
             X = np.array([[to_val(attr, func(doc)) for attr, func in attributes]
-                          for doc in documents])
+                          for doc in documents], dtype=np.float64)
             Y = np.array([[to_val(attr, func(doc)) for attr, func in class_vars]
-                          for doc in documents])
+                          for doc in documents], dtype=np.float64)
             metas = np.array([[to_val(attr, func(doc)) for attr, func in metas]
                               for doc in documents], dtype=object)
         else:   # assure shapes match the number of columns
