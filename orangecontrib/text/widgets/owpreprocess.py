@@ -312,7 +312,7 @@ class FilteringModule(MultipleMethodModule):
     REGEXP = 2
     FREQUENCY = 3
     KEEP_N = 4
-    dlgFormats = 'Only text files (*.txt)'
+    dlgFormats = 'Only text files (*.txt);;All files (*)'
 
     stopwords_language = settings.Setting('English')
 
