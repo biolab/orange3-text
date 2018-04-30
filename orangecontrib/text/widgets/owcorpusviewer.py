@@ -3,7 +3,11 @@ import re
 import sre_constants
 from itertools import chain
 
-from AnyQt.QtCore import Qt, QUrl, QItemSelection, QItemSelectionModel, QItemSelectionRange
+from AnyQt.QtCore import (
+    Qt, QUrl, QItemSelection, QItemSelectionModel, QItemSelectionRange,
+    pyqtSlot as Slot
+)
+
 from AnyQt.QtGui import QStandardItemModel, QStandardItem
 from AnyQt.QtWidgets import (QListView, QSizePolicy, QTableView,
                              QAbstractItemView, QHeaderView, QSplitter,
@@ -222,6 +226,12 @@ class OWCorpusViewer(OWWidget):
         <!doctype html>
         <html>
         <head>
+        <script type="text/javascript" src="resources/jquery-3.1.1.min.js">
+        </script>
+        <script type="text/javascript" src="resources/jquery.mark.min.js">
+        </script>
+        <script type="text/javascript" src="resources/highlighter.js">
+        </script>
         <meta charset='utf-8'>
         <style>
 
@@ -307,16 +317,13 @@ class OWCorpusViewer(OWWidget):
 
         html += '</table>'
 
-        # QUrl is a workaround to allow local resources
-        # https://bugreports.qt.io/browse/QTBUG-55902?focusedCommentId=335945
-        self.doc_webview.setHtml(HTML.format(html), QUrl("file://"))
-        self.load_js()
-        self.highlight_docs()
-
-    def load_js(self):
-        resources = os.path.join(os.path.dirname(__file__), 'resources')
-        for script in ('jquery-3.1.1.min.js', 'jquery.mark.min.js', 'highlighter.js', ):
-            self.doc_webview.evalJS(open(os.path.join(resources, script), encoding='utf-8').read())
+        try:
+            self.doc_webview.loadFinished.disconnect(self.highlight_docs)
+        except TypeError:  # not connected
+            pass
+        base = QUrl.fromLocalFile(__file__)
+        self.doc_webview.setHtml(HTML.format(html), base)
+        self.doc_webview.loadFinished.connect(self.highlight_docs, Qt.UniqueConnection)
 
     def search_features_changed(self):
         self.regenerate_docs()
@@ -338,11 +345,12 @@ class OWCorpusViewer(OWWidget):
             self.update_info()
             self.commit()
 
+    @Slot()
     def highlight_docs(self):
         search_keyword = self.regexp_filter.\
             strip('|').replace('\\', '\\\\')    # escape one \ to  two for mark.js
         if search_keyword:
-            self.doc_webview.evalJS('mark("{}");'.format(search_keyword))
+            self.doc_webview.runJavaScript('mark("{}");'.format(search_keyword))
 
     def update_info(self):
         if self.corpus is not None:
