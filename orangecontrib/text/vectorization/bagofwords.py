@@ -46,7 +46,7 @@ class BowVectorizer(BaseVectorizer):
 
     wlocals = OrderedDict((
         (COUNT, lambda tf: tf),
-        (BINARY, lambda tf: int(tf > 0)),
+        (BINARY, lambda tf: np.greater(tf, 0, dtype=np.int)),
         (SUBLINEAR, lambda tf: 1 + np.log(tf)),
     ))
 
