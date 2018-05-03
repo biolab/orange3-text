@@ -119,6 +119,7 @@ class OWCorpusViewer(OWWidget):
 
         # Document contents
         self.doc_webview = gui.WebviewWidget(self.splitter, debug=False)
+        self.doc_webview.loadFinished.connect(self.highlight_docs)
 
         self.mainArea.layout().addWidget(self.splitter)
 
@@ -316,14 +317,8 @@ class OWCorpusViewer(OWWidget):
                     token) for token in tokens[row_ind]))
 
         html += '</table>'
-
-        try:
-            self.doc_webview.loadFinished.disconnect(self.highlight_docs)
-        except TypeError:  # not connected
-            pass
         base = QUrl.fromLocalFile(__file__)
         self.doc_webview.setHtml(HTML.format(html), base)
-        self.doc_webview.loadFinished.connect(self.highlight_docs, Qt.UniqueConnection)
 
     def search_features_changed(self):
         self.regenerate_docs()
@@ -349,8 +344,17 @@ class OWCorpusViewer(OWWidget):
     def highlight_docs(self):
         search_keyword = self.regexp_filter.\
             strip('|').replace('\\', '\\\\')    # escape one \ to  two for mark.js
+
         if search_keyword:
-            self.doc_webview.runJavaScript('mark("{}");'.format(search_keyword))
+            # mark is undefined when clearing the view (`setHtml('')`). Maybe
+            # set and template html with all the scripts, ... but no contents?
+            self.doc_webview.runJavaScript(
+                '''
+                    if (typeof mark !== "undefined") {{
+                        mark("{}");
+                    }}
+                '''.format(search_keyword)
+            )
 
     def update_info(self):
         if self.corpus is not None:
