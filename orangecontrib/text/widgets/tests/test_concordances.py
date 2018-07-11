@@ -1,9 +1,8 @@
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 from AnyQt.QtCore import QModelIndex, QItemSelection, Qt
 from AnyQt.QtGui import QBrush, QColor
-from Orange.data import Table
 
 from Orange.widgets.tests.base import WidgetTest
 from orangecontrib.text.corpus import Corpus
@@ -199,6 +198,12 @@ class TestConcordanceWidget(WidgetTest):
         ind_10 = widget.model.index(-1, 0)
         selection_model.select(ind_10, selection_model.Select)
         self.assertIsNone(self.get_output("Selected Documents"))
+
+        # Selected rows emptied after word change
+        view.selectRow(3)
+        self.assertTrue(view.selectedIndexes())
+        widget.controls.word.setText("o")
+        self.assertFalse(view.selectedIndexes())
 
     def test_signal_to_none(self):
         self.send_signal("Corpus", self.corpus)
