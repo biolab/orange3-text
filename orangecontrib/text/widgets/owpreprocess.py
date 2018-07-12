@@ -331,7 +331,7 @@ class FilteringModule(MultipleMethodModule):
         super().__init__(master)
 
         box = widgets.ComboBox(self, 'stopwords_language',
-                               items=[None] + preprocess.StopwordsFilter.supported_languages)
+                               items=[None] + preprocess.StopwordsFilter.supported_languages())
         box.currentIndexChanged.connect(self.stopwords_changed)
         self.stopwords_changed()
         self.method_layout.addWidget(box, self.STOPWORDS, 1)
