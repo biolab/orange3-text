@@ -8,7 +8,7 @@ from Orange.widgets.data.owselectcolumns import VariablesListItemView
 from Orange.widgets.settings import Setting, ContextSetting, PerfectDomainContextHandler
 from Orange.widgets.widget import OWWidget, Msg, Input, Output
 from orangecontrib.text.corpus import Corpus, get_sample_corpora_dir
-from orangecontrib.text.widgets.utils import widgets
+from orangecontrib.text.widgets.utils import widgets, QSize
 
 
 class OWCorpus(OWWidget):
@@ -101,10 +101,12 @@ class OWCorpus(OWWidget):
                 get_sample_corpora_dir()),
             autoDefault=False,
         )
-        box.layout().addWidget(self.report_button)
 
         # load first file
         self.file_widget.select(0)
+
+    def sizeHint(self):
+        return QSize(400, 300)
 
     @Inputs.data
     def set_data(self, data):

@@ -1,5 +1,6 @@
 import numpy as np
-from AnyQt.QtWidgets import QTreeWidget, QTreeView, QTreeWidgetItem
+from AnyQt.QtWidgets import QTreeWidget, QTreeView, QTreeWidgetItem, \
+    QApplication
 
 from Orange.data import Table, Domain
 from Orange.widgets import gui
@@ -199,6 +200,13 @@ class OWWordEnrichment(OWWidget):
         self.filter_enabled(True)
         self.progressBarFinished()
 
+    def send_report(self):
+        if self.words:
+            self.report_table(
+                "Enriched words".
+                    format(self.words,
+                           self.p_values),
+                self.tableview)
 
 fp = lambda score: "%0.5f" % score if score > 10e-3 else "%0.1e" % score
 fpt = lambda score: "%0.9f" % score if score > 10e-3 else "%0.5e" % score
@@ -217,3 +225,17 @@ class EATreeWidgetItem(QTreeWidgetItem):
     def __lt__(self, other):
         col = self.treeWidget().sortColumn()
         return self.data[col] < other.data[col]
+
+def main():
+    app = QApplication([])
+    widget = OWWordEnrichment()
+    corpus = Corpus.from_file('book-excerpts')
+    widget.set_data(corpus)
+    subset_corpus = corpus[:10]
+    #do bag of words
+    widget.set_data_selected(subset_corpus)
+    widget.show()
+    app.exec()
+
+if __name__ == '__main__':
+    main()

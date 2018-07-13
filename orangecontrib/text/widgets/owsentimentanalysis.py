@@ -38,7 +38,6 @@ class OWSentimentAnalysis(OWWidget):
 
         ac = gui.auto_commit(self.controlArea, self, 'autocommit', 'Commit',
                              'Autocommit is on')
-        ac.layout().insertWidget(0, self.report_button)
         ac.layout().insertSpacing(1, 8)
 
     @Inputs.corpus
@@ -66,7 +65,7 @@ class OWSentimentAnalysis(OWWidget):
 def main():
     app = QApplication([])
     widget = OWSentimentAnalysis()
-    corpus = Corpus.from_file('bookexcerpts')
+    corpus = Corpus.from_file('book-excerpts')
     corpus = corpus[:3]
     widget.set_corpus(corpus)
     widget.show()
