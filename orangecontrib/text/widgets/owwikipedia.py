@@ -6,8 +6,8 @@ from Orange.widgets import settings
 from Orange.widgets.widget import OWWidget, Msg, Output
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.language_codes import lang2code, code2lang
-from orangecontrib.text.widgets.utils import ComboBox, ListEdit, CheckListLayout, asynchronous, \
-    QSize
+from orangecontrib.text.widgets.utils import ComboBox, ListEdit, CheckListLayout, asynchronous
+
 from orangecontrib.text.wikipedia import WikipediaAPI
 
 
@@ -54,10 +54,11 @@ class OWWikipedia(OWWidget):
         layout.setSpacing(7)
 
         row = 0
-        query_edit = ListEdit(self, 'query_list', "Each line represents a "
+        self.query_edit = ListEdit(self, 'query_list', "Each line represents a "
                                                   "separate query.", 100, self)
         layout.addWidget(QLabel('Query word list:'), row, 0, 1, self.label_width)
-        layout.addWidget(query_edit, row, self.label_width, 1, self.widgets_width)
+        layout.addWidget(self.query_edit, row, self.label_width, 1,
+                         self.widgets_width)
 
         # Language
         row += 1
@@ -134,7 +135,7 @@ class OWWikipedia(OWWidget):
     def send_report(self):
         if self.result:
             items = (('Language', code2lang[self.language]),
-                     ('Query', self.query_list),
+                     ('Query', self.query_edit.toPlainText()),
                      ('Articles count', len(self.result)))
             self.report_items('Query', items)
 
