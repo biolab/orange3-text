@@ -6,9 +6,11 @@ from Orange.data import Table, Domain
 from Orange.widgets import gui
 from Orange.widgets.settings import Setting
 from Orange.widgets.widget import OWWidget, Msg, Input
+from PyQt5.QtCore import QSize
 from orangecontrib.text import Corpus
 from orangecontrib.text.util import np_sp_sum
 from orangecontrib.text.stats import false_discovery_rate, hypergeom_p_values
+from orangecontrib.text.vectorization import BowVectorizer
 
 
 class OWWordEnrichment(OWWidget):
@@ -92,6 +94,9 @@ class OWWordEnrichment(OWWidget):
         for i in range(len(self.cols)):
             self.sig_words.resizeColumnToContents(i)
         self.mainArea.layout().addWidget(self.sig_words)
+
+    def sizeHint(self):
+        return QSize(450, 240)
 
     @Inputs.data
     def set_data(self, data=None):
@@ -200,13 +205,19 @@ class OWWordEnrichment(OWWidget):
         self.filter_enabled(True)
         self.progressBarFinished()
 
+    def tree_to_table(self):
+        view = [self.cols]
+        items = self.sig_words.topLevelItemCount()
+        for i in range(items):
+            line = []
+            for j in range(3):
+                line.append(self.sig_words.topLevelItem(i).text(j))
+            view.append(line)
+        return(view)
+
     def send_report(self):
         if self.words:
-            self.report_table(
-                "Enriched words".
-                    format(self.words,
-                           self.p_values),
-                self.tableview)
+            self.report_table("Enriched words", self.tree_to_table())
 
 fp = lambda score: "%0.5f" % score if score > 10e-3 else "%0.1e" % score
 fpt = lambda score: "%0.9f" % score if score > 10e-3 else "%0.5e" % score
@@ -227,13 +238,16 @@ class EATreeWidgetItem(QTreeWidgetItem):
         return self.data[col] < other.data[col]
 
 def main():
+
+    corpus = Corpus.from_file('book-excerpts')
+    vect = BowVectorizer()
+    corpus_vect = vect.transform(corpus)
     app = QApplication([])
     widget = OWWordEnrichment()
-    corpus = Corpus.from_file('book-excerpts')
-    widget.set_data(corpus)
-    subset_corpus = corpus[:10]
-    #do bag of words
+    widget.set_data(corpus_vect)
+    subset_corpus = corpus_vect[:10]
     widget.set_data_selected(subset_corpus)
+    widget.handleNewSignals()
     widget.show()
     app.exec()
 

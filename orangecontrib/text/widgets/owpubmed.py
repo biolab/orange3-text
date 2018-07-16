@@ -440,6 +440,34 @@ class OWPubmed(OWWidget):
         if cal_dlg.exec_():
             widget.setText(cal_dlg.picked_date)
 
+    def send_report(self):
+        if not self.pubmed_api:
+            return
+        max_records_count = min(
+            self.pubmed_api.MAX_RECORDS,
+            self.pubmed_api.search_record_count
+        )
+        if self.search_tabs.currentIndex() == 0:
+            terms = self.keyword_combo.currentText()
+            authors = self.author_input.text()
+            self.report_items((
+                ('Query', terms if terms else None),
+                ('Authors', authors if authors else None),
+                ('Date', 'from {} to {}'.format(self.pub_date_from,
+                                          self.pub_date_to)),
+                ('Number of records retrieved', '{}/{}'.format(len(
+                    self.output_corpus) if self.output_corpus else 0,
+                                                               max_records_count))
+            ))
+        else:
+            query = self.advanced_query_input.toPlainText()
+            self.report_items((
+                ('Query', query if query else None),
+                ('Number of records retrieved', '{}/{}'.format(len(
+                    self.output_corpus) if self.output_corpus else 0,
+                                                               max_records_count))
+            ))
+
 
 class CalendarDialog(QDialog):
 

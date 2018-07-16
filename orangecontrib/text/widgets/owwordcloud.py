@@ -296,6 +296,9 @@ span.selected {color:red !important}
             topic.name = 'Selected Words'
         self.Outputs.selected_words.send(topic)
 
+    def send_report(self):
+        self.report_table(self.tableview)
+
 
 def main():
     from Orange.data import Table, Domain, ContinuousVariable, StringVariable

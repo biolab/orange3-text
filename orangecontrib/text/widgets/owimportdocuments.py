@@ -604,6 +604,17 @@ class OWImportDocuments(widget.OWWidget):
 
         return super().eventFilter(receiver, event)
 
+    def send_report(self):
+        if not self.currentPath:
+            return
+        items = [('Path', self.currentPath),
+                 ('Number of documents', self.n_text_data)]
+        if self.n_text_categories:
+            items += [('Categories', self.n_text_categories)]
+        if self.n_skipped:
+            items += [('Number of skipped', self.n_skipped)]
+        self.report_items(items, )
+
 
 class UserInterruptError(BaseException):
     """
