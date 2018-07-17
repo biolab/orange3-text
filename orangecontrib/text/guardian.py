@@ -155,7 +155,7 @@ class TheGuardianAPI:
 
 
 if __name__ == '__main__':
-    credentials = TheGuardianCredentials('')
+    credentials = TheGuardianCredentials('test')
     print(credentials.valid)
     api = TheGuardianAPI(credentials=credentials)
     c = api.search('refugees', max_documents=10)
