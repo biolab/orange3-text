@@ -1,11 +1,12 @@
 import unittest
+import os
 
 from datetime import date, datetime
 
 from orangecontrib.text import guardian
 
 
-API_KEY = 'test'
+API_KEY = os.getenv('THE_GUARDIAN_API_KEY', 'test')
 
 
 class TestCredentials(unittest.TestCase):
