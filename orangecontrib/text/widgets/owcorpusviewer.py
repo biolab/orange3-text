@@ -256,6 +256,26 @@ class OWCorpusViewer(OWWidget):
             vertical-align: top;
             padding-right: 10px;
         }}
+        
+        .content {{
+            /* Adopted from https://css-tricks.com/snippets/css/prevent-long-urls-from-breaking-out-of-container/ */
+        
+            /* These are technically the same, but use both */
+            overflow-wrap: break-word;
+            word-wrap: break-word;
+        
+            -ms-word-break: break-all;
+            /* This is the dangerous one in WebKit, as it breaks things wherever */
+            word-break: break-all;
+            /* Instead use this non-standard one: */
+            word-break: break-word;
+        
+            /* Adds a hyphen where the word breaks, if supported (No Blink) */
+            -ms-hyphens: auto;
+            -moz-hyphens: auto;
+            -webkit-hyphens: auto;
+            hyphens: auto;
+        }}
 
         .token {{
             padding: 3px;
@@ -303,12 +323,12 @@ class OWCorpusViewer(OWWidget):
             for ind in self.display_indices:
                 feature = self.display_features[ind]
                 mark = 'class="mark-area"' if feature in marked_search_features else ''
-                value = str(index.data(Qt.UserRole)[feature.name])
+                value = str(index.data(Qt.UserRole)[feature.name]).replace('\n', '<br/>')
                 is_image = feature.attributes.get('type', '') == 'image'
                 if is_image and value != '?':
                     value = '<img src="{}"></img>'.format(value)
                 html += '<tr><td class="variables"><strong>{}:</strong></td>' \
-                        '<td {}>{}</td></tr>'.format(
+                        '<td class="content" {}>{}</td></tr>'.format(
                     feature.name, mark, value)
 
             if self.show_tokens:
