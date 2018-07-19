@@ -18,6 +18,7 @@ Then create :class:`TheGuardianAPI` object and use it for searching:
 import requests
 import math
 import json
+import os
 
 from Orange import data
 
@@ -155,7 +156,8 @@ class TheGuardianAPI:
 
 
 if __name__ == '__main__':
-    credentials = TheGuardianCredentials('test')
+    key = os.getenv('THE_GUARDIAN_API_KEY', 'test')
+    credentials = TheGuardianCredentials(key)
     print(credentials.valid)
     api = TheGuardianAPI(credentials=credentials)
     c = api.search('refugees', max_documents=10)
