@@ -277,6 +277,7 @@ class OWConcordance(OWWidget):
             self.set_word()
 
     def set_word(self):
+        self.selected_rows = []
         self.model.set_word(self.word)
         self.update_widget()
         self.commit()
