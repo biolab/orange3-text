@@ -126,7 +126,6 @@ class OWNYT(OWWidget):
 
         # Buttons
         self.button_box = gui.hBox(self.controlArea)
-        self.button_box.layout().addWidget(self.report_button)
 
         self.search_button = gui.button(self.button_box, self, 'Search', self.start_stop,
                                         focusPolicy=Qt.NoFocus)

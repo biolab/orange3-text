@@ -37,7 +37,6 @@ class OWBaseVectorizer(OWWidget):
         self.controlArea.layout().addWidget(box)
 
         buttons_layout = QHBoxLayout()
-        buttons_layout.addWidget(self.report_button)
         buttons_layout.addSpacing(15)
         buttons_layout.addWidget(
             gui.auto_commit(None, self, 'autocommit', 'Commit', box=False)

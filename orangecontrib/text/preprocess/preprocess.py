@@ -132,13 +132,17 @@ class Preprocessor:
 
     def report(self):
         return (
-            ('Transformers', ', '.join(str(tr) for tr in self.transformers)),
-            ('Tokenizer', str(self.tokenizer)),
-            ('Normalizer', str(self.normalizer)),
-            ('Filters', ', '.join(str(f) for f in self.filters)),
-            ('Ngrams range', str(self.ngrams_range)),
-            ('Frequency filter', str(self.freq_filter)),
-            ('Pos tagger', str(self.pos_tagger)),
+            ('Transformers', ', '.join(str(tr) for tr in self.transformers)
+            if self.transformers else None),
+            ('Tokenizer', str(self.tokenizer) if self.tokenizer else None),
+            ('Normalizer', str(self.normalizer) if self.normalizer else None),
+            ('Filters', ', '.join(str(f) for f in self.filters) if
+            self.filters else None),
+            ('Ngrams range', str(self.ngrams_range) if self.ngrams_range else
+            None),
+            ('Frequency filter', str(self.freq_filter) if self.freq_filter
+            else None),
+            ('Pos tagger', str(self.pos_tagger) if self.pos_tagger else None),
         )
 
 

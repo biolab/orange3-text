@@ -406,15 +406,22 @@ class OWCorpusViewer(OWWidget):
             self.Outputs.matching_docs.send(None)
             self.Outputs.other_docs.send(None)
 
+    def send_report(self):
+        self.report_items((
+            ("Query", self.regexp_filter),
+            ("Matching documents", self.n_matching),
+        ))
+
 
 if __name__ == '__main__':
-    from orangecontrib.text.tag import pos_tagger
+    from orangecontrib.text.tag.pos import AveragedPerceptronTagger
     app = QApplication([])
     widget = OWCorpusViewer()
     widget.show()
     corpus = Corpus.from_file('book-excerpts')
     corpus = corpus[:3]
-    corpus = pos_tagger.tag_corpus(corpus)
-    corpus.ngram_range = (1, 2)
-    widget.set_data(corpus)
+    tagger = AveragedPerceptronTagger()
+    tagged_corpus = tagger.tag_corpus(corpus)
+    tagged_corpus.ngram_range = (1, 2)
+    widget.set_data(tagged_corpus)
     app.exec()
