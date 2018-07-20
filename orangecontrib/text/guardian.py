@@ -42,7 +42,7 @@ class TheGuardianCredentials:
     def valid(self):
         """ Check if given API key is valid. """
         response = requests.get(BASE_URL, {'api-key': self.key})
-        return response.status_code != 403      # 403 == Forbidden
+        return response.status_code == 200
 
     def __eq__(self, other):
         return self.key == other.key
