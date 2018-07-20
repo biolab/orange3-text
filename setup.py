@@ -10,7 +10,7 @@ NAME = 'Orange3-Text'
 
 MAJOR = 0
 MINOR = 4
-MICRO = 0
+MICRO = 1
 IS_RELEASED = False
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 FULL_VERSION = VERSION
