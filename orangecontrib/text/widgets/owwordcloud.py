@@ -297,6 +297,16 @@ span.selected {color:red !important}
         self.Outputs.selected_words.send(topic)
 
     def send_report(self):
+        html = self.webview.html()
+        start = html.index('>', html.index('<body')) + 1
+        end = html.index('</body>')
+        body = html[start:end]
+        # create an empty div of appropriate height to compensate for
+        # absolute positioning of words in the html
+        height = self.webview._evalJS("document.getElementById('canvas').clientHeight")
+        self.report_html += '<div style="position: relative; height: {}px;">{}</div>'.format(
+            height, body)
+
         self.report_table(self.tableview)
 
 
