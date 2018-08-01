@@ -7,17 +7,21 @@ from orangecontrib.text.misc import wait_nltk_data
 from orangecontrib.text.preprocess import WordPunctTokenizer
 from orangecontrib.text.vectorization.base import SharedTransform, \
     VectorizationComputeValue
+from orangecontrib.text.sentiment.opinion_lexicon_slo import opinion_lexicon_slo
 
 
 class Liu_Hu_Sentiment:
     sentiments = ('sentiment',)
     name = 'Liu Hu'
 
+    methods = {'English': opinion_lexicon,
+               'Slovenian': opinion_lexicon_slo}
+
     @wait_nltk_data
-    def __init__(self):
-        super().__init__()
-        self.positive = set(opinion_lexicon.positive())
-        self.negative = set(opinion_lexicon.negative())
+    def __init__(self, language):
+        self.language = language
+        self.positive = set(self.methods[language].positive())
+        self.negative = set(self.methods[language].negative())
 
     def transform(self, corpus, copy=True):
         scores = []
@@ -47,7 +51,6 @@ class Vader_Sentiment:
 
     @wait_nltk_data
     def __init__(self):
-        super().__init__()
         self.vader = SentimentIntensityAnalyzer()
 
     def transform(self, corpus, copy=True):
@@ -70,5 +73,5 @@ class Vader_Sentiment:
 
 if __name__ == "__main__":
     corpus = Corpus.from_file('deerwester')
-    liu = Liu_Hu_Sentiment()
+    liu = Liu_Hu_Sentiment('Slovenian')
     corpus2 = liu.transform(corpus[:5])
