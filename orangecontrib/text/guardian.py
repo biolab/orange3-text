@@ -29,6 +29,10 @@ BASE_URL = 'http://content.guardianapis.com/search'
 ARTICLES_PER_PAGE = 10
 
 
+class APILimitError(Exception):
+    pass
+
+
 class TheGuardianCredentials:
     """ The Guardian API credentials. """
     def __init__(self, key):
@@ -93,6 +97,9 @@ class TheGuardianAPI:
         data = self._build_query(query, from_date, to_date, page)
 
         response = requests.get(BASE_URL, data)
+        if response.status_code == 429:
+            raise APILimitError("API limit exceeded")
+
         parsed = json.loads(response.text)
 
         if page == 1:   # store number of pages
