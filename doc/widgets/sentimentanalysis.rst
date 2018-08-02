@@ -24,12 +24,12 @@ Signals
 Description
 -----------
 
-**Sentiment Analysis** predicts sentiment for each document in a corpus. It uses Liu Hu and Vader sentiment modules from `NLTK <http://www.nltk.org/api/nltk.sentiment.html>`_. Both of them are lexicon-based.
+**Sentiment Analysis** predicts sentiment for each document in a corpus. It uses Liu Hu and Vader sentiment modules from `NLTK <http://www.nltk.org/api/nltk.sentiment.html>`_. Both of them are lexicon-based. For Liu Hu, you can choose English or Slovenian version.
 
 .. figure:: images/SentimentAnalysis-stamped.png
 
 1. *Method*:
-	- *Liu Hu*: lexicon-based sentiment analysis
+	- *Liu Hu*: lexicon-based sentiment analysis (supports English and Slovenian)
 	- *Vader*: lexicon- and rule-based sentiment analysis
 2. Produce a report.
 3. If *Auto commit is on*, sentiment-tagged corpus is communicated automatically. Alternatively press *Commit*.
@@ -65,3 +65,7 @@ References
 ----------
 
 Hutto, C.J. & Gilbert, E.E. (2014). VADER: A Parsimonious Rule-based Model for Sentiment Analysis of Social Media Text. Eighth International Conference on Weblogs and Social Media (ICWSM-14). Ann Arbor, MI, June 2014.
+
+Minqing Hu in Bing Liu (2004). Mining opinion features in customer reviews. In Proceedings of AAAI Conference on Artificial Intelligence, vol. 4, pp. 755–760. `Available online. <http://www.aaai.org/Papers/AAAI/2004/AAAI04-119.pdf>`__ 
+
+Klemen Kadunc, Marko Robnik-Šikonja (2016). Analiza mnenj s pomočjo strojnega učenja in slovenskega leksikona sentimenta. Conference on Language Technologies & Digital Humanities, Ljubljana (in Slovene). `Available online. <http://www.sdjt.si/wp/wp-content/uploads/2016/09/JTDH-2016_Kadunc-et-al_Analiza-mnenj-s-pomocjo-strojnega-ucenja.pdf>`__
