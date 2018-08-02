@@ -11,7 +11,7 @@ from Orange.widgets import gui
 from Orange.widgets.widget import Output
 
 from orangecontrib.text.corpus import Corpus
-from orangecontrib.text.guardian import TheGuardianCredentials, TheGuardianAPI
+from orangecontrib.text.guardian import TheGuardianCredentials, TheGuardianAPI, APILimitError
 from orangecontrib.text.widgets.utils import CheckListLayout, QueryBox, DatePickerInterval, gui_require, asynchronous
 
 
@@ -88,6 +88,7 @@ class OWGuardian(OWWidget):
     class Error(OWWidget.Error):
         no_api = Msg('Please provide a valid API key.')
         no_query = Msg('Please provide a query.')
+        limit_exceeded = Msg('Requests limit reached.')
 
     def __init__(self):
         super().__init__()
@@ -149,7 +150,11 @@ class OWGuardian(OWWidget):
     @gui_require('api', 'no_api')
     @gui_require('recent_queries', 'no_query')
     def run_search(self):
-        self.search()
+        self.Error.limit_exceeded.clear()
+        try:
+            self.search()
+        except APILimitError:
+            self.Error.limit_exceeded()
 
     @asynchronous
     def search(self):
