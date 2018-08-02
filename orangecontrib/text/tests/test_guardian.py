@@ -33,6 +33,7 @@ def skip_limit_exceeded(fun):
 
 class TestGuardian(unittest.TestCase):
     def setUp(self):
+        print("Api key:", API_KEY)
         c = guardian.TheGuardianCredentials(API_KEY)
         self.api = guardian.TheGuardianAPI(c)
 
