@@ -97,7 +97,10 @@ class Preprocessor:
             tokens = BASE_TOKENIZER.tokenize(document)
 
         if self.normalizer:
-            tokens = self.normalizer(tokens)
+            if getattr(self.normalizer, 'use_tokenizer', False):
+                tokens = self.normalizer.normalize_doc(document)
+            else:
+                tokens = self.normalizer(tokens)
 
         for filter in self.filters:
             tokens = filter(tokens)
