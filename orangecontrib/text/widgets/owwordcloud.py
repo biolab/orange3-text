@@ -1,7 +1,6 @@
 # coding: utf-8
 from collections import Counter
 from math import pi as PI
-from os import path
 
 import numpy as np
 from AnyQt.QtCore import Qt, QItemSelection, QItemSelectionModel, pyqtSlot, \
