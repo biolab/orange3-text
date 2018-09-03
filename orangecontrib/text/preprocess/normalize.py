@@ -88,6 +88,19 @@ class SnowballStemmer(BaseNormalizer):
         self.normalizer = stem.SnowballStemmer(self.language.lower())
 
 
+def language_to_name(language):
+    return language.lower().replace(' ', '') + 'ud'
+
+
+def file_to_name(file):
+    return file.replace('-', '').replace('_', '')
+
+
+def file_to_language(file):
+    return file[:file.find('ud')-1]\
+        .replace('-', ' ').replace('_', ' ').capitalize()
+
+
 class UDPipeModels:
     server_url = "http://file.biolab.si/files/udpipe/"
 
@@ -99,18 +112,17 @@ class UDPipeModels:
         self._supported_languages = []
 
     def __getitem__(self, language):
-        file_name = self._find_file(language)
+        file_name = self._find_file(language_to_name(language))
         return self.localfiles.localpath_download(file_name)
 
     def _find_file(self, language):
-        return list(filter(lambda f: f.startswith(language),
-                           map(lambda f: f[0],
-                               self.serverfiles.listfiles())))[0]
+        return next(filter(lambda f: file_to_name(f).startswith(language),
+                           map(lambda f: f[0], self.serverfiles.listfiles())))
 
     @property
     def supported_languages(self):
-        self._supported_languages = [f[0].split('-')[0]
-                                     for f in self.serverfiles.listfiles()]
+        self._supported_languages = list(map(lambda f: file_to_language(f[0]),
+                                             self.serverfiles.listfiles()))
         return self._supported_languages
 
 
@@ -118,11 +130,11 @@ class UDPipeLemmatizer(BaseNormalizer):
     name = 'UDPipe Lemmatizer'
     str_format = '{self.name} ({self.language})'
     models = UDPipeModels()
-    supported_languages = [l.capitalize() for l in models.supported_languages]
+    supported_languages = models.supported_languages
 
     def __init__(self, language='English'):
         self._language = language
-        self.model = udpipe.Model.load(self.models[self._language.lower()])
+        self.model = udpipe.Model.load(self.models[self._language])
         self.output_format = udpipe.OutputFormat.newOutputFormat('epe')
         self.use_tokenizer = False
 
@@ -154,4 +166,4 @@ class UDPipeLemmatizer(BaseNormalizer):
     @language.setter
     def language(self, value):
         self._language = value
-        self.model = udpipe.Model.load(self.models[self._language.lower()])
+        self.model = udpipe.Model.load(self.models[self._language])
