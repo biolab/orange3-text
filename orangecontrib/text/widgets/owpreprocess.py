@@ -272,6 +272,7 @@ class NormalizationModule(SingleMethodModule):
                                items=preprocess.SnowballStemmer.supported_languages)
         snowball_box.currentIndexChanged.connect(self.change_language)
         self.method_layout.addWidget(snowball_box, self.SNOWBALL, 2)
+        self.methods[self.SNOWBALL].language = self.snowball_language
 
         self.udpipe_tokenizer_box = QCheckBox("UDPipe tokenizer", self,
                                               checked=self.udpipe_tokenizer)
@@ -284,6 +285,8 @@ class NormalizationModule(SingleMethodModule):
                                items=preprocess.UDPipeLemmatizer.supported_languages)
         udpipe_box.currentIndexChanged.connect(self.change_language)
         self.method_layout.addWidget(udpipe_box, self.UDPIPE, 3)
+        self.methods[self.UDPIPE].language = self.udpipe_language
+        self.methods[self.UDPIPE].use_tokenizer = self.udpipe_tokenizer
 
     def change_language(self):
         if self.methods[self.SNOWBALL].language != self.snowball_language:
