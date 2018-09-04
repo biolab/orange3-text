@@ -134,11 +134,16 @@ class UDPipeLemmatizer(BaseNormalizer):
 
     def __init__(self, language='English'):
         self._language = language
-        self.model = udpipe.Model.load(self.models[self._language])
+        self.model = None
         self.output_format = udpipe.OutputFormat.newOutputFormat('epe')
         self.use_tokenizer = False
 
+    def load_model(self):
+        if self.model is None:
+            self.model = udpipe.Model.load(self.models[self._language])
+
     def normalize(self, token):
+        self.load_model()
         sentence = udpipe.Sentence()
         sentence.addWord(token)
         self.model.tag(sentence, self.model.DEFAULT)
@@ -146,6 +151,7 @@ class UDPipeLemmatizer(BaseNormalizer):
         return json.loads(output)['nodes'][0]['properties']['lemma']
 
     def normalize_doc(self, document):
+        self.load_model()
         tokens = []
         tokenizer = self.model.newTokenizer(self.model.DEFAULT)
         tokenizer.setText(document)
@@ -166,4 +172,4 @@ class UDPipeLemmatizer(BaseNormalizer):
     @language.setter
     def language(self, value):
         self._language = value
-        self.model = udpipe.Model.load(self.models[self._language])
+        self.model = None
