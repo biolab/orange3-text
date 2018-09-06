@@ -1,4 +1,3 @@
-import os
 import re
 import sre_constants
 from itertools import chain
