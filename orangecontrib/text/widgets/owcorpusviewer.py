@@ -1,4 +1,3 @@
-import os
 import re
 import sre_constants
 from itertools import chain
@@ -14,7 +13,7 @@ from AnyQt.QtWidgets import (QListView, QSizePolicy, QTableView,
                              QApplication)
 
 from Orange.data.domain import filter_visible
-from Orange.widgets import gui, widget
+from Orange.widgets import gui
 from Orange.widgets.settings import Setting, ContextSetting, PerfectDomainContextHandler
 from Orange.widgets.widget import OWWidget, Msg, Input, Output
 from orangecontrib.text.corpus import Corpus

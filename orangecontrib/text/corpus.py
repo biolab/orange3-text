@@ -215,7 +215,7 @@ class Corpus(Table):
                  if attr.attributes.get('title', False)]
         # Alternatively, use heuristics
         if not attrs:
-            for var in sorted(chain(self.domain.metas, self.domain),
+            for var in sorted(chain(self.domain.metas, self.domain.variables),
                               key=lambda var: var.name,
                               reverse=True):  # reverse so that title < heading < filename
                 if var.name.lower() in ('title', 'heading', 'h1', 'filename') \
