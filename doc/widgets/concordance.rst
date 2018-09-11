@@ -19,12 +19,16 @@ Signals
 
 -  **Selected Documents**
 
-   A :ref:`Corpus` instance.   
+   Documents containing the queried word.
+
+-  **Concordances**
+
+   A table of concordances.
 
 Description
 -----------
 
-**Concordance** finds the queried word in a text and displays the context in which this word is used. It can output selected documents for further analysis.
+**Concordance** finds the queried word in a text and displays the context in which this word is used. Results in a single color come from the same document. The widget can output selected documents for further analysis or a table of concordances for the queried word. Note that the widget finds only exact matches of a word, which means that if you query the word 'do', the word 'doctor' won't appear in the results.
 
 .. figure:: images/Concordance-stamped.png
 
@@ -37,11 +41,17 @@ Description
 3. Queried word.
 4. If *Auto commit is on*, selected documents are communicated automatically. Alternatively press *Commit*.
 
-Example
--------
+Examples
+--------
 
-*Concordance* can be used for displaying word contexts in a corpus. First, we load *book-excerpts.tab* in :doc:`Corpus <corpus>`. Then we connect **Corpus** to **Concordances** and search for concordances of a word "doctor". The widget displays all documents containing the word "doctor" together with their surrounding (contextual) words. Note that the widget finds only exact matches of a word.
+*Concordance* can be used for displaying word contexts in a corpus. First, we load *book-excerpts.tab* in :doc:`Corpus <corpus>`. Then we connect **Corpus** to **Concordance** and search for concordances of a word "doctor". The widget displays all documents containing the word "doctor" together with their surrounding (contextual) words.
 
 Now we can select those documents that contain interesting contexts and output them to :doc:`Corpus Viewer <corpusviewer>` to inspect them further.
 
-.. figure:: images/Concordance-Example.png
+.. figure:: images/Concordance-Example1.png
+
+In the second example, we will output concordances instead. We will keep the *book-excerpts.tab* in :doc:`Corpus <corpus>` and the connection to **Concordance**. Our queried word remain "doctor".
+
+This time, we will connect **Data Table** to **Concordance** and select Concordances output instead. In the **Data Table**, we get a list of concordances for the queried word and the corresponding documents. Now, we will save this table with **Save Data** widget, so we can use it in other projects or for further analysis.
+
+.. figure:: images/Concordance-Example2.png

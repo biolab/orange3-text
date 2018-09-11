@@ -137,6 +137,12 @@ class TestConcordanceModel(unittest.TestCase):
         model.set_corpus(self.corpus)
         self.assertEqual(model.matching_docs(), 6)
 
+    def test_concordance_output(self):
+        model = ConcordanceModel()
+        model.set_word("of")
+        model.set_corpus(self.corpus)
+        self.assertEqual(len(model.get_data()), 7)
+
 
 class TestConcordanceWidget(WidgetTest):
     def setUp(self):
