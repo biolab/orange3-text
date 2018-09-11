@@ -322,13 +322,13 @@ class OWCorpusViewer(OWWidget):
             row_ind = index.data(Qt.UserRole).row_index
             for ind in self.display_indices:
                 feature = self.display_features[ind]
-                mark = 'class="mark-area"' if feature in marked_search_features else ''
+                mark = ' mark-area' if feature in marked_search_features else ''
                 value = str(index.data(Qt.UserRole)[feature.name]).replace('\n', '<br/>')
                 is_image = feature.attributes.get('type', '') == 'image'
                 if is_image and value != '?':
                     value = '<img src="{}"></img>'.format(value)
                 html += '<tr><td class="variables"><strong>{}:</strong></td>' \
-                        '<td class="content" {}>{}</td></tr>'.format(
+                        '<td class="content{}">{}</td></tr>'.format(
                     feature.name, mark, value)
 
             if self.show_tokens:
