@@ -6,6 +6,21 @@ Change Log
 * ...
 
 
+[0.4.0] - 2018-07-23
+--------------------
+##### Enhancements
+* Improved report functionality ([#357](../../pull/357))
+* OWPreprocess: Add choice in FilteringModule for All Files (*) ([#334](../../pull/334))
+
+##### Bugfixes
+* Concordance: clear selection on changing word ([#353](../../pull/353))
+* CorpusViewer: Break long urls ([#310](../../pull/310))
+* OWPreprocess: no stopword files on Windows ([#355](../../pull/355))
+* Bag of words: Use vectorized 'BINARY' local weighting ([#342](../../pull/342))
+* Corpus: X and Y cast as float ([#330](../../pull/330))
+* Bag of words: work on document with no tokens ([#356](../../pull/356))
+
+
 [0.3.0] - 2017-12-05
 --------------------
 ##### Enhancements
