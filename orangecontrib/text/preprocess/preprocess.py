@@ -97,7 +97,10 @@ class Preprocessor:
             tokens = BASE_TOKENIZER.tokenize(document)
 
         if self.normalizer:
-            tokens = self.normalizer(tokens)
+            if getattr(self.normalizer, 'use_tokenizer', False):
+                tokens = self.normalizer.normalize_doc(document)
+            else:
+                tokens = self.normalizer(tokens)
 
         for filter in self.filters:
             tokens = filter(tokens)
@@ -131,7 +134,10 @@ class Preprocessor:
         return '\n'.join(['{}: {}'.format(name, value) for name, value in self.report()])
 
     def report(self):
-        return (
+        if getattr(self.normalizer, 'use_tokenizer', False):
+            self.tokenizer = \
+                'UDPipe Tokenizer ({})'.format(self.normalizer.language)
+        rep = (
             ('Transformers', ', '.join(str(tr) for tr in self.transformers)
             if self.transformers else None),
             ('Tokenizer', str(self.tokenizer) if self.tokenizer else None),
@@ -144,6 +150,8 @@ class Preprocessor:
             else None),
             ('Pos tagger', str(self.pos_tagger) if self.pos_tagger else None),
         )
+        del self.tokenizer
+        return rep
 
 
 base_preprocessor = Preprocessor(transformers=BASE_TRANSFORMERS,

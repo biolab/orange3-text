@@ -252,10 +252,15 @@ class NormalizationModule(SingleMethodModule):
         preprocess.PorterStemmer,
         preprocess.SnowballStemmer,
         preprocess.WordNetLemmatizer,
+        preprocess.UDPipeLemmatizer,
     ]
+
     SNOWBALL = 1
+    UDPIPE = 3
 
     snowball_language = settings.Setting('English')
+    udpipe_language = settings.Setting('English')
+    udpipe_tokenizer = settings.Setting(False)
 
     def __init__(self, master):
         super().__init__(master)
@@ -263,16 +268,45 @@ class NormalizationModule(SingleMethodModule):
         label = gui.label(self, self, 'Language:')
         label.setAlignment(Qt.AlignRight)
         self.method_layout.addWidget(label, self.SNOWBALL, 1)
-        box = widgets.ComboBox(self, 'snowball_language',
+        snowball_box = widgets.ComboBox(self, 'snowball_language',
                                items=preprocess.SnowballStemmer.supported_languages)
-        box.currentIndexChanged.connect(self.change_language)
-        self.method_layout.addWidget(box, self.SNOWBALL, 2)
+        snowball_box.currentIndexChanged.connect(self.change_language)
+        self.method_layout.addWidget(snowball_box, self.SNOWBALL, 2)
+        self.methods[self.SNOWBALL].language = self.snowball_language
+
+        self.udpipe_tokenizer_box = QCheckBox("UDPipe tokenizer", self,
+                                              checked=self.udpipe_tokenizer)
+        self.udpipe_tokenizer_box.stateChanged.connect(self.change_tokenizer)
+        self.method_layout.addWidget(self.udpipe_tokenizer_box, self.UDPIPE, 1)
+        label = gui.label(self, self, 'Language:')
+        label.setAlignment(Qt.AlignRight)
+        self.method_layout.addWidget(label, self.UDPIPE, 2)
+        udpipe_box = widgets.ComboBox(self, 'udpipe_language',
+                               items=preprocess.UDPipeLemmatizer.supported_languages)
+        udpipe_box.currentIndexChanged.connect(self.change_language)
+        self.method_layout.addWidget(udpipe_box, self.UDPIPE, 3)
+        self.methods[self.UDPIPE].language = self.udpipe_language
+        self.methods[self.UDPIPE].use_tokenizer = self.udpipe_tokenizer
 
     def change_language(self):
         if self.methods[self.SNOWBALL].language != self.snowball_language:
             self.methods[self.SNOWBALL].language = self.snowball_language
 
             if self.method_index == self.SNOWBALL:
+                self.change_signal.emit()
+
+        if self.methods[self.UDPIPE].language != self.udpipe_language:
+            self.methods[self.UDPIPE].language = self.udpipe_language
+
+            if self.method_index == self.UDPIPE:
+                self.change_signal.emit()
+
+    def change_tokenizer(self):
+        self.udpipe_tokenizer = self.udpipe_tokenizer_box.isChecked()
+        if self.methods[self.UDPIPE].use_tokenizer != self.udpipe_tokenizer:
+            self.methods[self.UDPIPE].use_tokenizer = self.udpipe_tokenizer
+
+            if self.method_index == self.UDPIPE:
                 self.change_signal.emit()
 
 
