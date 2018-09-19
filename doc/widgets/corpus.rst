@@ -1,26 +1,16 @@
-======
 Corpus
 ======
 
-.. figure:: icons/corpus.png
-
 Load a corpus of text documents, (optionally) tagged with categories.
 
-Signals
--------
 
-**Inputs**:
+Inputs
+    None
 
--  (None)
+Outputs
+    Corpus
+        A collection of documents.
 
-**Outputs**:
-
--  **Corpus**
-
-A :ref:`Corpus` instance.
-
-Description
------------
 
 **Corpus** widget reads text corpora from files and sends a corpus instance to its output channel.
 History of the most recently opened files is maintained in the widget.

@@ -52,7 +52,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'Orange3 Text Mining'
-copyright = '2015, Laboratory of Bioinformatics, Faculty of Computer Science, University of Ljubljana'
+copyright = '2018, Laboratory of Bioinformatics, Faculty of Computer Science, University of Ljubljana'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -106,7 +106,7 @@ pygments_style = 'sphinx'
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = 'nature'
+html_theme = 'alabaster'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -268,3 +268,6 @@ texinfo_documents = [
 # Mapping for external documentation in Sphinx.
 #intersphinx_mapping = {'orange3': ('../../orange3/doc/visual-programming/build/html',
 #                                   '../../orange3/doc/visual-programming/build/html/objects.inv')}
+
+def setup(app):
+    app.add_stylesheet('style.css')

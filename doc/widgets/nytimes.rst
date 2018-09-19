@@ -1,26 +1,15 @@
-========
 NY Times
 ========
 
-.. figure:: icons/nytimes.png
-
 Loads data from the New York Times' `Article Search API <https://developer.nytimes.com/>`_.
 
-Signals
--------
+Inputs
+    None
 
-**Inputs**:
+Outputs
+    Corpus
+        A collection of documents from the New York Times newspaper.
 
--  (None)
-
-**Outputs**:
-
--  **Corpus**
-
-   A :ref:`Corpus` instance.
-
-Description
------------
 
 **NYTimes** widget loads data from New York Times' Article Search API. You can query NYTimes articles from September
 18, 1851 to today, but the API limit is set to allow retrieving only a 1000 documents per query. Define which features to use for text mining, *Headline* and *Abstract* being selected by default.

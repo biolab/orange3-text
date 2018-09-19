@@ -1,28 +1,16 @@
-==================
 Sentiment Analysis
 ==================
 
-.. figure:: icons/sentiment-analysis.png
-
 Predict sentiment from text.
 
-Signals
--------
+Inputs
+    Corpus
+        A collection of documents.
 
-**Inputs**:
+Outputs
+    Corpus
+        A corpus with information on the sentiment of each document.
 
--  **Corpus**
-
-   A :ref:`Corpus` instance.
-
-**Outputs**:
-
--  **Corpus**
-
-   A :ref:`Corpus` instance.   
-
-Description
------------
 
 **Sentiment Analysis** predicts sentiment for each document in a corpus. It uses Liu Hu and Vader sentiment modules from `NLTK <http://www.nltk.org/api/nltk.sentiment.html>`_. Both of them are lexicon-based. For Liu Hu, you can choose English or Slovenian version.
 
@@ -64,8 +52,8 @@ To observe the selected subset, pass the tweets to :doc:`Corpus Viewer <corpusvi
 References
 ----------
 
-Hutto, C.J. & Gilbert, E.E. (2014). VADER: A Parsimonious Rule-based Model for Sentiment Analysis of Social Media Text. Eighth International Conference on Weblogs and Social Media (ICWSM-14). Ann Arbor, MI, June 2014.
+Hutto, C.J. and E. E. Gilbert (2014). VADER: A Parsimonious Rule-based Model for Sentiment Analysis of Social Media Text. Eighth International Conference on Weblogs and Social Media (ICWSM-14). Ann Arbor, MI, June 2014.
 
-Minqing Hu in Bing Liu (2004). Mining opinion features in customer reviews. In Proceedings of AAAI Conference on Artificial Intelligence, vol. 4, pp. 755–760. `Available online. <http://www.aaai.org/Papers/AAAI/2004/AAAI04-119.pdf>`__ 
+Hu, Minqing and Bing Liu (2004). Mining opinion features in customer reviews. In Proceedings of AAAI Conference on Artificial Intelligence, vol. 4, pp. 755–760. `Available online. <http://www.aaai.org/Papers/AAAI/2004/AAAI04-119.pdf>`__ 
 
-Klemen Kadunc, Marko Robnik-Šikonja (2016). Analiza mnenj s pomočjo strojnega učenja in slovenskega leksikona sentimenta. Conference on Language Technologies & Digital Humanities, Ljubljana (in Slovene). `Available online. <http://www.sdjt.si/wp/wp-content/uploads/2016/09/JTDH-2016_Kadunc-et-al_Analiza-mnenj-s-pomocjo-strojnega-ucenja.pdf>`__
+Kadunc, Klemen and Marko Robnik-Šikonja (2016). Analiza mnenj s pomočjo strojnega učenja in slovenskega leksikona sentimenta. Conference on Language Technologies & Digital Humanities, Ljubljana (in Slovene). `Available online. <http://www.sdjt.si/wp/wp-content/uploads/2016/09/JTDH-2016_Kadunc-et-al_Analiza-mnenj-s-pomocjo-strojnega-ucenja.pdf>`__

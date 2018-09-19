@@ -1,28 +1,16 @@
-=============
 Corpus Viewer
 =============
 
-.. figure:: icons/corpusviewer.png
-
 Displays corpus content.
 
-Signals
--------
+Inputs
+    Corpus
+        A collection of documents.
 
-**Inputs**:
+Outputs
+    Corpus
+        Documents containing the queried word.
 
--  **Corpus**
-
-   Corpus instance.
-
-**Outputs**:
-
--  **Corpus**
-
-   A :ref:`Corpus` instance.
-
-Description
------------
 
 **Corpus Viewer** is meant for viewing text files (instances of :ref:`Corpus <corpus>`). It will always output an instance
 of corpus. If *RegExp* filtering is used, the widget will output only matching documents.

@@ -1,28 +1,16 @@
-===============
 Preprocess Text
 ===============
 
-.. figure:: icons/preprocesstext.png
-
 Preprocesses corpus with selected methods.
 
-Signals
--------
+Inputs
+    Corpus
+        A collection of documents.
 
-**Inputs**:
+Outputs
+    Corpus
+        Preprocessed corpus.
 
--  **Corpus**
-
-   Corpus instance.
-
-**Outputs**:
-
--  **Corpus**
-
-   Preprocessed corpus.
-
-Description
------------
 
 **Preprocess Text** splits your text into smaller units (tokens), filters them, runs `normalization <https://en.wikipedia.org/wiki/Stemming>`__ (stemming, lemmatization), creates `n-grams <https://en.wikipedia.org/wiki/N-gram>`__ and tags tokens with `part-of-speech <https://en.wikipedia.org/wiki/Part_of_speech>`_ labels. Steps in the analysis are applied sequentially and can be turned on or off.
 

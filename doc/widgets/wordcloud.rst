@@ -1,32 +1,20 @@
-==========
 Word Cloud
 ==========
 
-.. figure:: icons/wordcloud.png
-
 Generates a word cloud from corpus.
 
-Signals
--------
+Inputs
+    Topic
+        Selected topic.
+    Corpus
+        A collection of documents.
 
-**Inputs**:
+Outputs
+    Corpus
+        Documents that match the selection.
+    Word
+        Selected word that can be used as query in :doc:`Concordance <concordance>`.
 
--  **Topic**
-
-   Selected topic.
-
--  **Corpus**
-
-   A :ref:`Corpus` instance.
-
-**Outputs**:
-
--  **Corpus**
-
-   Documents that match the selection.
-
-Description
------------
 
 **Word Cloud** displays tokens in the corpus, their size denoting the frequency of the word in corpus. Words are listed by their frequency (weight) in the widget. The widget outputs documents, containing selected tokens from the word cloud.
 

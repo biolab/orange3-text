@@ -1,26 +1,15 @@
-=======
 Twitter
-======= 
-
-.. figure:: icons/twitter.png
+=======
 
 Fetching data from `The Twitter Search API <https://dev.twitter.com/rest/public/search>`_.
 
-Signals
--------
+Inputs
+    None
 
-**Inputs**:
+Outputs
+    Corpus
+        A collection of tweets from the Twitter API.
 
--  (None)
-
-**Outputs**:
-
--  **Corpus**
-
-   A :ref:`Corpus` instance.
-
-Description
------------
 
 **Twitter** widget enables querying tweets through Twitter API. You can query by content, author or both and  accummulate results should you wish to create a larger data set. The widget only supports REST API and allows queries for up to two weeks back.
 

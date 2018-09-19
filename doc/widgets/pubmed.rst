@@ -1,26 +1,15 @@
-======
 Pubmed
 ======
 
-.. figure:: icons/pubmed.png
-
 Fetch data from `PubMed <http://www.ncbi.nlm.nih.gov/pubmed>`_ journals.
 
-Signals
--------
+Inputs
+    None
 
-**Inputs**:
+Outputs
+    Corpus
+        A collection of documents from the PubMed online service.
 
--  (None)
-
-**Outputs**:
-
--  **Corpus**
-
-   A :ref:`Corpus` instance.
-
-Description
------------
 
 `PubMed <http://www.ncbi.nlm.nih.gov/pubmed>`_ comprises more than 26 million citations for biomedical literature from MEDLINE, life science journals, and online books. The widget allows you to query and retrieve these entries. You can use regular search or construct advanced queries.
 

@@ -1,26 +1,15 @@
-================
 Import Documents
 ================
 
-.. figure:: icons/import-documents.png
-
 Import text documents from folders.
 
-Signals
--------
+Inputs
+    None
 
-**Inputs**:
+Outputs
+    Corpus
+        A collection of documents from the local machine.
 
--  (None)
-
-**Outputs**:
-
--  **Corpus**
-
-   A :ref:`Corpus` instance.
-
-Description
------------
 
 **Import Documents** widget retrieves text files from folders and creates a corpus. The widget reads .txt, .docx, .odt, .pdf and .xml files. If a folder contains subfolders, they will be used as class labels.
 
