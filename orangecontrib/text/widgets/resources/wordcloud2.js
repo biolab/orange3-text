@@ -312,7 +312,7 @@ if (!window.clearImmediate) {
     }
 
     /* Make sure gridSize is a whole number and is not smaller than 4px */
-    settings.gridSize = Math.max(Math.floor(settings.gridSize), 4);
+    settings.gridSize = Math.max(Math.floor(settings.gridSize()), 4);
 
     /* shorthand */
     var g = settings.gridSize;

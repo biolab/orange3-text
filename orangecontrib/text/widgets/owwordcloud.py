@@ -169,6 +169,23 @@ span.selected {color:red !important}
         self.webview.evalJS('OPTIONS["minRotation"] = {}; \
                              OPTIONS["maxRotation"] = {};'.format(-tilt_amount, tilt_amount))
         self.webview.evalJS('OPTIONS["rotateRatio"] = {};'.format(tilt_ratio))
+        self.webview.evalJS('''
+        OPTIONS["gridSize"] = function () {
+          return Math.round( 
+            Math.min(
+              document.getElementById("canvas").clientWidth,
+              document.getElementById("canvas").clientHeight
+            ) / 48
+          );
+        };''')
+        self.webview.evalJS('''
+        OPTIONS["weightFactor"] = function (size) {
+          return size * 
+            Math.min(
+              document.getElementById("canvas").clientWidth,
+              document.getElementById("canvas").clientHeight
+            ) / 512;
+        };''')
         # Trigger cloud redrawing by constructing new webview, because everything else fail Macintosh
         self.webview.evalJS('OPTIONS["list"] = {};'.format(self.wordlist))
         self.webview.evalJS('redrawWordCloud();')
