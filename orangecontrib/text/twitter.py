@@ -71,7 +71,7 @@ class TwitterAPI:
 
     tv = data.TimeVariable('Date')
     metas = [
-        (data.StringVariable('Content'), lambda doc: doc.text),
+        (data.StringVariable('Content'), lambda doc: doc.full_text),
         (tv, lambda doc: TwitterAPI.tv.parse(doc.created_at.isoformat())),
         (data.DiscreteVariable('Language'), lambda doc: doc.lang),
         (data.DiscreteVariable('Location'), lambda doc: getattr(doc.place, 'country_code', None)),
@@ -159,7 +159,8 @@ class TwitterAPI:
             return q
 
         query = build_query()
-        cursor = tweepy.Cursor(self.api.search, q=query, lang=lang)
+        cursor = tweepy.Cursor(self.api.search, q=query, lang=lang,
+                               tweet_mode='extended')
         corpus, count = self.fetch(cursor, max_tweets)
         self.append_history('Content', content, lang if lang else 'Any',
                             str(allow_retweets), count)
