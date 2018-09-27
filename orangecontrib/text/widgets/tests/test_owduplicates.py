@@ -22,6 +22,15 @@ class TestCorpusViewerWidget(WidgetTest):
         out_corpus = self.get_output(self.widget.Outputs.duplicates)
         self.assertEqual(len(out_corpus), 1)
 
+    def test_deselecting(self):
+        self.send_signal(self.widget.Inputs.distances, self.distances)
+        self.widget.table_view.selectRow(0)
+        out_corpus = self.get_output(self.widget.Outputs.duplicates)
+        self.assertTrue(out_corpus)
+        self.widget.table_view.clearSelection()
+        out_corpus = self.get_output(self.widget.Outputs.duplicates)
+        self.assertIsNone(out_corpus)
 
 if __name__ == "__main__":
     unittest.main()
+    
