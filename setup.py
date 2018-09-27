@@ -9,9 +9,9 @@ from setuptools import setup, find_packages
 NAME = 'Orange3-Text'
 
 MAJOR = 0
-MINOR = 6
-MICRO = 0
-IS_RELEASED = False
+MINOR = 5
+MICRO = 1
+IS_RELEASED = True
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 FULL_VERSION = VERSION
 
