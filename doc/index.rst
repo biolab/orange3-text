@@ -1,8 +1,3 @@
-.. Orange3 Text Mining documentation master file, created by
-   sphinx-quickstart on Fri May  8 15:18:26 2015.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
 Welcome to Orange3 Text Mining documentation!
 =============================================
 
@@ -14,20 +9,23 @@ Widgets
 
    widgets/corpus
    widgets/importdocuments
-   widgets/nytimes
    widgets/guardian
+   widgets/nytimes
+   widgets/pubmed
    widgets/twitter
    widgets/wikipedia
-   widgets/pubmed
-   widgets/corpusviewer
    widgets/preprocesstext
    widgets/bagofwords
-   widgets/topicmodelling
-   widgets/wordenrichment
-   widgets/wordcloud
-   widgets/geomap
-   widgets/concordance
+   widgets/similarityhashing
    widgets/sentimentanalysis
+   widgets/tweetprofiler
+   widgets/topicmodelling
+   widgets/corpusviewer
+   widgets/wordcloud
+   widgets/concordance
+   widgets/geomap
+   widgets/wordenrichment
+   widgets/duplicatedetection
 
 Scripting
 ---------

@@ -1,36 +1,20 @@
-===============
 Topic Modelling
 ===============
 
-.. figure:: icons/topicmodelling.png
-
 Topic modelling with Latent Diriclet Allocation, Latent Semantic Indexing or Hierarchical Dirichlet Process.
 
-Signals
--------
+Inputs
+    Corpus
+        A collection of documents.
 
-**Inputs**:
+Outputs
+    Corpus
+        Corpus with topic weights appended.
+    Topics
+        Selected topics with word weights.
+    All Topics
+        Topic weights by tokens.
 
--  **Corpus**
-
-   Corpus instance.
-
-**Outputs**:
-
--  **Data**
-
-   Data with topic weights appended.
-
--  **Topics**
-
-   Selected topics with word weights.
-
--  **All Topics**
-
-   Topic weights by tokens.
-
-Description
------------
 
 **Topic Modelling** discovers abstract topics in a corpus based on clusters of words found in each document and their respective frequency. A document typically contains multiple topics in different proportions, thus the widget also reports on the topic weight per document.
 

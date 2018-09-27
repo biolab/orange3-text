@@ -1,28 +1,16 @@
-============
 Bag of Words
 ============
 
-.. figure:: icons/bagofwords.png
-
 Generates a bag of words from the input corpus.
 
-Signals
--------
+Inputs
+    Corpus
+        A collection of documents.
 
-**Inputs**:
+Outputs
+    Corpus
+        Corpus with bag of words features appended.
 
--  **Corpus**
-
-   Corpus instance.
-
-**Outputs**:
-
--  **Corpus**
-
-   Corpus with bag of words.
-
-Description
------------
 
 **Bag of Words** model creates a corpus with word counts for each data instance (document). The count can be either absolute, binary (contains or does not contain) or sublinear (logarithm of the term frequency). Bag of words model is required in combination with :doc:`Word Enrichment <wordenrichment>` and could be used for predictive modelling.
 

@@ -1,28 +1,16 @@
-======
 GeoMap
 ======
 
-.. figure:: icons/geomap.png
-
 Displays geographic distribution of data. 
 
-Signals
--------
+Inputs
+    Data
+        Data set.
 
-**Inputs**:
+Outputs
+    Corpus
+        Documents containing mentions of selected geographical regions.
 
--  **Data**
-
-   Data set.
-
-**Outputs**:
-
--  **Corpus**
-
-   A :ref:`Corpus` instance.
-
-Description
------------
 
 **GeoMap** widget shows geolocations from textual (string) data. It finds mentions of geographic names (countries and capitals) and displays distributions (frequency of mentiones) of these names on a map. It works with any Orange widget that outputs a data table and that contains at least one string attribute. The widget outputs selected data instances, that is all documents containing mentions of a selected country (or countries).
 

@@ -1,32 +1,18 @@
-===========
 Concordance
 ===========
 
-.. figure:: icons/concordance.png
-
 Display the context of the word.
 
-Signals
--------
+Inputs
+    Corpus
+        A collection of documents.
 
-**Inputs**:
+Outputs
+    Selected Documents
+        Documents containing the queried word.
+    Concordances
+        A table of concordances.
 
--  **Corpus**
-
-   A :ref:`Corpus` instance.
-
-**Outputs**:
-
--  **Selected Documents**
-
-   Documents containing the queried word.
-
--  **Concordances**
-
-   A table of concordances.
-
-Description
------------
 
 **Concordance** finds the queried word in a text and displays the context in which this word is used. Results in a single color come from the same document. The widget can output selected documents for further analysis or a table of concordances for the queried word. Note that the widget finds only exact matches of a word, which means that if you query the word 'do', the word 'doctor' won't appear in the results.
 

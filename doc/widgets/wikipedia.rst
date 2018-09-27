@@ -1,26 +1,15 @@
-=========
 Wikipedia
 =========
 
-.. figure:: icons/wikipedia.png
-
 Fetching data from `MediaWiki RESTful web service API <https://www.mediawiki.org/wiki/API:Tutorial>`_.
 
-Signals
--------
+Inputs
+    None
 
-**Inputs**:
+Outputs
+    Corpus
+        A collection of documents from the Wikipedia.
 
--  (None)
-
-**Outputs**:
-
--  **Corpus**
-
-   A :ref:`Corpus` instance.
-
-Description
------------
 
 **Wikipedia** widget is used to retrieve texts from Wikipedia API and it is useful mostly for teaching and demonstration.
 

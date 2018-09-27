@@ -1,30 +1,17 @@
-===============
 Word Enrichment
 ===============
 
-.. figure:: icons/wordenrichment.png
-
 Word enrichment analysis for selected documents.
 
-Signals
--------
+Inputs
+    Corpus
+        A collection of documents.
+    Selected Data
+        Selected instances from corpus.
 
-**Inputs**:
+Outputs
+    None
 
--  **Data**
-
-   Corpus instance.
-
--  **Selected Data**
-
-   Selected instances from corpus.
-
-**Outputs**:
-
--  (None)
-
-Description
------------
 
 **Word Enrichment** displays a list of words with lower p-values (higher significance) for a
 selected subset compared to the entire corpus. Lower p-value indicates a higher likelihood that
