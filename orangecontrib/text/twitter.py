@@ -71,7 +71,8 @@ class TwitterAPI:
 
     tv = data.TimeVariable('Date')
     metas = [
-        (data.StringVariable('Content'), lambda doc: doc.full_text),
+        (data.StringVariable('Content'), lambda doc: doc.full_text if not
+        doc.retweeted else doc.text),
         (tv, lambda doc: TwitterAPI.tv.parse(doc.created_at.isoformat())),
         (data.DiscreteVariable('Language'), lambda doc: doc.lang),
         (data.DiscreteVariable('Location'), lambda doc: getattr(doc.place, 'country_code', None)),
@@ -188,7 +189,8 @@ class TwitterAPI:
         if not isinstance(authors, list):
             authors = [authors]
 
-        cursors = [tweepy.Cursor(self.api.user_timeline, screen_name=a)
+        cursors = [tweepy.Cursor(self.api.user_timeline, screen_name=a,
+                                 tweet_mode='extended')
                    for a in authors]
         corpus, count = self.fetch(cursors, max_tweets)
         self.append_history('Author', authors, None, None, count)
