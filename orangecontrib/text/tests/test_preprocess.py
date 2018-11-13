@@ -4,7 +4,9 @@ import os.path
 
 import itertools
 import nltk
+from unittest import mock
 from gensim import corpora
+from requests.exceptions import ConnectionError
 import numpy as np
 
 from orangecontrib.text import preprocess
@@ -214,6 +216,23 @@ class UDPipeModelsTests(unittest.TestCase):
         model = models['Slovenian']
         self.assertEqual(model, local_file)
         self.assertTrue(os.path.isfile(local_file))
+
+    def test_udpipe_local_models(self):
+        """Test if UDPipe works offline and uses local models"""
+        models = UDPipeModels()
+        [models.localfiles.remove(f[0]) for f in models.localfiles.listfiles()]
+        _ = models['Slovenian']
+        with mock.patch('serverfiles.ServerFiles.listfiles',
+                        **{'side_effect': ConnectionError()}):
+            self.assertIn('Slovenian', UDPipeModels().supported_languages)
+            self.assertEqual(1, len(UDPipeModels().supported_languages))
+
+    def test_udpipe_offline(self):
+        """Test if UDPipe works offline"""
+        self.assertTrue(UDPipeModels().online)
+        with mock.patch('serverfiles.ServerFiles.listfiles',
+                        **{'side_effect': ConnectionError()}):
+            self.assertFalse(UDPipeModels().online)
 
 
 class FilteringTests(unittest.TestCase):

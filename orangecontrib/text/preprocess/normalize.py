@@ -3,6 +3,7 @@ import json
 import ufal.udpipe as udpipe
 import serverfiles
 from nltk import stem
+from requests.exceptions import ConnectionError
 from Orange.misc.environ import data_dir
 
 
@@ -115,25 +116,39 @@ class UDPipeModels:
         file_name = self._find_file(language_to_name(language))
         return self.localfiles.localpath_download(file_name)
 
+    @property
+    def model_files(self):
+        try:
+            return self.serverfiles.listfiles()
+        except ConnectionError:
+            return self.localfiles.listfiles()
+
     def _find_file(self, language):
         return next(filter(lambda f: file_to_name(f).startswith(language),
-                           map(lambda f: f[0], self.serverfiles.listfiles())))
+                           map(lambda f: f[0], self.model_files)))
 
     @property
     def supported_languages(self):
         self._supported_languages = list(map(lambda f: file_to_language(f[0]),
-                                             self.serverfiles.listfiles()))
+                                             self.model_files))
         return self._supported_languages
+
+    @property
+    def online(self):
+        try:
+            self.serverfiles.listfiles()
+            return True
+        except ConnectionError:
+            return False
 
 
 class UDPipeLemmatizer(BaseNormalizer):
     name = 'UDPipe Lemmatizer'
     str_format = '{self.name} ({self.language})'
-    models = UDPipeModels()
-    supported_languages = models.supported_languages
 
     def __init__(self, language='English'):
         self._language = language
+        self.models = UDPipeModels()
         self.model = None
         self.output_format = udpipe.OutputFormat.newOutputFormat('epe')
         self.use_tokenizer = False
