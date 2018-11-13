@@ -10,6 +10,7 @@ from AnyQt.QtWidgets import (QWidget, QLabel, QHBoxLayout, QVBoxLayout,
 from Orange.widgets import gui, settings, widget
 from Orange.widgets.widget import OWWidget, Msg, Input, Output
 from orangecontrib.text import preprocess
+from orangecontrib.text.preprocess.normalize import UDPipeModels
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.misc import nltk_data_dir
 from orangecontrib.text.tag import StanfordPOSTagger, AveragedPerceptronTagger, \
@@ -278,15 +279,46 @@ class NormalizationModule(SingleMethodModule):
                                               checked=self.udpipe_tokenizer)
         self.udpipe_tokenizer_box.stateChanged.connect(self.change_tokenizer)
         self.method_layout.addWidget(self.udpipe_tokenizer_box, self.UDPIPE, 1)
-        label = gui.label(self, self, 'Language:')
-        label.setAlignment(Qt.AlignRight)
-        self.method_layout.addWidget(label, self.UDPIPE, 2)
-        udpipe_box = widgets.ComboBox(self, 'udpipe_language',
-                               items=preprocess.UDPipeLemmatizer.supported_languages)
-        udpipe_box.currentIndexChanged.connect(self.change_language)
-        self.method_layout.addWidget(udpipe_box, self.UDPIPE, 3)
+        self.udpipe_label = gui.label(self, self, 'Language:')
+        self.udpipe_label.setAlignment(Qt.AlignRight)
+        self.method_layout.addWidget(self.udpipe_label, self.UDPIPE, 2)
+        self.udpipe_models = UDPipeModels()
+        self.create_udpipe_box()
+        self.udpipe_online = self.udpipe_models.online
+        self.on_off_button.stateChanged.connect(self.check_udpipe_online)
+        self.check_udpipe_online()
         self.methods[self.UDPIPE].language = self.udpipe_language
         self.methods[self.UDPIPE].use_tokenizer = self.udpipe_tokenizer
+
+    def create_udpipe_box(self):
+        if not self.udpipe_models.supported_languages:
+            self.group.button(self.UDPIPE).setEnabled(False)
+            self.udpipe_tokenizer_box.setEnabled(False)
+            self.udpipe_label.setEnabled(False)
+            self.udpipe_box = widgets.ComboBox(self, 'udpipe_language', items=[''])
+            self.udpipe_box.setEnabled(False)
+        else:
+            self.group.button(self.UDPIPE).setEnabled(True)
+            self.udpipe_tokenizer_box.setEnabled(True)
+            self.udpipe_label.setEnabled(True)
+            self.udpipe_box = widgets.ComboBox(self, 'udpipe_language',
+                                          items=self.udpipe_models.supported_languages)
+        self.udpipe_box.currentIndexChanged.connect(self.change_language)
+        self.method_layout.addWidget(self.udpipe_box, self.UDPIPE, 3)
+
+    def check_udpipe_online(self):
+        current_state = self.udpipe_models.online
+        if self.udpipe_online != current_state:
+            self.create_udpipe_box()
+            self.udpipe_online = current_state
+
+        self.master.Warning.udpipe_offline.clear()
+        self.master.Warning.udpipe_offline_no_models.clear()
+        if not current_state and self.enabled:
+            if self.udpipe_models.supported_languages:
+                self.master.Warning.udpipe_offline()
+            else:
+                self.master.Warning.udpipe_offline_no_models()
 
     def change_language(self):
         if self.methods[self.SNOWBALL].language != self.snowball_language:
@@ -600,6 +632,8 @@ class OWPreprocess(OWWidget):
 
     class Warning(OWWidget.Warning):
         no_token_left = Msg('No tokens on output! Please, change configuration.')
+        udpipe_offline = Msg('No internet connection! UDPipe now only works with local models.')
+        udpipe_offline_no_models = Msg('No internet connection and no local UDPipe models are available.')
 
     def __init__(self, parent=None):
         super().__init__(parent)
