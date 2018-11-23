@@ -78,7 +78,7 @@ class TestGuardian(unittest.TestCase):
         mock_get().text = """
         {
           "response": {
-            "pages": 1,
+            "pages": 2,
             "results": [
               {
                 "type": "article",
@@ -103,5 +103,5 @@ class TestGuardian(unittest.TestCase):
           }
         }
         """
-        corp = self.api.search('Slovenia', max_documents=1)
-        self.assertEqual(len(corp), 1)
+        corp = self.api.search('Slovenia')
+        self.assertEqual(len(corp), 2)
