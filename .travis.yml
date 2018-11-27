@@ -4,28 +4,17 @@ sudo: false   # use container-based infrastructure
 
 matrix:
     include:
-        - python: '3.4'
         - &docs
           env: BUILD_DOCS=true
-          python: '3.5'
+          python: '3.6'
           install:
               - source $TRAVIS_BUILD_DIR/.travis/install_miniconda.sh
               - source $TRAVIS_BUILD_DIR/.travis/create_conda_env.sh
               - python setup.py develop
           script: source $TRAVIS_BUILD_DIR/.travis/build_doc.sh
         - &pyqt5
-          python: '3.5'
+          python: '3.6'
           env: PYQT5=true
-          dist: trusty
-          addons: { apt: { packages: [] } }
-
-addons:
-    apt:
-        packages:
-            - gfortran
-            - libblas-dev
-            - liblapack-dev
-            - libqt4-dev
 
 cache:
     apt: true   # does not work for public repos
