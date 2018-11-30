@@ -228,12 +228,15 @@ class OWDuplicates(widget.OWWidget):
             self.Outputs.corpus_without_duplicates.send(None)
 
     def send_duplicates(self):
-        index = self.table_view.selectionModel().currentIndex().row()
-        cluster = self.table_model[index][0]
-        mask = np.flatnonzero(self.clustering_mask == cluster.id)
-        c = self.corpus[mask]
-        c.name = '{} {}'.format(self.Outputs.duplicates.name, cluster)
+        c = None
+        indices = self.table_view.selectionModel().selectedIndexes()
+        if indices:
+            cluster = self.table_view.model().data(indices[0], Qt.EditRole)
+            mask = np.flatnonzero(self.clustering_mask == cluster.id)
+            c = self.corpus[mask]
+            c.name = '{} {}'.format(self.Outputs.duplicates.name, cluster)
         self.Outputs.duplicates.send(c)
+
 
     def send_report(self):
         self.report_items([
