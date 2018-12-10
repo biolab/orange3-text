@@ -3,6 +3,7 @@ nltk>=3.0.5     # TweetTokenizer introduces in 3.0.5
 scikit-learn
 numpy
 validate_email
+google-compute-engine  # fixing boto issue in gensim; TODO: remove after while and check if tests passes
 gensim>=0.12.3  # LDA's show topics unified in 0.12.3
 setuptools-git
 Orange3>=3.4.3
