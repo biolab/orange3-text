@@ -97,6 +97,7 @@ class TheGuardianAPI:
         data = self._build_query(query, from_date, to_date, page)
 
         response = requests.get(BASE_URL, data)
+        response.encoding = "UTF-8"
         if response.status_code == 429:
             raise APILimitError("API limit exceeded")
 
