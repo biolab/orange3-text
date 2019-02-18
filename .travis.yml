@@ -37,7 +37,7 @@ before_install:
 
 install:
     - travis_wait pip install -r requirements.txt
-    - source $TRAVIS_BUILD_DIR/.travis/install_pyqt.sh
+    - pip install sip pyqt5==5.11.*
     - python setup.py develop   # assure version.py is present; required for imports
 
 before_script:  # required for widget tests
