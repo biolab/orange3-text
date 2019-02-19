@@ -33,7 +33,7 @@ is_done_loading = False
 
 def _download_nltk_data():
     global is_done_loading
-    nltk.download(NLTK_DATA, download_dir=nltk_data_dir())
+    nltk.download(NLTK_DATA, download_dir=nltk_data_dir(), quiet=True)
     is_done_loading = True
     sys.stdout.flush()
 
