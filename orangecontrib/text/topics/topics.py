@@ -139,14 +139,15 @@ class GensimWrapper:
 
     def _topics_words(self, num_of_words):
         """ Returns list of list of topic words. """
-        x = self.model.show_topics(-1, num_of_words, formatted=False)
+        x = self.model.show_topics(self.num_topics, num_of_words, formatted=False)
         # `show_topics` method return a list of `(topic_number, topic)` tuples,
         # where `topic` is a list of `(word, probability)` tuples.
         return [[i[0] for i in topic[1]] for topic in x]
 
     def _topics_weights(self, num_of_words):
         """ Returns list of list of topic weights. """
-        topics = self.model.show_topics(-1, num_of_words, formatted=False)
+        topics = self.model.show_topics(self.num_topics, num_of_words,
+                                        formatted=False)
         # `show_topics` method return a list of `(topic_number, topic)` tuples,
         # where `topic` is a list of `(word, probability)` tuples.
         return [[i[1] for i in t[1]] for t in topics]
