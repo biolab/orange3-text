@@ -23,6 +23,11 @@ class BaseTests:
         # self.assertAlmostEqual(topic1.W.sum(), 1.)
         self.assertFalse(any(topic1.W == np.nan))
 
+    def test_get_all_topics(self):
+        self.model.fit(self.corpus)
+        topics = self.model.get_all_topics_table()
+        self.assertEqual(len(topics.domain), self.model.num_topics)
+
     def test_top_words_by_topic(self):
         self.model.fit(self.corpus)
         words, _ = self.model.get_top_words_by_id(1, num_of_words=10)
