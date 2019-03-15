@@ -531,6 +531,7 @@ class ResourceLoader(QWidget, OWComponent):
     valueChanged = pyqtSignal(str, str)
 
     recent_files = settings.Setting([])
+    recent_provider = settings.Setting([])
     resource_path = settings.Setting('')
 
     def __init__(self, widget, model_format, provider_format,
@@ -539,7 +540,7 @@ class ResourceLoader(QWidget, OWComponent):
         OWComponent.__init__(self, widget)
 
         self.model_path = None
-        layout = QHBoxLayout(self, spacing=0)
+        layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
 
         self.model_widget = FileWidget(recent_files=self.recent_files, dialog_title='Load model',
@@ -550,7 +551,7 @@ class ResourceLoader(QWidget, OWComponent):
 
         layout.addWidget(self.model_widget)
 
-        self.provider_widget = FileWidget(recent_files=None, dialog_title='Load provider',
+        self.provider_widget = FileWidget(recent_files=self.recent_provider, dialog_title='Load provider',
                                           dialog_format=provider_format, start_dir=None,
                                           on_open=self.load_provider, allow_empty=False,
                                           reload_button=False, browse_label=provider_button_label)
