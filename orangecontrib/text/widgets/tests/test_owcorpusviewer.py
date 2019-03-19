@@ -1,6 +1,7 @@
 import unittest
 from AnyQt.QtTest import QSignalSpy
 from Orange.widgets.tests.base import WidgetTest
+from Orange.data import StringVariable
 
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.widgets.owcorpusviewer import OWCorpusViewer
@@ -27,6 +28,27 @@ class TestCorpusViewerWidget(WidgetTest):
     def test_highlighting(self):
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
         self.widget.regexp_filter = "graph"
+        self.process_events()
+        self.widget.doc_webview.html()
+        spy = QSignalSpy(self.widget.doc_webview.loadFinished)
+        spy.wait()
+        html = self.widget.doc_webview.html()
+        self.assertIn('<mark data-markjs="true">', html)
+
+    def test_highlighting_non_latin(self):
+        documents = [
+            {
+                'content': """царстве есть сад с молодильными яблоками"""
+            }
+        ]
+        metas = [
+            (StringVariable('content'), lambda doc: doc.get('content')),
+        ]
+        dataset_name = 'RussianDocument'
+        corpus = Corpus.from_documents(documents, dataset_name, metas=metas)
+
+        self.send_signal(self.widget.Inputs.corpus, corpus)
+        self.widget.regexp_filter = "\\bсад\\b"
         self.process_events()
         self.widget.doc_webview.html()
         spy = QSignalSpy(self.widget.doc_webview.loadFinished)

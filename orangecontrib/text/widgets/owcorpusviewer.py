@@ -3,8 +3,7 @@ import sre_constants
 from itertools import chain
 
 from AnyQt.QtCore import (
-    Qt, QUrl, QItemSelection, QItemSelectionModel, QItemSelectionRange,
-    pyqtSlot as Slot
+    Qt, QUrl, QItemSelection, QItemSelectionModel, QItemSelectionRange
 )
 
 from AnyQt.QtGui import QStandardItemModel, QStandardItem
@@ -118,7 +117,6 @@ class OWCorpusViewer(OWWidget):
 
         # Document contents
         self.doc_webview = gui.WebviewWidget(self.splitter, debug=False)
-        self.doc_webview.loadFinished.connect(self.highlight_docs)
 
         self.mainArea.layout().addWidget(self.splitter)
 
@@ -321,14 +319,16 @@ class OWCorpusViewer(OWWidget):
             row_ind = index.data(Qt.UserRole).row_index
             for ind in self.display_indices:
                 feature = self.display_features[ind]
-                mark = ' mark-area' if feature in marked_search_features else ''
-                value = str(index.data(Qt.UserRole)[feature.name]).replace('\n', '<br/>')
+                value = str(index.data(Qt.UserRole)[feature.name])
+                if feature in marked_search_features:
+                    value = self.__mark_text(value)
+                value = value.replace('\n', '<br/>')
                 is_image = feature.attributes.get('type', '') == 'image'
                 if is_image and value != '?':
                     value = '<img src="{}"></img>'.format(value)
                 html += '<tr><td class="variables"><strong>{}:</strong></td>' \
-                        '<td class="content{}">{}</td></tr>'.format(
-                    feature.name, mark, value)
+                        '<td class="content">{}</td></tr>'.format(
+                    feature.name, value)
 
             if self.show_tokens:
                 html += '<tr><td class="variables"><strong>Tokens & Tags:</strong></td>' \
@@ -338,6 +338,27 @@ class OWCorpusViewer(OWWidget):
         html += '</table>'
         base = QUrl.fromLocalFile(__file__)
         self.doc_webview.setHtml(HTML.format(html), base)
+
+    def __mark_text(self, text):
+        search_keyword = self.regexp_filter.strip('|')
+        if not search_keyword:
+            return text
+
+        try:
+            reg = re.compile(search_keyword, re.IGNORECASE | re.MULTILINE)
+        except sre_constants.error:
+            return text
+
+        matches = list(reg.finditer(text))
+        if not matches:
+            return text
+
+        text = list(text)
+        for m in matches[::-1]:
+            text[m.start():m.end()] = list('<mark data-markjs="true">{}</mark>'\
+                .format("".join(text[m.start():m.end()])))
+
+        return "".join(text)
 
     def search_features_changed(self):
         self.regenerate_docs()
@@ -358,22 +379,6 @@ class OWCorpusViewer(OWWidget):
             self.reset_selection()
             self.update_info()
             self.commit()
-
-    @Slot()
-    def highlight_docs(self):
-        search_keyword = self.regexp_filter.\
-            strip('|').replace('\\', '\\\\')    # escape one \ to  two for mark.js
-
-        if search_keyword:
-            # mark is undefined when clearing the view (`setHtml('')`). Maybe
-            # set and template html with all the scripts, ... but no contents?
-            self.doc_webview.runJavaScript(
-                '''
-                    if (typeof mark !== "undefined") {{
-                        mark("{}");
-                    }}
-                '''.format(search_keyword)
-            )
 
     def update_info(self):
         if self.corpus is not None:
