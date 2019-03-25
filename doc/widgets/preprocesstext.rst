@@ -56,7 +56,7 @@ Outputs
 7. **POS Tagger** runs part-of-speech tagging on tokens.
 	- `Averaged Perceptron Tagger <https://spacy.io/blog/part-of-speech-pos-tagger-in-python>`_ runs POS tagging with Matthew Honnibal's averaged perceptron tagger.
 	- `Treebank POS Tagger (MaxEnt) <http://web.mit.edu/6.863/www/fall2012/projects/writeups/max-entropy-nltk.pdf>`_ runs POS tagging with a trained Penn Treebank model.
-	- `Stanford POS Tagger <http://nlp.stanford.edu/software/tagger.shtml#Download>`_ runs a log-linear part-of-speech tagger designed by Toutanova et al. Please download it from the provided website and load it in Orange.
+	- `Stanford POS Tagger <http://nlp.stanford.edu/software/tagger.shtml#Download>`_ runs a log-linear part-of-speech tagger designed by Toutanova et al. Please download it from the provided website and load it in Orange. You have to load the language-specific model in Model and load *stanford-postagger.jar* in the Tagger section.
 8. Produce a report.
 9. If *Commit Automatically* is on, changes are communicated automatically. Alternatively press *Commit*.
 

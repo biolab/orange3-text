@@ -546,7 +546,7 @@ class POSTaggingModule(SingleMethodModule):
         super().setup_method_layout()
         # initialize all methods except StanfordPOSTagger
         # cannot be done in superclass due to StanfordPOSTagger
-        self.methods = [method() for method in self.methods[:self.STANFORD]]
+        self.methods = [method() for method in self.methods[:self.STANFORD]] + [self.methods[self.STANFORD]]
 
         self.stanford = ResourceLoader(widget=self.master, model_format='Stanford model (*.model *.tagger)',
                                        provider_format='Java file (*.jar)',
@@ -567,7 +567,14 @@ class POSTaggingModule(SingleMethodModule):
                 self.update_value()
             except ValueError as e:
                 if not silent:
-                    self.master.Error.stanford(str(e))
+                    self.master.Error.stanford_tagger(str(e))
+
+        # if stanford fails to load data, change saved index to default
+        if self.method_index == self.STANFORD and not valid:
+            self.method_index = 0
+            self.group.button(self.method_index).setChecked(True)
+            self.group.button(self.method_index).setEnabled(True)
+            self.master.Error.stanford_tagger("Changing to Averaged Perceptron Tagger")
 
         self.group.button(self.STANFORD).setChecked(valid)
         self.group.button(self.STANFORD).setEnabled(valid)
