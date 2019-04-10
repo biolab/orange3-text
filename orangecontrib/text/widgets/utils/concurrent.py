@@ -113,6 +113,9 @@ class StopExecution(Exception):
 class BoundAsyncMethod(QObject):
     def __init__(self, func, instance):
         super().__init__()
+        if isinstance(instance, QObject):
+            instance.destroyed.connect(self.on_destroy)
+
         self.im_func = func
         self.im_self = instance
 
@@ -127,7 +130,7 @@ class BoundAsyncMethod(QObject):
         self._thread.start()
 
     def run(self, *args, **kwargs):
-        if self.im_func.start_callback:
+        if self.im_func.start_callback and self.im_self:
             QMetaObject.invokeMethod(self.im_self, self.im_func.start_callback,
                                      Qt.QueuedConnection)
         if self.im_self:
@@ -138,10 +141,14 @@ class BoundAsyncMethod(QObject):
         except StopExecution:
             result = None
 
-        if self.im_func.finish_callback:
+        if self.im_func.finish_callback and self.im_self:
             QMetaObject.invokeMethod(self.im_self, self.im_func.finish_callback,
                                      Qt.QueuedConnection, Q_ARG(object, result))
         self.running = False
+
+    def on_destroy(self):
+        self.running = False
+        self.im_self = None
 
     def stop(self):
         """ Terminates thread execution. """
