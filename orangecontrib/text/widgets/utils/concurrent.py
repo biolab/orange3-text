@@ -74,14 +74,21 @@ from functools import wraps, partial
 from AnyQt.QtCore import pyqtSlot as Slot, QMetaObject, Qt, Q_ARG, QObject
 
 
+def safe_invoke(obj, method_name, *args):
+    try:
+        QMetaObject.invokeMethod(obj, method_name, Qt.QueuedConnection, *args)
+    except RuntimeError:
+        # C++ object wrapped by `obj` may be already destroyed
+        pass
+
+
 class CallbackMethod:
     def __init__(self, master, instance):
         self.instance = instance
         self.master = master
 
     def __call__(self, *args, **kwargs):
-        QMetaObject.invokeMethod(self.master, 'call', Qt.QueuedConnection,
-                                 Q_ARG(object, (self.instance, args, kwargs)))
+        safe_invoke(self.master, 'call', Q_ARG(object, (self.instance, args, kwargs)))
 
 
 class CallbackFunction(QObject):
@@ -131,8 +138,8 @@ class BoundAsyncMethod(QObject):
 
     def run(self, *args, **kwargs):
         if self.im_func.start_callback and self.im_self:
-            QMetaObject.invokeMethod(self.im_self, self.im_func.start_callback,
-                                     Qt.QueuedConnection)
+            safe_invoke(self.im_self, self.im_func.start_callback)
+
         if self.im_self:
             args = (self.im_self,) + args
 
