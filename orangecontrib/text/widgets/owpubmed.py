@@ -206,7 +206,7 @@ class OWPubmed(OWWidget):
         label = gui.label(h_box, self, 'Retrieve')
         label.setMaximumSize(label.sizeHint())
         self.num_records_input = gui.spin(h_box, self, 'num_records',
-                                          minv=1, maxv=100000)
+                                          minv=1, maxv=10000)
         self.max_records_label = gui.label(h_box, self, 'records from /.')
         self.max_records_label.setMaximumSize(self.max_records_label
                                               .sizeHint())
