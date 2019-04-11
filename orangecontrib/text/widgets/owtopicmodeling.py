@@ -6,14 +6,13 @@ from AnyQt.QtWidgets import (QVBoxLayout, QButtonGroup, QRadioButton,
                              QGroupBox, QTreeWidgetItem, QTreeWidget,
                              QStyleOptionViewItem, QStyledItemDelegate, QStyle)
 
-from Orange.widgets import settings
-from Orange.widgets import gui
-from Orange.widgets.widget import OWWidget, Input, Output
 from Orange.data import Table
+from Orange.widgets import settings, gui
 from Orange.widgets.data.contexthandlers import DomainContextHandler
+from Orange.widgets.utils.concurrent import ConcurrentWidgetMixin
+from Orange.widgets.widget import OWWidget, Input, Output
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.topics import Topic, LdaWrapper, HdpWrapper, LsiWrapper
-from orangecontrib.text.widgets.utils.concurrent import asynchronous
 
 
 class TopicWidget(gui.OWComponent, QGroupBox):
@@ -96,7 +95,7 @@ def require(attribute):
     return decorator
 
 
-class OWTopicModeling(OWWidget):
+class OWTopicModeling(OWWidget, ConcurrentWidgetMixin):
     name = "Topic Modelling"
     description = "Uncover the hidden thematic structure in a corpus."
     icon = "icons/TopicModeling.svg"
@@ -132,7 +131,8 @@ class OWTopicModeling(OWWidget):
     control_area_width = 300
 
     def __init__(self):
-        super().__init__()
+        OWWidget.__init__(self)
+        ConcurrentWidgetMixin.__init__(self)
         self.corpus = None
         self.learning_thread = None
 
@@ -191,24 +191,28 @@ class OWTopicModeling(OWWidget):
             widget.setVisible(i == self.method_index)
 
     def apply(self):
-        self.learning_task.stop()
         if self.corpus is not None:
             self.learning_task()
         else:
-            self.on_result(None)
+            self.on_done(None)
 
-    @asynchronous
     def learning_task(self):
-        return self.model.fit_transform(self.corpus.copy(), chunk_number=100, on_progress=self.on_progress)
-
-    @learning_task.on_start
-    def on_start(self):
-        self.progressBarInit(None)
         self.topic_desc.clear()
+        self.start(self.run, self.model, self.corpus.copy())
 
-    @learning_task.on_result
-    def on_result(self, corpus):
-        self.progressBarFinished(None)
+    @staticmethod
+    def run(model, corpus, state):
+        def set_progress_value(x):
+            state.set_progress_value(100 * x)
+
+        return model.fit_transform(
+            corpus, chunk_number=100, on_progress=set_progress_value,
+            on_interruption=state.is_interruption_requested)
+
+    def on_partial_result(self, _):
+        pass
+
+    def on_done(self, corpus):
         self.Outputs.corpus.send(corpus)
         if corpus is None:
             self.topic_desc.clear()
@@ -217,10 +221,6 @@ class OWTopicModeling(OWWidget):
         else:
             self.topic_desc.show_model(self.model)
             self.Outputs.all_topics.send(self.model.get_all_topics_table())
-
-    @learning_task.callback
-    def on_progress(self, p):
-        self.progressBarSet(100 * p, processEvents=None)
 
     def send_report(self):
         self.report_items(*self.widgets[self.method_index].report_model())

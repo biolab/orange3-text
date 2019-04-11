@@ -29,7 +29,8 @@ def chunkable(method):
     """
 
     @wraps(method)
-    def wrapper(self, data, chunk_number=100, on_progress=None, *args, **kwargs):
+    def wrapper(self, data, chunk_number=100, on_progress=None,
+                on_interruption=None, *args, **kwargs):
         if on_progress:
             chunk_size = ceil(len(data) / chunk_number)
             progress = 0
@@ -41,6 +42,8 @@ def chunkable(method):
 
                 progress += len(chunk)
                 on_progress(progress/len(data))
+                if on_interruption and on_interruption():
+                    return res
         else:
             res = method(self, data, *args, **kwargs)
 
