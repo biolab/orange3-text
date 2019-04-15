@@ -153,8 +153,7 @@ class BoundAsyncMethod(QObject):
             result = None
 
         if self.im_func.finish_callback and self.im_self:
-            QMetaObject.invokeMethod(self.im_self, self.im_func.finish_callback,
-                                     Qt.QueuedConnection, Q_ARG(object, result))
+            safe_invoke(self.im_self, self.im_func.finish_callback, Q_ARG(object, result))
         self.running = False
 
     def on_destroy(self):
