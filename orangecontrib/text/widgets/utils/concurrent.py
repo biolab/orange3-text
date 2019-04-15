@@ -101,7 +101,11 @@ class CallbackFunction(QObject):
     @Slot(object)
     def call(self, scope):
         instance, args, kwargs = scope
-        self.func.__get__(instance, type(instance))(*args, **kwargs)
+        try:
+            self.func.__get__(instance, type(instance))(*args, **kwargs)
+        except RuntimeError:
+            # C++ object wrapped by `obj` may be already destroyed
+            raise
 
     def __get__(self, instance, owner):
         return CallbackMethod(self, instance)
