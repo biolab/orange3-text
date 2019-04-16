@@ -43,7 +43,7 @@ Our next example is a bit more complex. We're querying tweets from Hillary Clint
 
 ![](images/Twitter-Example2.png)
 
-Then we've used [Preprocess Text](preprocesstext.md) to get suitable tokens on our output. We've connected **Preprocess Text** to [Bag of Words](bagofwords.md) in order to create a table with words as features and their counts as values. A quick check in **Word Cloud** gives us an idea about the results.
+Then we've used [Preprocess Text](preprocesstext.md) to get suitable tokens on our output. We've connected **Preprocess Text** to [Bag of Words](bagofwords-widget.md) in order to create a table with words as features and their counts as values. A quick check in **Word Cloud** gives us an idea about the results.
 
 Now we would like to predict the author of the tweet. With **Select Columns** we're setting 'Author' as our target variable. Then we connect **Select Columns** to **Test & Score**. We'll be using **Logistic Regression** as our learner, which we also connect to **Test & Score**.
 
