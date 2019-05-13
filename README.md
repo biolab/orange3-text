@@ -13,7 +13,7 @@ bag-of-words, topic modeling, and similarity hashing) and visualizations like wo
 end geo map. All features can be combined with powerful data mining techniques
 from the Orange data mining framework.
 
-Please note that Text add-on won't work on 32-bit systems. The add-on depends on conda-forge and they have [removed support for 32-bit systems](https://github.com/conda-forge/staged-recipes/issues/5640) in April 2018.
+Please note that Text add-on won't work on 32-bit Windows systems. The add-on depends on conda-forge and they have [removed support for Windows 32](https://github.com/conda-forge/staged-recipes/issues/5640) in April 2018.
 
 Anaconda installation
 ---------------------
