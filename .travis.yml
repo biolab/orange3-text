@@ -1,6 +1,6 @@
 language: python
 
-sudo: false   # use container-based infrastructure
+dist: xenial
 
 matrix:
     include:
