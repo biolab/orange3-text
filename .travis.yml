@@ -12,9 +12,10 @@ matrix:
               - source $TRAVIS_BUILD_DIR/.travis/create_conda_env.sh
               - python setup.py develop
           script: source $TRAVIS_BUILD_DIR/.travis/build_doc.sh
-        - &pyqt5
+        - &python36
           python: '3.6'
-          env: PYQT5=true
+        - &python37
+          python: '3.7'
 
 cache:
     apt: true   # does not work for public repos
