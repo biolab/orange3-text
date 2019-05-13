@@ -40,13 +40,9 @@ install:
     - pip install sip pyqt5==5.11.*
     - python setup.py develop   # assure version.py is present; required for imports
 
-before_script:  # required for widget tests
-    - "export DISPLAY=:99.0"
-    - "sh -e /etc/init.d/xvfb start"
-    - sleep 3 # give xvfb some time to start
-
 script:
-    - coverage run setup.py test
+    - XVFBARGS="-screen 0 1280x1024x24"
+    - catchsegv xvfb-run -a -s "$XVFBARGS" coverage run setup.py test
 
 after_success:
     - codecov
