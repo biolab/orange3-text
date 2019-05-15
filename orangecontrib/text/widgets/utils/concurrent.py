@@ -74,14 +74,21 @@ from functools import wraps, partial
 from AnyQt.QtCore import pyqtSlot as Slot, QMetaObject, Qt, Q_ARG, QObject
 
 
+def safe_invoke(obj, method_name, *args):
+    try:
+        QMetaObject.invokeMethod(obj, method_name, Qt.QueuedConnection, *args)
+    except RuntimeError:
+        # C++ object wrapped by `obj` may be already destroyed
+        pass
+
+
 class CallbackMethod:
     def __init__(self, master, instance):
         self.instance = instance
         self.master = master
 
     def __call__(self, *args, **kwargs):
-        QMetaObject.invokeMethod(self.master, 'call', Qt.QueuedConnection,
-                                 Q_ARG(object, (self.instance, args, kwargs)))
+        safe_invoke(self.master, 'call', Q_ARG(object, (self.instance, args, kwargs)))
 
 
 class CallbackFunction(QObject):
@@ -94,7 +101,11 @@ class CallbackFunction(QObject):
     @Slot(object)
     def call(self, scope):
         instance, args, kwargs = scope
-        self.func.__get__(instance, type(instance))(*args, **kwargs)
+        try:
+            self.func.__get__(instance, type(instance))(*args, **kwargs)
+        except RuntimeError:
+            # C++ object wrapped by `obj` may be already destroyed
+            pass
 
     def __get__(self, instance, owner):
         return CallbackMethod(self, instance)
@@ -113,6 +124,9 @@ class StopExecution(Exception):
 class BoundAsyncMethod(QObject):
     def __init__(self, func, instance):
         super().__init__()
+        if isinstance(instance, QObject):
+            instance.destroyed.connect(self.on_destroy)
+
         self.im_func = func
         self.im_self = instance
 
@@ -127,9 +141,9 @@ class BoundAsyncMethod(QObject):
         self._thread.start()
 
     def run(self, *args, **kwargs):
-        if self.im_func.start_callback:
-            QMetaObject.invokeMethod(self.im_self, self.im_func.start_callback,
-                                     Qt.QueuedConnection)
+        if self.im_func.start_callback and self.im_self:
+            safe_invoke(self.im_self, self.im_func.start_callback)
+
         if self.im_self:
             args = (self.im_self,) + args
 
@@ -138,10 +152,13 @@ class BoundAsyncMethod(QObject):
         except StopExecution:
             result = None
 
-        if self.im_func.finish_callback:
-            QMetaObject.invokeMethod(self.im_self, self.im_func.finish_callback,
-                                     Qt.QueuedConnection, Q_ARG(object, result))
+        if self.im_func.finish_callback and self.im_self:
+            safe_invoke(self.im_self, self.im_func.finish_callback, Q_ARG(object, result))
         self.running = False
+
+    def on_destroy(self):
+        self.running = False
+        self.im_self = None
 
     def stop(self):
         """ Terminates thread execution. """
