@@ -105,7 +105,7 @@ class CallbackFunction(QObject):
             self.func.__get__(instance, type(instance))(*args, **kwargs)
         except RuntimeError:
             # C++ object wrapped by `obj` may be already destroyed
-            raise
+            pass
 
     def __get__(self, instance, owner):
         return CallbackMethod(self, instance)
