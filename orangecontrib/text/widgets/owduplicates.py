@@ -73,7 +73,7 @@ class OWDuplicates(widget.OWWidget):
         # Add to main area
         height = 300
         main_area = gui.hBox(self.mainArea)
-        self.histogram.setMinimumWidth(500)
+        self.histogram.setMinimumWidth(300)
         self.histogram.setMinimumHeight(height)
         self.table_view.setFixedWidth(140)
         main_area.layout().addWidget(self.histogram)
