@@ -14,8 +14,13 @@ matrix:
           script: source $TRAVIS_BUILD_DIR/.travis/build_doc.sh
         - &python36
           python: '3.6'
+          env: ORANGE="release"
         - &python37
           python: '3.7'
+          env: ORANGE="release"
+        - &master
+          python: '3.6'
+          env: ORANGE="master"
 
 cache:
     apt: true   # does not work for public repos
@@ -37,6 +42,7 @@ before_install:
     - mkdir -p /home/travis/.local/share/Orange  # create orange app dir
 
 install:
+    - source $TRAVIS_BUILD_DIR/.travis/install_orange.sh
     - travis_wait pip install -r requirements.txt
     - pip install sip pyqt5==5.11.*
     - python setup.py develop   # assure version.py is present; required for imports
