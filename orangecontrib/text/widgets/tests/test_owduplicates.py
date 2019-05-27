@@ -7,7 +7,7 @@ from Orange.widgets.tests.base import WidgetTest
 from orangecontrib.text.widgets.owduplicates import OWDuplicates
 
 
-class TestCorpusViewerWidget(WidgetTest):
+class TestDuplicatesWidget(WidgetTest):
     def setUp(self):
         self.widget = self.create_widget(OWDuplicates)
         self.data = Table.from_file('iris')
@@ -33,4 +33,3 @@ class TestCorpusViewerWidget(WidgetTest):
 
 if __name__ == "__main__":
     unittest.main()
-    

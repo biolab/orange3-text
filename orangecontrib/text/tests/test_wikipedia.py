@@ -29,11 +29,11 @@ class WikipediaTests(unittest.TestCase):
 
         result = api.search('en', ['Clinton'], articles_per_query=2, on_progress=on_progress)
         self.assertIsInstance(result, Corpus)
-        self.assertEquals(len(result.domain.attributes), 0)
-        self.assertEquals(len(result.domain.metas), 7)
-        self.assertEquals(len(result), 2)
+        self.assertEqual(len(result.domain.attributes), 0)
+        self.assertEqual(len(result.domain.metas), 7)
+        self.assertEqual(len(result), 2)
 
-        self.assertEquals(on_progress.call_count, 2)
+        self.assertEqual(on_progress.call_count, 2)
         progress = 0
         for arg in on_progress.call_args_list:
             self.assertGreater(arg[0][0], progress)
