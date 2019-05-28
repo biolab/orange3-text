@@ -6,10 +6,11 @@ from Orange.data import Table, Domain
 from Orange.widgets import gui
 from Orange.widgets.settings import Setting
 from Orange.widgets.widget import OWWidget, Msg, Input
+from Orange.statistics.util import FDR
 from PyQt5.QtCore import QSize
 from orangecontrib.text import Corpus
 from orangecontrib.text.util import np_sp_sum
-from orangecontrib.text.stats import false_discovery_rate, hypergeom_p_values
+from orangecontrib.text.stats import hypergeom_p_values
 from orangecontrib.text.vectorization import BowVectorizer
 
 
@@ -200,7 +201,7 @@ class OWWordEnrichment(OWWidget):
         self.p_values = hypergeom_p_values(self.data.X,
                                            self.selected_data_transformed.X,
                                            callback=self.progress)
-        self.fdr_values = false_discovery_rate(self.p_values)
+        self.fdr_values = FDR(self.p_values)
         self.filter_and_display()
         self.filter_enabled(True)
         self.progressBarFinished()
