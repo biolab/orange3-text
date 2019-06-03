@@ -7,19 +7,19 @@ Widgets
 .. toctree::
    :maxdepth: 1
 
-   widgets/corpus
+   widgets/corpus-widget
    widgets/importdocuments
-   widgets/guardian
+   widgets/guardian-widget
    widgets/nytimes
    widgets/pubmed
-   widgets/twitter
-   widgets/wikipedia
+   widgets/twitter-widget
+   widgets/wikipedia-widget
    widgets/preprocesstext
-   widgets/bagofwords
+   widgets/bagofwords-widget
    widgets/similarityhashing
    widgets/sentimentanalysis
    widgets/tweetprofiler
-   widgets/topicmodelling
+   widgets/topicmodelling-widget
    widgets/corpusviewer
    widgets/wordcloud
    widgets/concordance

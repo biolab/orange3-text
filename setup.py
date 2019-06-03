@@ -6,6 +6,12 @@ import sys
 import unittest
 from setuptools import setup, find_packages
 
+try:
+    # need recommonmark for build_htmlhelp command
+    import recommonmark
+except ImportError:
+    pass
+
 NAME = 'Orange3-Text'
 
 MAJOR = 0

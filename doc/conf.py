@@ -15,6 +15,7 @@
 
 import sys
 import os
+from recommonmark.parser import CommonMarkParser
 
 # If extensions (or scripting to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -35,14 +36,16 @@ extensions = [
     'sphinx.ext.todo',
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
-    'sphinx.ext.intersphinx',
+    'sphinx.ext.intersphinx'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
 # templates_path = ['_templates']
 
+source_parsers = {'.md': CommonMarkParser}
+
 # The suffix of source filenames.
-source_suffix = '.rst'
+source_suffix = ['.md', '.rst']
 
 # The encoding of source files.
 source_encoding = 'utf-8'
@@ -189,7 +192,7 @@ htmlhelp_basename = 'Orange3TextMiningdoc'
 
 # -- Options for LaTeX output ---------------------------------------------
 
-latex_elements = {
+#latex_elements = {
 # The paper size ('letterpaper' or 'a4paper').
 #'papersize': 'letterpaper',
 
@@ -198,7 +201,7 @@ latex_elements = {
 
 # Additional stuff for the LaTeX preamble.
 #'preamble': '',
-}
+#}
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title,
@@ -268,6 +271,3 @@ texinfo_documents = [
 # Mapping for external documentation in Sphinx.
 #intersphinx_mapping = {'orange3': ('../../orange3/doc/visual-programming/build/html',
 #                                   '../../orange3/doc/visual-programming/build/html/objects.inv')}
-
-def setup(app):
-    app.add_stylesheet('style.css')

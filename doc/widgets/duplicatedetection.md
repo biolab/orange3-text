@@ -3,25 +3,21 @@ Duplicate Detection
 
 Detect & remove duplicates from a corpus.
 
-Inputs
-    Distances
-        A distance matrix.
+**Inputs**
 
-Outputs
-    Corpus Without Duplicated
-        Corpus with duplicates removed.
-    Duplicates Cluster
-        Documents belonging to selected cluster.
-    Corpus
-        Corpus with appended cluster labels.
+- Distances: A distance matrix.
 
+**Outputs**
 
-**Duplicate Detection** uses clustering to find duplicates in the corpus. It is great with the :doc:`Twitter <twitter>` widget for removing retweets and other similar documents.
+- Corpus Without Duplicated: Corpus with duplicates removed.
+- Duplicates Cluster: Documents belonging to selected cluster.
+- Corpus: Corpus with appended cluster labels.
+
+**Duplicate Detection** uses clustering to find duplicates in the corpus. It is great with the [Twitter](twitter-widget.md) widget for removing retweets and other similar documents.
 
 To set the level of similarity, drag the line vertical line left or right in the visualization. The further left the line, the more similar the documents have to be in order to be considered duplicates. You can also set the threshold manually in the control area.
 
-.. figure:: images/Duplicate-Detection-stamped.png
-   :scale: 50%
+![](images/Duplicate-Detection-stamped.png)
 
 1. Information on unique and duplicate documents.
 2. Linkage used for clustering (Single, Average, Complete, Weighted and Ward).
@@ -36,6 +32,6 @@ This simple example uses *iris* data to find identical data instances. Load *iri
 
 It looks like cluster C147 contain three duplicate entries. Let us select it in the widget and observe it in a **Data Table**. Remember to set the output to *Duplicates Cluster*. IThe three data instances are identical. To use the data set without duplicates, use the first output, *Corpus Without Duplicates*.
 
-The same procedure can be used also for corpora. Remember to use the :doc:`Bag of Words <bagofwords>` between :doc:`Corpus <corpus>` and **Distances**.
+The same procedure can be used also for corpora. Remember to use the [Bag of Words](bagofwords-widget.md) between [Corpus](corpus-widget.md) and **Distances**.
 
-.. figure:: images/Duplicate-Detection-Example.png
+![](images/Duplicate-Detection-Example.png)
