@@ -619,7 +619,7 @@ class OWPreprocess(OWWidget):
     ngrams_range = settings.SettingProvider(NgramsModule)
     pos_tagger = settings.SettingProvider(POSTaggingModule)
 
-    control_area_width = 250
+    control_area_width = 180
     buttons_area_orientation = Qt.Vertical
 
     UserAdviceMessages = [
@@ -681,6 +681,7 @@ class OWPreprocess(OWWidget):
         self.scroll.resize(frame_layout.sizeHint())
         self.scroll.setMinimumHeight(500)
         self.set_minimal_width()
+        self.mainArea.layout().sizeHint()
         self.mainArea.layout().addWidget(self.scroll)
 
         # Buttons area
@@ -688,7 +689,7 @@ class OWPreprocess(OWWidget):
 
         commit_button = gui.auto_commit(self.buttonsArea, self, 'autocommit',
                                         'Commit', box=False)
-        commit_button.setFixedWidth(self.control_area_width - 5)
+        commit_button.setFixedWidth(self.control_area_width)
 
         self.buttonsArea.layout().addWidget(commit_button)
 
