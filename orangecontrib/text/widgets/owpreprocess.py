@@ -520,11 +520,10 @@ class NgramsModule(PreprocessorModule):
     ngrams_range = settings.Setting((1, 2))
 
     def setup_method_layout(self):
-        self.method_layout.addWidget(
-            widgets.RangeWidget(None, self, 'ngrams_range', minimum=1, maximum=10, step=1,
-                                min_label='Range:', dtype=int,
-                                callback=self.update_value)
-        )
+        w = widgets.RangeWidget(None, self, 'ngrams_range', minimum=1, maximum=10, step=1,
+                                min_label='Range:', dtype=int)
+        w.editingFinished.connect(self.update_value)
+        self.method_layout.addWidget(w)
 
     def get_value(self):
         return self.ngrams_range
