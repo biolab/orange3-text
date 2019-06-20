@@ -242,18 +242,18 @@ class OWPubmed(OWWidget):
 
         # RECORD RETRIEVAL
         # Text includes box.
-        text_includes_box = gui.widgetBox(self.controlArea,
-                                          'Text includes', addSpace=True)
-        self.authors_checkbox = gui.checkBox(text_includes_box, self,
-                                          'includes_authors', 'Authors')
-        self.title_checkbox = gui.checkBox(text_includes_box, self,
-                                        'includes_title', 'Article title')
-        self.mesh_checkbox = gui.checkBox(text_includes_box, self,
-                                       'includes_mesh', 'Mesh headings')
-        self.abstract_checkbox = gui.checkBox(text_includes_box, self,
-                                           'includes_abstract', 'Abstract')
-        self.url_checkbox = gui.checkBox(text_includes_box, self,
-                                         'includes_url', 'URL')
+        text_includes_box = gui.widgetBox(
+            self.controlArea, 'Text includes', addSpace=True)
+        self.authors_checkbox = gui.checkBox(
+            text_includes_box, self, 'includes_authors', 'Authors')
+        self.title_checkbox = gui.checkBox(
+            text_includes_box, self, 'includes_title', 'Article title')
+        self.mesh_checkbox = gui.checkBox(
+            text_includes_box, self, 'includes_mesh', 'Mesh headings')
+        self.abstract_checkbox = gui.checkBox(
+            text_includes_box, self, 'includes_abstract', 'Abstract')
+        self.url_checkbox = gui.checkBox(
+            text_includes_box, self, 'includes_url', 'URL')
         self.pubmed_controls.append(self.authors_checkbox)
         self.pubmed_controls.append(self.title_checkbox)
         self.pubmed_controls.append(self.mesh_checkbox)
@@ -485,18 +485,18 @@ class OWPubmed(OWWidget):
                 ('Query', terms if terms else None),
                 ('Authors', authors if authors else None),
                 ('Date', 'from {} to {}'.format(self.pub_date_from,
-                                          self.pub_date_to)),
-                ('Number of records retrieved', '{}/{}'.format(len(
-                    self.output_corpus) if self.output_corpus else 0,
-                                                               max_records_count))
+                                                self.pub_date_to)),
+                ('Number of records retrieved', '{}/{}'.format(
+                    len(self.output_corpus) if self.output_corpus else 0,
+                    max_records_count))
             ))
         else:
             query = self.advanced_query_input.toPlainText()
             self.report_items((
                 ('Query', query if query else None),
-                ('Number of records retrieved', '{}/{}'.format(len(
-                    self.output_corpus) if self.output_corpus else 0,
-                                                               max_records_count))
+                ('Number of records retrieved', '{}/{}'.format(
+                    len(self.output_corpus) if self.output_corpus else 0,
+                    max_records_count))
             ))
 
 
@@ -528,6 +528,7 @@ class CalendarDialog(QDialog):
 
     def set_date(self, date):
         self.picked_date = date.toString('yyyy/MM/dd')
+
 
 if __name__ == '__main__':
     app = QApplication([])
