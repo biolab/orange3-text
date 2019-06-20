@@ -6,7 +6,6 @@ from datetime import datetime
 import numpy as np
 from Bio import Entrez
 from Bio import Medline
-from validate_email import validate_email
 
 try:
     from Orange.misc import environ
@@ -173,8 +172,6 @@ class Pubmed:
     MAX_BATCH_SIZE = 1000
 
     def __init__(self, email, progress_callback=None, error_callback=None):
-        if not validate_email(email):
-            raise ValueError('{} is not a valid email address.'.format(email))
 
         Entrez.email = email
 

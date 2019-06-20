@@ -78,13 +78,6 @@ class PubmedTests(unittest.TestCase):
                 error_callback=error_callback
         )
 
-    def test_pubmed_object_creation(self):
-        self.assertRaises(
-            ValueError,
-            Pubmed,
-            'faulty_email'
-        )
-
     def test_mesh_headings_to_class(self):
         input_headings = [
             'heading1 & heading2/heading3,heading4/*heading5',
