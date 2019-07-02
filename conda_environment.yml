@@ -3,7 +3,7 @@ channels: !!python/tuple
 - conda-forge
 - defaults
 dependencies:
-- biopython=1.68=np111py35_0
+- biopython
 - scipy
 - nltk>=3.0.5
 - scikit-learn
