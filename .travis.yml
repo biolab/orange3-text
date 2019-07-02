@@ -22,6 +22,10 @@ matrix:
           python: '3.6'
           env: ORANGE="master"
 
+env:
+    global:
+        - BOTO_CONFIG=/dev/null  # it solves boto travis issue https://github.com/boto/boto/issues/3717
+
 cache:
     apt: true   # does not work for public repos
     directories:
