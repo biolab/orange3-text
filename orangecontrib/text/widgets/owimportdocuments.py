@@ -33,7 +33,11 @@ from Orange.widgets.widget import Output
 
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.import_documents import ImportDocuments
-from Orange.canvas.preview.previewbrowser import TextLabel
+
+try:
+    from orangecanvas.preview.previewbrowser import TextLabel
+except ImportError:
+    from Orange.canvas.preview.previewbrowser import TextLabel
 
 
 def prettifypath(path):

@@ -11,8 +11,12 @@ from urllib.error import HTTPError, URLError
 
 
 from Orange import data
-from Orange.canvas.utils import environ
 from orangecontrib.text.corpus import Corpus
+
+try:
+    from Orange.misc import environ
+except ImportError:
+    from Orange.canvas.utils import environ
 
 SLEEP = 1
 TIMEOUT = 10
@@ -131,7 +135,7 @@ class NYT:
 
     def _cache_init(self):
         """ Initialize cache in Orange environment buffer dir. """
-        path = os.path.join(environ.buffer_dir, "nytcache")
+        path = os.path.join(environ.cache_dir(), "nytcache")
         try:
             if not os.path.exists(path):
                 os.makedirs(path)

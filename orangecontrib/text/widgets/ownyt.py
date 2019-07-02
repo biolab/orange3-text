@@ -6,11 +6,16 @@ from AnyQt.QtWidgets import QApplication, QFormLayout
 from Orange.data import StringVariable
 from Orange.widgets.credentials import CredentialManager
 from Orange.widgets.settings import Setting
-from Orange.widgets.widget import OWWidget, Msg, gui, Output
+from Orange.widgets.widget import OWWidget, Msg, Output
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.nyt import NYT, MIN_DATE
 from orangecontrib.text.widgets.utils import CheckListLayout, DatePickerInterval, QueryBox, \
     gui_require, asynchronous
+
+try:
+    from orangewidget import gui
+except ImportError:
+    from Orange.canvas.widgets.widget import gui
 
 
 class OWNYT(OWWidget):
