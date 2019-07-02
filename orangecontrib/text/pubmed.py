@@ -8,7 +8,11 @@ from Bio import Entrez
 from Bio import Medline
 from validate_email import validate_email
 
-from Orange.canvas.utils import environ
+try:
+    from Orange.misc import environ
+except ImportError:
+    from Orange.canvas.utils import environ
+
 from Orange.data import StringVariable, DiscreteVariable, TimeVariable, Domain
 from orangecontrib.text.corpus import Corpus
 
@@ -184,7 +188,7 @@ class Pubmed:
         self.stop_signal = False
 
         self.cache_path = None
-        cache_folder = os.path.join(environ.buffer_dir, 'pubmedcache')
+        cache_folder = os.path.join(environ.cache_dir(), 'pubmedcache')
 
         if not os.path.exists(cache_folder):
             os.makedirs(cache_folder)
