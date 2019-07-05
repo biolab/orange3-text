@@ -1,3 +1,4 @@
+import pickle
 import tempfile
 import unittest
 import os.path
@@ -186,6 +187,15 @@ class TokenNormalizerTests(unittest.TestCase):
         normalizer.use_tokenizer = True
         self.assertListEqual(normalizer.normalize_doc('Gori na gori hiša gori'),
                              ['gora', 'na', 'gora', 'hiša', 'goreti'])
+
+    def test_udpipe_pickle(self):
+        normalizer = preprocess.UDPipeLemmatizer()
+        normalizer.language = 'English'
+
+        loaded = pickle.loads(pickle.dumps(normalizer))
+        self.assertEqual(normalizer.language, loaded.language)
+        self.assertEqual(loaded.normalize_doc('peter piper pickled'),
+                         ['peter', 'piper', 'pickle'])
 
     def test_porter_with_bad_input(self):
         stemmer = preprocess.PorterStemmer()
