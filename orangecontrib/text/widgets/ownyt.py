@@ -15,7 +15,7 @@ from orangecontrib.text.widgets.utils import CheckListLayout, DatePickerInterval
 try:
     from orangewidget import gui
 except ImportError:
-    from Orange.canvas.widgets.widget import gui
+    from Orange.widgets import gui
 
 
 class OWNYT(OWWidget):
