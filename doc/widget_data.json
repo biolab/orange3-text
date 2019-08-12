@@ -1,0 +1,135 @@
+{
+"Bag of Words": {
+    "title": "Bag of Words",
+    "file": "widgets/bagofwords-widget.md",
+    "icon": "widgets/icons/bagofwords.png",
+    "keywords": [],
+    "category": "Text Mining"
+    },
+"Concordance": {
+    "title": "Concordance",
+    "file": "widgets/concordance.md",
+    "icon": "widgets/icons/concordance.png",
+    "keywords": [],
+    "category": "Text Mining"
+    },
+"Corpus": {
+    "title": "Corpus",
+    "file": "widgets/corpus-widget.md",
+    "icon": "widgets/icons/corpus.png",
+    "keywords": [],
+    "category": "Text Mining"
+    },
+"Corpus Viewer": {
+    "title": "Corpus Viewer",
+    "file": "widgets/corpusviewer.md",
+    "icon": "widgets/icons/corpusviewer.png",
+    "keywords": [],
+    "category": "Text Mining"
+    },
+"Duplicate Detection": {
+    "title": "Duplicate Detection",
+    "file": "widgets/duplicatedetection.md",
+    "icon": "",
+    "keywords": [],
+    "category": "Text Mining"
+    },
+"GeoMap": {
+    "title": "GeoMap",
+    "file": "widgets/geomap.md",
+    "icon": "widgets/icons/geomap.png",
+    "keywords": [],
+    "category": "Text Mining"
+    },
+"The Guardian": {
+    "title": "The Guardian",
+    "file": "widgets/guardian-widget.md",
+    "icon": "widgets/icons/guardian.png",
+    "keywords": [],
+    "category": "Text Mining"
+    },
+"Import Documents": {
+    "title": "Import Documents",
+    "file": "widgets/importdocuments.md",
+    "icon": "widgets/icons/import-documents.png",
+    "keywords": [],
+    "category": "Text Mining"
+    },
+"NY Times": {
+    "title": "NY Times",
+    "file": "widgets/nytimes.md",
+    "icon": "widgets/icons/nytimes.png",
+    "keywords": [],
+    "category": "Text Mining"
+    },
+"Preprocess Text": {
+    "title": "Preprocess Text",
+    "file": "widgets/preprocesstext.md",
+    "icon": "widgets/icons/preprocesstext.png",
+    "keywords": [],
+    "category": "Text Mining"
+    },
+"Pubmed": {
+    "title": "Pubmed",
+    "file": "widgets/pubmed.md",
+    "icon": "widgets/icons/pubmed.png",
+    "keywords": [],
+    "category": "Text Mining"
+    },
+"Sentiment Analysis": {
+    "title": "Sentiment Analysis",
+    "file": "widgets/sentimentanalysis.md",
+    "icon": "widgets/icons/sentiment-analysis.png",
+    "keywords": [],
+    "category": "Text Mining"
+    },
+"Similarity Hashing": {
+    "title": "Similarity Hashing",
+    "file": "widgets/similarityhashing.md",
+    "icon": "widgets/icons/similarity-hashing.png",
+    "keywords": [],
+    "category": "Text Mining"
+    },
+"Topic Modelling": {
+    "title": "Topic Modelling",
+    "file": "widgets/topicmodelling-widget.md",
+    "icon": "widgets/icons/topicmodelling.png",
+    "keywords": [],
+    "category": "Text Mining"
+    },
+"Tweet Profiler": {
+    "title": "Tweet Profiler",
+    "file": "widgets/tweetprofiler.md",
+    "icon": "",
+    "keywords": [],
+    "category": "Text Mining"
+    },
+"Twitter": {
+    "title": "Twitter",
+    "file": "widgets/twitter-widget.md",
+    "icon": "widgets/icons/twitter.png",
+    "keywords": [],
+    "category": "Text Mining"
+    },
+"Wikipedia": {
+    "title": "Wikipedia",
+    "file": "widgets/wikipedia-widget.md",
+    "icon": "widgets/icons/wikipedia.png",
+    "keywords": [],
+    "category": "Text Mining"
+    },
+"Word Cloud": {
+    "title": "Word Cloud",
+    "file": "widgets/wordcloud.md",
+    "icon": "widgets/icons/wordcloud.png",
+    "keywords": [],
+    "category": "Text Mining"
+    },
+"Word Enrichment": {
+    "title": "Word Enrichment",
+    "file": "widgets/wordenrichment.md",
+    "icon": "widgets/icons/wordenrichment.png",
+    "keywords": [],
+    "category": "Text Mining"
+    }
+ }
