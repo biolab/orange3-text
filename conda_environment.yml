@@ -16,7 +16,6 @@ dependencies:
 - recommonmark
 
 - pip:
-  - validate_email
   - tweepy
   - simhash
   - wikipedia

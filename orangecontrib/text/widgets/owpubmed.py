@@ -1,12 +1,14 @@
 import os
+import re
 from datetime import date
 
 from AnyQt.QtCore import QDate, Qt
 from AnyQt.QtWidgets import (QApplication, QComboBox, QDateEdit, QTextEdit,
-                             QFrame, QDialog, QCalendarWidget, QVBoxLayout)
-from validate_email import validate_email
+                             QFrame, QDialog, QCalendarWidget, QVBoxLayout,
+                             QFormLayout)
 
 from Orange.widgets import gui
+from Orange.widgets.credentials import CredentialManager
 from Orange.widgets.settings import Setting
 from Orange.widgets.widget import OWWidget, Msg
 from orangecontrib.text.corpus import Corpus
@@ -20,11 +22,71 @@ def _i(name, icon_path='icons'):
     return os.path.join(widget_path, icon_path, name)
 
 
+EMAIL_REGEX = re.compile(r"[^@]+@[^@]+\.[^@]+")
+
+
+def validate_email(email):
+    return EMAIL_REGEX.match(email)
+
+
 class Output:
     CORPUS = 'Corpus'
 
 
 class OWPubmed(OWWidget):
+    class EmailCredentialsDialog(OWWidget):
+        name = "Pubmed Email"
+        want_main_area = False
+        resizing_enabled = False
+        email_manager = CredentialManager('Email')
+        email_input = ''
+
+        class Error(OWWidget.Error):
+            invalid_credentials = Msg('This email is invalid.')
+
+        def __init__(self, parent):
+            super().__init__()
+            self.parent = parent
+            self.api = None
+
+            form = QFormLayout()
+            form.setContentsMargins(5, 5, 5, 5)
+            self.email_edit = gui.lineEdit(
+                self, self, 'email_input', controlWidth=400)
+            form.addRow('Email:', self.email_edit)
+            self.controlArea.layout().addLayout(form)
+            self.submit_button = gui.button(
+                self.controlArea, self, "OK", self.accept)
+
+            self.load_credentials()
+
+        def setVisible(self, visible):
+            super().setVisible(visible)
+            self.email_edit.setFocus()
+
+        def load_credentials(self):
+            self.email_edit.setText(self.email_manager.key)
+
+        def save_credentials(self):
+            self.email_manager.key = self.email_input
+
+        def check_credentials(self):
+            if validate_email(self.email_input):
+                self.save_credentials()
+                return True
+            else:
+                return False
+
+        def accept(self, silent=False):
+            if not silent:
+                self.Error.invalid_credentials.clear()
+            valid = self.check_credentials()
+            if valid:
+                self.parent.sync_email(self.email_input)
+                super().accept()
+            else:
+                self.Error.invalid_credentials()
+
     name = 'Pubmed'
     description = 'Fetch data from Pubmed.'
     icon = 'icons/Pubmed.svg'
@@ -39,7 +101,6 @@ class OWPubmed(OWWidget):
     MIN_DATE = date(1800, 1, 1)
 
     # Settings.
-    recent_emails = Setting([])
     author = Setting('')
     pub_date_from = Setting('')
     pub_date_to = Setting('')
@@ -54,11 +115,14 @@ class OWPubmed(OWWidget):
     includes_abstract = Setting(True)
     includes_url = Setting(True)
 
+    email = None
+
     class Warning(OWWidget.Warning):
         no_query = Msg('Please specify the keywords for this query.')
 
     class Error(OWWidget.Error):
         api_error = Msg('API error: {}.')
+        email_error = Msg('Email not set. Pleas set it with the email button.')
 
     def __init__(self):
         super().__init__()
@@ -66,23 +130,18 @@ class OWPubmed(OWWidget):
         self.output_corpus = None
         self.pubmed_api = None
         self.progress = None
-        self.email_is_valid = False
         self.record_count = 0
         self.download_running = False
 
+        # API key
+        self.email_dlg = self.EmailCredentialsDialog(self)
+        gui.button(self.controlArea, self, 'Email',
+                   callback=self.email_dlg.exec_,
+                   focusPolicy=Qt.NoFocus)
+        gui.separator(self.controlArea)
+
         # To hold all the controls. Makes access easier.
         self.pubmed_controls = []
-
-        h_box = gui.hBox(self.controlArea)
-        label = gui.label(h_box, self, 'Email:')
-        label.setMaximumSize(label.sizeHint())
-        # Drop-down for recent emails.
-        self.email_combo = QComboBox(h_box)
-        self.email_combo.setMinimumWidth(150)
-        self.email_combo.setEditable(True)
-        self.email_combo.lineEdit().textChanged.connect(self.sync_email)
-        h_box.layout().addWidget(self.email_combo)
-        self.email_combo.activated[int].connect(self.select_email)
 
         # RECORD SEARCH
         self.search_tabs = gui.tabWidget(self.controlArea)
@@ -183,18 +242,18 @@ class OWPubmed(OWWidget):
 
         # RECORD RETRIEVAL
         # Text includes box.
-        text_includes_box = gui.widgetBox(self.controlArea,
-                                          'Text includes', addSpace=True)
-        self.authors_checkbox = gui.checkBox(text_includes_box, self,
-                                          'includes_authors', 'Authors')
-        self.title_checkbox = gui.checkBox(text_includes_box, self,
-                                        'includes_title', 'Article title')
-        self.mesh_checkbox = gui.checkBox(text_includes_box, self,
-                                       'includes_mesh', 'Mesh headings')
-        self.abstract_checkbox = gui.checkBox(text_includes_box, self,
-                                           'includes_abstract', 'Abstract')
-        self.url_checkbox = gui.checkBox(text_includes_box, self,
-                                         'includes_url', 'URL')
+        text_includes_box = gui.widgetBox(
+            self.controlArea, 'Text includes', addSpace=True)
+        self.authors_checkbox = gui.checkBox(
+            text_includes_box, self, 'includes_authors', 'Authors')
+        self.title_checkbox = gui.checkBox(
+            text_includes_box, self, 'includes_title', 'Article title')
+        self.mesh_checkbox = gui.checkBox(
+            text_includes_box, self, 'includes_mesh', 'Mesh headings')
+        self.abstract_checkbox = gui.checkBox(
+            text_includes_box, self, 'includes_abstract', 'Abstract')
+        self.url_checkbox = gui.checkBox(
+            text_includes_box, self, 'includes_url', 'URL')
         self.pubmed_controls.append(self.authors_checkbox)
         self.pubmed_controls.append(self.title_checkbox)
         self.pubmed_controls.append(self.mesh_checkbox)
@@ -228,48 +287,29 @@ class OWPubmed(OWWidget):
                 self,
                 'Number of records retrieved: /')
 
-        # Load the most recent emails.
-        self.set_email_list()
-
         # Load the most recent queries.
         self.set_keyword_list()
 
-        # Check the email and enable controls accordingly.
-        if self.recent_emails:
-            email = self.recent_emails[0]
-            self.email_is_valid = validate_email(email)
-
-        self.enable_controls()
-
-    def sync_email(self):
-        email = self.email_combo.currentText()
-        self.email_is_valid = validate_email(email)
-        self.enable_controls()
-
-    def enable_controls(self):
-        # Enable/disable controls accordingly.
-        for control in self.pubmed_controls:
-            control.setEnabled(self.email_is_valid)
-        if self.pubmed_api is None or self.pubmed_api.search_record_count == 0:
-            self.retrieve_records_button.setEnabled(False)
-        if not self.email_is_valid:
-            self.email_combo.setFocus()
+    def sync_email(self, email):
+        self.Error.email_error.clear()
+        self.email = email
 
     def run_search(self):
         self.Error.clear()
         self.Warning.clear()
+
+        # check if email exists
+        if self.email is None:
+            self.Error.email_error()
+            return
+
         self.run_search_button.setEnabled(False)
         self.retrieve_records_button.setEnabled(False)
-
-        # Add the email to history.
-        email = self.email_combo.currentText()
-        if email not in self.recent_emails:
-            self.recent_emails.insert(0, email)
 
         # Check if the PubMed object is present.
         if self.pubmed_api is None:
             self.pubmed_api = Pubmed(
-                    email=email,
+                    email=self.email,
                     progress_callback=self.api_progress_callback,
                     error_callback=self.api_error_callback,
             )
@@ -309,6 +349,13 @@ class OWPubmed(OWWidget):
         self.enable_controls()
         self.update_search_info()
 
+    def enable_controls(self):
+        # Enable/disable controls accordingly.
+        self.run_search_button.setEnabled(True)
+        enabled = self.pubmed_api is not None and \
+            not self.pubmed_api.search_record_count == 0
+        self.retrieve_records_button.setEnabled(enabled)
+
     def retrieve_records(self):
         self.Warning.clear()
         self.Error.clear()
@@ -318,13 +365,11 @@ class OWPubmed(OWWidget):
 
         if self.download_running:
             self.download_running = False
-            self.run_search_button.setEnabled(True)
             self.retrieve_records_button.setText('Retrieve records')
             self.pubmed_api.stop_retrieving()
             return
 
         self.download_running = True
-        self.run_search_button.setEnabled(False)
         self.output_corpus = None  # Clear the old records.
 
         # Change the button label.
@@ -401,20 +446,6 @@ class OWPubmed(OWWidget):
                 self.retrieval_info_label.sizeHint()
         )
 
-    def select_email(self, n):
-        if n < len(self.recent_emails):
-            email = self.recent_emails[n]
-            del self.recent_emails[n]
-            self.recent_emails.insert(0, email)
-
-        if len(self.recent_emails) > 0:
-            self.set_email_list()
-
-    def set_email_list(self):
-        self.email_combo.clear()
-        for email in self.recent_emails:
-            self.email_combo.addItem(email)
-
     def select_keywords(self, n):
         if n < len(self.recent_keywords):
             keywords = self.recent_keywords[n]
@@ -454,18 +485,18 @@ class OWPubmed(OWWidget):
                 ('Query', terms if terms else None),
                 ('Authors', authors if authors else None),
                 ('Date', 'from {} to {}'.format(self.pub_date_from,
-                                          self.pub_date_to)),
-                ('Number of records retrieved', '{}/{}'.format(len(
-                    self.output_corpus) if self.output_corpus else 0,
-                                                               max_records_count))
+                                                self.pub_date_to)),
+                ('Number of records retrieved', '{}/{}'.format(
+                    len(self.output_corpus) if self.output_corpus else 0,
+                    max_records_count))
             ))
         else:
             query = self.advanced_query_input.toPlainText()
             self.report_items((
                 ('Query', query if query else None),
-                ('Number of records retrieved', '{}/{}'.format(len(
-                    self.output_corpus) if self.output_corpus else 0,
-                                                               max_records_count))
+                ('Number of records retrieved', '{}/{}'.format(
+                    len(self.output_corpus) if self.output_corpus else 0,
+                    max_records_count))
             ))
 
 
@@ -497,6 +528,7 @@ class CalendarDialog(QDialog):
 
     def set_date(self, date):
         self.picked_date = date.toString('yyyy/MM/dd')
+
 
 if __name__ == '__main__':
     app = QApplication([])
