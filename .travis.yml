@@ -41,8 +41,8 @@ before_install:
     - source $TRAVIS_BUILD_DIR/.travis/util.sh
     - pip install -U setuptools pip wheel
     - pip install codecov
-    # Gensim (2.2.0) requires numpy>=1.11.3 but cannot update it itself?
-    - pip install -U numpy
+    # Orange/openTSNE requires numpy>=1.16.* but cannot update it itself?
+    - pip install numpy==1.16.*
     - mkdir -p /home/travis/.local/share/Orange  # create orange app dir
 
 install:
