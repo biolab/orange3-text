@@ -188,3 +188,10 @@ class UDPipeLemmatizer(BaseNormalizer):
     def language(self, value):
         self._language = value
         self.model = None
+
+    def __getstate__(self):
+        return {'language': self.language}
+
+    def __setstate__(self, state):
+        self.__init__(state['language'])
+
