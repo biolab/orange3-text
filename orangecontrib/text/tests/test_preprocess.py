@@ -276,10 +276,24 @@ class FilteringTests(unittest.TestCase):
         self.assertEqual(df([['a', '1']]), [['a']])
 
     def test_stopwords(self):
-        filter = preprocess.StopwordsFilter('english')
+        f = preprocess.StopwordsFilter('english')
 
-        self.assertFalse(filter.check('a'))
-        self.assertTrue(filter.check('filter'))
+        self.assertFalse(f.check('a'))
+        self.assertTrue(f.check('filter'))
+
+        self.assertListEqual(
+            ["snake", "house"],
+            f(["a", "snake", "is", "in", "a", "house"]))
+
+    def test_stopwords_slovene(self):
+        f = preprocess.StopwordsFilter('slovene')
+
+        self.assertFalse(f.check('in'))
+        self.assertTrue(f.check('abeceda'))
+
+        self.assertListEqual(
+            ["kača", "hiši"],
+            f(["kača", "je", "v", "hiši", "in"]))
 
     def test_lexicon(self):
         filter = preprocess.LexiconFilter(['filter'])
