@@ -62,31 +62,6 @@ class CorpusTests(unittest.TestCase):
         c2 = Corpus(c.domain, c.X, c.Y, c.metas, c.text_features)
         self.assertEqual(c, c2)
 
-    @unittest.skipIf(LooseVersion(Orange.__version__) < LooseVersion('3.4.3'),
-                     'Not supported in versions of Orange below 3.4.3')
-    def test_extend(self):
-        c = Corpus.from_file('deerwester')
-        c2 = c[:5]
-        self.assertEqual(len(c2), 5)
-        n = len(c)
-        self.pos_tagger.tag_corpus(c)
-        self.assertIsNot(c._tokens, None)
-        self.assertIsNot(c.pos_tags, None)
-        self.assertIs(c2._tokens, None)
-        self.assertIs(c2.pos_tags, None)
-
-        c.extend(c2)
-        self.assertEqual(len(c), n + 5)
-        self.assertIs(c._tokens, None)
-        self.assertIs(c.pos_tags, None)
-
-        self.pos_tagger.tag_corpus(c)
-        self.pos_tagger.tag_corpus(c2)
-        c.extend(c2)
-        self.assertEqual(len(c), n + 10)
-        self.assertEqual(len(c._tokens), n + 10)
-        self.assertEqual(len(c.pos_tags), n + 10)
-
     def test_extend_corpus(self):
         c = Corpus.from_file('book-excerpts')
         n_classes = len(c.domain.class_var.values)
