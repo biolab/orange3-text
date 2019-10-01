@@ -78,7 +78,7 @@ class StopwordsFilter(BaseTokenFilter, WordListMixin):
         except LookupError:  # when no NLTK data is available
             pass
 
-        return [file.capitalize() for file in stopwords_listdir]
+        return sorted(file.capitalize() for file in stopwords_listdir)
 
     @wait_nltk_data
     def __init__(self, language='English', word_list=None):
@@ -96,7 +96,8 @@ class StopwordsFilter(BaseTokenFilter, WordListMixin):
         if not self._language:
             self.stopwords = []
         else:
-            self.stopwords = set(stopwords.words(self.language.lower()))
+            self.stopwords = set(
+                x.strip() for x in stopwords.words(self.language.lower()))
 
     def __str__(self):
         config = ''
