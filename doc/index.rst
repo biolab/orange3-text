@@ -23,7 +23,7 @@ Widgets
    widgets/corpusviewer
    widgets/wordcloud
    widgets/concordance
-   widgets/geomap
+   widgets/docmap
    widgets/wordenrichment
    widgets/duplicatedetection
 
