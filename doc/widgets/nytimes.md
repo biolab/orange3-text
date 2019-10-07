@@ -32,10 +32,10 @@ To use the widget, you must enter [your own API key](https://developer.nytimes.c
 Example
 -------
 
-**NYTimes** is a data retrieving widget, similar to [Twitter](twitter-widget.md) and [Wikipedia](wikipedia-widget.md). As it can retrieve geolocations, that is geographical locations the article mentions, it is great in combination with [GeoMap](geomap.md) widget.
+**NYTimes** is a data retrieving widget, similar to [Twitter](twitter-widget.md) and [Wikipedia](wikipedia-widget.md). As it can retrieve geolocations, that is geographical locations the article mentions, it is great in combination with [Document Map](docmap.md) widget.
 
 ![](images/NYTimes-Example1.png)
 
 First, let's query **NYTimes** for all articles on Slovenia. We can retrieve the articles found and view the results in [Corpus Viewer](corpusviewer.md). The widget displays all the retrieved features, but includes on selected features as text mining features.
 
-Now, let's inspect the distribution of geolocations from the articles mentioning Slovenia. We can do this with [GeoMap](geomap.md). Unsurprisingly, Croatia and Hungary appear the most often in articles on Slovenia (discounting Slovenia itself), with the rest of Europe being mentioned very often as well.
+Now, let's inspect the distribution of geolocations from the articles mentioning Slovenia. We can do this with [Document Map](docmap.md). Unsurprisingly, Croatia and Hungary appear the most often in articles on Slovenia (discounting Slovenia itself), with the rest of Europe being mentioned very often as well.

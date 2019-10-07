@@ -32,10 +32,10 @@ class Map:
            ('USA',    USA))
 
 
-class OWGeoMap(widget.OWWidget):
-    name = "GeoMap"
+class OWDocMap(widget.OWWidget):
+    name = "Document Map"
     priority = 530
-    icon = "icons/GeoMap.svg"
+    icon = "icons/DocMap.svg"
 
     class Inputs:
         data = Input("Data", Table)
@@ -91,7 +91,7 @@ class OWGeoMap(widget.OWWidget):
                       pathname2url(os.path.join(
                           os.path.dirname(__file__),
                           'resources',
-                         'owgeomap.html')))
+                          'owdocmap.html')))
 
         class Bridge(QObject):
             @pyqtSlot(str)
@@ -200,7 +200,7 @@ def main():
                              X=np.zeros((len(words), 0)),
                              metas=words)
     app = QApplication([''])
-    w = OWGeoMap()
+    w = OWDocMap()
     w.on_data(table)
     w.show()
     app.exec()
