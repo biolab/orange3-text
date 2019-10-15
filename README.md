@@ -1,6 +1,7 @@
 Orange3 Text 
 ============
 
+[![Discord Chat](https://img.shields.io/discord/633376992607076354)](https://discord.gg/FWrfeXV)
 [![Build Status](https://travis-ci.org/biolab/orange3-text.svg?branch=master)](https://travis-ci.org/biolab/orange3-text)
 [![codecov](https://codecov.io/gh/biolab/orange3-text/branch/master/graph/badge.svg)](https://codecov.io/gh/biolab/orange3-text)
 [![Documentation Status](https://readthedocs.org/projects/orange3-text/badge/?version=latest)](http://orange3-text.readthedocs.org/en/latest/?badge=latest)
