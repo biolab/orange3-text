@@ -88,7 +88,6 @@ span.selected {color:red !important}
         self.mainArea.layout().addWidget(webview)
 
     def _create_layout(self):
-        self._new_webview()
         box = gui.widgetBox(self.controlArea, 'Info')
         self.topic_info = gui.label(box, self, '%(n_topic_words)d words in a topic')
         gui.label(box, self, '%(documents_info_str)s')
