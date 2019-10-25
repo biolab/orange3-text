@@ -103,13 +103,13 @@ class OWWikipedia(OWWidget):
 
     @search.callback(should_raise=False)
     def progress_with_info(self, progress, n_retrieved):
-        self.progressBarSet(100 * progress, None)
+        self.progressBarSet(100 * progress)
         self.result_label.setText(self.info_label.format(n_retrieved))
 
     @search.on_start
     def on_start(self):
         self.Error.api_error.clear()
-        self.progressBarInit(None)
+        self.progressBarInit()
         self.search_button.setText('Stop')
         self.result_label.setText(self.info_label.format(0))
         self.Outputs.corpus.send(None)
@@ -120,7 +120,7 @@ class OWWikipedia(OWWidget):
         self.result_label.setText(self.info_label.format(len(result) if result else 0))
         self.search_button.setText('Search')
         self.set_text_features()
-        self.progressBarFinished(None)
+        self.progressBarFinished()
 
     def set_text_features(self):
         self.Warning.no_text_fields.clear()

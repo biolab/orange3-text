@@ -730,11 +730,11 @@ class OWPreprocess(OWWidget):
 
     @preprocess.on_start
     def on_start(self):
-        self.progressBarInit(None)
+        self.progressBarInit()
 
     @preprocess.callback
     def on_progress(self, i):
-        self.progressBarSet(i, None)
+        self.progressBarSet(i)
 
     @preprocess.on_result
     def on_result(self, result):
@@ -743,7 +743,7 @@ class OWPreprocess(OWWidget):
             self.Warning.no_token_left()
             result = None
         self.Outputs.corpus.send(result)
-        self.progressBarFinished(None)
+        self.progressBarFinished()
 
     def set_minimal_width(self):
         max_width = 250

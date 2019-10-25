@@ -203,12 +203,12 @@ class OWTopicModeling(OWWidget):
 
     @learning_task.on_start
     def on_start(self):
-        self.progressBarInit(None)
+        self.progressBarInit()
         self.topic_desc.clear()
 
     @learning_task.on_result
     def on_result(self, corpus):
-        self.progressBarFinished(None)
+        self.progressBarFinished()
         self.Outputs.corpus.send(corpus)
         if corpus is None:
             self.topic_desc.clear()
@@ -220,7 +220,7 @@ class OWTopicModeling(OWWidget):
 
     @learning_task.callback
     def on_progress(self, p):
-        self.progressBarSet(100 * p, processEvents=None)
+        self.progressBarSet(100 * p)
 
     def send_report(self):
         self.report_items(*self.widgets[self.method_index].report_model())

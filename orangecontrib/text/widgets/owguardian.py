@@ -163,20 +163,20 @@ class OWGuardian(OWWidget):
 
     @search.callback(should_raise=False)
     def progress_with_info(self, n_retrieved, n_all):
-        self.progressBarSet(100 * (n_retrieved / n_all if n_all else 1), None)  # prevent division by 0
+        self.progressBarSet(100 * (n_retrieved / n_all if n_all else 1))  # prevent division by 0
         self.output_info = '{}/{}'.format(n_retrieved, n_all)
 
     @search.on_start
     def on_start(self):
         self.Error.no_query.clear()
-        self.progressBarInit(None)
+        self.progressBarInit()
         self.search_button.setText('Stop')
         self.Outputs.corpus.send(None)
 
     @search.on_result
     def on_result(self, result):
         self.search_button.setText('Search')
-        self.progressBarFinished(None)
+        self.progressBarFinished()
         self.corpus = result
         self.set_text_features()
 
