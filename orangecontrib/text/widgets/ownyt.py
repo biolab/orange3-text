@@ -159,7 +159,7 @@ class OWNYT(OWWidget):
 
     @search.callback(should_raise=False)
     def progress_with_info(self, n_retrieved, n_all):
-        self.progressBarSet(100 * (n_retrieved / n_all if n_all else 1), None)  # prevent division by 0
+        self.progressBarSet(100 * (n_retrieved / n_all if n_all else 1))  # prevent division by 0
         self.num_all = n_all
         self.num_retrieved = n_retrieved
         self.update_info_label()
@@ -171,7 +171,7 @@ class OWNYT(OWWidget):
         self.Error.offline.clear()
         self.num_all, self.num_retrieved = 0, 0
         self.update_info_label()
-        self.progressBarInit(None)
+        self.progressBarInit()
         self.search_button.setText('Stop')
         self.Outputs.corpus.send(None)
 
@@ -180,7 +180,7 @@ class OWNYT(OWWidget):
         self.search_button.setText('Search')
         self.corpus = result
         self.set_text_features()
-        self.progressBarFinished(None)
+        self.progressBarFinished()
 
     def update_info_label(self):
         self.output_info = '{}/{}'.format(self.num_retrieved, self.num_all)
