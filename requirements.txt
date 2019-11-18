@@ -2,8 +2,8 @@ scipy
 nltk>=3.0.5     # TweetTokenizer introduced in 3.0.5
 scikit-learn
 numpy
-# gensim needs smart-open that needs boto3 that needs botocore that needs docutils < 0.15
-docutils==0.14.*
+docutils<0.16  # denpendency for botocore
+python-dateutil<2.8.1  # denpendency for botocore
 gensim>=0.12.3  # LDA's show topics unified in 0.12.3
 setuptools-git
 Orange3>=3.4.3
