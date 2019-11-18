@@ -2,6 +2,11 @@ language: python
 
 dist: xenial
 
+addons:
+    apt:
+        packages:
+            - libxkbcommon-x11-0  # for PyQt 5.12
+
 matrix:
     include:
         - &docs
@@ -28,11 +33,8 @@ env:
 
 cache:
     apt: true   # does not work for public repos
-    directories:
-        - $HOME/.cache/pip
-        - $HOME/.ccache
-        - $HOME/nltk_data
-        - $TRAVIS_BUILD_DIR/pyqt
+    pip: true
+    ccache: true
 
 before_cache:   # prevent logs from caching
     - rm -f $HOME/.cache/pip/log/debug.log
@@ -41,15 +43,13 @@ before_install:
     - source $TRAVIS_BUILD_DIR/.travis/util.sh
     - pip install -U setuptools pip wheel
     - pip install codecov
-    # Orange/openTSNE requires numpy>=1.16.* but cannot update it itself?
-    - pip install numpy==1.16.*
     - mkdir -p /home/travis/.local/share/Orange  # create orange app dir
 
 install:
+    - pip install pyqt5 pyqtwebengine
     - source $TRAVIS_BUILD_DIR/.travis/install_orange.sh
     - travis_wait pip install -r requirements.txt
-    - pip install sip pyqt5==5.11.*
-    - python setup.py develop   # assure version.py is present; required for imports
+    - pip install -e .
 
 script:
     - XVFBARGS="-screen 0 1280x1024x24"
