@@ -12,7 +12,7 @@ dependencies:
 - setuptools-git
 - Orange3>=3.3.9
 - beautifulsoup4
-- pyqt=5.6.0
+- pyqt
 - recommonmark
 
 - pip:
