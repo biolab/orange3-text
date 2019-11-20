@@ -11,6 +11,7 @@ class OWTBagOfWords(owbasevectorizer.OWBaseVectorizer):
     description = 'Generates a bag of words from the input corpus.'
     icon = 'icons/BagOfWords.svg'
     priority = 300
+    keywords = ["BOW"]
 
     Method = BowVectorizer
 

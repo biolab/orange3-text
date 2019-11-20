@@ -15,6 +15,7 @@ class OWSentimentAnalysis(OWWidget):
     description = "Compute sentiment from text."
     icon = "icons/SentimentAnalysis.svg"
     priority = 320
+    keywords = ["emotion"]
 
     class Inputs:
         corpus = Input("Corpus", Corpus)
