@@ -12,6 +12,7 @@ class OWSimhash(owbasevectorizer.OWBaseVectorizer):
     description = 'Computes documents hashes.'
     icon = 'icons/Simhash.svg'
     priority = 310
+    keywords = ["SimHash"]
 
     Method = SimhashVectorizer
 

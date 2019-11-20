@@ -15,6 +15,7 @@ class OWTweetProfiler(OWWidget):
                   "emotions in tweets."
     icon = "icons/TweetProfiler.svg"
     priority = 330
+    keywords = ["Twitter"]
 
     class Inputs:
         corpus = Input("Corpus", Corpus)
