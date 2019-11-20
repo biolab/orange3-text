@@ -63,35 +63,45 @@
     "doc": "widgets/bagofwords-widget.md",
     "icon": "../orangecontrib/text/widgets/icons/BagOfWords.svg",
     "background": "light-blue",
-    "keywords": ["BOW"]
+    "keywords": [
+     "BOW"
+    ]
    },
    {
     "text": "Similarity Hashing",
     "doc": "widgets/similarityhashing.md",
     "icon": "../orangecontrib/text/widgets/icons/Simhash.svg",
     "background": "light-blue",
-    "keywords": ["SimHash"]
+    "keywords": [
+     "SimHash"
+    ]
    },
    {
     "text": "Sentiment Analysis",
     "doc": "widgets/sentimentanalysis.md",
     "icon": "../orangecontrib/text/widgets/icons/SentimentAnalysis.svg",
     "background": "light-blue",
-    "keywords": ["emotion"]
+    "keywords": [
+     "emotion"
+    ]
    },
    {
     "text": "Tweet Profiler",
     "doc": "widgets/tweetprofiler.md",
     "icon": "../orangecontrib/text/widgets/icons/TweetProfiler.svg",
     "background": "light-blue",
-    "keywords": ["Twitter"]
+    "keywords": [
+     "Twitter"
+    ]
    },
    {
     "text": "Topic Modelling",
     "doc": "widgets/topicmodelling-widget.md",
     "icon": "../orangecontrib/text/widgets/icons/TopicModeling.svg",
     "background": "light-blue",
-    "keywords": ["LDA"]
+    "keywords": [
+     "LDA"
+    ]
    },
    {
     "text": "Corpus Viewer",
@@ -119,7 +129,9 @@
     "doc": "widgets/docmap.md",
     "icon": "../orangecontrib/text/widgets/icons/DocMap.svg",
     "background": "light-blue",
-    "keywords": ["GeoMap"]
+    "keywords": [
+     "GeoMap"
+    ]
    },
    {
     "text": "Word Enrichment",
