@@ -5,6 +5,76 @@ Change Log
 ------------
 * ...
 
+[0.7.4] - 2019-11-11
+------------------
+##### Bugfixes
+* Remove ufal.udpipe-temp dependency ([#467](../../pull/467))
+* Remove redundant webview in Word Cloud ([#464](../../pull/464))
+* Rename GeoMap to Document Map ([#458](../../pull/458))
+* Fix stopword filtering ([#456](../../pull/456))
+* Pickling UDPipe models ([#447](../../pull/447))
+* Remove validate_email dependency ([#442](../../pull/442))
+
+[0.7.3] - 2019-07-09
+------------------
+
+* Fix broken import ([#448](../../pull/448))
+
+[0.7.2] - 2019-07-02
+------------------
+
+* Compatibility with split Orange Canvas ([#445](../../pull/445))
+
+[0.7.1] - 2019-06-18
+------------------
+
+* Remove google-compute-engine dependency ([#439](../../pull/439))
+
+[0.7.0] - 2019-06-14
+------------------
+##### Enhancements
+* Word Enrichment: FDR imported from Orange ([#416](../../pull/416))
+
+##### Bugfixes
+* OWPreprocess: autocommit when changing n-grams ([#436](../../pull/436))
+* Import Documents: sanitize pdfs ([#435](../../pull/435))
+* OWPreprocess: fix Stanford model loading ([#419](../../pull/419))
+* Corpus Viewer: mark filtered text with Python ([#408](../../pull/408))
+* Topic Modelling: HDP shows no topics ([#413](../../pull/413))
+* Fix PyQt to 5.11 ([#410](../../pull/410))
+* Guardian: properly display Unicode characters ([#406](../../pull/406))
+
+[0.6.0] - 2018-12-06
+------------------
+##### Enhancements
+* UDPipe models work offline ([#394](../../pull/394))
+* Word Cloud: scale visualization ([#381](../../pull/381))
+
+##### Bugfixes
+* Duplicate Detection: output corresponding duplicate cluster ([#379](../../pull/379))
+* Update Twitter API calls to retrieve extended tweets ([#383](../../pull/383))
+* Twitter: fix retrieving author timeline ([#389](../../pull/389))
+
+
+[0.5.1] - 2018-09-27
+------------------
+##### Bugfixes
+* Make ufal.udpipe work on all platforms ([#384](../../pull/384))
+* Documentation can appear in canvas ([#376](../../pull/376))
+
+
+[0.5.0] - 2018-09-14
+--------------------
+##### Enhancements
+* Concordance: output concordances ([#371](../../pull/371))
+* UDPipe Lemmatizer ([#367](../../pull/367))
+* OWWordCloud: Add the word cloud image to the report ([#364](../../pull/364))
+* Sentiment Analysis: add Slovenian language ([#366](../../pull/366))
+
+##### Bugfixes
+* Guardian: Handle API limit exception ([#365](../../pull/365))
+* Corpus Viewer: fix highlighting ([#375](../../pull/375))
+
 
 [0.4.0] - 2018-07-23
 --------------------
@@ -95,7 +165,16 @@ Change Log
 --------------------
 
 
-[next]: https://github.com/biolab/orange3-text/compare/0.3.0...HEAD
+[next]: https://github.com/biolab/orange3-text/compare/0.7.4...HEAD
+[0.7.4]: https://github.com/biolab/orange3-text/compare/0.7.3...0.7.4
+[0.7.3]: https://github.com/biolab/orange3-text/compare/0.7.2...0.7.3
+[0.7.2]: https://github.com/biolab/orange3-text/compare/0.7.1...0.7.2
+[0.7.1]: https://github.com/biolab/orange3-text/compare/0.7.0...0.7.1
+[0.7.0]: https://github.com/biolab/orange3-text/compare/0.6.0...0.7.0
+[0.6.0]: https://github.com/biolab/orange3-text/compare/0.5.1...0.6.0
+[0.5.1]: https://github.com/biolab/orange3-text/compare/0.5.0...0.5.1
+[0.5.0]: https://github.com/biolab/orange3-text/compare/0.4.0...0.5.0
+[0.4.0]: https://github.com/biolab/orange3-text/compare/0.3.0...0.4.0
 [0.3.0]: https://github.com/biolab/orange3-text/compare/0.2.5...0.3.0
 [0.2.5]: https://github.com/biolab/orange3-text/compare/0.2.4...0.2.5
 [0.2.4]: https://github.com/biolab/orange3-text/compare/0.2.3...0.2.4
