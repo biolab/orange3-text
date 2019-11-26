@@ -3,11 +3,10 @@ from AnyQt.QtWidgets import QApplication, QGridLayout, QLabel
 
 from Orange.widgets import gui, settings
 from Orange.widgets.utils.signals import Input, Output
-from Orange.widgets.widget import OWWidget
+from Orange.widgets.widget import OWWidget, Msg
 from orangecontrib.text import Corpus
 from orangecontrib.text.sentiment import VaderSentiment, LiuHuSentiment, \
     MultiSentiment, SentimentDictionaries
-from orangewidget.widget import Msg
 
 
 class OWSentimentAnalysis(OWWidget):
