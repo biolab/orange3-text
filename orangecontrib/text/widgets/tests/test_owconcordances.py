@@ -141,7 +141,10 @@ class TestConcordanceModel(unittest.TestCase):
         model = ConcordanceModel()
         model.set_word("of")
         model.set_corpus(self.corpus)
-        self.assertEqual(len(model.get_data()), 7)
+        output = model.get_data()
+        self.assertEqual(len(output), 7)
+        self.assertEqual(len(output.text_features), 1)
+        self.assertTrue(output.text_features[0].name.startswith('Conc. of'))
 
 
 class TestConcordanceWidget(WidgetTest):
