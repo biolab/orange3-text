@@ -167,7 +167,7 @@ class ConcordanceModel(QAbstractTableModel):
             data.append([" ".join(txt)])
             docs.append([self.corpus.titles[self.word_index[row][0]]])
         conc = np.array(np.hstack((data, docs)), dtype=object)
-        return Corpus(domain, metas=conc, text_features=[domain.metas[1]])
+        return Corpus(domain, metas=conc, text_features=[domain.metas[0]])
 
 
 class OWConcordance(OWWidget):
