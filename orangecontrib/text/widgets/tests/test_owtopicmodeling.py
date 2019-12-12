@@ -54,6 +54,19 @@ class TestTopicModeling(WidgetTest):
         np.testing.assert_allclose(m1[:, 1].astype(float),
                                    m2[:, 1].astype(float))
 
+    def test_all_topics_output(self):
+        # LSI produces 9 topics for deerwester, output should be 9
+        def until(widget=self.widget):
+            return bool(self.get_output(widget.Outputs.selected_topic,
+                                        widget=widget))
+
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.process_events(until)
+        output = self.get_output(self.widget.Outputs.all_topics)
+        self.assertEqual(len(output), self.widget.model.actual_topics)
+        self.assertEqual(output.metas.shape[1],
+                         self.widget.corpus.metas.shape[1] + 1)
+
 
 if __name__ == "__main__":
     unittest.main()
