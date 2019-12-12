@@ -8,7 +8,7 @@ from AnyQt.QtWidgets import (QVBoxLayout, QButtonGroup, QRadioButton,
 
 from Orange.widgets import settings
 from Orange.widgets import gui
-from Orange.widgets.widget import OWWidget, Input, Output
+from Orange.widgets.widget import OWWidget, Input, Output, Msg
 from Orange.data import Table
 from Orange.widgets.data.contexthandlers import DomainContextHandler
 from orangecontrib.text.corpus import Corpus
@@ -134,6 +134,9 @@ class OWTopicModeling(OWWidget):
 
     control_area_width = 300
 
+    class Warning(OWWidget.Warning):
+        less_topics_found = Msg('Less topics found than requested.')
+
     def __init__(self):
         super().__init__()
         self.corpus = None
@@ -173,6 +176,7 @@ class OWTopicModeling(OWWidget):
 
     @Inputs.corpus
     def set_data(self, data=None):
+        self.Warning.less_topics_found.clear()
         self.corpus = data
         self.apply()
 
@@ -208,6 +212,7 @@ class OWTopicModeling(OWWidget):
 
     @learning_task.on_start
     def on_start(self):
+        self.Warning.less_topics_found.clear()
         self.progressBarInit()
         self.topic_desc.clear()
 
@@ -224,6 +229,8 @@ class OWTopicModeling(OWWidget):
             if self.__pending_selection:
                 self.topic_desc.select(self.__pending_selection)
                 self.__pending_selection = None
+            if self.model.actual_topics != self.model.num_topics:
+                self.Warning.less_topics_found()
             self.Outputs.all_topics.send(self.model.get_all_topics_table())
 
     @learning_task.callback

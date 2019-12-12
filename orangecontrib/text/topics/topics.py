@@ -73,11 +73,12 @@ class GensimWrapper:
     def transform(self, corpus):
         """ Create a table with topics representation. """
         topics = self.model[corpus.ngrams_corpus]
+        self.actual_topics = self.model.get_topics().shape[0]
         matrix = matutils.corpus2dense(topics, num_docs=len(corpus),
                                        num_terms=self.num_topics).T
         corpus.extend_attributes(matrix[:, :self.actual_topics],
                                  self.topic_names[:self.actual_topics])
-        self.doc_topic = matrix
+        self.doc_topic = matrix[:, :self.actual_topics]
         self.tokens = corpus.tokens
         return corpus
 
