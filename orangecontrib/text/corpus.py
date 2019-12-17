@@ -197,15 +197,7 @@ class Corpus(Table):
         """ Returns a list of titles. """
         attrs = [attr for attr in chain(self.domain.variables, self.domain.metas)
                  if attr.attributes.get('title', False)]
-        # Alternatively, use heuristics
-        if not attrs:
-            for var in sorted(chain(self.domain.metas, self.domain.variables),
-                              key=lambda var: var.name,
-                              reverse=True):  # reverse so that title < heading < filename
-                if var.name.lower() in ('title', 'heading', 'h1', 'filename') \
-                        and not var.attributes.get('hidden', False):    # skip BoW features
-                    attrs = [var]
-                    break
+
         if attrs:
             return self.documents_from_features(attrs)
         else:

@@ -1,9 +1,10 @@
 import os
+import numpy as np
 
-from Orange.data import Table
+from Orange.data import Table, StringVariable, Variable
 from Orange.data.io import FileFormat
 from Orange.widgets import gui
-from Orange.widgets.utils.itemmodels import VariableListModel
+from Orange.widgets.utils.itemmodels import VariableListModel, DomainModel
 from Orange.widgets.data.owselectcolumns import VariablesListItemView
 from Orange.widgets.settings import Setting, ContextSetting, PerfectDomainContextHandler
 from Orange.widgets.widget import OWWidget, Msg, Input, Output
@@ -46,6 +47,7 @@ class OWCorpus(OWWidget):
         "andersen.tab",
     ])
     used_attrs = ContextSetting([])
+    title_variable = ContextSetting("")
 
     class Error(OWWidget.Error):
         read_file = Msg("Can't read file {} ({})")
@@ -72,6 +74,15 @@ class OWCorpus(OWWidget):
         ibox = gui.widgetBox(self.controlArea, "Corpus info", addSpace=True)
         self.info_label = gui.label(ibox, self, "")
         self.update_info()
+
+        # dropdown to select title variable
+        self.title_model = DomainModel(
+            valid_types=(StringVariable,), placeholder="(no title)")
+        gui.comboBox(
+            self.controlArea, self, "title_variable",
+            box="Title variable", model=self.title_model,
+            callback=self.update_feature_selection
+        )
 
         # Used Text Features
         fbox = gui.widgetBox(self.controlArea, orientation=0)
@@ -138,6 +149,7 @@ class OWCorpus(OWWidget):
             return
 
         self.update_info()
+        self._setup_title_dropdown()
         self.used_attrs = list(self.corpus.text_features)
         if not self.corpus.text_features:
             self.Error.corpus_without_text_features()
@@ -148,6 +160,56 @@ class OWCorpus(OWWidget):
         self.unused_attrs_model.extend(
             [f for f in self.corpus.domain.metas
              if f.is_string and f not in self.used_attrs_model])
+
+    def _setup_title_dropdown(self):
+        self.title_model.set_domain(self.corpus.domain)
+
+        # if title variable is already marked in a dataset set it as a title
+        # variable
+        title_var = list(filter(
+            lambda x: x.attributes.get("title", False),
+            self.corpus.domain.metas))
+        if title_var:
+            self.title_variable = title_var[0]
+            return
+
+        # if not title attribute use heuristic for selecting it
+        v_len = np.vectorize(len)
+        first_selection = (None, 0)  # value, uniqueness
+        second_selection = (None, 100)  # value, avg text length
+
+        variables = [v for v in self.title_model
+                     if v is not None and isinstance(v, Variable)]
+
+        for variable in sorted(
+                variables, key=lambda var: var.name, reverse=True):
+            # if there is title, heading, or filename attribute in corpus
+            # heuristic should select them -
+            # in order title > heading > filename - this is why we use sort
+            if str(variable).lower() in ('title', 'heading', 'filename'):
+                first_selection = (variable, 0)
+                break
+
+            # otherwise uniqueness and length counts
+            column_values = self.corpus.get_column_view(variable)[0]
+            average_text_length = v_len(column_values).mean()
+            uniqueness = len(np.unique(column_values))
+
+            # if the variable is short enough to be a title select one with
+            # the highest number of unique values
+            if uniqueness > first_selection[1] and average_text_length <= 30:
+                first_selection = (variable, uniqueness)
+            # else select the variable with shortest average text that is
+            # shorter than 100 (if all longer than 100 leave empty)
+            elif average_text_length < second_selection[1]:
+                second_selection = (variable, average_text_length)
+
+        if first_selection[0] is not None:
+            self.title_variable = first_selection[0]
+        elif second_selection[0] is not None:
+            self.title_variable = second_selection[0]
+        else:
+            self.title_variable = None
 
     def update_info(self):
         def describe(corpus):
@@ -194,12 +256,22 @@ class OWCorpus(OWWidget):
             if len(self.unused_attrs_model) > 0 and not self.corpus.text_features:
                 self.Error.no_text_features_used()
 
+            self._set_title_attribute()
             # prevent sending "empty" corpora
             dom = self.corpus.domain
             empty = not (dom.variables or dom.metas) \
                 or len(self.corpus) == 0 \
                 or not self.corpus.text_features
             self.Outputs.corpus.send(self.corpus if not empty else None)
+
+    def _set_title_attribute(self):
+        # remove all title attributes
+        for a in self.corpus.domain.variables + self.corpus.domain.metas:
+            a.attributes.pop("title", None)
+
+        if self.title_variable and self.title_variable in self.corpus.domain:
+            self.corpus.domain[
+                self.title_variable].attributes["title"] = True
 
     def send_report(self):
         def describe(features):
