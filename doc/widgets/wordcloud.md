@@ -11,9 +11,10 @@ Generates a word cloud from corpus.
 **Outputs**
 
 - Corpus: Documents that match the selection.
-- Word: Selected word that can be used as query in [Concordance](concordance.md).
+- Selected Word: Selected word that can be used as query in [Concordance](concordance.md).
+- Word Counts: Words and their weights.
 
-**Word Cloud** displays tokens in the corpus, their size denoting the frequency of the word in corpus. Words are listed by their frequency (weight) in the widget. The widget outputs documents, containing selected tokens from the word cloud.
+**Word Cloud** displays tokens in the corpus, their size denoting the frequency of the word in corpus or an average bag of words count, when bag of words features are at the input of the widget. Words are listed by their frequency (weight) in the widget. The widget outputs documents, containing selected tokens from the word cloud.
 
 ![](images/Word-Cloud-stamped.png)
 

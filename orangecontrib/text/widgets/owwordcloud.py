@@ -1,6 +1,7 @@
 # coding: utf-8
 from collections import Counter
 from math import pi as PI
+from operator import itemgetter
 
 import numpy as np
 from AnyQt.QtCore import Qt, QItemSelection, QItemSelectionModel, pyqtSlot, \
@@ -39,6 +40,9 @@ class OWWordCloud(widget.OWWidget):
 
     class Warning(widget.OWWidget.Warning):
         topic_precedence = widget.Msg('Input signal Topic takes priority over Corpus')
+
+    class Info(widget.OWWidget.Information):
+        bow_weights = widget.Msg("Showing bag of words weights.")
 
     def __init__(self):
         super().__init__()
@@ -250,16 +254,44 @@ span.selected {color:red !important}
     @Inputs.corpus
     def on_corpus_change(self, data):
         self.corpus = data
+        self.Info.clear()
 
         self.corpus_counter = Counter()
         if data is not None:
-            self.corpus_counter = Counter(w for doc in data.ngrams for w in doc)
+            bow_counts = self._bow_words()
+            if bow_counts:
+                self.Info.bow_weights()
+                self.corpus_counter = Counter(bow_counts)
+            else:
+                self.corpus_counter = Counter(w for doc in data.ngrams for w in doc)
             n_docs, n_words = len(data), len(self.corpus_counter)
 
-        self.documents_info_str = ('{} documents with {} words'.format(n_docs, n_words)
-                                   if data else '(no documents on input)')
+        self.documents_info_str = (
+            '{} documents with {} words'.format(n_docs, n_words)
+            if data else '(no documents on input)')
 
         self.create_weight_list()
+
+    def _bow_words(self):
+        """
+        This function extract words from bag of words features and assign them
+        the frequency which is average bow count.
+        """
+        bow_features = self._get_bow_variables()
+        if not bow_features:
+            return {}
+
+        average_bows = {
+            f.name: self.corpus.get_column_view(f)[0].mean()
+            for f in bow_features}
+        return average_bows
+
+    def _get_bow_variables(self):
+        """
+        Extract bow variables from data
+        """
+        return [var for var in self.corpus.domain.variables
+                if var.attributes.get("bow-feature", False)]
 
     def handleNewSignals(self):
         if self.topic is not None and len(self.topic):
