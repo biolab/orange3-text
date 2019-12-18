@@ -2,7 +2,7 @@
 branch = True
 source = orangecontrib
 omit =
-    orangecontrib/text/widgets/*
+    orangecontrib/text/widgets/tests/*
     orangecontrib/text/tests/*
 
 [report]
