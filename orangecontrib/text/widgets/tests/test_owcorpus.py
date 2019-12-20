@@ -1,5 +1,7 @@
+from unittest.mock import Mock, patch
+
 import numpy as np
-from Orange.data import Table, Domain, StringVariable
+from Orange.data import Table, Domain, StringVariable, ContinuousVariable
 from Orange.widgets.tests.base import WidgetTest
 
 from orangecontrib.text import Corpus
@@ -163,3 +165,68 @@ class TestOWCorpus(WidgetTest):
         self.assertEqual(data.domain["c"], self.widget.title_variable)
         self.check_output("c")
 
+    def test_input_status(self):
+        """
+        Test input, output info
+        """
+        data = Corpus.from_file("election-tweets-2016")
+        input_sum = self.widget.info.set_input_summary = Mock()
+
+        self.send_signal(self.widget.Inputs.data, data)
+        input_sum.assert_called_with(
+            str(len(data)), f"{len(data)} data instances on input")
+        input_sum.reset_mock()
+        self.send_signal(self.widget.Inputs.data, data[:1])
+        input_sum.assert_called_with("1", "1 data instance on input")
+        input_sum.reset_mock()
+
+        self.send_signal(self.widget.Inputs.data, None)
+        input_sum.assert_called_with(self.widget.info.NoInput)
+        input_sum.reset_mock()
+
+    def test_output_status(self):
+        """
+        Test input, output info
+        """
+        # when input signal
+        data = Corpus.from_file("election-tweets-2016")
+        out_sum = self.widget.info.set_output_summary = Mock()
+
+        self.send_signal(self.widget.Inputs.data, data)
+        out_sum.assert_called_with(
+            str(len(data)),
+            "6444 document(s)\n4 text features(s)\n7 other feature(s)\n"
+            "Classification; discrete class with 2 values.")
+        out_sum.reset_mock()
+
+        # corpus without class
+        data1 = Corpus(Domain(data.domain.attributes, metas=data.domain.metas),
+                       data.X, metas=data.metas,
+                       text_features=data.text_features)
+        self.send_signal(self.widget.Inputs.data, data1)
+        out_sum.assert_called_with(
+            str(len(data)),
+            "6444 document(s)\n4 text features(s)\n7 other feature(s)")
+        out_sum.reset_mock()
+
+        # corpus with continuous class
+        data1 = Corpus(Domain(data.domain.attributes,
+                              ContinuousVariable("a"),
+                              metas=data.domain.metas),
+                       data.X, np.random.rand(len(data), 1),
+                       metas=data.metas,
+                       text_features=data.text_features)
+        self.send_signal(self.widget.Inputs.data, data1)
+        out_sum.assert_called_with(
+            str(len(data)),
+            "6444 document(s)\n4 text features(s)\n7 other feature(s)\n"
+            "Regression; numerical class.")
+        out_sum.reset_mock()
+
+        # default dataset is on the output
+        self.send_signal(self.widget.Inputs.data, None)
+        out_sum.assert_called_with(
+            "140",
+            "140 document(s)\n1 text features(s)\n0 other feature(s)\n"
+            "Classification; discrete class with 2 values.")
+        out_sum.reset_mock()

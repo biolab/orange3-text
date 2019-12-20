@@ -70,11 +70,6 @@ class OWCorpus(OWWidget):
         )
         fbox.layout().addWidget(self.file_widget)
 
-        # Corpus info
-        ibox = gui.widgetBox(self.controlArea, "Corpus info", addSpace=True)
-        self.info_label = gui.label(ibox, self, "")
-        self.update_info()
-
         # dropdown to select title variable
         self.title_model = DomainModel(
             valid_types=(StringVariable,), placeholder="(no title)")
@@ -115,6 +110,8 @@ class OWCorpus(OWWidget):
 
         # load first file
         self.file_widget.select(0)
+        self.update_output_info()
+        self.update_input_info(None)
 
     def sizeHint(self):
         return QSize(400, 300)
@@ -126,6 +123,8 @@ class OWCorpus(OWWidget):
         # Enable/Disable command when data from input
         self.file_widget.setEnabled(not have_data)
         self.browse_documentation.setEnabled(not have_data)
+
+        self.update_input_info(data)
 
         if have_data:
             self.open_file(data=data)
@@ -148,7 +147,7 @@ class OWCorpus(OWWidget):
         else:
             return
 
-        self.update_info()
+        self.update_output_info()
         self._setup_title_dropdown()
         self.used_attrs = list(self.corpus.text_features)
         if not self.corpus.text_features:
@@ -211,31 +210,38 @@ class OWCorpus(OWWidget):
         else:
             self.title_variable = None
 
-    def update_info(self):
+    def update_output_info(self):
         def describe(corpus):
             dom = corpus.domain
             text_feats = sum(m.is_string for m in dom.metas)
             other_feats = len(dom.attributes) + len(dom.metas) - text_feats
             text = \
-                "{} document(s), {} text features(s), {} other feature(s).". \
+                "{} document(s)\n{} text features(s)\n{} other feature(s)". \
                 format(len(corpus), text_feats, other_feats)
             if dom.has_continuous_class:
-                text += "<br/>Regression; numerical class."
+                text += "\nRegression; numerical class."
             elif dom.has_discrete_class:
-                text += "<br/>Classification; discrete class with {} values.". \
+                text += "\nClassification; discrete class with {} values.". \
                     format(len(dom.class_var.values))
             elif corpus.domain.class_vars:
-                text += "<br/>Multi-target; {} target variables.".format(
+                text += "\nMulti-target; {} target variables.".format(
                     len(corpus.domain.class_vars))
-            else:
-                text += "<br/>Data has no target variable."
-            text += "</p>"
             return text
 
         if self.corpus is None:
-            self.info_label.setText("No corpus loaded.")
+            self.info.set_output_summary(self.info.NoOutput)
         else:
-            self.info_label.setText(describe(self.corpus))
+            self.info.set_output_summary(
+                str(len(self.corpus)), describe(self.corpus))
+
+    def update_input_info(self, data):
+        if data:
+            self.info.set_input_summary(
+                str(len(data)),
+                f"{len(data)} data instance{'s' if len(data) > 1 else ''}"
+                f" on input")
+        else:
+            self.info.set_input_summary(self.info.NoInput)
 
     def update_feature_selection(self):
         self.Error.no_text_features_used.clear()
