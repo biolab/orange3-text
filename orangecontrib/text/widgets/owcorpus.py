@@ -6,7 +6,8 @@ from Orange.data.io import FileFormat
 from Orange.widgets import gui
 from Orange.widgets.utils.itemmodels import VariableListModel, DomainModel
 from Orange.widgets.data.owselectcolumns import VariablesListItemView
-from Orange.widgets.settings import Setting, ContextSetting, PerfectDomainContextHandler
+from Orange.widgets.settings import Setting, ContextSetting,\
+    DomainContextHandler
 from Orange.widgets.widget import OWWidget, Msg, Input, Output
 from orangecontrib.text.corpus import Corpus, get_sample_corpora_dir
 from orangecontrib.text.widgets.utils import widgets, QSize
@@ -35,9 +36,7 @@ class OWCorpus(OWWidget):
                   for f in sorted(set(FileFormat.readers.values()),
                                   key=list(FileFormat.readers.values()).index)))
 
-    settingsHandler = PerfectDomainContextHandler(
-        match_values=PerfectDomainContextHandler.MATCH_VALUES_ALL
-    )
+    settingsHandler = DomainContextHandler()
 
     recent_files = Setting([
         "book-excerpts.tab",
