@@ -164,11 +164,64 @@ class CorpusTests(unittest.TestCase):
             self.assertIn('Document ', title)
 
         # title feature set
-        c.domain[0].attributes['title'] = True
+        c.set_title_variable(c.domain[0])
         titles = c.titles
         self.assertEqual(len(titles), len(c))
-        for title in titles:
-            self.assertIn(title, c.domain.class_var.values)
+
+        # first 50 are children
+        for title, c in zip(titles[:50], range(1, 51)):
+            self.assertEqual(f"children ({c})", title)
+
+        # others are adults
+        for title, a in zip(titles[50:100], range(1, 51)):
+            self.assertEqual(f"adult ({a})", title)
+
+        # first 50 are children
+        for title, c in zip(titles[100:120], range(51, 71)):
+            self.assertEqual(f"children ({c})", title)
+
+        # others are adults
+        for title, a in zip(titles[120:140], range(51, 71)):
+            self.assertEqual(f"adult ({a})", title)
+
+    def test_titles_no_numbers(self):
+        """
+        The case when no number is used since the title appears only once.
+        """
+        c = Corpus.from_file('andersen')
+        c.set_title_variable(c.domain.metas[0])
+
+        # title feature set
+        self.assertEqual("The Little Match-Seller", c.titles[0])
+
+    def test_titles_read_document(self):
+        """
+        When we read the document with a title marked it should have titles
+        set correctly.
+        """
+        c = Corpus.from_file('election-tweets-2016')
+
+        self.assertEqual(len(c), len(c.titles))
+
+    def test_titles_sample(self):
+        c = Corpus.from_file('book-excerpts')
+        c.set_title_variable(c.domain[0])
+
+        c_sample = c[10:20]
+        for title, i in zip(c_sample.titles, range(11, 21)):
+            self.assertEqual(f"children ({i})", title)
+
+        c_sample = c[60:70]
+        for title, i in zip(c_sample.titles, range(11, 21)):
+            self.assertEqual(f"adult ({i})", title)
+
+        c_sample = c[[10, 11, 12]]
+        for title, i in zip(c_sample.titles, range(11, 14)):
+            self.assertEqual(f"children ({i})", title)
+
+        c_sample = c[np.array([10, 11, 12])]
+        for title, i in zip(c_sample.titles, range(11, 14)):
+            self.assertEqual(f"children ({i})", title)
 
     def test_documents_from_features(self):
         c = Corpus.from_file('book-excerpts')
@@ -369,3 +422,7 @@ class CorpusTests(unittest.TestCase):
         self.assertFalse(len(d.text_features))
         # Make sure that copying works.
         d.copy()
+
+
+if __name__ == "__main__":
+    unittest.main()

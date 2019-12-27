@@ -262,22 +262,13 @@ class OWCorpus(OWWidget):
             if len(self.unused_attrs_model) > 0 and not self.corpus.text_features:
                 self.Error.no_text_features_used()
 
-            self._set_title_attribute()
+            self.corpus.set_title_variable(self.title_variable)
             # prevent sending "empty" corpora
             dom = self.corpus.domain
             empty = not (dom.variables or dom.metas) \
                 or len(self.corpus) == 0 \
                 or not self.corpus.text_features
             self.Outputs.corpus.send(self.corpus if not empty else None)
-
-    def _set_title_attribute(self):
-        # remove all title attributes
-        for a in self.corpus.domain.variables + self.corpus.domain.metas:
-            a.attributes.pop("title", None)
-
-        if self.title_variable and self.title_variable in self.corpus.domain:
-            self.corpus.domain[
-                self.title_variable].attributes["title"] = True
 
     def send_report(self):
         def describe(features):
