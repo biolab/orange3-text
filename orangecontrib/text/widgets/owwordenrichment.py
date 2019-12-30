@@ -80,6 +80,10 @@ class OWWordEnrichment(OWWidget, ConcurrentWidgetMixin):
 
         self.results = Result()
 
+        # info box
+        fbox = gui.widgetBox(self.controlArea, "Info")
+        self.info_fil = gui.label(fbox, self, 'Words displayed: 0')
+
         # Filtering settings
         fbox = gui.widgetBox(self.controlArea, "Filter")
         hbox = gui.widgetBox(fbox, orientation=0)
@@ -175,7 +179,7 @@ class OWWordEnrichment(OWWidget, ConcurrentWidgetMixin):
     def clear(self):
         self.sig_words.clear()
         self.info.set_input_summary(self.info.NoInput)
-        self.info.set_output_summary(self.info.NoOutput)
+        self.set_displayed_info(0)
 
     def filter_enabled(self, b):
         self.chb_p.setEnabled(b)
@@ -198,7 +202,7 @@ class OWWordEnrichment(OWWidget, ConcurrentWidgetMixin):
 
         for i in range(len(self.cols)):
             self.sig_words.resizeColumnToContents(i)
-        self.set_output_info(count)
+        self.set_displayed_info(count)
 
     def build_tree(self) -> int:
         count = 0
@@ -224,8 +228,8 @@ class OWWordEnrichment(OWWidget, ConcurrentWidgetMixin):
             f"Total words: {cluster_words}\n"
             f"Words in subset: {selected_words}")
 
-    def set_output_info(self, count: int) -> None:
-        self.info.set_output_summary(str(count), f"{count} words displayed")
+    def set_displayed_info(self, count: int) -> None:
+        self.info_fil.setText(f"Words displayed: {count}")
 
     def apply(self):
         self.sig_words.clear()
