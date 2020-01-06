@@ -34,6 +34,9 @@ class GensimWrapper:
         self.topic_names = []
         self.n_words = 0
         self.running = False
+        self.doc_topic = None
+        self.tokens = None
+        self.actual_topics = None
 
     def fit(self, corpus, **kwargs):
         """ Train the model with the corpus.
@@ -70,10 +73,13 @@ class GensimWrapper:
     def transform(self, corpus):
         """ Create a table with topics representation. """
         topics = self.model[corpus.ngrams_corpus]
+        self.actual_topics = self.model.get_topics().shape[0]
         matrix = matutils.corpus2dense(topics, num_docs=len(corpus),
                                        num_terms=self.num_topics).T
-
-        corpus.extend_attributes(matrix[:, :len(self.topic_names)], self.topic_names)
+        corpus.extend_attributes(matrix[:, :self.actual_topics],
+                                 self.topic_names[:self.actual_topics])
+        self.doc_topic = matrix[:, :self.actual_topics]
+        self.tokens = corpus.tokens
         return corpus
 
     def fit_transform(self, corpus, **kwargs):
@@ -105,6 +111,18 @@ class GensimWrapper:
         t.name = 'Topic {}'.format(topic_id + 1)
         return t
 
+    @staticmethod
+    def _marginal_probability(tokens, doc_topic):
+        """
+        Compute marginal probability of a topic, that is the probability of a
+        topic across all documents.
+
+        :return: np.array of marginal topic probabilities
+        """
+        doc_length = [len(i) for i in tokens]
+        doc_length[:] = [x / sum(doc_length) for x in doc_length]
+        return np.reshape(np.sum(doc_topic.T * doc_length, axis=1), (-1, 1))
+
     def get_all_topics_table(self):
         """ Transform all topics from gensim model to table. """
         all_words = self._topics_words(self.n_words)
@@ -116,15 +134,19 @@ class GensimWrapper:
         for words, weights in zip(all_words, all_weights):
             weights = [we for wo, we in sorted(zip(words, weights))]
             X.append(weights)
-        X = np.array(X).T
+        X = np.array(X)
 
         # take only first n_topics; e.g. when user requested 10, but gensim
         # returns only 9 — when the rank is lower than num_topics requested
-        attrs = [ContinuousVariable(n)
-                 for n in self.topic_names[:n_topics]]
+        names = np.array(self.topic_names[:n_topics])[:, None]
+        attrs = [ContinuousVariable(w) for w in sorted_words]
+        metas = [StringVariable('Topics'),
+                 ContinuousVariable('Marginal Topic Probability')]
 
-        t = Table.from_numpy(Domain(attrs, metas=[StringVariable('Word')]),
-                             X=X, metas=np.array(sorted_words)[:, None])
+        topic_proba = self._marginal_probability(self.tokens, self.doc_topic)
+
+        t = Table.from_numpy(Domain(attrs, metas=metas), X=X,
+                             metas=np.hstack((names, topic_proba)))
         t.name = 'All topics'
         return t
 

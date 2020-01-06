@@ -11,14 +11,20 @@ Topic modelling with Latent Dirichlet Allocation, Latent Semantic Indexing or Hi
 
 - Corpus: Corpus with topic weights appended.
 - Topics: Selected topics with word weights.
-- All Topics: Topic weights by tokens.
+- All Topics: Token weights per topic.
 
 **Topic Modelling** discovers abstract topics in a corpus based on clusters of words found in each document and their respective frequency. A document typically contains multiple topics in different proportions, thus the widget also reports on the topic weight per document.
+
+The widget wraps gensim's topic models ([LSI](https://radimrehurek.com/gensim/models/lsimodel.html), [LDA](https://radimrehurek.com/gensim/models/ldamodel.html), [HDP](https://radimrehurek.com/gensim/models/hdpmodel.html)).
+
+The first, LSI, can return both positive and negative words (words that are in a topic and those that aren't) and concurrently topic weights, that can be positive or negative. As stated by the main gensim's developer, Radim Řehůřek: *"LSI topics are not supposed to make sense; since LSI allows negative numbers, it boils down to delicate cancellations between topics and there's no straightforward way to interpret a topic."*
+
+LDA can be more easily interpreted, but is slower than LSI. HDP has many parameters - the parameter that corresponds to the number of topics is *Top level truncation level (T)*. The smallest number of topics that one can retrieve is 10.
 
 ![](images/Topic-Modelling-stamped.png)
 
 1. Topic modelling algorithm:
-   - [Latent Semantic Indexing](https://en.wikipedia.org/wiki/Latent_semantic_analysis)
+   - [Latent Semantic Indexing](https://en.wikipedia.org/wiki/Latent_semantic_analysis). Returns both negative and positive words and topic weights.
    - [Latent Dirichlet Allocation](https://en.wikipedia.org/wiki/Latent_Dirichlet_allocation)
    - [Hierarchical Dirichlet Process](https://en.wikipedia.org/wiki/Hierarchical_Dirichlet_process)
 2. Parameters for the algorithm. LSI and LDA accept only the number of topics modelled, with the default set to 10. HDP, however, has more parameters. As this algorithm is computationally very demanding, we recommend you to try it on a subset or set all the required parameters in advance and only then run the algorithm (connect the input to the widget).
@@ -32,8 +38,10 @@ Topic modelling with Latent Dirichlet Allocation, Latent Semantic Indexing or Hi
 3. Produce a report.
 4. If *Commit Automatically* is on, changes are communicated automatically. Alternatively press *Commit*.
 
-Example
--------
+Examples
+--------
+
+#### Exploring Individual Topics
 
 In the first example, we present a simple use of the **Topic Modelling** widget. First we load *grimm-tales-selected.tab* data set and use [Preprocess Text](preprocesstext.md) to tokenize by words only and remove stopwords. Then we connect **Preprocess Text** to **Topic Modelling**, where we use a simple *Latent Semantic Indexing* to find 10 topics in the text.
 
@@ -45,18 +53,20 @@ We then select the first topic and display the most frequent words in the topic 
 
 Now we can observe all the documents containing the word *little* in [Corpus Viewer](corpusviewer.md).
 
-In the second example, we will look at the correlation between topics and words/documents. Connect **Topic Modelling** to **Heat Map**. Ensure the link is set to *All Topics* - *Data*. **Topic Modelling** will output a matrix of topic weights by words from text (more precisely, tokens).
+#### Topic Visualization
 
-We can observe the output in a **Data Table**. Tokens are in rows and retrieved topics in columns. Values represent how much a word is represented in a topic.
+In the second example, we will look at the correlation between topics and words/documents. We are still using the *grimm-tales-selected.tab* corpus. In **Preprocess Text** we are using the default preprocessing, with an additional filter by *document frequency* (0.1 - 0.9). In **Topic Modelling** we are using LDA model with 5 topics.
 
-![](images/Topic-Modelling-DataTable.png)
+Connect Topic Modelling to **MDS**. Ensure the link is set to *All Topics* - *Data*. Topic Modelling will output a matrix of word weights by topic.
 
-To visualize this matrix, open **Heat Map**. Select *Merge by k-means* and *Cluster* - *Rows* to merge similar rows into one and sort them by similarity, which makes the visualization more compact.
+In MDS, the points are now topics. We have set the size of the points to *Marginal topic probability*, which is an additional columns of *All Topics* - it reports on the marginal probability of the topic in the corpus (how strongly represented is the topic in the corpus).
 
-In the upper part of the visualization, we have words that highly define topics 1-3 and in the lower part those that define topics 5 and 10.
+![](images/Topic-Modelling-Example2-MDS.png)
 
-We can similarly observe topic representation across documents. We connect another **Heat Map** to **Topic Modelling** and set link to *Corpus* - *Data*. We set *Merge* and *Cluster* as above.
+We can now explore which words are representative for the topic. Select, say, Topic 5 from the plot and connect MDS to **Box Plot**. Make sure the output is set to *Data* - *Data* (not *Selected Data* - *Data*).
 
-In this visualization we see how much is a topic represented in a document. Looks like Topic 1 is represented almost across the entire corpus, while other topics are more specific. To observe a specific set of document, select either a clustering node or a row in the visualization. Then pass the data to [Corpus Viewer](corpusviewer.md).
+In Box Plot, set the subgroup to Selected and check the *Order by relevance to subgroups* box. This option will sort the variables by how well they separate between the selected subgroup values. In our case, this means which words are the most representative for the topic we have selected in the plot (subgroup Yes means selected).
 
-![](images/Topic-Modelling-Example2.png)
+We can see that little, children and kings are the most representative words for Topic 5, with good separation between the word frequency for this topic and all the others. Select other topics in MDS and see how the Box Plot changes.
+
+![](images/Topic-Modelling-Example2-BoxPlot.png)
