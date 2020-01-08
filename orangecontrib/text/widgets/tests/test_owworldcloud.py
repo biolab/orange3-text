@@ -26,11 +26,8 @@ class TestWorldCloudWidget(WidgetTest):
         Widget crashes when receives zero length data.
         GH-244
         """
-        self.assertTrue(self.widget.documents_info_str == "(no documents on input)")
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
-        self.assertTrue(self.widget.documents_info_str == "9 documents with 42 words")
         self.send_signal(self.widget.Inputs.corpus, self.corpus[:0])
-        self.assertTrue(self.widget.documents_info_str == "(no documents on input)")
 
     def test_bow_features(self):
         """
