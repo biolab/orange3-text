@@ -225,7 +225,6 @@ span.selected {color:red !important}
         self.webview.evalJS(
             f"textAreaEstimation = {self.combined_size_length}"
         )
-        print(self.combined_size_length)
         tilt_ratio, tilt_amount = {
             0: (0, 0),
             1: (1, PI / 6),
