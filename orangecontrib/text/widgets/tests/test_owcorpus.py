@@ -1,4 +1,4 @@
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 import numpy as np
 from Orange.data import Table, Domain, StringVariable, ContinuousVariable
@@ -120,12 +120,12 @@ class TestOWCorpus(WidgetTest):
         self.assertEqual(data.domain["Heading"], self.widget.title_variable)
         self.check_output("Heading")
 
-    def test_title_selection_strategy(self):
+    def test_title_selection_strategy_most_unique(self):
         """
         With this test we test whether the selection strategy for a title
-        attribute works correctly
+        attribute works correctly.
+        This one must select the most unique feature.
         """
-        # select the most unique
         data = Table(
             Domain([], metas=[StringVariable("a"), StringVariable("b")]),
             np.empty((3, 0)),
@@ -137,8 +137,13 @@ class TestOWCorpus(WidgetTest):
         self.assertEqual(data.domain["b"], self.widget.title_variable)
         self.check_output("b")
 
-        # select the uniquest and also short enough, here attribute a is not
-        # suitable since it has too long title, and c is more unique than b
+    def test_title_selection_strategy_shortness(self):
+        """
+        With this test we test whether the selection strategy for a title
+        attribute works correctly.
+        Select the uniquest and also short enough, here attribute a is not
+        suitable since it has too long title, and c is more unique than b.
+        """
         data = Table(
             Domain([], metas=[StringVariable("a"), StringVariable("b"),
                               StringVariable("c")]),
@@ -151,8 +156,12 @@ class TestOWCorpus(WidgetTest):
         self.assertEqual(data.domain["c"], self.widget.title_variable)
         self.check_output("c")
 
-        # when no variable is short enough we just select the shortest
-        # attribute
+    def test_title_selection_strategy_shortest(self):
+        """
+        With this test we test whether the selection strategy for a title
+        attribute works correctly.
+        When no variable is short enough we just select the shortest attribute.
+        """
         data = Table(
             Domain([], metas=[StringVariable("a"), StringVariable("b"),
                               StringVariable("c")]),
@@ -230,3 +239,31 @@ class TestOWCorpus(WidgetTest):
             "140 document(s)\n1 text features(s)\n0 other feature(s)\n"
             "Classification; discrete class with 2 values.")
         out_sum.reset_mock()
+
+    def test_keep_selected_variables(self):
+        """
+        When domain just slightly changes selected text variables should
+        still be same.
+        """
+        attributes = [
+            ContinuousVariable("a"), ContinuousVariable("b"),
+            ContinuousVariable("c")]
+        metas = [StringVariable("c"), StringVariable("d"),
+                 StringVariable("e"), StringVariable("f"),
+                 StringVariable("g"), StringVariable("h")]
+        data = Table(
+            Domain(attributes, metas=metas),
+            np.array([[0] * len(attributes)]),
+            metas=[["a" * 10] * len(metas)]
+        )
+        self.send_signal(self.widget.Inputs.data, data)
+        prew_selected = data.domain.metas[1:3]
+        self.widget.used_attrs = prew_selected
+
+        self.send_signal(self.widget.Inputs.data, None)
+
+        data = Table.from_table(
+            Domain(attributes[:-1], [], metas=metas), data
+        )
+        self.send_signal(self.widget.Inputs.data, data)
+        self.assertListEqual(list(prew_selected), self.widget.used_attrs)
