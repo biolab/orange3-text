@@ -109,6 +109,9 @@ class GensimWrapper:
                              metas=data)
         t.W = data[:, 1]
         t.name = 'Topic {}'.format(topic_id + 1)
+
+        # needed for coloring in word cloud
+        t.attributes["topic-method-name"] = self.model.__class__.__name__
         return t
 
     @staticmethod

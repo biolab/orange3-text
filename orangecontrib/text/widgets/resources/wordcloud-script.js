@@ -1,18 +1,20 @@
 // Options for WordCloud
 var OPTIONS = {
     list: [],
-    fontFamily: 'sans-serif',
-    fontWeight: 300,
+    // according to www good selection that covers all systems fonts - same than used by QT
+    fontFamily: '-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen-Sans, Ubuntu, Cantarell, Helvetica Neue, sans-serif',
     color: 'UNUSED',
     backgroundColor: 'white',
-    minSize: 7,
-    weightFactor: 1,
-    gridSize: 12,
     clearCanvas: true,
     minRotation: -Math.PI/10,
     maxRotation: Math.PI/10,
     rotateRatio: 1,
-    rotationSteps: 3
+    rotationSteps: 3,
+    weightFactor: weight_factor,
+    gridSize: 7,
+    shrinkToFit: true,
+    drawOutOfBound: false,
+    shuffle: false
 };
 
 // Redraw wordcloud when the window size changes
@@ -64,3 +66,33 @@ function selectWords() {
     }
 }
 document.getElementById('canvas').addEventListener('wordcloudstop', selectWords);
+
+function combined_width() {
+    /*
+    This function calculates combine width of the word cloud assuming that
+    cloud has a shape of ellipse which height is 0.65 % of width. It returns
+    smaller of width or ~1.5 * height.
+     */
+    var width = document.getElementById("canvas").clientWidth;
+    var height = document.getElementById("canvas").clientHeight;
+    // 0.65 is the ratio between width and height of ellipsis
+    return Math.min(width, 1.0 / 0.65 * height)
+}
+
+function weight_factor(size) {
+    const recalculated_width = combined_width();
+    // with this parameter we partially bring in the average word size
+    // combined with lenght (many big characters mean decrease size more)
+    size = size * (1/2 + 1/2 * 9000/textAreaEstimation);
+
+    // in basis with resizing from 300 to 700 the font size increases for
+    // this factor
+    const factor = 0.85;
+    if(recalculated_width < 300){
+        return size;
+    } else if(recalculated_width <= 700){
+        return size * (1 + ((recalculated_width - 300) / 400)) * factor;
+    } else {
+        return size * 2 * factor;
+    }
+}

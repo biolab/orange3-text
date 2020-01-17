@@ -1,10 +1,14 @@
 import unittest
+from unittest.mock import Mock
+
 import numpy as np
 
 from Orange.widgets.tests.base import WidgetTest
+from Orange.data import StringVariable, Domain
 from scipy.sparse import csr_matrix
 
 from orangecontrib.text.corpus import Corpus
+from orangecontrib.text.topics import Topic
 from orangecontrib.text.widgets.owwordcloud import OWWordCloud
 
 
@@ -12,6 +16,22 @@ class TestWorldCloudWidget(WidgetTest):
     def setUp(self):
         self.widget = self.create_widget(OWWordCloud)
         self.corpus = Corpus.from_file('deerwester')
+
+        self.topic = self.create_topic()
+
+    def create_topic(self):
+        words = [[f"a{i}"] for i in range(10)]
+        weights = list(range(10))
+        t = Topic.from_numpy(
+            Domain([], metas=[
+                StringVariable("Topic 1")
+            ]),
+            X=np.empty((10, 0)),
+            metas=np.array(words),
+            W=weights  #np.array(weights).reshape(-1, 1)
+        )
+        t.attributes["topic-method-name"] = "LsiModel"
+        return t
 
     def test_data(self):
         """
@@ -26,11 +46,8 @@ class TestWorldCloudWidget(WidgetTest):
         Widget crashes when receives zero length data.
         GH-244
         """
-        self.assertTrue(self.widget.documents_info_str == "(no documents on input)")
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
-        self.assertTrue(self.widget.documents_info_str == "9 documents with 42 words")
         self.send_signal(self.widget.Inputs.corpus, self.corpus[:0])
-        self.assertTrue(self.widget.documents_info_str == "(no documents on input)")
 
     def test_bow_features(self):
         """
@@ -97,6 +114,62 @@ class TestWorldCloudWidget(WidgetTest):
         self.assertTrue(self.widget.Info.bow_weights.is_shown())
         self.send_signal(self.widget.Inputs.corpus, None)
         self.assertFalse(self.widget.Info.bow_weights.is_shown())
+
+    def test_topic(self):
+        self.send_signal(self.widget.Inputs.topic, self.topic)
+
+        self.assertIsNotNone(self.widget.topic)
+        self.assertEqual("a0", self.widget.wordlist[0][0])
+        self.assertEqual(10, self.widget.wordlist[0][1])
+        self.assertEqual("a9", self.widget.wordlist[9][0])
+        self.assertEqual(40, self.widget.wordlist[9][1])
+
+        self.assertListEqual(
+            self.topic.metas[:, 0].tolist(), self.widget.shown_words.tolist())
+        np.testing.assert_array_almost_equal(self.topic.W, self.widget.shown_weights)
+
+    def test_input_summary(self):
+        insum = self.widget.info.set_input_summary = Mock()
+
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        insum.assert_called_with("42", "9 documents with 42 words\n")
+
+        self.send_signal(self.widget.Inputs.topic, self.topic)
+        insum.assert_called_with(
+            "42 | 10", "9 documents with 42 words\n10 words in a topic.")
+
+        self.send_signal(self.widget.Inputs.corpus, None)
+        insum.assert_called_with(f"10", "10 words in a topic.")
+
+        self.send_signal(self.widget.Inputs.topic, None)
+        insum.assert_called_with(self.widget.info.NoInput)
+
+        self.send_signal(self.widget.Inputs.topic, self.topic)
+        insum.assert_called_with(f"10", "10 words in a topic.")
+
+    def test_output_summary(self):
+        outsum = self.widget.info.set_output_summary = Mock()
+
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        outsum.assert_called_with(
+            "0 | 0 | 42", "0 documents\n0 selected words\n42 words with counts"
+        )
+
+        self.send_signal(self.widget.Inputs.topic, self.topic)
+        outsum.assert_called_with(
+            "0 | 0 | 42", "0 documents\n0 selected words\n42 words with counts"
+        )
+
+        self.send_signal(self.widget.Inputs.corpus, None)
+        outsum.assert_called_with(self.widget.info.NoOutput)
+
+        self.send_signal(self.widget.Inputs.topic, None)
+        outsum.assert_called_with(self.widget.info.NoOutput)
+
+    def test_send_report(self):
+        self.widget.send_report()
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.widget.send_report()
 
 
 if __name__ == "__main__":
