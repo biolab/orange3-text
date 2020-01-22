@@ -423,6 +423,25 @@ class CorpusTests(unittest.TestCase):
         # Make sure that copying works.
         d.copy()
 
+    def test_set_title_from_domain(self):
+        """
+        When we setup domain from data (e.g. from_numpy) _title variable
+        must be set.
+        """
+        domain = Domain([], metas=[StringVariable("title"), StringVariable("a")])
+        metas = [["title1", "a"], ["title2", "b"]]
+
+        corpus = Corpus.from_numpy(
+            domain, X=np.empty((2, 0)), metas=np.array(metas)
+        )
+        self.assertListEqual(["Document 1", "Document 2"], corpus.titles)
+
+        domain["title"].attributes["title"] = True
+        corpus = Corpus.from_numpy(
+            domain, X=np.empty((2, 0)), metas=np.array(metas)
+        )
+        self.assertListEqual(["title1", "title2"], corpus.titles)
+
 
 if __name__ == "__main__":
     unittest.main()

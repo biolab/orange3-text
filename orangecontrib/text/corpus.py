@@ -440,6 +440,12 @@ class Corpus(Table):
         return c
 
     @classmethod
+    def from_numpy(cls, *args, **kwargs):
+        c = super().from_numpy(*args, **kwargs)
+        c._set_unique_titles()
+        return c
+
+    @classmethod
     def from_file(cls, filename):
         if not os.path.exists(filename):  # check the default location
             abs_path = os.path.join(get_sample_corpora_dir(), filename)
