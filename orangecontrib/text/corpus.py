@@ -446,6 +446,20 @@ class Corpus(Table):
         return c
 
     @classmethod
+    def from_list(cls, domain, rows, weights=None):
+        c = super().from_list(domain, rows, weights)
+        c._set_unique_titles()
+        return c
+
+    @classmethod
+    def from_table_rows(cls, source, row_indices):
+        c = super().from_table_rows(source, row_indices)
+        if hasattr(source, "_titles"):
+            # covering case when from_table_rows called by from_table
+            c._titles = source._titles[row_indices]
+        return c
+
+    @classmethod
     def from_file(cls, filename):
         if not os.path.exists(filename):  # check the default location
             abs_path = os.path.join(get_sample_corpora_dir(), filename)
