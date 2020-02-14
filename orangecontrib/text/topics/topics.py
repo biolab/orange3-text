@@ -80,6 +80,7 @@ class GensimWrapper:
                                  self.topic_names[:self.actual_topics])
         self.doc_topic = matrix[:, :self.actual_topics]
         self.tokens = corpus.tokens
+        corpus.store_tokens(self.tokens)
         return corpus
 
     def fit_transform(self, corpus, **kwargs):

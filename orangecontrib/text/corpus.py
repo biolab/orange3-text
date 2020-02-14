@@ -12,6 +12,7 @@ from gensim import corpora
 
 from Orange.data import ContinuousVariable, DiscreteVariable, \
     Domain, RowInstance, Table, StringVariable
+
 from orangecontrib.text.vectorization import BowVectorizer
 
 
@@ -69,6 +70,7 @@ class Corpus(Table):
         self.pos_tags = None
         self.used_preprocessor = None   # required for compute values
         self._titles: Optional[np.ndarray] = None
+        self._pp_documents = None  # preprocessed documents
 
         if domain is not None and text_features is None:
             self._infer_text_features()
@@ -255,11 +257,18 @@ class Corpus(Table):
 
     @property
     def documents(self):
-        """
-        Returns: a list of strings representing documents — created by joining
-            selected text features.
-        """
+        """ Returns a list of strings representing documents — created
+        by joining selected text features. """
         return self.documents_from_features(self.text_features)
+
+    @property
+    def pp_documents(self):
+        """ Preprocessed documents (transformed). """
+        return self._pp_documents or self.documents
+
+    @pp_documents.setter
+    def pp_documents(self, documents):
+        self._pp_documents = documents
 
     @property
     def titles(self):
@@ -298,19 +307,25 @@ class Corpus(Table):
     def tokens(self):
         """
         np.ndarray: A list of lists containing tokens. If tokens are not yet
-        present, run default preprocessor and save tokens.
+        present, run default preprocessor and return tokens.
         """
         if self._tokens is None:
-            self._apply_base_preprocessor()
+            return self._base_tokens()[0]
         return self._tokens
 
     def has_tokens(self):
         """ Return whether corpus is preprocessed or not. """
         return self._tokens is not None
 
-    def _apply_base_preprocessor(self):
-        from orangecontrib.text.preprocess import base_preprocessor
-        base_preprocessor(self)
+    def _base_tokens(self):
+        from orangecontrib.text.preprocess import BASE_TRANSFORMER, \
+            BASE_TOKENIZER, PreprocessorList
+
+        # don't use anything that requires NLTK data to assure async download
+        base_preprocessors = PreprocessorList([BASE_TRANSFORMER,
+                                               BASE_TOKENIZER])
+        corpus = base_preprocessors(self)
+        return corpus.tokens, corpus.dictionary
 
     @property
     def dictionary(self):
@@ -318,7 +333,7 @@ class Corpus(Table):
         corpora.Dictionary: A token to id mapper.
         """
         if self._dictionary is None:
-            self._apply_base_preprocessor()
+            return self._base_tokens()[1]
         return self._dictionary
 
     def ngrams_iterator(self, join_with=' ', include_postags=False):
@@ -369,6 +384,7 @@ class Corpus(Table):
         c.name = self.name
         c.used_preprocessor = self.used_preprocessor
         c._titles = self._titles
+        c._pp_documents = self._pp_documents
         return c
 
     @staticmethod

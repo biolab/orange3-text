@@ -51,7 +51,7 @@ class BaseTests:
         self.assertLessEqual(prev_progress, 100)
 
     def test_empty_corpus(self):
-        p = preprocess.Preprocessor(tokenizer=preprocess.RegexpTokenizer(pattern='unmatchable'))
+        p = preprocess.RegexpTokenizer(pattern='unmatchable')
         empty = p(self.corpus)
         self.assertIsNone(self.model.fit(empty))
 
@@ -104,3 +104,7 @@ class LsiTest(unittest.TestCase, BaseTests):
     def setUp(self):
         self.corpus = Corpus.from_file('deerwester')
         self.model = LsiWrapper(num_topics=5)
+
+
+if __name__ == "__main__":
+    unittest.main()

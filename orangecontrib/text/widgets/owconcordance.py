@@ -91,8 +91,7 @@ class ConcordanceModel(QAbstractTableModel):
         if self.corpus is None:
             self.tokens = None
             return
-        tokenizer = WordPunctTokenizer()
-        self.tokens = tokenizer(self.corpus.documents)
+        self.tokens = WordPunctTokenizer()(self.corpus).tokens
         self.n_tokens = sum(map(len, self.tokens))
         self.n_types = len(set(chain.from_iterable(self.tokens)))
 

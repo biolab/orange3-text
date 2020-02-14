@@ -1,35 +1,45 @@
+from typing import List, Callable
+
 import nltk
 import numpy as np
 
-from orangecontrib.text.util import chunkable
+from Orange.util import wrap_callback, dummy_callback
+
+from orangecontrib.text import Corpus
 from orangecontrib.text.misc import wait_nltk_data
+from orangecontrib.text.preprocess import TokenizedPreprocessor
+from orangecontrib.text.util import chunkable
 
 
 __all__ = ['POSTagger', 'StanfordPOSTagger', 'AveragedPerceptronTagger', 'MaxEntTagger']
 
 
-class POSTagger:
+class POSTagger(TokenizedPreprocessor):
     """A class that wraps `nltk.TaggerI` and performs Corpus tagging. """
-    def __init__(self, tagger, name='POS Tagger'):
-        self.tag_sents = tagger.tag_sents
-        self.name = name
+    def __init__(self, tagger):
+        self.tagger = tagger.tag_sents
 
-    def tag_corpus(self, corpus, **kwargs):
-        """ Marks tokens of a corpus with POS tags.
+    def __call__(self, corpus: Corpus, callback: Callable = None,
+                 **kw) -> Corpus:
+        """ Marks tokens of a corpus with POS tags. """
+        if callback is None:
+            callback = dummy_callback
+        corpus = super().__call__(corpus, wrap_callback(callback, end=0.2))
 
-        Args:
-            corpus (orangecontrib.text.corpus.Corpus): A corpus instance.
-
-        """
-        corpus.pos_tags = np.array(self._tag_sents(corpus.tokens, **kwargs), dtype=object)
+        assert corpus.has_tokens()
+        callback(0.2, "POS Tagging...")
+        tags = np.array(self._preprocess(corpus.tokens, **kw), dtype=object)
+        corpus.pos_tags = tags
         return corpus
 
     @chunkable
-    def _tag_sents(self, documents):
-        return list(map(lambda sent: list(map(lambda x: x[1], sent)), self.tag_sents(documents)))
+    def _preprocess(self, tokens: List[List[str]]) -> List[List[str]]:
+        return list(map(lambda sent: list(map(lambda x: x[1], sent)),
+                        self.tagger(tokens)))
 
-    def __str__(self):
-        return self.name
+
+class StanfordPOSTaggerError(Exception):
+    pass
 
 
 class StanfordPOSTagger(nltk.StanfordPOSTagger, POSTagger):
@@ -56,12 +66,11 @@ class StanfordPOSTagger(nltk.StanfordPOSTagger, POSTagger):
         try:
             cls(path_to_model, path_to_jar).tag(())
         except OSError as e:
-            raise ValueError('Either Java SDK not installed or some of the files are invalid.\n' + str(e))
+            raise StanfordPOSTaggerError(
+                'Either Java SDK not installed or some of the '
+                'files are invalid.\n' + str(e))
         except LookupError as e:
-            raise ValueError(str(e).strip(' =\n'))
-
-    def __str__(self):
-        return "{} (model: {})".format(self.name, self._stanford_model)
+            raise StanfordPOSTaggerError(str(e).strip(' =\n'))
 
 
 class AveragedPerceptronTagger(POSTagger):
@@ -69,7 +78,7 @@ class AveragedPerceptronTagger(POSTagger):
 
     @wait_nltk_data
     def __init__(self):
-        super().__init__(nltk.PerceptronTagger(), self.name)
+        super().__init__(nltk.PerceptronTagger())
 
 
 class MaxEntTagger(POSTagger):
@@ -78,4 +87,4 @@ class MaxEntTagger(POSTagger):
     @wait_nltk_data
     def __init__(self):
         tagger = nltk.data.load('taggers/maxent_treebank_pos_tagger/english.pickle')
-        super().__init__(tagger, self.name)
+        super().__init__(tagger)

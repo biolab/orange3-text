@@ -418,14 +418,16 @@ class OWCorpusViewer(OWWidget):
 
 
 if __name__ == '__main__':
+    from orangecontrib.text.preprocess import BASE_TOKENIZER
     from orangecontrib.text.tag.pos import AveragedPerceptronTagger
+
     app = QApplication([])
     widget = OWCorpusViewer()
     widget.show()
     corpus = Corpus.from_file('book-excerpts')
     corpus = corpus[:3]
     tagger = AveragedPerceptronTagger()
-    tagged_corpus = tagger.tag_corpus(corpus)
+    tagged_corpus = tagger(BASE_TOKENIZER(corpus))
     tagged_corpus.ngram_range = (1, 2)
     widget.set_data(tagged_corpus)
     app.exec()
