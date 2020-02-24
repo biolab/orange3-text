@@ -62,15 +62,20 @@ class TestWorldCloudWidget(WidgetTest):
             v.attributes["bow-feature"] = True
 
         self.send_signal(self.widget.Inputs.corpus, data)
-        self.assertDictEqual(
-            self.widget.corpus_counter, {"Word1": 1, "Word2": 2, "Word3": 2})
+        weights = list(zip(*sorted(self.widget.corpus_counter.items())))[1]
+        # due to computation error in computing mean use array_almost_equal
+        np.testing.assert_array_almost_equal(weights, [1, 2, 2])
+
         output = self.get_output(self.widget.Outputs.word_counts)
-        np.testing.assert_array_equal([2, 2, 1], output.X.flatten())
+        np.testing.assert_array_almost_equal([2, 2, 1], output.X.flatten())
         np.testing.assert_array_equal(
-            ["Word2", "Word3", "Word1"], output.metas.flatten())
-        self.assertListEqual(
-            [(2.0, 'Word2'), (2.0, 'Word3'), (1.0, 'Word1')],
-            self.widget.tablemodel[:])
+            ["Word3", "Word2", "Word1"], output.metas.flatten())
+        self.assertTupleEqual(
+            ("Word3", "Word2", "Word1"),
+            list(zip(*self.widget.tablemodel[:]))[1])
+        np.testing.assert_array_almost_equal(
+            [2, 2, 1],
+            list(zip(*self.widget.tablemodel[:]))[0])
 
         # try with one word not bow-feature
         data = self.corpus[:3]
@@ -81,15 +86,19 @@ class TestWorldCloudWidget(WidgetTest):
             v.attributes["bow-feature"] = True
 
         self.send_signal(self.widget.Inputs.corpus, data)
-        self.assertDictEqual(
-            self.widget.corpus_counter, {"Word1": 1, "Word2": 2})
+        weights = list(zip(*sorted(self.widget.corpus_counter.items())))[1]
+        np.testing.assert_array_almost_equal(weights, [1, 2])
+
         output = self.get_output(self.widget.Outputs.word_counts)
-        np.testing.assert_array_equal([2, 1], output.X.flatten())
+        np.testing.assert_array_almost_equal([2, 1], output.X.flatten())
         np.testing.assert_array_equal(
             ["Word2", "Word1"], output.metas.flatten())
-        self.assertListEqual(
-            [(2.0, 'Word2'), (1.0, 'Word1')],
-            self.widget.tablemodel[:])
+        self.assertTupleEqual(
+            ("Word2", "Word1"),
+            list(zip(*self.widget.tablemodel[:]))[1])
+        np.testing.assert_array_almost_equal(
+            [2, 1],
+            list(zip(*self.widget.tablemodel[:]))[0])
 
     def test_bow_info(self):
         """

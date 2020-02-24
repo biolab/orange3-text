@@ -348,25 +348,13 @@ span.selected {color:red !important}
         This function extract words from bag of words features and assign them
         the frequency which is average bow count.
         """
-        bow_features = self._get_bow_variables()
-        if not bow_features:
-            return {}
-
         average_bows = {
-            f.name: self.corpus.get_column_view(f)[0].mean()
-            for f in bow_features
+            f.name: self.corpus.X[:, i].mean()
+            for i, f in enumerate(self.corpus.domain.attributes)
+            if f.attributes.get("bow-feature", False)
         }
-        return average_bows
-
-    def _get_bow_variables(self):
-        """
-        Extract bow variables from data
-        """
-        return [
-            var
-            for var in self.corpus.domain.variables
-            if var.attributes.get("bow-feature", False)
-        ]
+        # return only positive bow weights (those == 0 are non-existing words)
+        return {f: w for f, w in average_bows.items() if w > 0}
 
     def handleNewSignals(self):
         if self.topic is not None and len(self.topic):
