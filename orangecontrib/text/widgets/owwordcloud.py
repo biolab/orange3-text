@@ -26,6 +26,35 @@ TILT_VALUES = ("no", "30°", "45°", "60°")
 N_BEST_PLOTTED = 200
 
 
+class TableModel(PyTableModel):
+    def __init__(self, precision, **kwargs):
+        super().__init__(**kwargs)
+        self.precision = precision
+
+    def data(self, index, role=Qt.DisplayRole):
+        """
+        Format numbers of the first column with the number of decimal
+        spaces defined by self.predictions which can be changed based on
+        weights type - row counts does not have decimal spaces
+        """
+        row, column = self.mapToSourceRows(index.row()), index.column()
+        if role == Qt.DisplayRole and column == 0:
+            value = float(self[row][column])
+            return f"{value:.{self.precision}f}"
+        return super().data(index, role)
+
+    def set_precision(self, precision: int):
+        """
+        Setter for precision.
+
+        Parameters
+        ----------
+        precision
+            Number of decimal spaces to format the weights.
+        """
+        self.precision = precision
+
+
 class OWWordCloud(widget.OWWidget):
     name = "Word Cloud"
     priority = 510
@@ -175,7 +204,7 @@ span.selected {color:red !important}
                 self.__nope = False
 
         view = self.tableview = TableView(self)
-        model = self.tablemodel = PyTableModel(parent=self)
+        model = self.tablemodel = TableModel(2, parent=self)
         proxymodel = QSortFilterProxyModel(
             self,
             dynamicSortFilter=True,
@@ -255,10 +284,20 @@ span.selected {color:red !important}
         weights
             Words' weights
         """
+        def is_whole(d):
+            """Whether or not d is a whole number."""
+            return (
+                    isinstance(d, int)
+                    or (isinstance(d, float) and d.is_integer())
+            )
+
         words, weights = words[:N_BEST_PLOTTED], weights[:N_BEST_PLOTTED]
         self.shown_words, self.shown_weights = words, weights
 
         # Repopulate table
+        self.tablemodel.set_precision(
+            0 if all(is_whole(w) for w in weights) else 2
+        )
         self.tablemodel.wrap(list(zip(weights, words)))
         self.tableview.sortByColumn(0, Qt.DescendingOrder)
 
