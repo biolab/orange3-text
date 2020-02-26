@@ -2,7 +2,7 @@
 from collections import Counter
 from itertools import cycle
 from math import pi as PI
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 from AnyQt import QtCore
@@ -12,8 +12,9 @@ from AnyQt.QtCore import (QItemSelection, QItemSelectionModel, QObject, QSize,
 from Orange.data import ContinuousVariable, Domain, StringVariable, Table
 from Orange.data.util import scale
 from Orange.widgets import gui, settings, widget
+from Orange.widgets.utils.concurrent import ConcurrentWidgetMixin, TaskState
 from Orange.widgets.utils.itemmodels import PyTableModel
-from Orange.widgets.widget import Input, Output
+from Orange.widgets.widget import Input, Output, OWWidget
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.topics import Topic
 
@@ -24,6 +25,51 @@ GRAY_TOPIC_COLORS = ["#000", "#aaa"]  # [negative topic, positive topic]
 TILT_VALUES = ("no", "30°", "45°", "60°")
 
 N_BEST_PLOTTED = 200
+
+
+def _bow_words(corpus):
+    """
+    This function extract words from bag of words features and assign them
+    the frequency which is average bow count.
+    """
+    average_bows = {
+        f.name: corpus.X[:, i].mean()
+        for i, f in enumerate(corpus.domain.attributes)
+        if f.attributes.get("bow-feature", False)
+    }
+    # return only positive bow weights (those == 0 are non-existing words)
+    return {f: w for f, w in average_bows.items() if w > 0}
+
+
+def count_words(data: Corpus, state: TaskState) -> Tuple[Counter, bool]:
+    """
+    This function implements counting process of the word cloud widget and
+    is called in the separate thread by concurrent.
+
+    Parameters
+    ----------
+    data
+        Corpus with the data
+    state
+        State used to report status.
+
+    Returns
+    -------
+    Reports counts as a counter and boolean that tell whether the data were
+    retrieved on bag of words basis.
+    """
+    state.set_status("Calculating...")
+    state.set_progress_value(0)
+    bow_counts = _bow_words(data)
+    state.set_progress_value(0.5)
+    if bow_counts:
+        corpus_counter = Counter(bow_counts)
+    else:
+        corpus_counter = Counter(
+            w for doc in data.ngrams for w in doc
+        )
+    state.set_progress_value(1)
+    return corpus_counter, bool(bow_counts)
 
 
 class TableModel(PyTableModel):
@@ -55,7 +101,7 @@ class TableModel(PyTableModel):
         self.precision = precision
 
 
-class OWWordCloud(widget.OWWidget):
+class OWWordCloud(OWWidget, ConcurrentWidgetMixin):
     name = "Word Cloud"
     priority = 510
     icon = "icons/WordCloud.svg"
@@ -85,7 +131,8 @@ class OWWordCloud(widget.OWWidget):
         bow_weights = widget.Msg("Showing bag of words weights.")
 
     def __init__(self):
-        super().__init__()
+        OWWidget.__init__(self)
+        ConcurrentWidgetMixin.__init__(self)
         self.n_topic_words = 0
         self.documents_info_str = ""
         self.webview = None
@@ -225,7 +272,7 @@ span.selected {color:red !important}
             # positive and negative numbers
             palette = TOPIC_COLORS if self.words_color else GRAY_TOPIC_COLORS
             colors = {
-                word: palette[weight >= 0]
+                word: palette[int(weight >= 0)]
                 for word, weight in zip(words, weights)
             }
         else:
@@ -293,7 +340,6 @@ span.selected {color:red !important}
 
         words, weights = words[:N_BEST_PLOTTED], weights[:N_BEST_PLOTTED]
         self.shown_words, self.shown_weights = words, weights
-
         # Repopulate table
         self.tablemodel.set_precision(
             0 if all(is_whole(w) for w in weights) else 2
@@ -316,12 +362,12 @@ span.selected {color:red !important}
             len(word) * float(weight) for word, weight in
             self.wordlist
         ])
-
         self.on_cloud_pref_change()
 
     @Inputs.topic
     def on_topic_change(self, data):
         self.topic = data
+        self.handle_input()
 
     def _apply_topic(self):
         data = self.topic
@@ -372,30 +418,19 @@ span.selected {color:red !important}
 
         self.corpus_counter = Counter()
         if data is not None:
-            bow_counts = self._bow_words()
-            if bow_counts:
-                self.Info.bow_weights()
-                self.corpus_counter = Counter(bow_counts)
-            else:
-                self.corpus_counter = Counter(
-                    w for doc in data.ngrams for w in doc
-                )
+            self.start(count_words, data)
+        else:
+            self.handle_input()
         self.create_weight_list()
 
-    def _bow_words(self):
-        """
-        This function extract words from bag of words features and assign them
-        the frequency which is average bow count.
-        """
-        average_bows = {
-            f.name: self.corpus.X[:, i].mean()
-            for i, f in enumerate(self.corpus.domain.attributes)
-            if f.attributes.get("bow-feature", False)
-        }
-        # return only positive bow weights (those == 0 are non-existing words)
-        return {f: w for f, w in average_bows.items() if w > 0}
+    def on_done(self, result: Tuple[Counter, bool]) -> None:
+        self.corpus_counter = result[0]
+        self.create_weight_list()
+        if result[1]:
+            self.Info.bow_weights()
+        self.handle_input()
 
-    def handleNewSignals(self):
+    def handle_input(self):
         if self.topic is not None and len(self.topic):
             self._apply_topic()
         elif self.corpus is not None and len(self.corpus):
@@ -408,7 +443,6 @@ span.selected {color:red !important}
         self.Warning.topic_precedence(
             shown=self.corpus is not None and self.topic is not None
         )
-
         if self.topic is not None or self.corpus is not None:
             if self.selected_words:
                 self.update_selection(self.selected_words)
