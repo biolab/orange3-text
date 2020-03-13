@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import Mock
 
 import numpy as np
+import pkg_resources
 
 from Orange.widgets.tests.base import WidgetTest
 from Orange.data import StringVariable, Domain
@@ -12,6 +13,10 @@ from orangecontrib.text.topics import Topic
 from orangecontrib.text.widgets.owwordcloud import OWWordCloud
 
 
+@unittest.skipIf(
+    pkg_resources.get_distribution("orange3").version < "3.24.0",
+    "Wait until finished not implemented in lower version"
+)
 class TestWorldCloudWidget(WidgetTest):
     def setUp(self):
         self.widget = self.create_widget(OWWordCloud)
@@ -40,6 +45,7 @@ class TestWorldCloudWidget(WidgetTest):
         """
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
         self.send_signal(self.widget.Inputs.corpus, None)
+        self.wait_until_finished()
 
     def test_empty_data(self):
         """
@@ -48,6 +54,7 @@ class TestWorldCloudWidget(WidgetTest):
         """
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
         self.send_signal(self.widget.Inputs.corpus, self.corpus[:0])
+        self.wait_until_finished()
 
     def test_bow_features(self):
         """
@@ -62,6 +69,7 @@ class TestWorldCloudWidget(WidgetTest):
             v.attributes["bow-feature"] = True
 
         self.send_signal(self.widget.Inputs.corpus, data)
+        self.wait_until_finished()
         weights = list(zip(*sorted(self.widget.corpus_counter.items())))[1]
         # due to computation error in computing mean use array_almost_equal
         np.testing.assert_array_almost_equal(weights, [1, 2, 2])
@@ -86,6 +94,7 @@ class TestWorldCloudWidget(WidgetTest):
             v.attributes["bow-feature"] = True
 
         self.send_signal(self.widget.Inputs.corpus, data)
+        self.wait_until_finished()
         weights = list(zip(*sorted(self.widget.corpus_counter.items())))[1]
         np.testing.assert_array_almost_equal(weights, [1, 2])
 
@@ -109,8 +118,10 @@ class TestWorldCloudWidget(WidgetTest):
         # no data no info
         self.assertFalse(self.widget.Info.bow_weights.is_shown())
         self.send_signal(self.widget.Inputs.corpus, data)
+        self.wait_until_finished()
         self.assertFalse(self.widget.Info.bow_weights.is_shown())
         self.send_signal(self.widget.Inputs.corpus, None)
+        self.wait_until_finished()
         self.assertFalse(self.widget.Info.bow_weights.is_shown())
 
         # send bow data
@@ -120,8 +131,10 @@ class TestWorldCloudWidget(WidgetTest):
         for v in data.domain.attributes:
             v.attributes["bow-feature"] = True
         self.send_signal(self.widget.Inputs.corpus, data)
+        self.wait_until_finished()
         self.assertTrue(self.widget.Info.bow_weights.is_shown())
         self.send_signal(self.widget.Inputs.corpus, None)
+        self.wait_until_finished()
         self.assertFalse(self.widget.Info.bow_weights.is_shown())
 
     def test_topic(self):
@@ -141,43 +154,53 @@ class TestWorldCloudWidget(WidgetTest):
         insum = self.widget.info.set_input_summary = Mock()
 
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.wait_until_finished()
         insum.assert_called_with("42", "9 documents with 42 words\n")
 
         self.send_signal(self.widget.Inputs.topic, self.topic)
+        self.wait_until_finished()
         insum.assert_called_with(
             "42 | 10", "9 documents with 42 words\n10 words in a topic.")
 
         self.send_signal(self.widget.Inputs.corpus, None)
+        self.wait_until_finished()
         insum.assert_called_with(f"10", "10 words in a topic.")
 
         self.send_signal(self.widget.Inputs.topic, None)
+        self.wait_until_finished()
         insum.assert_called_with(self.widget.info.NoInput)
 
         self.send_signal(self.widget.Inputs.topic, self.topic)
+        self.wait_until_finished()
         insum.assert_called_with(f"10", "10 words in a topic.")
 
     def test_output_summary(self):
         outsum = self.widget.info.set_output_summary = Mock()
 
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.wait_until_finished()
         outsum.assert_called_with(
             "0 | 0 | 42", "0 documents\n0 selected words\n42 words with counts"
         )
 
         self.send_signal(self.widget.Inputs.topic, self.topic)
+        self.wait_until_finished()
         outsum.assert_called_with(
             "0 | 0 | 42", "0 documents\n0 selected words\n42 words with counts"
         )
 
         self.send_signal(self.widget.Inputs.corpus, None)
+        self.wait_until_finished()
         outsum.assert_called_with(self.widget.info.NoOutput)
 
         self.send_signal(self.widget.Inputs.topic, None)
+        self.wait_until_finished()
         outsum.assert_called_with(self.widget.info.NoOutput)
 
     def test_send_report(self):
         self.widget.send_report()
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.wait_until_finished()
         self.widget.send_report()
 
 
