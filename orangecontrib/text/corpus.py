@@ -401,10 +401,6 @@ class Corpus(Table):
         for ind in title_indices:
             domain[ind].attributes['title'] = True
 
-        for attr in domain.attributes:
-            if isinstance(attr, DiscreteVariable):
-                attr.values = []
-
         def to_val(attr, val):
             if isinstance(attr, DiscreteVariable):
                 attr.val_from_str_add(val)
