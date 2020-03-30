@@ -50,6 +50,7 @@ before_install:
 
 install:
     - pip install pyqt5 pyqtwebengine
+    - pip install Orange3-Network
     - source $TRAVIS_BUILD_DIR/.travis/install_orange.sh
     - travis_wait pip install -r requirements.txt
     - pip install -e .
