@@ -1013,7 +1013,15 @@ class OWPreprocess(Orange.widgets.data.owpreprocess.OWPreprocess,
             self.Error.unknown_error(ex)
 
     def update_preview(self, data):
-        self.preview = ", ".join(data.tokens[0][:5]) if data else ""
+        if data:
+            try:
+                tokens = next(data.ngrams_iterator(include_postags=True))
+                self.preview = ", ".join(tokens[:5])
+            except StopIteration:
+                self.preview = ""
+
+        else:
+            self.preview = ""
 
     def workflowEnvChanged(self, key: str, *_):
         if key == "basedir":
