@@ -8,9 +8,9 @@ from AnyQt.QtWidgets import (QVBoxLayout, QButtonGroup, QRadioButton,
 
 from Orange.widgets import settings
 from Orange.widgets import gui
+from Orange.widgets.settings import DomainContextHandler
 from Orange.widgets.widget import OWWidget, Input, Output, Msg
 from Orange.data import Table
-from Orange.widgets.data.contexthandlers import DomainContextHandler
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.topics import Topic, LdaWrapper, HdpWrapper, LsiWrapper
 from orangecontrib.text.widgets.utils.concurrent import asynchronous
