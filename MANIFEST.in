@@ -1,11 +1,21 @@
-include orangecontrib/text/tutorials/*.ows
-include orangecontrib/text/datasets/*
-include orangecontrib/text/widgets/icons/*
-include orangecontrib/text/widgets/resources/*
-include orangecontrib/text/tests/nyt-cache.txt
-include orangecontrib/text/tests/tweets.json
+recursive-include orangecontrib/text/datasets *.tab *.txt
+recursive-include orangecontrib/text/sentiment *.txt
+recursive-include orangecontrib/text/tests *.txt *.json
+recursive-include orangecontrib/text/tutorials *.ows
+recursive-include orangecontrib/text/widgets/icons *.svg *.png *.ai
+recursive-include orangecontrib/text/widgets/resources *.js *.css *.html
+include orangecontrib/text/widgets/tests/bow-test
+recursive-include scripts *.sh *.py
 
-include requirements.txt
+recursive-include doc *.py *.rst *.md *.png *.css *.bat *.json
+include doc/Makefile
+
+include requirements*.txt
 include README.md
 include README.pypi
 include LICENSE
+include CHANGELOG.md
+include SERVERS.txt
+include .coveragerc
+include codecov.yml
+include conda_environment.yml
