@@ -1,7 +1,10 @@
 from orangecontrib.text import Corpus
 from orangecontrib.text.vectorization import BowVectorizer
 from orangecontrib.text.widgets.utils.owbasevectorizer import OWBaseVectorizer
-from orangewidget.tests.base import WidgetTest
+try:
+    from orangewidget.tests.base import WidgetTest
+except:
+    from Orange.widgets.tests.base import WidgetTest
 
 
 class TestableBaseVectWidget(OWBaseVectorizer):
