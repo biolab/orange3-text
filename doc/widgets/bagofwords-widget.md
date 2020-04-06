@@ -16,18 +16,18 @@ Generates a bag of words from the input corpus.
 ![](images/Bag-of-Words-stamped.png)
 
 1. Parameters for [bag of words](https://en.wikipedia.org/wiki/Tf%E2%80%93idf) model:
-   - Term Frequency:
-      - Count: number of occurrences of a word in a document
-      - Binary: word appears or does not appear in the document
-      - Sublinear: logarithm of term frequency (count)
-   - Document Frequency:
-      - (None)
-      - IDF: [inverse document frequency](http://nlp.stanford.edu/IR-book/html/htmledition/inverse-document-frequency-1.html)
-      - [Smooth IDF](http://scikit-learn.org/stable/modules/generated/sklearn.feature_extraction.text.TfidfTransformer.html): adds one to document frequencies to prevent zero division.
-   - Regulariation:
-      - (None)
-      - L1 (Sum of elements): normalizes vector length to sum of elements
-      - L2 (Euclidean): normalizes vector length to sum of squares
+    - Term Frequency:
+        - Count: number of occurrences of a word in a document
+        - Binary: word appears or does not appear in the document
+        - Sublinear: logarithm of term frequency (count)
+    - Document Frequency:
+        - (None)
+        - IDF: [inverse document frequency](http://nlp.stanford.edu/IR-book/html/htmledition/inverse-document-frequency-1.html)
+        - [Smooth IDF](http://scikit-learn.org/stable/modules/generated/sklearn.feature_extraction.text.TfidfTransformer.html): adds one to document frequencies to prevent zero division.
+    - Regulariation:
+        - (None)
+        - L1 (Sum of elements): normalizes vector length to sum of elements
+        - L2 (Euclidean): normalizes vector length to sum of squares
 2. Produce a report.
 3. If *Commit Automatically* is on, changes are communicated automatically. Alternatively press *Commit*.
 
