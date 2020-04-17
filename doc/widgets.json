@@ -146,6 +146,13 @@
     "icon": "../orangecontrib/text/widgets/icons/Duplicates.svg",
     "background": "light-blue",
     "keywords": []
+   },
+   {
+    "text": "Statistics",
+    "doc": "widgets/statistics.md",
+    "icon": "../orangecontrib/text/widgets/icons/Statistics.svg",
+    "background": "light-blue",
+    "keywords": []
    }
   ]
  ]

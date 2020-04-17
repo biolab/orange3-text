@@ -26,6 +26,7 @@ Widgets
    widgets/docmap
    widgets/wordenrichment
    widgets/duplicatedetection
+   widgets/statistics
 
 Scripting
 ---------
