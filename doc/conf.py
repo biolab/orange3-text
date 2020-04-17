@@ -15,7 +15,6 @@
 
 import sys
 import os
-from recommonmark.parser import CommonMarkParser
 
 # If extensions (or scripting to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -36,13 +35,12 @@ extensions = [
     'sphinx.ext.todo',
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
-    'sphinx.ext.intersphinx'
+    'sphinx.ext.intersphinx',
+    'recommonmark'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
 # templates_path = ['_templates']
-
-source_parsers = {'.md': CommonMarkParser}
 
 # The suffix of source filenames.
 source_suffix = ['.md', '.rst']
