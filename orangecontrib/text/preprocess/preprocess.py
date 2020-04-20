@@ -20,7 +20,9 @@ class Preprocessor:
         :return: Corpus
             Preprocessed corpus.
         """
-        return corpus.copy()
+        corpus = corpus.copy()
+        corpus.used_preprocessor = self
+        return corpus
 
     def __str__(self):
         return self.name

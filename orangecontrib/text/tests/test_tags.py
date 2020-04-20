@@ -34,6 +34,7 @@ class POSTaggerTests(unittest.TestCase):
     def test_preprocess(self):
         corpus = self.tagger(self.corpus)
         self.assertIsNotNone(corpus.pos_tags)
+        self.assertEqual(len(corpus.used_preprocessor.preprocessors), 2)
 
     def test_can_deepcopy(self):
         copied = copy.deepcopy(self.tagger)

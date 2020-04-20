@@ -68,7 +68,8 @@ class Corpus(Table):
         self.ngram_range = (1, 1)
         self.attributes = {}
         self.pos_tags = None
-        self.used_preprocessor = None   # required for compute values
+        from orangecontrib.text.preprocess import PreprocessorList
+        self.__used_preprocessor = PreprocessorList([])   # required for compute values
         self._titles: Optional[np.ndarray] = None
         self._pp_documents = None  # preprocessed documents
 
@@ -82,6 +83,21 @@ class Corpus(Table):
         else:
             Table._init_ids(self)
         self._set_unique_titles()
+
+    @property
+    def used_preprocessor(self):
+        return self.__used_preprocessor  # type: PreprocessorList
+
+    @used_preprocessor.setter
+    def used_preprocessor(self, pp):
+        from orangecontrib.text.preprocess import PreprocessorList, Preprocessor
+
+        if isinstance(pp, PreprocessorList):
+            self.__used_preprocessor = PreprocessorList(list(pp.preprocessors))
+        elif isinstance(pp, Preprocessor):
+            self.__used_preprocessor.preprocessors.append(pp)
+        else:
+            raise NotImplementedError
 
     def set_text_features(self, feats):
         """

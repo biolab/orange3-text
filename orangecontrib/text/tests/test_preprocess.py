@@ -39,11 +39,26 @@ class PreprocessTests(unittest.TestCase):
                          list(map(len, corpus._tokens)))
         self.assertIsNotNone(corpus._tokens)
         self.assertIsNotNone(corpus.pos_tags)
+        self.assertEqual(len(corpus.used_preprocessor.preprocessors), 5)
+
+    def test_used_preprocessors(self):
+        corpus1 = self.corpus.copy()
+        for pp in self.pp_list:
+            corpus1 = pp(corpus1)
+        self.assertEqual(len(self.corpus.used_preprocessor.preprocessors), 0)
+        self.assertEqual(len(corpus1.used_preprocessor.preprocessors), 5)
+
+        self.assertEqual([8, 10, 6, 8, 9, 7, 7, 10, 4],
+                         list(map(len, corpus1._tokens)))
+
+        corpus2 = PreprocessorList(self.pp_list)(self.corpus)
+        self.assertEqual(corpus1, corpus2)
 
     def test_apply_preprocessors(self):
         corpus = PreprocessorList(self.pp_list)(self.corpus)
         self.assertEqual([8, 10, 6, 8, 9, 7, 7, 10, 4],
                          list(map(len, corpus._tokens)))
+        self.assertEqual(len(corpus.used_preprocessor.preprocessors), 5)
 
     def test_apply_base_preprocessors(self):
         self.assertEqual([8, 10, 6, 8, 9, 7, 7, 10, 4],
@@ -115,6 +130,7 @@ class TransformationTests(unittest.TestCase):
         text = 'snoitacilppa retupmoc cba bal rof ecafretni enihcam namuH'
         self.assertEqual(corpus.pp_documents[0], text)
         self.assertFalse(corpus.has_tokens())
+        self.assertEqual(len(corpus.used_preprocessor.preprocessors), 1)
 
     def test_call_with_tokens(self):
         corpus = preprocess.WordPunctTokenizer()(self.corpus)
@@ -125,6 +141,7 @@ class TransformationTests(unittest.TestCase):
         self.assertTrue(corpus.has_tokens())
         text = 'Human machine interface for lab abc computer applications'
         self.assertEqual(corpus.documents[0], text)
+        self.assertEqual(len(corpus.used_preprocessor.preprocessors), 2)
 
     def test_str(self):
         self.assertIn('reverse', str(self.transformer))
@@ -151,6 +168,7 @@ class TransformationTests(unittest.TestCase):
         corpus = remover(self.corpus)
         self.assertListEqual(corpus.pp_documents[:2],
                              ['some link to ', 'some link to google.com'])
+        self.assertEqual(len(corpus.used_preprocessor.preprocessors), 1)
 
     def test_can_deepcopy(self):
         transformer = preprocess.UrlRemover()
@@ -175,22 +193,30 @@ class TokenNormalizerTests(unittest.TestCase):
     def test_call_porter(self):
         pp = preprocess.PorterStemmer()
         self.assertFalse(self.corpus.has_tokens())
-        self.assertTrue(pp(self.corpus).has_tokens())
+        corpus = pp(self.corpus)
+        self.assertTrue(corpus.has_tokens())
+        self.assertEqual(len(corpus.used_preprocessor.preprocessors), 2)
 
     def test_call_snowball(self):
         pp = preprocess.SnowballStemmer()
         self.assertFalse(self.corpus.has_tokens())
-        self.assertTrue(pp(self.corpus).has_tokens())
+        corpus = pp(self.corpus)
+        self.assertTrue(corpus.has_tokens())
+        self.assertEqual(len(corpus.used_preprocessor.preprocessors), 2)
 
     def test_call_word_net(self):
         pp = preprocess.WordNetLemmatizer()
         self.assertFalse(self.corpus.has_tokens())
-        self.assertTrue(pp(self.corpus).has_tokens())
+        corpus = pp(self.corpus)
+        self.assertTrue(corpus.has_tokens())
+        self.assertEqual(len(corpus.used_preprocessor.preprocessors), 2)
 
     def test_call_UDPipe(self):
         pp = preprocess.UDPipeLemmatizer()
         self.assertFalse(self.corpus.has_tokens())
-        self.assertTrue(pp(self.corpus).has_tokens())
+        corpus = pp(self.corpus)
+        self.assertTrue(corpus.has_tokens())
+        self.assertEqual(len(corpus.used_preprocessor.preprocessors), 2)
 
     def test_function(self):
         stemmer = preprocess.BaseNormalizer()
@@ -208,14 +234,18 @@ class TokenNormalizerTests(unittest.TestCase):
         """Test udpipe token lemmatization"""
         normalizer = preprocess.UDPipeLemmatizer('Slovenian')
         self.corpus.metas[0, 0] = 'sem'
-        self.assertListEqual(list(normalizer(self.corpus).tokens[0]), ['biti'])
+        corpus = normalizer(self.corpus)
+        self.assertListEqual(list(corpus.tokens[0]), ['biti'])
+        self.assertEqual(len(corpus.used_preprocessor.preprocessors), 2)
 
     def test_udpipe_doc(self):
         """Test udpipe lemmatization with its own tokenization """
         normalizer = preprocess.UDPipeLemmatizer('Slovenian', True)
         self.corpus.metas[0, 0] = 'Gori na gori hiša gori'
-        self.assertListEqual(list(normalizer(self.corpus).tokens[0]),
+        corpus = normalizer(self.corpus)
+        self.assertListEqual(list(corpus.tokens[0]),
                              ['gora', 'na', 'gora', 'hiša', 'goreti'])
+        self.assertEqual(len(corpus.used_preprocessor.preprocessors), 1)
 
     def test_udpipe_pickle(self):
         normalizer = preprocess.UDPipeLemmatizer('Slovenian', True)
@@ -301,14 +331,18 @@ class FilteringTests(unittest.TestCase):
         self.assertFalse(f._check('a'))
         self.assertTrue(f._check('filter'))
         self.corpus.metas[0, 0] = 'a snake is in a house'
-        self.assertListEqual(["snake", "house"], f(self.corpus).tokens[0])
+        corpus = f(self.corpus)
+        self.assertListEqual(["snake", "house"], corpus.tokens[0])
+        self.assertEqual(len(corpus.used_preprocessor.preprocessors), 2)
 
     def test_stopwords_slovene(self):
         f = preprocess.StopwordsFilter('slovene')
         self.assertFalse(f._check('in'))
         self.assertTrue(f._check('abeceda'))
         self.corpus.metas[0, 0] = 'kača je v hiši'
-        self.assertListEqual(["kača", "hiši"], f(self.corpus).tokens[0])
+        corpus = f(self.corpus)
+        self.assertListEqual(["kača", "hiši"], corpus.tokens[0])
+        self.assertEqual(len(corpus.used_preprocessor.preprocessors), 2)
 
     def test_lexicon(self):
         f = tempfile.NamedTemporaryFile()
@@ -322,17 +356,20 @@ class FilteringTests(unittest.TestCase):
         ff = preprocess.MostFrequentTokensFilter(keep_n=5)
         processed = ff(self.corpus)
         self.assertEqual(len(set(itertools.chain(*processed.tokens))), 5)
+        self.assertEqual(len(processed.used_preprocessor.preprocessors), 2)
 
     def test_min_df(self):
         ff = preprocess.FrequencyFilter(min_df=.5)
         processed = ff(self.corpus)
         size = len(processed.documents)
         self.assertFrequencyRange(processed, size * .5, size)
+        self.assertEqual(len(processed.used_preprocessor.preprocessors), 2)
 
         ff = preprocess.FrequencyFilter(min_df=2)
         processed = ff(self.corpus)
         size = len(processed.documents)
         self.assertFrequencyRange(processed, 2, size)
+        self.assertEqual(len(processed.used_preprocessor.preprocessors), 2)
 
     def test_max_df(self):
         ff = preprocess.FrequencyFilter(max_df=.3)
@@ -340,10 +377,12 @@ class FilteringTests(unittest.TestCase):
 
         corpus = ff(self.corpus)
         self.assertFrequencyRange(corpus, 1, size * .3)
+        self.assertEqual(len(corpus.used_preprocessor.preprocessors), 2)
 
         ff = preprocess.FrequencyFilter(max_df=2)
         corpus = ff(self.corpus)
         self.assertFrequencyRange(corpus, 1, 2)
+        self.assertEqual(len(corpus.used_preprocessor.preprocessors), 2)
 
     def assertFrequencyRange(self, corpus, min_fr, max_fr):
         dictionary = corpora.Dictionary(corpus.tokens)
@@ -366,16 +405,21 @@ class FilteringTests(unittest.TestCase):
         corpus = self.corpus
         filtered = reg_filter(corpus)
         self.assertFalse(filtered.tokens[0])
+        self.assertEqual(len(filtered.used_preprocessor.preprocessors), 2)
 
         reg_filter = preprocess.RegexpFilter('foo')
         corpus = self.corpus
         corpus.metas[0, 0] = 'foo bar'
-        self.assertEqual(reg_filter(corpus).tokens[0], ['bar'])
+        filtered = reg_filter(corpus)
+        self.assertEqual(filtered.tokens[0], ['bar'])
+        self.assertEqual(len(filtered.used_preprocessor.preprocessors), 2)
 
         reg_filter = preprocess.RegexpFilter('^http')
         corpus = BASE_TOKENIZER(self.corpus)
         corpus._tokens[0] = ['https', 'http', ' http']
-        self.assertEqual(reg_filter(corpus).tokens[0], [' http'])
+        filtered = reg_filter(corpus)
+        self.assertEqual(filtered.tokens[0], [' http'])
+        self.assertEqual(len(filtered.used_preprocessor.preprocessors), 2)
 
     def test_can_deepcopy(self):
         copied = copy.deepcopy(self.regexp)
@@ -406,7 +450,9 @@ class TokenizerTests(unittest.TestCase):
         corpus = Corpus.from_file("deerwester")
         tokens = ['Human', 'machine', 'interface', 'for', 'lab', 'abc',
                   'computer', 'applications']
-        self.assertEqual(SpaceTokenizer()(corpus).tokens[0], tokens)
+        corpus = SpaceTokenizer()(corpus)
+        self.assertEqual(corpus.tokens[0], tokens)
+        self.assertEqual(len(corpus.used_preprocessor.preprocessors), 1)
 
     def test_call_with_bad_input(self):
         pattern = '\w+'
@@ -453,6 +499,7 @@ class NGramsTests(unittest.TestCase):
         corpus = self.pp(self.corpus)
         self.assertEqual(next(corpus.ngrams)[0],
                          " ".join(corpus.tokens[0][:2]))
+        self.assertEqual(len(corpus.used_preprocessor.preprocessors), 2)
 
     def test_retain_old_data(self):
         corpus = self.pp(self.corpus)
