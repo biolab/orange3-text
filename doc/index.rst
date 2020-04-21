@@ -16,6 +16,7 @@ Widgets
    widgets/wikipedia-widget
    widgets/preprocesstext
    widgets/bagofwords-widget
+   widgets/documentembedding
    widgets/similarityhashing
    widgets/sentimentanalysis
    widgets/tweetprofiler
