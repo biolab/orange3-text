@@ -26,9 +26,9 @@ matrix:
         - &master
           python: '3.6'
           env: ORANGE="master"
-        - &orange3-21-0
+        - &orange3-25-0
           python: '3.7'
-          env: ORANGE="3.24.0"
+          env: ORANGE="3.25.0"
 
 env:
     global:
