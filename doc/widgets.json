@@ -68,6 +68,17 @@
     ]
    },
    {
+    "text": "Document Embedding",
+    "doc": "widgets/documentembedding.md",
+    "icon": "../orangecontrib/text/widgets/icons/TextEmbedding.svg",
+    "background": "light-blue",
+    "keywords": [
+     "embedding",
+     "document embedding",
+     "text"
+    ]
+   },
+   {
     "text": "Similarity Hashing",
     "doc": "widgets/similarityhashing.md",
     "icon": "../orangecontrib/text/widgets/icons/Simhash.svg",

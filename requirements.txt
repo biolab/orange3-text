@@ -6,7 +6,7 @@ docutils<0.16  # denpendency for botocore
 python-dateutil<2.8.1  # denpendency for botocore
 gensim>=0.12.3  # LDA's show topics unified in 0.12.3
 setuptools-git
-Orange3 >=3.24.0
+Orange3 >=3.25.0
 tweepy
 beautifulsoup4
 simhash
