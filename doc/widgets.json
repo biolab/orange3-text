@@ -59,6 +59,15 @@
     "keywords": []
    },
    {
+    "text": "Corpus to Network",
+    "doc": "widgets/corpustonetwork.md",
+    "icon": "../orangecontrib/text/widgets/icons/CorpusToNetwork.svg",
+    "background": "light-blue",
+    "keywords": [
+     "text, network"
+    ]
+   },
+   {
     "text": "Bag of Words",
     "doc": "widgets/bagofwords-widget.md",
     "icon": "../orangecontrib/text/widgets/icons/BagOfWords.svg",

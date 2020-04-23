@@ -28,6 +28,7 @@ Widgets
    widgets/wordenrichment
    widgets/duplicatedetection
    widgets/statistics
+   widgets/corpustonetwork
 
 Scripting
 ---------
