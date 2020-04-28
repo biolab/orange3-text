@@ -2,6 +2,8 @@
 
 set -o errexit
 
+pip install sphinx recommonmark
+
 # -W treats warnings as errors to make sure all went ok
 sphinx-build -W doc doc/_build
 

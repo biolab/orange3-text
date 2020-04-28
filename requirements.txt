@@ -9,7 +9,7 @@ setuptools-git
 Orange3 >=3.25.0
 tweepy
 beautifulsoup4
-simhash
+simhash~=1.9.0  # simhash 1.10 requires gmpy2 which needs additional libraries for compilation and does not have mac/linux precompiled pypi packages
 wikipedia
 pdfminer3k>=1.3.1
 odfpy>=1.3.5

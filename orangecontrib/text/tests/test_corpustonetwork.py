@@ -3,10 +3,15 @@ import unittest
 from Orange.data import Table
 
 from orangecontrib.text import Corpus
-from orangecontrib.text.corpus_to_network import CorpusToNetwork
-from orangecontrib.network import Network
+try:
+    from orangecontrib.text.corpus_to_network import CorpusToNetwork
+    from orangecontrib.network import Network
+    SKIP = False
+except Exception:
+    SKIP = True
 
 
+@unittest.skipIf(SKIP, "Network add-on is not installed.")
 class CorpusToNetworkTest(unittest.TestCase):
     def test_init(self):
         corpus = Corpus.from_file('deerwester')

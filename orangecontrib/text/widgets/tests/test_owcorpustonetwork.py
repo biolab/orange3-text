@@ -1,12 +1,19 @@
 from unittest.mock import Mock
+from unittest import skipIf
 
 from Orange.widgets.tests.base import WidgetTest
 from Orange.widgets.tests.utils import simulate
 
-from orangecontrib.text.widgets.owcorpustonetwork import OWCorpusToNetwork
+try:
+    from orangecontrib.network import Network
+    from orangecontrib.text.widgets.owcorpustonetwork import OWCorpusToNetwork
+    SKIP = False
+except Exception:
+    SKIP = True
 from orangecontrib.text import Corpus
 
 
+@skipIf(SKIP, "Network add-on is not installed.")
 class TestOWCorpusToNetwork(WidgetTest):
 
     def setUp(self):
