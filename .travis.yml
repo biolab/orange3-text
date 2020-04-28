@@ -10,12 +10,8 @@ addons:
 matrix:
     include:
         - &docs
-          env: BUILD_DOCS=true
+          env: BUILD_DOCS=true ORANGE="master"
           python: '3.6'
-          install:
-              - source $TRAVIS_BUILD_DIR/.travis/install_miniconda.sh
-              - source $TRAVIS_BUILD_DIR/.travis/create_conda_env.sh
-              - python setup.py develop
           script: source $TRAVIS_BUILD_DIR/.travis/build_doc.sh
         - &python36
           python: '3.6'
