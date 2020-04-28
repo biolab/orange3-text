@@ -6,6 +6,8 @@ addons:
     apt:
         packages:
             - libxkbcommon-x11-0  # for PyQt 5.12
+            - libmpfr-dev  # so that gmpy2 can compile
+            - libmpc-dev  # so that gmpy2 can compile
 
 matrix:
     include:
