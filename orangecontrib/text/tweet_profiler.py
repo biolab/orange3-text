@@ -37,7 +37,7 @@ class TweetProfiler:
             json = {'tweets': tweets[i: i+self.BATCH_SIZE],
                     'model_name': model_name,
                     'output_mode': output_mode,
-            }
+                    }
 
             json = self.server_call('tweet_profiler', json=json)
 
@@ -50,7 +50,7 @@ class TweetProfiler:
             results.append(profile)
 
             if callable(on_advance):
-                on_advance(self.BATCH_SIZE)
+                on_advance()
 
         if results:
             results = np.vstack(results)
