@@ -14,10 +14,10 @@ except ImportError:
 
 NAME = 'Orange3-Text'
 
-MAJOR = 1
-MINOR = 0
-MICRO = 0
-IS_RELEASED = False
+MAJOR = 0
+MINOR = 9
+MICRO = 1
+IS_RELEASED = True
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 FULL_VERSION = VERSION
 
