@@ -1,5 +1,5 @@
 scipy
-nltk>=3.0.5     # TweetTokenizer introduced in 3.0.5
+nltk>=3.0.5,<3.5  # TODO: change when fixed: https://bitbucket.org/mrabarnett/mrab-regex/issues/369/please-provide-macos-wheels-on-pypi
 scikit-learn
 numpy
 docutils<0.16  # denpendency for botocore
