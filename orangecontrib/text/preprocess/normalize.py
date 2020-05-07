@@ -103,7 +103,7 @@ def file_to_language(file):
 
 
 class UDPipeModels:
-    server_url = "http://file.biolab.si/files/udpipe/"
+    server_url = "https://file.biolab.si/files/udpipe/"
 
     def __init__(self):
         self.local_data = os.path.join(data_dir(versioned=False), 'udpipe/')
