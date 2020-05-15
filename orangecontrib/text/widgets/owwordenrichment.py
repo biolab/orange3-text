@@ -115,7 +115,7 @@ class OWWordEnrichment(OWWidget, ConcurrentWidgetMixin):
         self.sig_words.setHeaderLabels(self.cols)
         self.sig_words.setSortingEnabled(True)
         self.sig_words.setSelectionMode(QTreeView.NoSelection)
-        self.sig_words.sortByColumn(2, 0)   # 0 is ascending order
+        self.sig_words.sortByColumn(1, 0)   # 0 is ascending order
         for i in range(len(self.cols)):
             self.sig_words.resizeColumnToContents(i)
         self.mainArea.layout().addWidget(self.sig_words)
