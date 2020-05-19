@@ -1,3 +1,4 @@
+import unittest
 from unittest.mock import Mock, patch
 
 from Orange.widgets.tests.base import WidgetTest
@@ -88,3 +89,25 @@ class TestOWDocumentEmbedding(WidgetTest):
         self.wait_until_finished()
         self.assertIsNone(self.get_output(self.widget.Outputs.new_corpus))
         self.assertTrue(self.widget.Error.unexpected_error.is_shown())
+
+    @patch(PATCH_METHOD, make_dummy_post(b'{"embedding": [1.3, 1]}'))
+    def test_rerun_on_new_data(self):
+        """ Check if embedding is automatically re-run on new data """
+        self.widget._auto_apply = False
+        self.assertIsNone(self.get_output(self.widget.Outputs.new_corpus))
+
+        self.send_signal(self.widget.Inputs.corpus, self.corpus[:3])
+        self.wait_until_finished()
+        self.assertEqual(
+            3, len(self.get_output(self.widget.Outputs.new_corpus))
+        )
+
+        self.send_signal(self.widget.Inputs.corpus, self.corpus[:1])
+        self.wait_until_finished()
+        self.assertEqual(
+            1, len(self.get_output(self.widget.Outputs.new_corpus))
+        )
+
+
+if __name__ == "__main__":
+    unittest.main()
