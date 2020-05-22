@@ -3,6 +3,7 @@ import unittest
 from distutils.version import LooseVersion
 
 import numpy as np
+from numpy.testing import assert_array_equal
 from scipy.sparse import csr_matrix, issparse
 
 import Orange
@@ -432,13 +433,13 @@ class CorpusTests(unittest.TestCase):
         corpus = Corpus.from_numpy(
             domain, X=np.empty((2, 0)), metas=np.array(metas)
         )
-        self.assertListEqual(["Document 1", "Document 2"], corpus.titles)
+        assert_array_equal(["Document 1", "Document 2"], corpus.titles)
 
         domain["title"].attributes["title"] = True
         corpus = Corpus.from_numpy(
             domain, X=np.empty((2, 0)), metas=np.array(metas)
         )
-        self.assertListEqual(["title1", "title2"], corpus.titles)
+        assert_array_equal(["title1", "title2"], corpus.titles)
 
     def test_titles_from_rows(self):
         domain = Domain([],
@@ -449,7 +450,7 @@ class CorpusTests(unittest.TestCase):
             domain, X=np.empty((3, 0)), metas=np.array(metas)
         )
         corpus = Corpus.from_table_rows(corpus, [0, 2])
-        self.assertListEqual(["Document 1", "Document 3"], corpus.titles)
+        assert_array_equal(["Document 1", "Document 3"], corpus.titles)
 
     def test_titles_from_list(self):
         domain = Domain(
@@ -457,12 +458,12 @@ class CorpusTests(unittest.TestCase):
         )
         corpus = Corpus.from_list(
             domain, [["title1", "a"], ["title2", "b"]])
-        self.assertListEqual(["Document 1", "Document 2"], corpus.titles)
+        assert_array_equal(["Document 1", "Document 2"], corpus.titles)
 
         domain["title"].attributes["title"] = True
         corpus = Corpus.from_list(
             domain, [["title1", "a"], ["title2", "b"]])
-        self.assertListEqual(["title1", "title2"], corpus.titles)
+        assert_array_equal(["title1", "title2"], corpus.titles)
 
 
 if __name__ == "__main__":

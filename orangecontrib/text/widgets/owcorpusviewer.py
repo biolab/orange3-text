@@ -192,7 +192,7 @@ class OWCorpusViewer(OWWidget):
                                                       self.corpus_docs)):
             if is_match(content):
                 item = QStandardItem()
-                item.setData(title, Qt.DisplayRole)
+                item.setData(str(title), Qt.DisplayRole)
                 item.setData(doc, Qt.UserRole)
                 self.doc_list_model.appendRow(item)
                 self.output_mask.append(i)

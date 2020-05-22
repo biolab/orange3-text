@@ -265,7 +265,7 @@ class Corpus(Table):
     def titles(self):
         """ Returns a list of titles. """
         assert self._titles is not None
-        return self._titles.tolist()
+        return self._titles
 
     def documents_from_features(self, feats):
         """
