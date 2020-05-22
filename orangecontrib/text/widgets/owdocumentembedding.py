@@ -20,7 +20,6 @@ def run_pretrained_embedder(corpus: Corpus,
                             language: str,
                             aggregator: str,
                             state: TaskState) -> Corpus:
-
     """Runs DocumentEmbedder.
 
     Parameters
@@ -170,7 +169,7 @@ class OWDocumentEmbedding(OWWidget, ConcurrentWidgetMixin):
             return
 
         self.corpus = data
-        self.commit()
+        self.unconditional_commit()
 
     def _option_changed(self):
         self.commit()
@@ -180,7 +179,7 @@ class OWDocumentEmbedding(OWWidget, ConcurrentWidgetMixin):
             self.clear_outputs()
             return
 
-        self._set_fields(False)
+        self.cancel_button.setDisabled(False)
 
         self.start(run_pretrained_embedder,
                    self.corpus,
@@ -190,7 +189,7 @@ class OWDocumentEmbedding(OWWidget, ConcurrentWidgetMixin):
         self.Error.clear()
 
     def on_done(self, result: Any) -> None:
-        self._set_fields(True)
+        self.cancel_button.setDisabled(True)
         self._send_output_signals(result)
 
     def on_partial_result(self, result: Any):
@@ -198,7 +197,7 @@ class OWDocumentEmbedding(OWWidget, ConcurrentWidgetMixin):
         self.Error.no_connection()
 
     def on_exception(self, ex: Exception):
-        self._set_fields(False)
+        self.cancel_button.setDisabled(True)
         if isinstance(ex, EmbeddingConnectionError):
             self.Error.no_connection()
         else:
@@ -207,14 +206,8 @@ class OWDocumentEmbedding(OWWidget, ConcurrentWidgetMixin):
         self.clear_outputs()
 
     def cancel(self):
-        self._set_fields(True)
+        self.cancel_button.setDisabled(True)
         super().cancel()
-
-    def _set_fields(self, active):
-        self.auto_commit_widget.setDisabled(not active)
-        self.cancel_button.setDisabled(active)
-        self.language_cb.setDisabled(not active)
-        self.aggregator_cb.setDisabled(not active)
 
     def _send_output_signals(self, result):
         self.Outputs.new_corpus.send(result)
