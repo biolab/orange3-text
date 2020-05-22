@@ -22,9 +22,9 @@ matrix:
         - &master
           python: '3.6'
           env: ORANGE="master"
-        - &orange3-25-0
+        - &orange3-25-1
           python: '3.7'
-          env: ORANGE="3.25.0"
+          env: ORANGE="3.25.1"  # 3.25.0 - has issues with scikit-learn
 
 env:
     global:
