@@ -22,9 +22,9 @@ matrix:
         - &master
           python: '3.6'
           env: ORANGE="master"
-        - &orange3-25-0
+        - &orange3-25-1
           python: '3.7'
-          env: ORANGE="3.25.0"
+          env: ORANGE="3.25.1"  # 3.25.0 - has issues with scikit-learn
 
 env:
     global:
@@ -46,7 +46,6 @@ before_install:
 
 install:
     - pip install pyqt5 pyqtwebengine
-    - pip install "scikit-learn<0.23"  # temp fix: remove when Orange>3.25 available
     - pip install Orange3-Network
     - source $TRAVIS_BUILD_DIR/.travis/install_orange.sh
     - travis_wait pip install -r requirements.txt
