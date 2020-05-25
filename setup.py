@@ -2,8 +2,9 @@
 
 import os
 import subprocess
-import sys
-import unittest
+import warnings
+from unittest import TestSuite
+
 from setuptools import setup, find_packages
 
 try:
@@ -139,6 +140,14 @@ INSTALL_REQUIRES = sorted(set(
     for line in open(os.path.join(os.path.dirname(__file__), 'requirements.txt'))
 ) - {''})
 
+
+def temp_test_suite():
+    warnings.warn(
+        "The package does not support testing with this command. Please use"
+        "python -m unittest discover", FutureWarning)
+    return TestSuite([])
+
+
 if __name__ == '__main__':
     write_version_py()
     setup(
@@ -157,5 +166,5 @@ if __name__ == '__main__':
         keywords=KEYWORDS,
         namespace_packages=['orangecontrib'],
         zip_safe=False,
-        test_suite='orangecontrib.text.tests.suite'
+        test_suite="setup.temp_test_suite"
     )
