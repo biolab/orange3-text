@@ -155,6 +155,14 @@ class CorpusTests(unittest.TestCase):
         self.assertEqual(len(types), 1)
         self.assertIn(str, types)
 
+    def test_pp_documents(self):
+        c = Corpus.from_file('book-excerpts')
+        self.assertEqual(c.documents, c.pp_documents)
+
+        pp_c = preprocess.BASE_TRANSFORMER(c)
+        self.assertEqual(c.documents, pp_c.documents)
+        self.assertNotEqual(c.pp_documents, pp_c.pp_documents)
+
     def test_titles(self):
         c = Corpus.from_file('book-excerpts')
 
@@ -266,7 +274,7 @@ class CorpusTests(unittest.TestCase):
         self.assertEqual(len(c[:, :]), len(c))
 
         # run default preprocessing
-        c.tokens
+        c.store_tokens(c.tokens)
 
         sel = c[:, :]
         self.assertEqual(sel, c)
@@ -319,21 +327,20 @@ class CorpusTests(unittest.TestCase):
 
     def test_has_tokens(self):
         corpus = Corpus.from_file('deerwester')
-
         self.assertFalse(corpus.has_tokens())
-        corpus.tokens   # default tokenizer
+        corpus.store_tokens(corpus.tokens)   # default tokenizer
         self.assertTrue(corpus.has_tokens())
 
     def test_copy(self):
         corpus = Corpus.from_file('deerwester')
 
-        p = preprocess.Preprocessor(tokenizer=preprocess.RegexpTokenizer('\w+\s}'))
+        p = preprocess.RegexpTokenizer('\w+\s}')
         copied = corpus.copy()
-        p(copied, inplace=True)
+        copied = p(copied)
         self.assertIsNot(copied, corpus)
         self.assertNotEqual(copied, corpus)
 
-        p(corpus, inplace=True)
+        p(corpus)
         copied = corpus.copy()
         self.assertIsNot(copied, corpus)
         self.assertEqual(copied, corpus)
@@ -353,7 +360,7 @@ class CorpusTests(unittest.TestCase):
             self.assertIn(ngram, list(c.ngrams_iterator(join_with=None))[0])
             self.assertIn('-'.join(ngram), list(c.ngrams_iterator(join_with='-'))[0])
 
-        self.pos_tagger.tag_corpus(c)
+        c = self.pos_tagger(c)
         c.ngram_range = (1, 1)
         for doc in c.ngrams_iterator(join_with='_', include_postags=True):
             for token in doc:

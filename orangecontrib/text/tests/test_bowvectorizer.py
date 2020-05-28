@@ -46,9 +46,8 @@ class BowVectorizationTest(unittest.TestCase):
     def test_ngrams(self):
         vect = BowVectorizer()
         corpus = Corpus.from_file('deerwester')
-        pr = preprocess.Preprocessor(tokenizer=preprocess.RegexpTokenizer('\w+'),
-                                     ngrams_range=(1, 3))
-        pr(corpus, inplace=True)
+        corpus = preprocess.RegexpTokenizer('\w+')(corpus)
+        corpus = preprocess.NGrams(ngrams_range=(1, 3))(corpus)
         result = vect.transform(corpus)
         attrs = [attr.name for attr in result.domain.attributes]
         self.assertIn(corpus.tokens[0][1], attrs)

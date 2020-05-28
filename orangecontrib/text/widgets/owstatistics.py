@@ -21,8 +21,7 @@ from orangecontrib.text.preprocess import (
     LowercaseTransformer,
     Preprocessor,
     RegexpTokenizer,
-    UrlRemover,
-)
+    PreprocessorList)
 from orangecontrib.text.widgets.utils import format_summary_details
 from orangecontrib.text.widgets.utils.context import (
     AlmostPerfectContextHandler,
@@ -80,12 +79,12 @@ def preprocess_only_words(corpus: Corpus) -> Corpus:
     -------
     Preprocessed corpus. Result of pre-processing is saved in tokens/ngrams.
     """
-    p = Preprocessor(
-        transformers=[LowercaseTransformer()],
-        # by default regexp keeps only words (no punctuations, no spaces)
-        tokenizer=RegexpTokenizer(),
+    p = PreprocessorList(
+        [LowercaseTransformer(),
+         # by default regexp keeps only words (no punctuations, no spaces)
+         RegexpTokenizer()]
     )
-    return p(corpus, inplace=False)
+    return p(corpus)
 
 
 # every statistic returns a np.ndarray with statistics

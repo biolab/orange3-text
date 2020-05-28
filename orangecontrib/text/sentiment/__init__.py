@@ -34,10 +34,9 @@ class LiuHuSentiment:
 
     def transform(self, corpus, copy=True):
         scores = []
-        tokenizer = WordPunctTokenizer()
-        tokens = tokenizer(corpus.documents)
+        corpus = WordPunctTokenizer()(corpus)
 
-        for doc in tokens:
+        for doc in corpus.tokens:
             pos_words = sum(word in self.positive for word in doc)
             neg_words = sum(word in self.negative for word in doc)
             scores.append([100*(pos_words - neg_words)/max(len(doc), 1)])
@@ -114,10 +113,9 @@ class MultiSentiment:
     def transform(self, corpus, copy=True):
         self.load_dict()
         scores = []
-        tokenizer = WordPunctTokenizer()
-        tokens = tokenizer(corpus.documents)
+        corpus = WordPunctTokenizer()(corpus)
 
-        for doc in tokens:
+        for doc in corpus.tokens:
             pos_words = sum(word in self.positive for word in doc)
             neg_words = sum(word in self.negative for word in doc)
             scores.append([100 * (pos_words - neg_words) / max(len(doc), 1)])

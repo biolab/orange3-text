@@ -1,158 +1,137 @@
-from orangecontrib.text.preprocess import (
-    FrequencyFilter, LowercaseTransformer, WordPunctTokenizer)
+from typing import Union, List, Callable
 
+from Orange.util import dummy_callback, wrap_callback
 
-__all__ = ['Preprocessor', 'base_preprocessor']
+from orangecontrib.text import Corpus
 
-
-# don't use anything that requires NLTK data to assure async download
-BASE_TOKENIZER = WordPunctTokenizer()
-BASE_TRANSFORMERS = [LowercaseTransformer()]
+__all__ = ['Preprocessor', 'TokenizedPreprocessor',
+           'NGrams', 'PreprocessorList']
 
 
 class Preprocessor:
-    """Holds document processing objects.
+    name = NotImplemented
 
-    Attributes:
-        transformers (List([BaseTransformer]): transforms strings
-        tokenizer (BaseTokenizer): tokenizes string
-        normalizer (BaseNormalizer): normalizes tokens
-        filters (List[BaseTokenFilter]): filters unneeded tokens
-    """
-
-    def __init__(self, transformers=None, tokenizer=None,
-                 normalizer=None, filters=None, ngrams_range=None, pos_tagger=None):
-
-        if callable(transformers):
-            transformers = [transformers]
-
-        if callable(filters):
-            filters = [filters]
-
-        self.transformers = transformers or []
-        self.tokenizer = tokenizer
-        self.filters = filters or []
-        self.normalizer = normalizer
-        self.ngrams_range = ngrams_range
-        self.pos_tagger = pos_tagger
-
-        self.progress = 0
-        self._report_frequency = 1
-
-    def __call__(self, corpus, inplace=True, on_progress=None):
-        """ Runs preprocessing over a corpus.
-
-        Args:
-            corpus(orangecontrib.text.Corpus): A corpus to preprocess.
-            inplace(bool): Whether to create a new Corpus instance.
+    def __call__(self, corpus: Corpus) -> Corpus:
         """
-        self.set_up()
-        self._on_progress = on_progress
-        if not inplace:
-            corpus = corpus.copy()
+         Preprocess corpus. Should be extended when inherited and
+         invoke _preprocess method on a document or token(s).
 
-        self.progress = 1
-        self._report_frequency = len(corpus) // 80 or 1
-        self._len = len(corpus) / 80
-        tokens = list(map(self.process_document, corpus.documents))
-        corpus.store_tokens(tokens)
-        self.on_progress(80)
-        if self.ngrams_range is not None:
-            corpus.ngram_range = self.ngrams_range
-        if self.freq_filter is not None:
-            tokens, dictionary = self.freq_filter.fit_filter(corpus)
-            corpus.store_tokens(tokens, dictionary)
-
-        if self.pos_tagger:
-            self.pos_tagger.tag_corpus(corpus)
-
-        self.on_progress(100)
+        :param corpus: Corpus
+        :return: Corpus
+            Preprocessed corpus.
+        """
+        corpus = corpus.copy()
         corpus.used_preprocessor = self
-        corpus.used_preprocessor._on_progress = None    # remove on_progress that is causing pickling problems
-        self.tear_down()
         return corpus
 
-    @property
-    def filters(self):
-        return self._filters
-
-    @filters.setter
-    def filters(self, filters):
-        self._filters = []
-        self.freq_filter = None
-
-        for f in filters:
-            if isinstance(f, FrequencyFilter):
-                self.freq_filter = f
-            else:
-                self._filters.append(f)
-
-    def process_document(self, document):
-        for transformer in self.transformers:
-            document = transformer.transform(document)
-
-        if self.tokenizer:
-            tokens = self.tokenizer.tokenize(document)
-        else:
-            tokens = BASE_TOKENIZER.tokenize(document)
-
-        if self.normalizer:
-            if getattr(self.normalizer, 'use_tokenizer', False):
-                tokens = self.normalizer.normalize_doc(document)
-            else:
-                tokens = self.normalizer(tokens)
-
-        for filter in self.filters:
-            tokens = filter(tokens)
-
-        self.progress += 1
-        if self.progress % self._report_frequency == 0:
-            self.on_progress(self.progress / self._len)
-        return tokens
-
-    def on_progress(self, progress):
-        if self._on_progress:
-            self._on_progress(progress)
-
-    def set_up(self):
-        """ Called before every __call__. Used for setting up tokenizer & filters. """
-        if self.tokenizer:
-            self.tokenizer.set_up()
-
-        for f in self.filters:
-            f.set_up()
-
-    def tear_down(self):
-        """ Called after every __call__. Used for cleaning up tokenizer & filters. """
-        if self.tokenizer:
-            self.tokenizer.tear_down()
-
-        for f in self.filters:
-            f.tear_down()
-
     def __str__(self):
-        return '\n'.join(['{}: {}'.format(name, value) for name, value in self.report()])
+        return self.name
 
-    def report(self):
-        if getattr(self.normalizer, 'use_tokenizer', False):
-            self.tokenizer = \
-                'UDPipe Tokenizer ({})'.format(self.normalizer.language)
-        rep = (
-            ('Transformers', ', '.join(str(tr) for tr in self.transformers)
-            if self.transformers else None),
-            ('Tokenizer', str(self.tokenizer) if self.tokenizer else None),
-            ('Normalizer', str(self.normalizer) if self.normalizer else None),
-            ('Filters', ', '.join(str(f) for f in self.filters) if
-            self.filters else None),
-            ('Ngrams range', str(self.ngrams_range) if self.ngrams_range else
-            None),
-            ('Frequency filter', str(self.freq_filter) if self.freq_filter
-            else None),
-            ('Pos tagger', str(self.pos_tagger) if self.pos_tagger else None),
-        )
-        del self.tokenizer
-        return rep
+    def _store_documents(self, corpus: Corpus, callback: Callable) -> Corpus:
+        """
+        Preprocess and set corpus.documents.
+
+        :param corpus: Corpus
+        :param corpus: progress callback function
+        :return: Corpus
+            Preprocessed corpus.
+        """
+        assert callback is not None
+        docs, n = [], len(corpus.pp_documents)
+        for i, doc in enumerate(corpus.pp_documents):
+            callback(i / n)
+            docs.append(self._preprocess(doc))
+        corpus.pp_documents = docs
+        return corpus
+
+    def _store_tokens(self, corpus: Corpus, callback: Callable) -> Corpus:
+        """
+        Preprocess and set corpus.tokens.
+
+        :param corpus: Corpus
+        :param callback: progress callback function
+        :return: Corpus
+            Preprocessed corpus.
+        """
+        assert callback is not None
+        assert corpus.has_tokens()
+        tokens, n = [], len(corpus.tokens)
+        for i, tokens_ in enumerate(corpus.tokens):
+            callback(i / n)
+            tokens.append([self._preprocess(s) for s in tokens_])
+        corpus.store_tokens(tokens)
+        return corpus
+
+    def _store_tokens_from_documents(self, corpus: Corpus,
+                                     callback: Callable) -> Corpus:
+        """
+        Create tokens from documents and set corpus.tokens.
+
+        :param corpus: Corpus
+        :param callback: progress callback function
+        :return: Corpus
+            Preprocessed corpus.
+        """
+        assert callback is not None
+        tokens, n = [], len(corpus.pp_documents)
+        for i, doc in enumerate(corpus.pp_documents):
+            callback(i / n)
+            tokens.append(self._preprocess(doc))
+        corpus.store_tokens(tokens)
+        return corpus
+
+    def _preprocess(self, _: Union[str, List[str]]) -> Union[str, List[str]]:
+        """ This method should be implemented when subclassed. It performs
+        preprocessing operation on a document or token(s).
+        """
+        raise NotImplementedError
 
 
-base_preprocessor = Preprocessor(transformers=BASE_TRANSFORMERS,
-                                 tokenizer=BASE_TOKENIZER)
+class TokenizedPreprocessor(Preprocessor):
+    def __call__(self, corpus: Corpus, callback: Callable) -> Corpus:
+        corpus = super().__call__(corpus)
+        if not corpus.has_tokens():
+            from orangecontrib.text.preprocess import BASE_TOKENIZER
+            corpus = BASE_TOKENIZER(corpus, callback)
+        return corpus
+
+
+class NGrams(TokenizedPreprocessor):
+    name = "N-grams Range"
+
+    def __init__(self, ngrams_range=(1, 2)):
+        super().__init__()
+        self.__range = ngrams_range
+
+    def __call__(self, corpus: Corpus, callback: Callable = None) -> Corpus:
+        corpus = super().__call__(corpus, callback)
+        assert corpus.has_tokens()
+        corpus.ngram_range = self.__range
+        return corpus
+
+
+class PreprocessorList:
+    """ Store a list of preprocessors and on call apply them to the corpus. """
+
+    def __init__(self, preprocessors: List):
+        self.preprocessors = preprocessors
+
+    def __call__(self, corpus: Corpus, callback: Callable = None) \
+            -> Corpus:
+        """
+        Applies a list of preprocessors to the corpus.
+
+        :param corpus: Corpus
+        :param callback: progress callback function
+        :return: Corpus
+            Preprocessed corpus.
+        """
+        if callback is None:
+            callback = dummy_callback
+        n_pps = len(list(self.preprocessors))
+        for i, pp in enumerate(self.preprocessors):
+            start = i / n_pps
+            cb = wrap_callback(callback, start=start, end=start + 1 / n_pps)
+            corpus = pp(corpus, cb)
+        callback(1)
+        return corpus

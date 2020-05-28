@@ -235,7 +235,7 @@ class TestStatisticsWidget(WidgetTest):
         self.assertTrue(self.widget.Warning.not_computed.is_shown())
 
         tagger = AveragedPerceptronTagger()
-        result = tagger.tag_corpus(self.corpus)
+        result = tagger(self.corpus)
 
         self.send_signal(self.widget.Inputs.corpus, result)
         self._set_feature("POS tag", "NN")
@@ -243,7 +243,7 @@ class TestStatisticsWidget(WidgetTest):
         self.wait_until_finished()
         res = self.get_output(self.widget.Outputs.corpus)
         self.assertTupleEqual((len(self.corpus), 1), res.X.shape)
-        np.testing.assert_array_almost_equal(res.X.flatten(), [7, 6, 4, 6])
+        np.testing.assert_array_almost_equal(res.X.flatten(), [6, 5, 4, 5])
         self.assertFalse(self.widget.Warning.not_computed.is_shown())
 
     def test_statistics_combination(self):
