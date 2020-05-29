@@ -207,6 +207,7 @@ class OWTwitter(OWWidget):
 
     @gui_require('api', 'key_missing')
     def run_search(self):
+        self.Error.clear()
         self.search()
 
     @asynchronous
@@ -240,7 +241,6 @@ class OWTwitter(OWWidget):
 
     @search.on_start
     def on_start(self):
-        self.Error.clear()
         self.progressBarInit()
         self.search_button.setText('Stop')
         self.Outputs.corpus.send(None)
