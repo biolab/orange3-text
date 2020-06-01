@@ -90,6 +90,7 @@ class OWTwitter(OWWidget):
         api = Msg('Api error ({})')
         rate_limit = Msg('Rate limit exceeded. Please try again later.')
         empty_authors = Msg('Please provide some authors.')
+        wrong_authors = Msg('Query does not match Twitter user handle.')
         key_missing = Msg('Please provide a valid API key to get the data.')
 
     tweets_info = 'Tweets on output: {}'
@@ -106,6 +107,7 @@ class OWTwitter(OWWidget):
 
     attributes = [f.name for f in twitter.TwitterAPI.string_attributes]
     text_includes = Setting([f.name for f in twitter.TwitterAPI.text_features])
+
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -223,6 +225,9 @@ class OWTwitter(OWWidget):
         else:
             if not self.word_list:
                 self.Error.empty_authors()
+                return None
+            if not any(a.startswith('@') for a in self.word_list):
+                self.Error.wrong_authors()
                 return None
             return self.api.search_authors(max_tweets=max_tweets,
                                            authors=self.word_list,

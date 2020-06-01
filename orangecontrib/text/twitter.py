@@ -65,14 +65,14 @@ class TwitterAPI:
         argument to search method.
     """
     attributes = []
-    class_vars = [
-        (data.DiscreteVariable('Author'), lambda doc: '@' + doc.author.screen_name),
-    ]
+    class_vars = []
 
     tv = data.TimeVariable('Date')
+    authors = [(data.DiscreteVariable('Author'),
+               lambda doc: '@' + doc.author.screen_name), ]
     metas = [
         (data.StringVariable('Content'), lambda doc: doc.full_text if not
-        doc.retweeted else doc.text),
+         doc.retweeted else doc.text),
         (tv, lambda doc: TwitterAPI.tv.parse(doc.created_at.isoformat())),
         (data.DiscreteVariable('Language'), lambda doc: doc.lang),
         (data.DiscreteVariable('Location'), lambda doc: getattr(doc.place, 'country_code', None)),
@@ -162,7 +162,7 @@ class TwitterAPI:
         query = build_query()
         cursor = tweepy.Cursor(self.api.search, q=query, lang=lang,
                                tweet_mode='extended')
-        corpus, count = self.fetch(cursor, max_tweets)
+        corpus, count = self.fetch(cursor, max_tweets, search_author=False)
         self.append_history('Content', content, lang if lang else 'Any',
                             str(allow_retweets), count)
         return corpus
@@ -192,11 +192,11 @@ class TwitterAPI:
         cursors = [tweepy.Cursor(self.api.user_timeline, screen_name=a,
                                  tweet_mode='extended')
                    for a in authors]
-        corpus, count = self.fetch(cursors, max_tweets)
+        corpus, count = self.fetch(cursors, max_tweets, search_author=True)
         self.append_history('Author', authors, None, None, count)
         return corpus
 
-    def fetch(self, cursors, max_tweets):
+    def fetch(self, cursors, max_tweets, search_author):
         if not isinstance(cursors, list):
             cursors = [cursors]
 
@@ -221,11 +221,17 @@ class TwitterAPI:
             elif self.on_error:
                 self.on_error(str(e))
                 return None, 0
-        return self.create_corpus(), count
+        return self.create_corpus(search_author), count
 
-    def create_corpus(self):
+    def create_corpus(self, search_author):
+        if search_author:
+            class_vars = self.authors
+            metas = self.metas
+        else:
+            class_vars = []
+            metas = self.metas + self.authors
         return Corpus.from_documents(self.tweets, 'Twitter', self.attributes,
-                                     self.class_vars, self.metas,
+                                     class_vars, metas,
                                      title_indices=[-1])
 
     def reset(self):
