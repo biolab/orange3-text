@@ -513,8 +513,8 @@ class Corpus(Table):
                     new._tokens = np.array([orig._tokens[key]])
                     new.pos_tags = None if orig.pos_tags is None else np.array(
                         [orig.pos_tags[key]])
-                elif isinstance(key, list) or isinstance(key, np.ndarray) or isinstance(key,
-                                                                                        slice):
+                elif isinstance(key, list) or isinstance(key, np.ndarray) \
+                        or isinstance(key, slice) or isinstance(key, range):
                     new._tokens = orig._tokens[key]
                     new.pos_tags = None if orig.pos_tags is None else orig.pos_tags[key]
                 elif key is Ellipsis:
