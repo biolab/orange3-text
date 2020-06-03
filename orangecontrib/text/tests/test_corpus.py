@@ -304,6 +304,12 @@ class CorpusTests(unittest.TestCase):
         sel = c[...]
         self.assertEqual(sel, c)
 
+        sel = c[range(0, 5)]
+        self.assertEqual(len(sel), 5)
+        self.assertEqual(len(sel._tokens), 5)
+        np.testing.assert_equal(sel._tokens, c._tokens[0:5])
+        self.assertEqual(sel._dictionary, c._dictionary)
+
     def test_set_text_features(self):
         c = Corpus.from_file('friends-transcripts')[:100]
         c2 = c.copy()
