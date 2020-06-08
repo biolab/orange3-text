@@ -3,9 +3,10 @@ nltk>=3.0.5,<3.5  # TODO: change when fixed: https://bitbucket.org/mrabarnett/mr
 scikit-learn
 numpy
 docutils<0.16  # denpendency for botocore
+python-dateutil<3.0.0  # denpendency for botocore
 gensim>=0.12.3  # LDA's show topics unified in 0.12.3
 setuptools-git
-Orange3 >=3.25.0aa
+Orange3 >=3.25.0
 tweepy
 beautifulsoup4
 simhash~=1.9.0  # simhash 1.10 requires gmpy2 which needs additional libraries for compilation and does not have mac/linux precompiled pypi packages
