@@ -248,9 +248,9 @@ class TestOWCorpus(WidgetTest):
         attributes = [
             ContinuousVariable("a"), ContinuousVariable("b"),
             ContinuousVariable("c")]
-        metas = [StringVariable("c"), StringVariable("d"),
-                 StringVariable("e"), StringVariable("f"),
-                 StringVariable("g"), StringVariable("h")]
+        metas = [StringVariable("d"), StringVariable("e"),
+                 StringVariable("f"), StringVariable("g"),
+                 StringVariable("h"), StringVariable("i")]
         data = Table(
             Domain(attributes, metas=metas),
             np.array([[0] * len(attributes)]),

@@ -87,7 +87,7 @@ class BowVectorizer(BaseVectorizer):
         cv = [VectorizationComputeValue(shared_cv, dic[i])
               for i in range(len(dic))]
 
-        self.add_features(corpus, X, dic, cv, var_attrs={'bow-feature': True})
+        corpus = self.add_features(corpus, X, dic, cv, var_attrs={'bow-feature': True})
         return corpus
 
     def report(self):

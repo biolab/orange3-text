@@ -1,12 +1,10 @@
 import os
 import unittest
-from distutils.version import LooseVersion
 
 import numpy as np
 from numpy.testing import assert_array_equal
 from scipy.sparse import csr_matrix, issparse
 
-import Orange
 from Orange.data import Table, DiscreteVariable, StringVariable, Domain, ContinuousVariable
 
 from orangecontrib.text import preprocess
@@ -83,20 +81,56 @@ class CorpusTests(unittest.TestCase):
             c.extend_corpus(c.metas, c.Y)
 
     def test_extend_attributes(self):
+        """
+        Test correctness of extending attributes, variables must have unique
+        values and must not happen inplace
+        """
         # corpus without features
         c = Corpus.from_file('book-excerpts')
         X = np.random.random((len(c), 3))
-        c.extend_attributes(X, ['1', '2', '3'])
-        self.assertEqual(c.X.shape, (len(c), 3))
+        new_c = c.extend_attributes(X, ['1', '2', '3'])
+        self.assertEqual(new_c.X.shape, (len(c), 3))
 
         # add to non empty corpus
-        c.extend_attributes(X, ['1', '2', '3'])
-        self.assertEqual(c.X.shape, (len(c), 6))
+        new_c = new_c.extend_attributes(X, ['1', '2', '4'])
+        self.assertEqual(new_c.X.shape, (len(c), 6))
+        self.assertListEqual(
+            [a.name for a in new_c.domain.attributes],
+            ['1', '2', '3', '1 (1)', '2 (1)', '4']
+        )
+        self.assertEqual(0, len(c.domain.attributes))
 
         # extend sparse
-        c.extend_attributes(csr_matrix(X), ['1', '2', '3'])
-        self.assertEqual(c.X.shape, (len(c), 9))
-        self.assertTrue(issparse(c.X))
+        new_c = new_c.extend_attributes(csr_matrix(X), ['1', '2', '3'])
+        self.assertEqual(new_c.X.shape, (len(c), 9))
+        self.assertTrue(issparse(new_c.X))
+        self.assertListEqual(
+            [a.name for a in new_c.domain.attributes],
+            ['1', '2', '3', '1 (1)', '2 (1)', '4', '1 (2)', '2 (2)', '3 (1)']
+        )
+        self.assertEqual(0, len(c.domain.attributes))
+
+    def test_extend_attribute_rename_existing(self):
+        """
+        Test correctness of extending attributes, case when we want to rename
+        existing attributes
+        """
+        # corpus without features
+        c = Corpus.from_file('book-excerpts')
+        X = np.random.random((len(c), 3))
+        new_c = c.extend_attributes(X, ['1', '2', '3'])
+        self.assertEqual(new_c.X.shape, (len(c), 3))
+
+        # add to non empty corpus
+        new_c = new_c.extend_attributes(
+            X, ['1', '2', '4'], rename_existing=True
+        )
+        self.assertEqual(new_c.X.shape, (len(c), 6))
+        self.assertListEqual(
+            [a.name for a in new_c.domain.attributes],
+            ['1 (1)', '2 (1)', '3', '1', '2', '4']
+        )
+        self.assertEqual(0, len(c.domain.attributes))
 
     def test_corpus_not_eq(self):
         c = Corpus.from_file('book-excerpts')
@@ -370,7 +404,7 @@ class CorpusTests(unittest.TestCase):
         c.ngram_range = (1, 1)
         for doc in c.ngrams_iterator(join_with='_', include_postags=True):
             for token in doc:
-                self.assertRegexpMatches(token, '\w+_[A-Z]+')
+                self.assertRegex(token, '\w+_[A-Z]+')
 
     def test_from_documents(self):
         documents = [

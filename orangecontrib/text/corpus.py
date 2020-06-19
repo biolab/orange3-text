@@ -3,7 +3,7 @@ from collections import Counter, defaultdict
 from copy import copy
 from numbers import Integral
 from itertools import chain
-from typing import Union, Optional, List
+from typing import Union, Optional, List, Tuple
 
 import nltk
 import numpy as np
@@ -12,7 +12,10 @@ from gensim import corpora
 
 from Orange.data import ContinuousVariable, DiscreteVariable, \
     Domain, RowInstance, Table, StringVariable
-
+# uncomment when Orange3==3.27 is available
+# from Orange.data.util import get_unique_names
+# remove when Orange3==3.27 is available
+from orangecontrib.text.vectorization.base import get_unique_names
 from orangecontrib.text.vectorization import BowVectorizer
 
 
@@ -225,8 +228,10 @@ class Corpus(Table):
         self._tokens = None     # invalidate tokens
         self._set_unique_titles()
 
-    def extend_attributes(self, X, feature_names, feature_values=None,
-                          compute_values=None, var_attrs=None, sparse=False):
+    def extend_attributes(
+            self, X, feature_names, feature_values=None, compute_values=None,
+            var_attrs=None, sparse=False, rename_existing=False
+        ):
         """
         Append features to corpus. If `feature_values` argument is present,
         features will be Discrete else Continuous.
@@ -238,20 +243,51 @@ class Corpus(Table):
             compute_values (list): Compute values for corresponding features.
             var_attrs (dict): Additional attributes appended to variable.attributes.
             sparse (bool): Whether the features should be marked as sparse.
+            rename_existing (bool): When true and names are not unique rename
+                exiting features; if false rename new features
         """
-        if self.X.size == 0:
-            self.X = X
-        elif sp.issparse(self.X) or sp.issparse(X):
-            self.X = sp.hstack((self.X, X)).tocsr()
+        def _rename_features(additional_names: List) -> Tuple[List, List, List]:
+            cur_attr = list(self.domain.attributes)
+            cur_class = self.domain.class_var
+            cur_meta = list(self.domain.metas)
+            if rename_existing:
+                current_vars = (
+                        cur_attr + (
+                    [cur_class] if cur_class else []) + cur_meta
+                )
+                current_names = [a.name for a in current_vars]
+                new_names = get_unique_names(
+                    additional_names, current_names, equal_numbers=False
+                )
+                renamed_vars = [
+                    var.renamed(n) for var, n in zip(current_vars, new_names)
+                ]
+                cur_attr = renamed_vars[:len(cur_attr)]
+                cur_class = renamed_vars[len(cur_attr)] if cur_class else None
+                cur_meta = renamed_vars[-len(cur_meta):]
+            return cur_attr, cur_class, cur_meta
+
+        if sp.issparse(self.X) or sp.issparse(X):
+            X = sp.hstack((self.X, X)).tocsr()
         else:
-            self.X = np.hstack((self.X, X))
+            X = np.hstack((self.X, X))
 
         if compute_values is None:
             compute_values = [None] * X.shape[1]
         if feature_values is None:
             feature_values = [None] * X.shape[1]
 
-        new_attr = self.domain.attributes
+        # rename existing variables if required
+        curr_attributes, curr_class_var, curr_metas = _rename_features(
+            feature_names
+        )
+        if not rename_existing:
+            # rename new feature names if required
+            feature_names = get_unique_names(
+                self.domain, feature_names, equal_numbers=False
+            )
+
+        additional_attributes = []
         for f, values, cv in zip(feature_names, feature_values, compute_values):
             if values is not None:
                 var = DiscreteVariable(f, values=values, compute_value=cv)
@@ -262,14 +298,21 @@ class Corpus(Table):
                 cv.variable = var
             if isinstance(var_attrs, dict):
                 var.attributes.update(var_attrs)
-            new_attr += (var, )
+            additional_attributes.append(var)
 
         new_domain = Domain(
-                attributes=new_attr,
-                class_vars=self.domain.class_vars,
-                metas=self.domain.metas
+                attributes=curr_attributes + additional_attributes,
+                class_vars=curr_class_var,
+                metas=curr_metas
         )
-        self.domain = new_domain
+        return Corpus(
+            new_domain,
+            X,
+            self.Y.copy(),
+            self.metas.copy(),
+            self.W.copy(),
+            copy(self.text_features)
+        )
 
     @property
     def documents(self):

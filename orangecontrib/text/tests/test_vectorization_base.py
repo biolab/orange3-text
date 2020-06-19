@@ -21,9 +21,9 @@ class BaseVectorizationTest(unittest.TestCase):
             3: 'a',
         }
 
-        BaseVectorizer.add_features(c1, X, dictionary,
+        c1 = BaseVectorizer.add_features(c1, X, dictionary,
                                     compute_values=None, var_attrs=None)
-        BaseVectorizer.add_features(c2, X, dictionary,
+        c2 = BaseVectorizer.add_features(c2, X, dictionary,
                                     compute_values=None, var_attrs={'foo': 1})
 
         n_attrs_before = len(c1.domain.attributes[0].attributes)
