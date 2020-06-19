@@ -10,6 +10,7 @@ from AnyQt.QtWidgets import QComboBox, QGridLayout, QLabel, QLineEdit
 from Orange.widgets import gui
 from Orange.widgets.settings import ContextSetting
 from Orange.widgets.utils.concurrent import ConcurrentWidgetMixin, TaskState
+from Orange.widgets.utils.state_summary import format_summary_details
 from Orange.widgets.utils.widgetpreview import WidgetPreview
 from Orange.widgets.widget import Input, Output, OWWidget
 from orangewidget.widget import Msg
@@ -22,7 +23,6 @@ from orangecontrib.text.preprocess import (
     Preprocessor,
     RegexpTokenizer,
     PreprocessorList)
-from orangecontrib.text.widgets.utils import format_summary_details
 from orangecontrib.text.widgets.utils.context import (
     AlmostPerfectContextHandler,
 )
