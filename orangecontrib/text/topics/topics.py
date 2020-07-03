@@ -75,7 +75,7 @@ class GensimWrapper:
         topics = self.model[corpus.ngrams_corpus]
         self.actual_topics = self.model.get_topics().shape[0]
         matrix = matutils.corpus2dense(topics, num_docs=len(corpus),
-                                       num_terms=self.num_topics).T
+                                       num_terms=self.num_topics).T.astype(np.float64)
         corpus.extend_attributes(matrix[:, :self.actual_topics],
                                  self.topic_names[:self.actual_topics])
         self.doc_topic = matrix[:, :self.actual_topics]

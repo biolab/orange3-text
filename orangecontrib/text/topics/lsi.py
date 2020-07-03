@@ -1,3 +1,4 @@
+from numpy import float64
 from gensim import models
 
 from .topics import GensimWrapper
@@ -10,3 +11,6 @@ class LsiWrapper(GensimWrapper):
     name = 'Latent Semantic Indexing'
     Model = models.LsiModel
     has_negative_weights = True
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs, dtype=float64)
