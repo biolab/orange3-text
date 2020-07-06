@@ -92,6 +92,7 @@ class LDATests(unittest.TestCase, BaseTests):
         corpus = super().test_fit_transform()
         self.assertEqual(len(corpus.domain.attributes), 5)
         self.assertEqual(corpus.X.shape, (len(self.corpus), 5))
+        self.assertEqual(corpus.X.dtype, np.float64)
 
 
 class HdpTest(unittest.TestCase, BaseTests):
