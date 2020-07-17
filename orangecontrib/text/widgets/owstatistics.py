@@ -661,17 +661,10 @@ class OWStatistics(OWWidget, ConcurrentWidgetMixin):
                     comput_values.append(comp_value)
         if not_computed:
             self.Warning.not_computed(", ".join(not_computed))
-        # here we will use extend_attributes function - this function add
-        # attributes to existing corpus so it must be copied first
-        # TODO: when change of pre-processing is finished change this function
-        #  to have inplace parameter which is False by default,
-        #  also I would prefer extend_attriubtes where you give variables
-        #  instead of strings on input
-        new_corpus = self.corpus.copy()
-        if to_stack:
-            new_corpus.extend_attributes(
-                np.hstack(to_stack), attributes, compute_values=comput_values
-            )
+        new_corpus = self.corpus.extend_attributes(
+            np.hstack(to_stack) if to_stack else np.empty((len(self.corpus), 0)),
+            attributes, compute_values=comput_values
+        )
         self.Outputs.corpus.send(new_corpus)
 
         # summary

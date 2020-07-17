@@ -1,4 +1,3 @@
-
 from AnyQt.QtWidgets import QGroupBox, QVBoxLayout
 
 from Orange.widgets import gui

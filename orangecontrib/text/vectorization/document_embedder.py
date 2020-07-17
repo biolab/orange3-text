@@ -59,16 +59,13 @@ class DocumentEmbedder:
                                          server_url='https://apiv2.garaza.io',
                                          embedder_type='text')
 
-    def __call__(self, corpus: Corpus, copy: bool = True,
-                 processed_callback=None) -> Corpus:
+    def __call__(self, corpus: Corpus, processed_callback=None) -> Corpus:
         """Adds matrix of document embeddings to a corpus.
 
         Parameters
         ----------
         corpus : Corpus
             Corpus on which transform is performed.
-        copy : bool
-            If set to True, a copy of corpus is made.
 
         Returns
         -------
@@ -85,7 +82,6 @@ class DocumentEmbedder:
         """
         if not isinstance(corpus, Corpus):
             raise ValueError("Input should be instance of Corpus.")
-        corpus = corpus.copy() if copy else corpus
         embs = self._embedder.embedd_data(
             list(corpus.ngrams),
             processed_callback=processed_callback)
@@ -117,10 +113,11 @@ class DocumentEmbedder:
         if len(inds) > 0:
             # if at least one embedding is not None,
             # extend attributes
-            new_corpus.extend_attributes(
+            new_corpus = new_corpus.extend_attributes(
                 np.array(embs[inds]),
                 ['Dim{}'.format(i + 1) for i in range(dim)],
-                var_attrs=variable_attrs)
+                var_attrs=variable_attrs
+            )
 
         if send_warning:
             warnings.warn(("Some documents were not embedded for " +

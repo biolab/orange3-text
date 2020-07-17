@@ -117,6 +117,24 @@ class BowVectorizationTest(unittest.TestCase):
         out = vect.transform(corpus)
         self.assertEqual(out, corpus)
 
+    def tests_duplicated_names(self):
+        """
+        BOW adds words to the domain and if same attribute name already appear
+        in the domain it renames it and add number to the existing attribute
+        name
+        """
+        corpus = Corpus.from_file("deerwester")
+        corpus = corpus.extend_attributes(np.ones((len(corpus), 1)), ["human"])
+        corpus = corpus.extend_attributes(np.ones((len(corpus), 1)), ["testtest"])
+        vect = BowVectorizer()
+        out = vect.transform(corpus)
+        # first attribute is in the dataset before bow and should be renamed
+        self.assertEqual("human (1)", out.domain[0].name)
+        self.assertEqual("testtest", out.domain[1].name)
+        # all attributes from [1:] are are bow attributes and should include
+        # human
+        self.assertIn("human", [v.name for v in out.domain.attributes[1:]])
+
 
 if __name__ == "__main__":
     unittest.main()

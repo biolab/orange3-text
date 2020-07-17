@@ -62,7 +62,7 @@ class TestWorldCloudWidget(WidgetTest):
         based on BOW weights.
         """
         data = self.corpus[:3]
-        data.extend_attributes(
+        data = data.extend_attributes(
             csr_matrix([[3, 2, 0], [0, 3, 6], [0, 1, 0]]),
             ["Word1", "Word2", "Word3"])
         for v in data.domain.attributes:
@@ -87,7 +87,7 @@ class TestWorldCloudWidget(WidgetTest):
 
         # try with one word not bow-feature
         data = self.corpus[:3]
-        data.extend_attributes(
+        data = data.extend_attributes(
             csr_matrix([[3, 2, 0], [0, 3, 6], [0, 1, 0]]),
             ["Word1", "Word2", "Word3"])
         for v in data.domain.attributes[:2]:
@@ -125,7 +125,7 @@ class TestWorldCloudWidget(WidgetTest):
         self.assertFalse(self.widget.Info.bow_weights.is_shown())
 
         # send bow data
-        data.extend_attributes(
+        data = data.extend_attributes(
             csr_matrix([[3, 2, 0], [0, 3, 6], [0, 1, 0]]),
             ["Word1", "Word2", "Word3"])
         for v in data.domain.attributes:

@@ -47,6 +47,7 @@ class LiuHuTest(unittest.TestCase):
                          len(self.corpus.domain) + self.new_cols)
         self.assertEqual(len(sentiment), 0)
 
+
 class LiuHuSlovenian(unittest.TestCase):
     def setUp(self):
         self.corpus = Corpus.from_file('slo-opinion-corpus')
