@@ -369,7 +369,7 @@ class HTMLDelegate(QStyledItemDelegate):
         doc = QtGui.QTextDocument()
         doc.setHtml(options.text)
         doc.setTextWidth(options.rect.width())
-        return QtCore.QSize(doc.idealWidth(), doc.size().height())
+        return QtCore.QSize(int(doc.idealWidth()), int(doc.size().height()))
 
 
 if __name__ == '__main__':
