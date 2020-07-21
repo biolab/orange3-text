@@ -20,7 +20,9 @@ class Preprocessor:
         :return: Corpus
             Preprocessed corpus.
         """
+        ids = corpus.ids
         corpus = corpus.copy()
+        corpus.ids = ids
         corpus.used_preprocessor = self
         return corpus
 
