@@ -109,6 +109,12 @@ class PreprocessTests(unittest.TestCase):
         corpus = p(self.corpus)
         self.assertIsNot(corpus, self.corpus)
 
+    def test_retain_ids(self):
+        corpus = self.corpus
+        for pp in self.pp_list:
+            corpus = pp(corpus)
+        self.assertTrue((corpus.ids == self.corpus.ids).all())
+
 
 class TransformationTests(unittest.TestCase):
     def setUp(self):
