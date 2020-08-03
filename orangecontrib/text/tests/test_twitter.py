@@ -88,8 +88,7 @@ class TestTwitterAPI(unittest.TestCase):
         self.assertEqual(self.checker, 1)
 
     def test_create_corpus(self):
-        self.api.search_content('hello', max_tweets=5)
-        corpus = self.api.create_corpus()
+        corpus = self.api.search_content('hello', max_tweets=5)
         self.assertIsInstance(corpus, Corpus)
         self.assertEqual(len(corpus), 5)
 
