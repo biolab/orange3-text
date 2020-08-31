@@ -359,7 +359,7 @@ class Corpus(Table):
         Args:
             tokens (list): List of lists containing tokens.
         """
-        self._tokens = np.array(tokens)
+        self._tokens = np.array(tokens, dtype=object)
         self._dictionary = dictionary or corpora.Dictionary(self.tokens)
 
     @property
