@@ -9,11 +9,12 @@ from Orange.widgets.data.owselectcolumns import VariablesListItemView
 from Orange.widgets.settings import Setting, ContextSetting,\
     DomainContextHandler
 from Orange.widgets.widget import OWWidget, Msg, Input, Output
+from Orange.widgets.utils.concurrent import TaskState, ConcurrentWidgetMixin
 from orangecontrib.text.corpus import Corpus, get_sample_corpora_dir
 from orangecontrib.text.widgets.utils import widgets, QSize
 
 
-class OWCorpus(OWWidget):
+class OWCorpus(OWWidget, ConcurrentWidgetMixin):
     name = "Corpus"
     description = "Load a corpus of text documents."
     icon = "icons/TextFile.svg"
@@ -49,12 +50,13 @@ class OWCorpus(OWWidget):
     title_variable = ContextSetting("")
 
     class Error(OWWidget.Error):
-        read_file = Msg("Can't read file {} ({})")
+        read_file = Msg("Can't read file ({})")
         no_text_features_used = Msg("At least one text feature must be used.")
         corpus_without_text_features = Msg("Corpus doesn't have any textual features.")
 
     def __init__(self):
-        super().__init__()
+        OWWidget.__init__(self)
+        ConcurrentWidgetMixin.__init__(self)
 
         self.corpus = None
 
@@ -130,20 +132,27 @@ class OWCorpus(OWWidget):
         else:
             self.file_widget.reload()
 
+    @staticmethod
+    def _load_corpus(path: str, data: Table, state: TaskState) -> Corpus:
+        state.set_status("Loading")
+        corpus = None
+        if data:
+            corpus = Corpus.from_table(data.domain, data)
+        elif path:
+            corpus = Corpus.from_file(path)
+            corpus.name = os.path.splitext(os.path.basename(path))[0]
+        return corpus
+
     def open_file(self, path=None, data=None):
         self.closeContext()
         self.Error.clear()
         self.unused_attrs_model[:] = []
         self.used_attrs_model[:] = []
-        if data:
-            self.corpus = Corpus.from_table(data.domain, data)
-        elif path:
-            try:
-                self.corpus = Corpus.from_file(path)
-                self.corpus.name = os.path.splitext(os.path.basename(path))[0]
-            except BaseException as err:
-                self.Error.read_file(path, str(err))
-        else:
+        self.start(self._load_corpus, path, data)
+
+    def on_done(self, corpus: Corpus) -> None:
+        self.corpus = corpus
+        if corpus is None:
             return
 
         self.update_output_info()
@@ -157,7 +166,14 @@ class OWCorpus(OWWidget):
         self.used_attrs_model.extend(self.used_attrs)
         self.unused_attrs_model.extend(
             [f for f in self.corpus.domain.metas
-             if f.is_string and f not in self.used_attrs_model])
+             if f.is_string and f not in self.used_attrs_model]
+        )
+
+    def on_exception(self, ex: Exception) -> None:
+        if isinstance(ex, BaseException):
+            self.Error.read_file(str(ex))
+        else:
+            raise ex
 
     def _setup_title_dropdown(self):
         self.title_model.set_domain(self.corpus.domain)
