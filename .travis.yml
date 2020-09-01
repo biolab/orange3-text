@@ -16,7 +16,7 @@ addons:
 matrix:
     include:
         - &docs
-          env: BUILD_DOCS=true ORANGE="master"
+          env: BUILD_DOCS=true ORANGE="master" ORANGE3_NETWORK=true
           python: '3.6'
           script: source $TRAVIS_BUILD_DIR/.travis/build_doc.sh
         - &python36
@@ -30,7 +30,10 @@ matrix:
           env: ORANGE="master"
         - &orange3-25-1
           python: '3.7'
-          env: ORANGE="3.25.1"  # 3.25.0 - has issues with scikit-learn
+          env: ORANGE="3.25.1"
+        - &orange3-network
+          python: '3.7'
+          env: ORANGE="release" ORANGE3_NETWORK=true
 
 env:
     global:
@@ -52,7 +55,6 @@ before_install:
 
 install:
     - pip install pyqt5 pyqtwebengine
-    - pip install Orange3-Network
     - source $TRAVIS_BUILD_DIR/.travis/install_orange.sh
     - travis_wait pip install -r requirements.txt
     - pip install -e .
