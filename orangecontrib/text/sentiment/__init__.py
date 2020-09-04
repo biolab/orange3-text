@@ -19,6 +19,11 @@ from orangecontrib.text.sentiment.filter_lexicon import FilterSentiment, \
     SloSentiment
 
 
+def read_file(file):
+    with open(file, 'r') as f:
+        return f.read().split('\n')
+
+
 class LiuHuSentiment:
     sentiments = ('sentiment',)
     name = 'Liu Hu'
@@ -180,6 +185,36 @@ class SentimentDictionaries:
             return True
         except ConnectionError:
             return False
+
+
+class CustomDictionaries:
+    sentiments = ['sentiment']
+    name = 'Custom Dictionaries'
+
+    @wait_nltk_data
+    def __init__(self, pos, neg):
+        self.positive = set(read_file(pos)) if pos else None
+        self.negative = set(read_file(neg)) if neg else None
+
+    def transform(self, corpus):
+        scores = []
+        corpus = WordPunctTokenizer()(corpus)
+
+        for doc in corpus.tokens:
+            pos_words = sum(word in self.positive for word in doc) if \
+                self.positive else 0
+            neg_words = sum(word in self.negative for word in doc) if \
+                self.negative else 0
+            scores.append([100*(pos_words - neg_words)/max(len(doc), 1)])
+        X = np.array(scores).reshape((-1, len(self.sentiments)))
+
+        # set  compute values
+        shared_cv = SharedTransform(self)
+        cv = [VectorizationComputeValue(shared_cv, col)
+              for col in self.sentiments]
+
+        corpus = corpus.extend_attributes(X, self.sentiments, compute_values=cv)
+        return corpus
 
 
 if __name__ == "__main__":
