@@ -17,6 +17,13 @@ class TestOWImportDocuments(WidgetTest):
         path = os.path.join(os.path.dirname(__file__), "data")
         self.assertEqual(path, self.widget.currentPath)
 
+    def test_no_skipped(self):
+        path = os.path.join(os.path.dirname(__file__), "data", "good")
+        self.widget.setCurrentPath(path)
+        self.widget.reload()
+        self.wait_until_finished()
+        self.assertIsNone(self.get_output(self.widget.Outputs.skipped_documents))
+
     def test_output(self):
         output = self.get_output(self.widget.Outputs.data)
         self.assertEqual(4, len(output))

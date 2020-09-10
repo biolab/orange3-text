@@ -579,15 +579,17 @@ class OWImportDocuments(widget.OWWidget):
         Create and commit a Corpus from the collected text meta data.
         """
         self.Outputs.data.send(self.corpus)
-        skipped_table = (
-            Table.from_list(
-                SKIPPED_DOMAIN,
-                [[x, os.path.join(self.currentPath, x)]
-                 for x in self.skipped_documents]
+        if self.skipped_documents:
+            skipped_table = (
+                Table.from_list(
+                    SKIPPED_DOMAIN,
+                    [[x, os.path.join(self.currentPath, x)]
+                     for x in self.skipped_documents]
+                )
             )
-            if self.skipped_documents else None
-        )
-        skipped_table.name = "Skipped documents"
+            skipped_table.name = "Skipped documents"
+        else:
+            skipped_table = None
         self.Outputs.skipped_documents.send(skipped_table)
 
     def onDeleteWidget(self):
