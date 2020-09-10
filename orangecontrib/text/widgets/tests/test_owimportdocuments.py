@@ -30,14 +30,18 @@ class TestOWImportDocuments(WidgetTest):
         self.assertEqual(3, len(output.domain.metas))
         names = output.get_column_view("name")[0]
         self.assertListEqual(
-            ["sample_docx", "sample_odt", "sample_pdf", "sample_txt"],
+            # ž in sample_text_ž must be unicode char 0x17E not decomposed
+            # 0x7A + 0x30C as it is in file name
+            ["sample_docx", "sample_odt", "sample_pdf", "sample_txt_ž"],
             sorted(names.tolist()),
         )
         texts = output.get_column_view("content")[0]
         self.assertListEqual(
+            # ž in sample_text_ž must be unicode char 0x17E not decomposed
+            # 0x7A + 0x30C as it is in file name
             [
                 f"This is a test {x} file"
-                for x in ["docx", "odt", "pdf", "txt"]
+                for x in ["docx", "odt", "pdf", "txt_ž"]
             ],
             sorted([x.strip() for x in texts.tolist()]),
         )
