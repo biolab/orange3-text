@@ -25,15 +25,15 @@ matrix:
         - &python37
           python: '3.7'
           env: ORANGE="release"
+        - &python38+network
+          python: '3.8'
+          env: ORANGE="release" ORANGE3_NETWORK=true
         - &master
-          python: '3.6'
+          python: '3.8'
           env: ORANGE="master"
         - &orange3-25-1
           python: '3.7'
           env: ORANGE="3.25.1"
-        - &orange3-network
-          python: '3.7'
-          env: ORANGE="release" ORANGE3_NETWORK=true
 
 env:
     global:
