@@ -59,7 +59,7 @@ class DocumentEmbedder:
                                          server_url='https://apiv2.garaza.io',
                                          embedder_type='text')
 
-    def __call__(self, corpus: Corpus, processed_callback=None) -> Corpus:
+    def __call__(self, corpus: Corpus, processed_callback=None) -> Tuple[Corpus, Corpus]:
         """Adds matrix of document embeddings to a corpus.
 
         Parameters
@@ -69,8 +69,10 @@ class DocumentEmbedder:
 
         Returns
         -------
-        Corpus
+        Embeddings
             Corpus (original or a copy) with new features added.
+        Skipped images
+            Corpus of images that were not embedded
 
         Raises
         ------
@@ -94,38 +96,35 @@ class DocumentEmbedder:
                 break
         # Check if some documents in corpus in weren't embedded
         # for some reason. This is a very rare case.
-        inds = list()
-        for i, emb in enumerate(embs):
-            if emb is not None:
-                inds.append(i)
-            else:
-                embs[i] = np.zeros(dim) * np.nan
-                send_warning = True
+        skipped_documents = [emb is None for emb in embs]
+        embedded_documents = np.logical_not(skipped_documents)
 
         variable_attrs = {
             'hidden': True,
             'skip-normalization': True,
             'embedding-feature': True
         }
-        embs = np.array(embs)
-        new_corpus = corpus[inds]
 
-        if len(inds) > 0:
-            # if at least one embedding is not None,
-            # extend attributes
+        new_corpus = None
+        if np.any(embedded_documents):
+            # if at least one embedding is not None, extend attributes
+            new_corpus = corpus[embedded_documents]
             new_corpus = new_corpus.extend_attributes(
-                np.array(embs[inds]),
+                np.array([e for e, ns in zip(embs, embedded_documents) if ns], dtype=float),
                 ['Dim{}'.format(i + 1) for i in range(dim)],
                 var_attrs=variable_attrs
             )
 
-        if send_warning:
+        skipped_corpus = None
+        if np.any(skipped_documents):
+            skipped_corpus = corpus[skipped_documents].copy()
+            skipped_corpus.name = "Skipped documents"
             warnings.warn(("Some documents were not embedded for " +
                            "unknown reason. Those documents " +
                            "are skipped."),
                           RuntimeWarning)
 
-        return new_corpus
+        return new_corpus, skipped_corpus
 
     def report(self) -> Tuple[Tuple[str, str], Tuple[str, str]]:
         """Reports on current parameters of DocumentEmbedder.
@@ -169,10 +168,10 @@ class _ServerEmbedder(ServerEmbedderCommunicator):
         data = base64.b64encode(zlib.compress(
             data_string.encode('utf-8', 'replace'),
             level=-1)).decode('utf-8', 'replace')
-
         if sys.getsizeof(data) > 50000:
-            raise RuntimeError("Document in corpus is too large. \
-                                Size limit is 50 KB (after compression).")
+            # Document in corpus is too large. Size limit is 50 KB
+            # (after compression). - document skipped
+            return None
 
         data_dict = {
             "data": data,

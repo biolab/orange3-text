@@ -34,42 +34,48 @@ class DocumentEmbedderTest(unittest.TestCase):
 
     @patch(PATCH_METHOD)
     def test_with_empty_corpus(self, mock):
-        self.assertEqual(len(self.embedder(self.corpus[:0])), 0)
+        self.assertIsNone(self.embedder(self.corpus[:0])[0])
+        self.assertIsNone(self.embedder(self.corpus[:0])[1])
         mock.request.assert_not_called()
         mock.get_response.assert_not_called()
         self.assertEqual(self.embedder._embedder._cache._cache_dict, dict())
 
     @patch(PATCH_METHOD, make_dummy_post(b'{"embedding": [0.3, 1]}'))
     def test_success_subset(self):
-        res = self.embedder(self.corpus[[0]])
+        res, skipped = self.embedder(self.corpus[[0]])
         assert_array_equal(res.X, [[0.3, 1]])
         self.assertEqual(len(self.embedder._embedder._cache._cache_dict), 1)
+        self.assertIsNone(skipped)
 
     @patch(PATCH_METHOD, make_dummy_post(b'{"embedding": [0.3, 1]}'))
     def test_success_shapes(self):
-        res = self.embedder(self.corpus)
+        res, skipped = self.embedder(self.corpus)
         self.assertEqual(res.X.shape, (len(self.corpus), 2))
         self.assertEqual(len(res.domain), len(self.corpus.domain) + 2)
+        self.assertIsNone(skipped)
 
     @patch(PATCH_METHOD, make_dummy_post(b''))
     def test_empty_response(self):
         with self.assertWarns(RuntimeWarning):
-            res = self.embedder(self.corpus[[0]])
-        self.assertEqual(res.X.shape, (0, 0))
+            res, skipped = self.embedder(self.corpus[[0]])
+        self.assertIsNone(res)
+        self.assertEqual(len(skipped), 1)
         self.assertEqual(len(self.embedder._embedder._cache._cache_dict), 0)
 
     @patch(PATCH_METHOD, make_dummy_post(b'str'))
     def test_invalid_response(self):
         with self.assertWarns(RuntimeWarning):
-            res = self.embedder(self.corpus[[0]])
-        self.assertEqual(res.X.shape, (0, 0))
+            res, skipped = self.embedder(self.corpus[[0]])
+        self.assertIsNone(res)
+        self.assertEqual(len(skipped), 1)
         self.assertEqual(len(self.embedder._embedder._cache._cache_dict), 0)
 
     @patch(PATCH_METHOD, make_dummy_post(b'{"embeddings": [0.3, 1]}'))
     def test_invalid_json_key(self):
         with self.assertWarns(RuntimeWarning):
-            res = self.embedder(self.corpus[[0]])
-        self.assertEqual(res.X.shape, (0, 0))
+            res, skipped = self.embedder(self.corpus[[0]])
+        self.assertIsNone(res)
+        self.assertEqual(len(skipped), 1)
         self.assertEqual(len(self.embedder._embedder._cache._cache_dict), 0)
 
     @patch(PATCH_METHOD, make_dummy_post(b'{"embedding": [0.3, 1]}'))
@@ -121,7 +127,7 @@ class DocumentEmbedderTest(unittest.TestCase):
     @patch(PATCH_METHOD, make_dummy_post(b'{"embedding": [0.3, 1]}'))
     def test_with_statement(self):
         with self.embedder as embedder:
-            res = embedder(self.corpus[[0]])
+            res, skipped = embedder(self.corpus[[0]])
             assert_array_equal(res.X, [[0.3, 1]])
 
     @patch(PATCH_METHOD, make_dummy_post(b'{"embedding": [0.3, 1]}'))
