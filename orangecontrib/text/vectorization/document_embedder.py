@@ -24,7 +24,8 @@ class DocumentEmbedder:
     corpus using fastText pretrained models from:
     E. Grave, P. Bojanowski, P. Gupta, A. Joulin, T. Mikolov,
     Learning Word Vectors for 157 Languages.
-    Proceedings of the International Conference on Language Resources and Evaluation, 2018.
+    Proceedings of the International Conference on Language Resources and
+    Evaluation, 2018.
 
     Embedding is performed on server so the internet connection is a
     prerequisite for using the class. Currently supported languages are:
@@ -59,7 +60,9 @@ class DocumentEmbedder:
                                          server_url='https://apiv2.garaza.io',
                                          embedder_type='text')
 
-    def __call__(self, corpus: Corpus, processed_callback=None) -> Tuple[Corpus, Corpus]:
+    def __call__(
+        self, corpus: Corpus, processed_callback=None
+    ) -> Tuple[Corpus, Corpus]:
         """Adds matrix of document embeddings to a corpus.
 
         Parameters
@@ -71,16 +74,13 @@ class DocumentEmbedder:
         -------
         Embeddings
             Corpus (original or a copy) with new features added.
-        Skipped images
-            Corpus of images that were not embedded
+        Skipped documents
+            Corpus of documents that were not embedded
 
         Raises
         ------
         ValueError
             If corpus is not instance of Corpus.
-        RuntimeError
-            If document in corpus is larger than
-            50 KB after compression.
         """
         if not isinstance(corpus, Corpus):
             raise ValueError("Input should be instance of Corpus.")
@@ -89,7 +89,6 @@ class DocumentEmbedder:
             processed_callback=processed_callback)
 
         dim = None
-        send_warning = False
         for emb in embs:  # find embedding dimension
             if emb is not None:
                 dim = len(emb)
@@ -110,7 +109,10 @@ class DocumentEmbedder:
             # if at least one embedding is not None, extend attributes
             new_corpus = corpus[embedded_documents]
             new_corpus = new_corpus.extend_attributes(
-                np.array([e for e, ns in zip(embs, embedded_documents) if ns], dtype=float),
+                np.array(
+                    [e for e, ns in zip(embs, embedded_documents) if ns],
+                    dtype=float,
+                ),
                 ['Dim{}'.format(i + 1) for i in range(dim)],
                 var_attrs=variable_attrs
             )

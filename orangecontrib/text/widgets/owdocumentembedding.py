@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Tuple
 import numpy as np
 
 from AnyQt.QtWidgets import QPushButton, QStyle, QLayout
@@ -19,7 +19,7 @@ from orangecontrib.text.corpus import Corpus
 def run_pretrained_embedder(corpus: Corpus,
                             language: str,
                             aggregator: str,
-                            state: TaskState) -> Corpus:
+                            state: TaskState) -> Tuple[Corpus, Corpus]:
     """Runs DocumentEmbedder.
 
     Parameters
@@ -52,8 +52,8 @@ def run_pretrained_embedder(corpus: Corpus,
         if success:
             state.set_progress_value(next(ticks))
 
-    new_corpus = embedder(corpus, processed_callback=advance)
-    return new_corpus
+    new_corpus, skipped_corpus = embedder(corpus, processed_callback=advance)
+    return new_corpus, skipped_corpus
 
 
 class OWDocumentEmbedding(OWWidget, ConcurrentWidgetMixin):
@@ -70,7 +70,8 @@ class OWDocumentEmbedding(OWWidget, ConcurrentWidgetMixin):
         corpus = Input('Corpus', Corpus)
 
     class Outputs:
-        new_corpus = Output('Corpus', Corpus)
+        new_corpus = Output('Embeddings', Corpus, default=True)
+        skipped = Output('Skipped documents', Corpus)
 
     class Error(OWWidget.Error):
         no_connection = Msg("No internet connection. " +
@@ -145,17 +146,20 @@ class OWDocumentEmbedding(OWWidget, ConcurrentWidgetMixin):
             self.info.set_input_summary(str(len(corpus)), "{} documents."
                                         .format(len(corpus)))
 
-    def set_output_corpus_summary(self, corpus):
-        if corpus is None:
+    def set_output_corpus_summary(self, embeddings, skipped):
+        if embeddings is None and skipped is None:
             self.info.set_output_summary(self.info.NoOutput)
         else:
-            unsuccessful = len(self.corpus) - len(corpus)
+            successful = len(embeddings) if embeddings else 0
+            unsuccessful = len(skipped) if skipped else 0
             if unsuccessful > 0:
                 self.Warning.unsuccessful_embeddings()
             self.info.set_output_summary(
-                str(int(len(corpus))),
+                f"{successful}|{unsuccessful}",
                 "Successful: {}, Unsuccessful: {}".format(
-                    int(len(corpus)), int(unsuccessful)))
+                    successful, unsuccessful
+                )
+            )
 
     @Inputs.corpus
     def set_data(self, data):
@@ -188,9 +192,9 @@ class OWDocumentEmbedding(OWWidget, ConcurrentWidgetMixin):
 
         self.Error.clear()
 
-    def on_done(self, result: Any) -> None:
+    def on_done(self, embeddings: Tuple[Corpus, Corpus]) -> None:
         self.cancel_button.setDisabled(True)
-        self._send_output_signals(result)
+        self._send_output_signals(embeddings[0], embeddings[1])
 
     def on_partial_result(self, result: Any):
         self.cancel()
@@ -209,12 +213,13 @@ class OWDocumentEmbedding(OWWidget, ConcurrentWidgetMixin):
         self.cancel_button.setDisabled(True)
         super().cancel()
 
-    def _send_output_signals(self, result):
-        self.Outputs.new_corpus.send(result)
-        self.set_output_corpus_summary(result)
+    def _send_output_signals(self, embeddings, skipped):
+        self.Outputs.new_corpus.send(embeddings)
+        self.Outputs.skipped.send(skipped)
+        self.set_output_corpus_summary(embeddings, skipped)
 
     def clear_outputs(self):
-        self._send_output_signals(None)
+        self._send_output_signals(None, None)
 
     def onDeleteWidget(self):
         self.cancel()
