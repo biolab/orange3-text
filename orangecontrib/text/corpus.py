@@ -10,8 +10,16 @@ import numpy as np
 import scipy.sparse as sp
 from gensim import corpora
 
-from Orange.data import ContinuousVariable, DiscreteVariable, \
-    Domain, RowInstance, Table, StringVariable
+from Orange.data import (
+    Variable,
+    ContinuousVariable,
+    DiscreteVariable,
+    Domain,
+    RowInstance,
+    Table,
+    StringVariable,
+)
+from Orange.preprocess.transformation import Identity
 # uncomment when Orange3==3.27 is available
 # from Orange.data.util import get_unique_names
 # remove when Orange3==3.27 is available
@@ -102,17 +110,49 @@ class Corpus(Table):
         else:
             raise NotImplementedError
 
-    def set_text_features(self, feats):
+    def _find_identical_feature(self, feature: Variable) -> Optional[Variable]:
+        """
+        Find a renamed feature in the domain which is identical to a feature.
+
+        Parameters
+        ----------
+        feature
+            A variable to find an identical variable in the domain.
+
+        Returns
+        -------
+        Variable which is identical to a feature (have different name but has
+        Identity(feature) in compute value.
+        """
+        for var in chain(self.domain.variables, self.domain.metas):
+            if (
+                var == feature
+                or isinstance(var.compute_value, Identity)
+                and var.compute_value.variable == feature
+            ):
+                return var
+        return None
+
+    def set_text_features(self, feats: Optional[List[Variable]]) -> None:
         """
         Select which meta-attributes to include when mining text.
 
-        Args:
-            feats (list or None): List of text features to include. If None infer them.
+        Parameters
+        ----------
+        feats
+            List of text features to include. If None infer them.
         """
         if feats is not None:
-            for f in feats:
+            feats = copy(feats)  # copy to not edit passed array inplace
+            for i, f in enumerate(feats):
                 if f not in chain(self.domain.variables, self.domain.metas):
-                    raise ValueError('Feature "{}" not found.'.format(f))
+                    # if not exact feature in the domain, it may be renamed
+                    # find identity - renamed feature
+                    id_feat = self._find_identical_feature(f)
+                    if id_feat is not None:
+                        feats[i] = id_feat
+                    else:
+                        raise ValueError('Feature "{}" not found.'.format(f))
             if len(set(feats)) != len(feats):
                 raise ValueError('Text features must be unique.')
             self.text_features = feats

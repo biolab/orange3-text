@@ -132,6 +132,17 @@ class CorpusTests(unittest.TestCase):
         )
         self.assertEqual(0, len(c.domain.attributes))
 
+    def test_extend_attribute_rename_text_features(self):
+        """
+        Test correctness of extending attributes, case when we want to rename
+        existing attributes
+        """
+        # corpus without features
+        c = Corpus.from_file('book-excerpts')
+        X = np.random.random((len(c), 2))
+        new_c = c.extend_attributes(X, ['Text', '2',], rename_existing=True)
+        self.assertEqual(new_c.X.shape, (len(c), 2))
+
     def test_corpus_not_eq(self):
         c = Corpus.from_file('book-excerpts')
         n_doc = c.X.shape[0]
