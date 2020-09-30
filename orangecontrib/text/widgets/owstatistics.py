@@ -230,12 +230,13 @@ def per_cent_unique_words(
 
     def perc_unique(tokens: str):
         callback()
+        
         try:
             result = len(set(tokens)) / len(tokens)
         except ZeroDivisionError:
             result = float('Inf')
         return result
-        
+
     return np.c_[list(map(perc_unique, corpus.tokens))], ["% unique words"]
 
 
