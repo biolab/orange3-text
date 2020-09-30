@@ -1,4 +1,4 @@
-Orange3 Text 
+Text Orange3
 ============
 
 [![Discord Chat](https://img.shields.io/discord/633376992607076354)](https://discord.gg/FWrfeXV)
