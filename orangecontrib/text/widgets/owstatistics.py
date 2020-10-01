@@ -230,6 +230,8 @@ def per_cent_unique_words(
 
     def perc_unique(tokens: str):
         callback()
+        if not tokens:
+            return np.nan
         return len(set(tokens)) / len(tokens)
 
     return np.c_[list(map(perc_unique, corpus.tokens))], ["% unique words"]
