@@ -168,6 +168,12 @@ class TestStatisticsWidget(WidgetTest):
             data.X.flatten(), [1, 1, 0.909091, 1]
         )
 
+        self.corpus[1][-1] = ""
+        data = self._compute_features("Per cent unique words")
+        np.testing.assert_array_almost_equal(
+            data.X.flatten(), [1, np.nan, 0.909091, 1]
+        )
+        
         self.send_signal(self.widget.Inputs.corpus, None)
         self.assertIsNone(self.get_output(self.widget.Outputs.corpus))
 
