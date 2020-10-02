@@ -170,8 +170,8 @@ class _ServerEmbedder(ServerEmbedderCommunicator):
         data = base64.b64encode(zlib.compress(
             data_string.encode('utf-8', 'replace'),
             level=-1)).decode('utf-8', 'replace')
-        if sys.getsizeof(data) > 50000:
-            # Document in corpus is too large. Size limit is 50 KB
+        if sys.getsizeof(data) > 500000:
+            # Document in corpus is too large. Size limit is 500 KB
             # (after compression). - document skipped
             return None
 
