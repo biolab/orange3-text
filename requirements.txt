@@ -2,7 +2,6 @@ scipy
 nltk>=3.0.5,<3.5  # TODO: change when fixed: https://bitbucket.org/mrabarnett/mrab-regex/issues/369/please-provide-macos-wheels-on-pypi
 scikit-learn
 numpy
-docutils<0.16  # denpendency for botocore
 python-dateutil<3.0.0  # denpendency for botocore
 gensim>=0.12.3  # LDA's show topics unified in 0.12.3
 setuptools-git
