@@ -89,7 +89,7 @@ class OWDocumentEmbedding(OWWidget, ConcurrentWidgetMixin):
         OWWidget.__init__(self)
         ConcurrentWidgetMixin.__init__(self)
 
-        self.languages = list(LANGS_TO_ISO.keys())
+        self.languages = sorted(list(LANGS_TO_ISO.keys()))
         self.aggregators = AGGREGATORS
         self.corpus = None
         self.new_corpus = None
@@ -105,13 +105,17 @@ class OWDocumentEmbedding(OWWidget, ConcurrentWidgetMixin):
 
         widget_box = widgetBox(self.controlArea, 'Settings')
 
-        self.language_cb = comboBox(widget=widget_box,
-                                    master=self,
-                                    value='language',
-                                    label='Language: ',
-                                    orientation=Qt.Horizontal,
-                                    items=self.languages,
-                                    callback=self._option_changed)
+        self.language_cb = comboBox(
+            widget=widget_box,
+            master=self,
+            value='language',
+            label='Language: ',
+            orientation=Qt.Horizontal,
+            items=self.languages,
+            callback=self._option_changed,
+            searchable=True
+         )
+        self.language_cb.setCurrentText("English")
 
         self.aggregator_cb = comboBox(widget=widget_box,
                                       master=self,

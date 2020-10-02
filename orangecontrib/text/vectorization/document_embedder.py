@@ -15,7 +15,39 @@ from orangecontrib.text import Corpus
 
 AGGREGATORS = ['Mean', 'Sum', 'Max', 'Min']
 AGGREGATORS_L = ['mean', 'sum', 'max', 'min']
-LANGS_TO_ISO = {'English': 'en', 'Slovenian': 'sl', 'German': 'de'}
+LANGS_TO_ISO = {
+    'English': 'en',
+    'Slovenian': 'sl',
+    'German': 'de',
+    'Arabic': 'ar',
+    'Azerbaijani': 'az',
+    'Bengali': 'bn',
+    'Chinese': 'zh',
+    'Danish': 'da',
+    'Dutch': 'nl',
+    'Finnish': 'fi',
+    'French': 'fr',
+    'Greek': 'el',
+    'Hebrew': 'he',
+    'Hindi': 'hi',
+    'Hungarian': 'hu',
+    'Indonesian': 'id',
+    'Italian': 'it',
+    'Japanese': 'ja',
+    'Kazakh': 'kk',
+    'Korean': 'ko',
+    'Nepali': 'ne',
+    'Norwegian (Bokm\u00e5l)': 'no',
+    'Norwegian (Nynorsk)': 'nn',
+    'Polish': 'pl',
+    'Portuguese': 'pt',
+    'Romanian': 'ro',
+    'Russian': 'ru',
+    'Spanish': 'es',
+    'Swedish': 'sv',
+    'Tajik': 'tg',
+    'Turkish': 'tr'
+}
 LANGUAGES = list(LANGS_TO_ISO.values())
 
 
