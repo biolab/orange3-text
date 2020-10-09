@@ -591,6 +591,7 @@ class Corpus(Table):
         if isinstance(orig, Corpus):
             if isinstance(key, tuple):  # get row selection
                 key = key[0]
+
             if orig._tokens is not None:  # retain preprocessing
                 if isinstance(key, Integral):
                     new._tokens = np.array([orig._tokens[key]])
@@ -606,9 +607,22 @@ class Corpus(Table):
                 else:
                     raise TypeError('Indexing by type {} not supported.'.format(type(key)))
                 new._dictionary = orig._dictionary
+
+            if isinstance(new, Corpus):
+                # _find_identical_feature returns non when feature not found
+                # filter this Nones from list
+                new.text_features = list(filter(None, [
+                    new._find_identical_feature(tf)
+                    for tf in orig.text_features
+                ]))
+            else:
+                new.text_features = [
+                    tf
+                    for tf in orig.text_features
+                    if tf in set(new.domain.metas)
+                ]
+
             new._titles = orig._titles[key]
-            new_domain_metas = set(new.domain.metas)
-            new.text_features = [tf for tf in orig.text_features if tf in new_domain_metas]
             new.ngram_range = orig.ngram_range
             new.attributes = orig.attributes
             new.used_preprocessor = orig.used_preprocessor

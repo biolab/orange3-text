@@ -180,6 +180,18 @@ class CorpusTests(unittest.TestCase):
         np.testing.assert_equal(t.metas, c.metas)
         self.assertEqual(c.text_features, [t.domain.metas[0]])
 
+    def test_from_table_renamed(self):
+        c1 = Corpus.from_file('book-excerpts')
+        new_domain = Domain(c1.domain.attributes, metas=[c1.domain.metas[0].renamed("text1")])
+
+        # when text feature renamed
+        c2 = Corpus.from_table(new_domain, c1)
+        self.assertIsInstance(c2, Corpus)
+        self.assertEqual(len(c1), len(c2))
+        np.testing.assert_equal(c1.metas, c2.metas)
+        self.assertEqual(1, len(c2.text_features))
+        self.assertEqual("text1", c2.text_features[0].name)
+
     def test_infer_text_features(self):
         c = Corpus.from_file('friends-transcripts')
         tf = c.text_features
