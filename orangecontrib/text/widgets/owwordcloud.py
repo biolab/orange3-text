@@ -331,6 +331,10 @@ span.selected {color:red !important}
         weights
             Words' weights
         """
+        if not len(words):
+            self.clear()
+            return
+
         def is_whole(d):
             """Whether or not d is a whole number."""
             return (
