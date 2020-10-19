@@ -27,7 +27,11 @@ class SimhashVectorizer(BaseVectorizer):
         return map(lambda x: ''.join(x), nltk.ngrams(tokens, n))
 
     def compute_hash(self, tokens):
-        return Simhash(self.get_shingles(tokens, self.ngram_len), f=self.f, hashfunc=self.hashfunc).value
+        values = self.get_shingles(tokens, self.ngram_len)
+        if self.hashfunc is None:
+            return Simhash(values, f=self.f).value
+        else:
+            return Simhash(values, f=self.f, hashfunc=self.hashfunc).value
 
     def int2binarray(self, num):
         return [int(x) for x in self._bin_format.format(num)]
