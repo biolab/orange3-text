@@ -555,6 +555,14 @@ class CorpusTests(unittest.TestCase):
             c = pp(c)
         pickle.dumps(c)
 
+    def test_languages(self):
+        corpus = Corpus.from_file('deerwester')
+
+        self.assertIsNone(corpus.languages)
+        corpus.detect_languages()
+        self.assertEqual(len(corpus.languages), len(corpus))
+        self.assertListEqual(corpus.languages, ['en' for _ in range(len(corpus))])
+
 
 if __name__ == "__main__":
     unittest.main()
