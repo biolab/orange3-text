@@ -1,4 +1,5 @@
 import os
+import pickle
 import unittest
 
 import numpy as np
@@ -534,6 +535,25 @@ class CorpusTests(unittest.TestCase):
         corpus = Corpus.from_list(
             domain, [["title1", "a"], ["title2", "b"]])
         assert_array_equal(["title1", "title2"], corpus.titles)
+
+    def test_pickle_corpus(self):
+        """
+        Corpus must be picklable (for save data widget)
+        gh-590
+        """
+        c = Corpus.from_file('book-excerpts')
+
+        # it must also work with preprocessed corpus
+        self.pp_list = [
+            preprocess.LowercaseTransformer(),
+            preprocess.WordPunctTokenizer(),
+            preprocess.SnowballStemmer(),
+            preprocess.FrequencyFilter(),
+            preprocess.StopwordsFilter()
+        ]
+        for pp in self.pp_list:
+            c = pp(c)
+        pickle.dumps(c)
 
 
 if __name__ == "__main__":
