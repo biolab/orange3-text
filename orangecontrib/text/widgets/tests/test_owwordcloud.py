@@ -17,7 +17,7 @@ from orangecontrib.text.widgets.owwordcloud import OWWordCloud
     pkg_resources.get_distribution("orange3").version < "3.24.0",
     "Wait until finished not implemented in lower version"
 )
-class TestWorldCloudWidget(WidgetTest):
+class TestWordCloudWidget(WidgetTest):
     def setUp(self):
         self.widget = self.create_widget(OWWordCloud)
         self.corpus = Corpus.from_file('deerwester')
@@ -202,6 +202,15 @@ class TestWorldCloudWidget(WidgetTest):
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
         self.wait_until_finished()
         self.widget.send_report()
+
+    def test_no_tokens(self):
+        """
+        In some very rare cases (when all text strings empty) word cloud all
+        token lists empty. Widget must work in those cases.
+        """
+        self.corpus.metas = np.array([[" "]] * len(self.corpus))
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.wait_until_finished()
 
 
 if __name__ == "__main__":
