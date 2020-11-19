@@ -363,7 +363,7 @@ class Corpus(Table):
                 class_vars=curr_class_var,
                 metas=curr_metas
         )
-        return Corpus(
+        c = Corpus(
             new_domain,
             X,
             self.Y.copy(),
@@ -371,6 +371,8 @@ class Corpus(Table):
             self.W.copy(),
             copy(self.text_features)
         )
+        Corpus.retain_preprocessing(self, c)
+        return c
 
     @property
     def documents(self):
