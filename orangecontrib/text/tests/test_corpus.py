@@ -144,6 +144,24 @@ class CorpusTests(unittest.TestCase):
         new_c = c.extend_attributes(X, ['Text', '2',], rename_existing=True)
         self.assertEqual(new_c.X.shape, (len(c), 2))
 
+    def test_extend_attributes_keep_preprocessing(self):
+        """
+        Test if preprocessing remains when extending attributes
+        """
+        c = Corpus.from_file("book-excerpts")
+        c.store_tokens(c.tokens)
+
+        X = np.random.random((len(c), 3))
+        new_c = c.extend_attributes(X, ["1", "2", "3"])
+        self.assertEqual(new_c.X.shape, (len(c), 3))
+
+        self.assertEqual(len(new_c._tokens), len(c))
+        np.testing.assert_equal(new_c._tokens, new_c._tokens)
+        self.assertEqual(new_c._dictionary, c._dictionary)
+        self.assertEqual(new_c.text_features, c.text_features)
+        self.assertEqual(new_c.ngram_range, c.ngram_range)
+        self.assertEqual(new_c.attributes, c.attributes)
+
     def test_corpus_not_eq(self):
         c = Corpus.from_file('book-excerpts')
         n_doc = c.X.shape[0]
