@@ -442,8 +442,16 @@ class TestFilterModule(WidgetTest):
         return self.editor._FilteringModule__edit
 
     @property
+    def group_buttons(self):
+        return self.editor._FilteringModule__freq_group.buttons()
+
+    @property
     def rel_spins(self):
         return self.editor._FilteringModule__rel_range_spins.spins()
+
+    @property
+    def abs_spins(self):
+        return self.editor._FilteringModule__abs_range_spins.spins()
 
     @property
     def spin(self):
@@ -460,16 +468,23 @@ class TestFilterModule(WidgetTest):
         self.assertEqual(self.sw_combo.currentText(), "(none)")
         self.assertEqual(self.lx_combo.currentText(), "(none)")
         self.assertEqual(self.line_edit.text(), FilteringModule.DEFAULT_PATTERN)
+        self.assertTrue(self.group_buttons[0].isChecked())
+        self.assertFalse(self.group_buttons[1].isChecked())
         self.assertEqual(self.rel_spins[0].value(), 0.1)
         self.assertEqual(self.rel_spins[1].value(), 0.9)
+        self.assertEqual(self.abs_spins[0].value(), 1)
+        self.assertEqual(self.abs_spins[1].value(), 10)
         self.assertEqual(self.spin.value(), 100)
 
     def test_parameters(self):
         params = {"methods": [FilteringModule.Stopwords],
                   "language": "English", "sw_path": None, "lx_path": None,
                   "sw_list": [], "lx_list": [],
-                  "pattern": FilteringModule.DEFAULT_PATTERN, "rel_start": 0.1,
-                  "rel_end": 0.9, "n_tokens": 100, "invalidated": False}
+                  "pattern": FilteringModule.DEFAULT_PATTERN,
+                  "freq_type": 0,
+                  "rel_start": 0.1, "rel_end": 0.9,
+                  "abs_start": 1, "abs_end": 10,
+                  "n_tokens": 100, "invalidated": False}
         self.assertDictEqual(self.editor.parameters(), params)
 
     def test_set_parameters(self):
@@ -480,7 +495,9 @@ class TestFilterModule(WidgetTest):
                   "sw_path": sw_path, "lx_path": lx_path,
                   "sw_list": [sw_path], "lx_list": [lx_path],
                   "pattern": "foo",
+                  "freq_type": 1,
                   "rel_start": 0.2, "rel_end": 0.7,
+                  "abs_start": 2, "abs_end": 15,
                   "n_tokens": 10, "invalidated": False}
         self.editor.setParameters(params)
         self.assertDictEqual(self.editor.parameters(), params)
@@ -496,8 +513,12 @@ class TestFilterModule(WidgetTest):
         self.assertEqual(self.sw_combo.currentText(), "Foo")
         self.assertEqual(self.lx_combo.currentText(), "Bar")
         self.assertEqual(self.line_edit.text(), "foo")
+        self.assertFalse(self.group_buttons[0].isChecked())
+        self.assertTrue(self.group_buttons[1].isChecked())
         self.assertEqual(self.rel_spins[0].value(), 0.2)
         self.assertEqual(self.rel_spins[1].value(), 0.7)
+        self.assertEqual(self.abs_spins[0].value(), 2)
+        self.assertEqual(self.abs_spins[1].value(), 15)
         self.assertEqual(self.spin.value(), 10)
 
     def test_createinstance(self):

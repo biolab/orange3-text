@@ -7,7 +7,7 @@ import pkg_resources
 from AnyQt.QtCore import Qt, pyqtSignal
 from AnyQt.QtWidgets import QComboBox, QButtonGroup, QLabel, QCheckBox, \
     QRadioButton, QGridLayout, QLineEdit, QSpinBox, QFormLayout, QHBoxLayout, \
-    QDoubleSpinBox, QFileDialog
+    QDoubleSpinBox, QFileDialog, QAbstractSpinBox
 from AnyQt.QtWidgets import QWidget, QPushButton, QSizePolicy, QStyle
 from AnyQt.QtGui import QBrush
 
@@ -126,6 +126,9 @@ class RangeSpins(QHBoxLayout):
         self._spin_start.setMaximum(end)
         self._spin_end.setMinimum(start)
 
+    def spins(self) -> Tuple[QAbstractSpinBox, QAbstractSpinBox]:
+        return self._spin_start, self._spin_end
+
 
 class RangeDoubleSpins(RangeSpins):
     SpinBox = QDoubleSpinBox
@@ -139,9 +142,6 @@ class RangeDoubleSpins(RangeSpins):
         self._spin_end.setMaximumWidth(1000)
         self._spin_start.setMinimumWidth(0)
         self._spin_end.setMinimumWidth(0)
-
-    def spins(self) -> Tuple[QDoubleSpinBox, QDoubleSpinBox]:
-        return self._spin_start, self._spin_end
 
 
 class FileLoader(QWidget):
@@ -501,18 +501,21 @@ class NormalizationModule(SingleMethodModule):
 
 
 class FilteringModule(MultipleMethodModule):
-    Stopwords, Lexicon, Regexp, DocFreq, MostFreq = range(5)
+    Stopwords, Lexicon, Regexp, DocFreq, DummyDocFreq, MostFreq = range(6)
     Methods = {Stopwords: StopwordsFilter,
                Lexicon: LexiconFilter,
                Regexp: RegexpFilter,
                DocFreq: FrequencyFilter,
+               DummyDocFreq: FrequencyFilter,
                MostFreq: MostFrequentTokensFilter}
     DEFAULT_METHODS = [Stopwords]
     DEFAULT_LANG = "English"
     DEFAULT_NONE = None
     DEFAULT_PATTERN = "\.|,|:|;|!|\?|\(|\)|\||\+|\'|\"|‘|’|“|”|\'|" \
                       "\’|…|\-|–|—|\$|&|\*|>|<|\/|\[|\]"
+    DEFAULT_FREQ_TYPE = 0  # 0 - relative freq, 1 - absolute freq
     DEFAULT_REL_START, DEFAULT_REL_END, REL_MIN, REL_MAX = 0.1, 0.9, 0, 1
+    DEFAULT_ABS_START, DEFAULT_ABS_END, ABS_MIN, ABS_MAX = 1, 10, 0, 10000
     DEFAULT_N_TOKEN = 100
 
     def __init__(self, parent=None, **kwargs):
@@ -521,8 +524,11 @@ class FilteringModule(MultipleMethodModule):
         self.__sw_file = self.DEFAULT_NONE
         self.__lx_file = self.DEFAULT_NONE
         self.__pattern = self.DEFAULT_PATTERN
+        self.__freq_type = self.DEFAULT_FREQ_TYPE
         self.__rel_freq_st = self.DEFAULT_REL_START
         self.__rel_freq_en = self.DEFAULT_REL_END
+        self.__abs_freq_st = self.DEFAULT_ABS_START
+        self.__abs_freq_en = self.DEFAULT_ABS_END
         self.__n_token = self.DEFAULT_N_TOKEN
         self.__invalidated = False
 
@@ -544,11 +550,25 @@ class FilteringModule(MultipleMethodModule):
         self.__edit = ValidatedLineEdit(self.__pattern, validator)
         self.__edit.editingFinished.connect(self.__edit_finished)
 
+        rel_freq_rb = QRadioButton("Relative:")
+        abs_freq_rb = QRadioButton("Absolute:")
+        self.__freq_group = group = QButtonGroup(self, exclusive=True)
+        group.addButton(rel_freq_rb, 0)
+        group.addButton(abs_freq_rb, 1)
+        group.buttonClicked.connect(self.__freq_group_clicked)
+        group.button(self.__freq_type).setChecked(True)
+
         self.__rel_range_spins = RangeDoubleSpins(
             self.__rel_freq_st, 0.05, self.__rel_freq_en, self.REL_MIN,
             self.REL_MAX, self.__set_rel_freq_start, self.__set_rel_freq_end,
-            self.__spins_edited
+            self.__rel_spins_edited
         )
+        self.__abs_range_spins = RangeSpins(
+            self.__abs_freq_st, 1, self.__abs_freq_en, self.ABS_MIN,
+            self.ABS_MAX, self.__set_abs_freq_start, self.__set_abs_freq_end,
+            self.__abs_spins_edited
+        )
+
         self.__spin_n = QSpinBox(
             minimum=1, maximum=10 ** 6, value=self.__n_token)
         self.__spin_n.editingFinished.connect(self.__spin_n_edited)
@@ -565,8 +585,15 @@ class FilteringModule(MultipleMethodModule):
         self.layout().addWidget(self.__lx_loader.load_btn, self.Lexicon, 5)
         self.layout().addWidget(self.__edit, self.Regexp, 1, 1, 5)
         spins = self.__rel_range_spins.spins()
-        self.layout().addWidget(spins[0], self.DocFreq, 1)
-        self.layout().addWidget(spins[1], self.DocFreq, 2)
+        self.layout().addWidget(rel_freq_rb, self.DocFreq, 1)
+        self.layout().addWidget(spins[0], self.DocFreq, 2)
+        self.layout().addWidget(spins[1], self.DocFreq, 3)
+        spins = self.__abs_range_spins.spins()
+        self.layout().addWidget(abs_freq_rb, self.DummyDocFreq, 1)
+        self.layout().addWidget(spins[0], self.DummyDocFreq, 2)
+        self.layout().addWidget(spins[1], self.DummyDocFreq, 3)
+        title = self.layout().itemAtPosition(self.DummyDocFreq, 0).widget()
+        title.hide()
         self.layout().addWidget(self.__spin_n, self.MostFreq, 1)
         self.layout().setColumnStretch(3, 1)
 
@@ -599,8 +626,19 @@ class FilteringModule(MultipleMethodModule):
             if self.Regexp in self.methods:
                 self.edited.emit()
 
-    def __spins_edited(self):
-        if self.DocFreq in self.methods:
+    def __freq_group_clicked(self):
+        i = self.__freq_group.checkedId()
+        if self.__freq_type != i:
+            self.__set_freq_type(i)
+            if self.DocFreq in self.methods:
+                self.edited.emit()
+
+    def __rel_spins_edited(self):
+        if self.DocFreq in self.methods and self.__freq_type == 0:
+            self.edited.emit()
+
+    def __abs_spins_edited(self):
+        if self.DocFreq in self.methods and self.__freq_type == 1:
             self.edited.emit()
 
     def __spin_n_edited(self):
@@ -618,9 +656,14 @@ class FilteringModule(MultipleMethodModule):
         self.__set_lx_path(params.get("lx_path", self.DEFAULT_NONE),
                            params.get("lx_list", []))
         self.__set_pattern(params.get("pattern", self.DEFAULT_PATTERN))
+        self.__set_freq_type(params.get("freq_type", self.DEFAULT_FREQ_TYPE))
         self.__set_rel_freq_range(
             params.get("rel_start", self.DEFAULT_REL_START),
             params.get("rel_end", self.DEFAULT_REL_END)
+        )
+        self.__set_abs_freq_range(
+            params.get("abs_start", self.DEFAULT_ABS_START),
+            params.get("abs_end", self.DEFAULT_ABS_END)
         )
         self.__set_n_tokens(params.get("n_tokens", self.DEFAULT_N_TOKEN))
         self.__invalidated = False
@@ -651,6 +694,12 @@ class FilteringModule(MultipleMethodModule):
             self.__edit.setText(pattern)
             self.changed.emit()
 
+    def __set_freq_type(self, freq_type: int):
+        if self.__freq_type != freq_type:
+            self.__freq_type = freq_type
+            self.__freq_group.button(self.__freq_type).setChecked(True)
+            self.changed.emit()
+
     def __set_rel_freq_range(self, start: float, end: float):
         self.__set_rel_freq_start(start)
         self.__set_rel_freq_end(end)
@@ -664,6 +713,21 @@ class FilteringModule(MultipleMethodModule):
     def __set_rel_freq_end(self, n: float):
         if self.__rel_freq_en != n:
             self.__rel_freq_en = n
+            self.changed.emit()
+
+    def __set_abs_freq_range(self, start: int, end: int):
+        self.__set_abs_freq_start(start)
+        self.__set_abs_freq_end(end)
+        self.__abs_range_spins.set_range(start, end)
+
+    def __set_abs_freq_start(self, n: int):
+        if self.__abs_freq_st != n:
+            self.__abs_freq_st = n
+            self.changed.emit()
+
+    def __set_abs_freq_end(self, n: int):
+        if self.__abs_freq_en != n:
+            self.__abs_freq_en = n
             self.changed.emit()
 
     def __set_n_tokens(self, n: int):
@@ -680,8 +744,11 @@ class FilteringModule(MultipleMethodModule):
                        "lx_path": self.__lx_file,
                        "lx_list": self.__lx_loader.recent_paths,
                        "pattern": self.__pattern,
+                       "freq_type": self.__freq_type,
                        "rel_start": self.__rel_freq_st,
                        "rel_end": self.__rel_freq_en,
+                       "abs_start": self.__abs_freq_st,
+                       "abs_end": self.__abs_freq_en,
                        "n_tokens": self.__n_token,
                        "invalidated": self.__invalidated})
         return params
@@ -705,8 +772,12 @@ class FilteringModule(MultipleMethodModule):
             pattern = params.get("pattern", FilteringModule.DEFAULT_PATTERN)
             filters.append(RegexpFilter(pattern=pattern))
         if FilteringModule.DocFreq in methods:
-            st = params.get("rel_start", FilteringModule.DEFAULT_REL_START)
-            end = params.get("rel_end", FilteringModule.DEFAULT_REL_END)
+            if params.get("freq_type", FilteringModule.DEFAULT_FREQ_TYPE) == 0:
+                st = params.get("rel_start", FilteringModule.DEFAULT_REL_START)
+                end = params.get("rel_end", FilteringModule.DEFAULT_REL_END)
+            else:
+                st = params.get("abs_start", FilteringModule.DEFAULT_ABS_START)
+                end = params.get("abs_end", FilteringModule.DEFAULT_ABS_END)
             filters.append(FrequencyFilter(min_df=st, max_df=end))
         if FilteringModule.MostFreq in methods:
             n = params.get("n_tokens", FilteringModule.DEFAULT_N_TOKEN)
@@ -724,7 +795,10 @@ class FilteringModule(MultipleMethodModule):
             elif method == self.Regexp:
                 append = f"{self.__pattern}"
             elif method == self.DocFreq:
-                append = f"[{self.__rel_freq_st}, {self.__rel_freq_en}]"
+                if self.__freq_type == 0:
+                    append = f"[{self.__rel_freq_st}, {self.__rel_freq_en}]"
+                else:
+                    append = f"[{self.__abs_freq_st}, {self.__abs_freq_en}]"
             elif method == self.MostFreq:
                 append = f"{self.__n_token}"
             texts.append(f"{self.Methods[method].name} ({append})")
