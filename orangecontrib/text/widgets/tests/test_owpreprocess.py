@@ -180,7 +180,8 @@ class TestOWPreprocessMigrateSettings(WidgetTest):
                    {"methods": [0, 2, 4], "language": "Finnish",
                     "sw_path": None, "sw_list": [],
                     "lx_path": None, "lx_list": [],
-                    "pattern": "foo", "start": 0.3, "end": 0.5, "n_tokens": 50}
+                    "pattern": "foo", "rel_start": 0.3,
+                    "rel_end": 0.5, "n_tokens": 50}
                    )]
         self.assertEqual(widget.storedsettings["preprocessors"], params)
 

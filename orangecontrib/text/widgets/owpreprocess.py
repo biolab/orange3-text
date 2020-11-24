@@ -910,7 +910,7 @@ class OWPreprocess(Orange.widgets.data.owpreprocess.OWPreprocess,
     priority = 200
     keywords = []
 
-    settings_version = 2
+    settings_version = 3
 
     class Inputs:
         corpus = Input("Corpus", Corpus)
@@ -1190,6 +1190,21 @@ class OWPreprocess(Orange.widgets.data.owpreprocess.OWPreprocess,
                     preprocessors.append(("tag.pos", params))
 
             settings["storedsettings"]["preprocessors"] = preprocessors
+
+        if version < 3:
+            preprocessors = settings["storedsettings"]["preprocessors"]
+            for pp_name, pp_settings in preprocessors:
+                if pp_name == "preprocess.filter":
+                    start = pp_settings["start"]
+                    end = pp_settings["end"]
+                    if end <= 1:
+                        pp_settings["rel_start"] = start
+                        pp_settings["rel_end"] = end
+                    else:
+                        pp_settings["abs_start"] = start
+                        pp_settings["abs_end"] = end
+                    del pp_settings["start"]
+                    del pp_settings["end"]
 
 
 if __name__ == "__main__":
