@@ -5,6 +5,36 @@ Change Log
 ------------
 * ...
 
+[0.9.0] - 2020-04-29
+--------------------
+##### Enhancements
+* Word Enrichment: compute in separate thread ([#492](../../pull/492))
+* Bag of Words: option to show bow features ([#499](../../pull/499))
+* Word Cloud: threaded ([#502](../../pull/502))
+* Corpus: remove unnecessary empty values ([#505](../../pull/505))
+* Statistics widget: new widget for feature construction ([#503](../../pull/503))
+* Document Embedding widget: word embedding for documents ([#504](../../pull/504))
+* Corpus to Network widget: widget for computing networks from documents ([#509](../../pull/509))
+
+##### Bugfixes
+* Word Cloud: don't show zero weights ([#501](../../pull/501))
+
+[0.8.0] - 2020-02-01
+--------------------
+##### Enhancements
+* Add Concordance output as text feature. ([#476](../../pull/476))
+* Corpus: add Title dropdown. ([#481](../../pull/481))
+* Word Cloud: show bow weights ([#486](../../pull/486))
+* Topic Modeling: change output to emulate PyLDAvis ([#483](../../pull/483))
+* Corpus: make unique titles ([#490](../../pull/490))
+* Word Cloud: major rewrite (spacing, tests, bugfixes) ([#493](../../pull/493))
+
+##### Bugfixes
+* Remove typing as dependency ([#475](../../pull/475))
+* Topic Modeling: select topic is schema-only setting ([#478](../../pull/478))
+* Include widgets in coverage ([#487](../../pull/487))
+* Corpus: use DomainContextHandler ([#491](../../pull/491))
+
 [0.7.4] - 2019-11-11
 ------------------
 ##### Bugfixes
@@ -165,7 +195,9 @@ Change Log
 --------------------
 
 
-[next]: https://github.com/biolab/orange3-text/compare/0.7.4...HEAD
+[next]: https://github.com/biolab/orange3-text/compare/0.9.0...HEAD
+[0.9.0]: https://github.com/biolab/orange3-text/compare/0.8.0...0.9.0
+[0.8.0]: https://github.com/biolab/orange3-text/compare/0.7.4...0.8.0
 [0.7.4]: https://github.com/biolab/orange3-text/compare/0.7.3...0.7.4
 [0.7.3]: https://github.com/biolab/orange3-text/compare/0.7.2...0.7.3
 [0.7.2]: https://github.com/biolab/orange3-text/compare/0.7.1...0.7.2
