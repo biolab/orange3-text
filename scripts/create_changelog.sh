@@ -16,7 +16,8 @@ RELEASE_DATE=$(date "+%Y-%m-%d")
 # compile a list of already reported PRs
 reported="$(mktemp)"
 
-grep -E "#[0-9]{4}" -o CHANGELOG.md | sort > "$reported"
+# TODO: {1,4} - change when more than 10000 PR/issues
+grep -E "#[0-9]{1,4}" -o CHANGELOG.md | sort > "$reported"
 
 echo "[$VERSION] - $RELEASE_DATE"
 echo "--------------------"
