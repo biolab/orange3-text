@@ -1,14 +1,20 @@
+import pickle
 import tempfile
 import unittest
+import os.path
 
 import itertools
 import nltk
+from unittest import mock
 from gensim import corpora
+from requests.exceptions import ConnectionError
 import numpy as np
 
 from orangecontrib.text import preprocess
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.preprocess import Preprocessor
+from orangecontrib.text.preprocess.normalize import file_to_language, \
+    file_to_name, language_to_name, UDPipeModels
 
 
 def counted(f):
@@ -168,6 +174,29 @@ class TokenNormalizerTests(unittest.TestCase):
         token = 'voudrais'
         self.assertEqual(stemmer(token), nltk.SnowballStemmer(language='french').stem(token))
 
+    def test_udpipe(self):
+        """Test udpipe token lemmatization"""
+        normalizer = preprocess.UDPipeLemmatizer()
+        normalizer.language = 'Slovenian'
+        self.assertEqual(normalizer('sem'), 'biti')
+
+    def test_udpipe_doc(self):
+        """Test udpipe lemmatization with its own tokenization """
+        normalizer = preprocess.UDPipeLemmatizer()
+        normalizer.language = 'Slovenian'
+        normalizer.use_tokenizer = True
+        self.assertListEqual(normalizer.normalize_doc('Gori na gori hiša gori'),
+                             ['gora', 'na', 'gora', 'hiša', 'goreti'])
+
+    def test_udpipe_pickle(self):
+        normalizer = preprocess.UDPipeLemmatizer()
+        normalizer.language = 'English'
+
+        loaded = pickle.loads(pickle.dumps(normalizer))
+        self.assertEqual(normalizer.language, loaded.language)
+        self.assertEqual(loaded.normalize_doc('peter piper pickled'),
+                         ['peter', 'piper', 'pickle'])
+
     def test_porter_with_bad_input(self):
         stemmer = preprocess.PorterStemmer()
         self.assertRaises(TypeError, stemmer, 10)
@@ -175,6 +204,45 @@ class TokenNormalizerTests(unittest.TestCase):
     def test_lookup_normalize(self):
         dln = preprocess.DictionaryLookupNormalizer(dictionary={'aka': 'also known as'})
         self.assertEqual(dln.normalize('aka'), 'also known as')
+
+
+class UDPipeModelsTests(unittest.TestCase):
+    def test_label_transform(self):
+        """Test helper functions for label transformation"""
+        self.assertEqual(file_to_language('slovenian-sst-ud-2.0-170801.udpipe'),
+                         'Slovenian sst')
+        self.assertEqual(file_to_name('slovenian-sst-ud-2.0-170801.udpipe'),
+                         'sloveniansstud2.0170801.udpipe')
+        self.assertEqual(language_to_name('Slovenian sst'), 'sloveniansstud')
+
+    def test_udpipe_model(self):
+        """Test udpipe models loading from server"""
+        models = UDPipeModels()
+        self.assertIn('Slovenian', models.supported_languages)
+        self.assertEqual(68, len(models.supported_languages))
+
+        local_file = os.path.join(models.local_data,
+                                  'slovenian-ud-2.0-170801.udpipe')
+        model = models['Slovenian']
+        self.assertEqual(model, local_file)
+        self.assertTrue(os.path.isfile(local_file))
+
+    def test_udpipe_local_models(self):
+        """Test if UDPipe works offline and uses local models"""
+        models = UDPipeModels()
+        [models.localfiles.remove(f[0]) for f in models.localfiles.listfiles()]
+        _ = models['Slovenian']
+        with mock.patch('serverfiles.ServerFiles.listfiles',
+                        **{'side_effect': ConnectionError()}):
+            self.assertIn('Slovenian', UDPipeModels().supported_languages)
+            self.assertEqual(1, len(UDPipeModels().supported_languages))
+
+    def test_udpipe_offline(self):
+        """Test if UDPipe works offline"""
+        self.assertTrue(UDPipeModels().online)
+        with mock.patch('serverfiles.ServerFiles.listfiles',
+                        **{'side_effect': ConnectionError()}):
+            self.assertFalse(UDPipeModels().online)
 
 
 class FilteringTests(unittest.TestCase):
@@ -208,10 +276,24 @@ class FilteringTests(unittest.TestCase):
         self.assertEqual(df([['a', '1']]), [['a']])
 
     def test_stopwords(self):
-        filter = preprocess.StopwordsFilter('english')
+        f = preprocess.StopwordsFilter('english')
 
-        self.assertFalse(filter.check('a'))
-        self.assertTrue(filter.check('filter'))
+        self.assertFalse(f.check('a'))
+        self.assertTrue(f.check('filter'))
+
+        self.assertListEqual(
+            ["snake", "house"],
+            f(["a", "snake", "is", "in", "a", "house"]))
+
+    def test_stopwords_slovene(self):
+        f = preprocess.StopwordsFilter('slovene')
+
+        self.assertFalse(f.check('in'))
+        self.assertTrue(f.check('abeceda'))
+
+        self.assertListEqual(
+            ["kača", "hiši"],
+            f(["kača", "je", "v", "hiši", "in"]))
 
     def test_lexicon(self):
         filter = preprocess.LexiconFilter(['filter'])

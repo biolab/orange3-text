@@ -10,6 +10,7 @@ from AnyQt.QtWidgets import (QWidget, QLabel, QHBoxLayout, QVBoxLayout,
 from Orange.widgets import gui, settings, widget
 from Orange.widgets.widget import OWWidget, Msg, Input, Output
 from orangecontrib.text import preprocess
+from orangecontrib.text.preprocess.normalize import UDPipeModels
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.misc import nltk_data_dir
 from orangecontrib.text.tag import StanfordPOSTagger, AveragedPerceptronTagger, \
@@ -252,10 +253,15 @@ class NormalizationModule(SingleMethodModule):
         preprocess.PorterStemmer,
         preprocess.SnowballStemmer,
         preprocess.WordNetLemmatizer,
+        preprocess.UDPipeLemmatizer,
     ]
+
     SNOWBALL = 1
+    UDPIPE = 3
 
     snowball_language = settings.Setting('English')
+    udpipe_language = settings.Setting('English')
+    udpipe_tokenizer = settings.Setting(False)
 
     def __init__(self, master):
         super().__init__(master)
@@ -263,16 +269,76 @@ class NormalizationModule(SingleMethodModule):
         label = gui.label(self, self, 'Language:')
         label.setAlignment(Qt.AlignRight)
         self.method_layout.addWidget(label, self.SNOWBALL, 1)
-        box = widgets.ComboBox(self, 'snowball_language',
+        snowball_box = widgets.ComboBox(self, 'snowball_language',
                                items=preprocess.SnowballStemmer.supported_languages)
-        box.currentIndexChanged.connect(self.change_language)
-        self.method_layout.addWidget(box, self.SNOWBALL, 2)
+        snowball_box.currentIndexChanged.connect(self.change_language)
+        self.method_layout.addWidget(snowball_box, self.SNOWBALL, 2)
+        self.methods[self.SNOWBALL].language = self.snowball_language
+
+        self.udpipe_tokenizer_box = QCheckBox("UDPipe tokenizer", self,
+                                              checked=self.udpipe_tokenizer)
+        self.udpipe_tokenizer_box.stateChanged.connect(self.change_tokenizer)
+        self.method_layout.addWidget(self.udpipe_tokenizer_box, self.UDPIPE, 1)
+        self.udpipe_label = gui.label(self, self, 'Language:')
+        self.udpipe_label.setAlignment(Qt.AlignRight)
+        self.method_layout.addWidget(self.udpipe_label, self.UDPIPE, 2)
+        self.udpipe_models = UDPipeModels()
+        self.create_udpipe_box()
+        self.udpipe_online = self.udpipe_models.online
+        self.on_off_button.stateChanged.connect(self.check_udpipe_online)
+        self.check_udpipe_online()
+        self.methods[self.UDPIPE].language = self.udpipe_language
+        self.methods[self.UDPIPE].use_tokenizer = self.udpipe_tokenizer
+
+    def create_udpipe_box(self):
+        if not self.udpipe_models.supported_languages:
+            self.group.button(self.UDPIPE).setEnabled(False)
+            self.udpipe_tokenizer_box.setEnabled(False)
+            self.udpipe_label.setEnabled(False)
+            self.udpipe_box = widgets.ComboBox(self, 'udpipe_language', items=[''])
+            self.udpipe_box.setEnabled(False)
+        else:
+            self.group.button(self.UDPIPE).setEnabled(True)
+            self.udpipe_tokenizer_box.setEnabled(True)
+            self.udpipe_label.setEnabled(True)
+            self.udpipe_box = widgets.ComboBox(self, 'udpipe_language',
+                                          items=self.udpipe_models.supported_languages)
+        self.udpipe_box.currentIndexChanged.connect(self.change_language)
+        self.method_layout.addWidget(self.udpipe_box, self.UDPIPE, 3)
+
+    def check_udpipe_online(self):
+        current_state = self.udpipe_models.online
+        if self.udpipe_online != current_state:
+            self.create_udpipe_box()
+            self.udpipe_online = current_state
+
+        self.master.Warning.udpipe_offline.clear()
+        self.master.Warning.udpipe_offline_no_models.clear()
+        if not current_state and self.enabled:
+            if self.udpipe_models.supported_languages:
+                self.master.Warning.udpipe_offline()
+            else:
+                self.master.Warning.udpipe_offline_no_models()
 
     def change_language(self):
         if self.methods[self.SNOWBALL].language != self.snowball_language:
             self.methods[self.SNOWBALL].language = self.snowball_language
 
             if self.method_index == self.SNOWBALL:
+                self.change_signal.emit()
+
+        if self.methods[self.UDPIPE].language != self.udpipe_language:
+            self.methods[self.UDPIPE].language = self.udpipe_language
+
+            if self.method_index == self.UDPIPE:
+                self.change_signal.emit()
+
+    def change_tokenizer(self):
+        self.udpipe_tokenizer = self.udpipe_tokenizer_box.isChecked()
+        if self.methods[self.UDPIPE].use_tokenizer != self.udpipe_tokenizer:
+            self.methods[self.UDPIPE].use_tokenizer = self.udpipe_tokenizer
+
+            if self.method_index == self.UDPIPE:
                 self.change_signal.emit()
 
 
@@ -312,7 +378,7 @@ class FilteringModule(MultipleMethodModule):
     REGEXP = 2
     FREQUENCY = 3
     KEEP_N = 4
-    dlgFormats = 'Only text files (*.txt)'
+    dlgFormats = 'Only text files (*.txt);;All files (*)'
 
     stopwords_language = settings.Setting('English')
 
@@ -320,7 +386,7 @@ class FilteringModule(MultipleMethodModule):
     recent_lexicon_files = settings.Setting([])
 
     pattern = settings.Setting('\.|,|:|;|!|\?|\(|\)|\||\+|\'|\"|‘|’|“|”|\'|\’'
-                               '|…|\-|–|—|\$|&|\*|>|<')
+                               '|…|\-|–|—|\$|&|\*|>|<|\/|\[|\]')
     min_df = settings.Setting(0.1)
     max_df = settings.Setting(0.9)
     keep_n = settings.Setting(100)
@@ -331,7 +397,7 @@ class FilteringModule(MultipleMethodModule):
         super().__init__(master)
 
         box = widgets.ComboBox(self, 'stopwords_language',
-                               items=[None] + preprocess.StopwordsFilter.supported_languages)
+                               items=[None] + preprocess.StopwordsFilter.supported_languages())
         box.currentIndexChanged.connect(self.stopwords_changed)
         self.stopwords_changed()
         self.method_layout.addWidget(box, self.STOPWORDS, 1)
@@ -454,11 +520,10 @@ class NgramsModule(PreprocessorModule):
     ngrams_range = settings.Setting((1, 2))
 
     def setup_method_layout(self):
-        self.method_layout.addWidget(
-            widgets.RangeWidget(None, self, 'ngrams_range', minimum=1, maximum=10, step=1,
-                                min_label='Range:', dtype=int,
-                                callback=self.update_value)
-        )
+        w = widgets.RangeWidget(None, self, 'ngrams_range', minimum=1, maximum=10, step=1,
+                                min_label='Range:', dtype=int)
+        w.editingFinished.connect(self.update_value)
+        self.method_layout.addWidget(w)
 
     def get_value(self):
         return self.ngrams_range
@@ -480,7 +545,7 @@ class POSTaggingModule(SingleMethodModule):
         super().setup_method_layout()
         # initialize all methods except StanfordPOSTagger
         # cannot be done in superclass due to StanfordPOSTagger
-        self.methods = [method() for method in self.methods[:self.STANFORD]]
+        self.methods = [method() for method in self.methods[:self.STANFORD]] + [self.methods[self.STANFORD]]
 
         self.stanford = ResourceLoader(widget=self.master, model_format='Stanford model (*.model *.tagger)',
                                        provider_format='Java file (*.jar)',
@@ -501,7 +566,14 @@ class POSTaggingModule(SingleMethodModule):
                 self.update_value()
             except ValueError as e:
                 if not silent:
-                    self.master.Error.stanford(str(e))
+                    self.master.Error.stanford_tagger(str(e))
+
+        # if stanford fails to load data, change saved index to default
+        if self.method_index == self.STANFORD and not valid:
+            self.method_index = 0
+            self.group.button(self.method_index).setChecked(True)
+            self.group.button(self.method_index).setEnabled(True)
+            self.master.Error.stanford_tagger("Changing to Averaged Perceptron Tagger")
 
         self.group.button(self.STANFORD).setChecked(valid)
         self.group.button(self.STANFORD).setEnabled(valid)
@@ -547,7 +619,7 @@ class OWPreprocess(OWWidget):
     ngrams_range = settings.SettingProvider(NgramsModule)
     pos_tagger = settings.SettingProvider(POSTaggingModule)
 
-    control_area_width = 250
+    control_area_width = 180
     buttons_area_orientation = Qt.Vertical
 
     UserAdviceMessages = [
@@ -566,6 +638,8 @@ class OWPreprocess(OWWidget):
 
     class Warning(OWWidget.Warning):
         no_token_left = Msg('No tokens on output! Please, change configuration.')
+        udpipe_offline = Msg('No internet connection! UDPipe now only works with local models.')
+        udpipe_offline_no_models = Msg('No internet connection and no local UDPipe models are available.')
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -607,6 +681,7 @@ class OWPreprocess(OWWidget):
         self.scroll.resize(frame_layout.sizeHint())
         self.scroll.setMinimumHeight(500)
         self.set_minimal_width()
+        self.mainArea.layout().sizeHint()
         self.mainArea.layout().addWidget(self.scroll)
 
         # Buttons area
@@ -614,7 +689,7 @@ class OWPreprocess(OWWidget):
 
         commit_button = gui.auto_commit(self.buttonsArea, self, 'autocommit',
                                         'Commit', box=False)
-        commit_button.setFixedWidth(self.control_area_width - 5)
+        commit_button.setFixedWidth(self.control_area_width)
 
         self.buttonsArea.layout().addWidget(commit_button)
 
@@ -655,11 +730,11 @@ class OWPreprocess(OWWidget):
 
     @preprocess.on_start
     def on_start(self):
-        self.progressBarInit(None)
+        self.progressBarInit()
 
     @preprocess.callback
     def on_progress(self, i):
-        self.progressBarSet(i, None)
+        self.progressBarSet(i)
 
     @preprocess.on_result
     def on_result(self, result):
@@ -668,7 +743,7 @@ class OWPreprocess(OWWidget):
             self.Warning.no_token_left()
             result = None
         self.Outputs.corpus.send(result)
-        self.progressBarFinished(None)
+        self.progressBarFinished()
 
     def set_minimal_width(self):
         max_width = 250

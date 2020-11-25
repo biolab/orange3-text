@@ -181,7 +181,6 @@ class OWTwitter(OWWidget):
 
         # Buttons
         self.button_box = gui.hBox(self.controlArea)
-        self.button_box.layout().addWidget(self.report_button)
 
         self.search_button = gui.button(self.button_box, self, 'Search',
                                         self.start_stop,
@@ -242,11 +241,11 @@ class OWTwitter(OWWidget):
     @search.on_start
     def on_start(self):
         self.Error.clear()
-        self.progressBarInit(None)
+        self.progressBarInit()
         self.search_button.setText('Stop')
         self.Outputs.corpus.send(None)
         if self.mode == self.CONTENT and not self.limited_search:
-            self.progressBarFinished(None)
+            self.progressBarFinished()
 
     @search.on_result
     def on_result(self, result):
@@ -254,13 +253,13 @@ class OWTwitter(OWWidget):
         self.tweets_info_label.setText(self.tweets_info.format(len(result) if result else 0))
         self.corpus = result
         self.set_text_features()
-        self.progressBarFinished(None)
+        self.progressBarFinished()
 
     @search.callback(should_raise=False)
     def update_tweets_num(self, num=0, progress=None):
         if self.limited_search or self.mode == self.AUTHOR:
             if progress is not None:
-                self.progressBarSet(100 * progress, None)
+                self.progressBarSet(100 * progress)
         self.tweets_info_label.setText(self.tweets_info.format(num))
 
     def set_text_features(self):

@@ -1,9 +1,17 @@
+import os
+import json
+import ufal.udpipe as udpipe
+import serverfiles
 from nltk import stem
+from requests.exceptions import ConnectionError
+from Orange.misc.environ import data_dir
+
 
 from orangecontrib.text.misc import wait_nltk_data
 
 __all__ = ['BaseNormalizer', 'WordNetLemmatizer', 'PorterStemmer',
-           'SnowballStemmer', 'DictionaryLookupNormalizer']
+           'SnowballStemmer', 'DictionaryLookupNormalizer',
+           'UDPipeLemmatizer']
 
 
 class BaseNormalizer:
@@ -79,3 +87,111 @@ class SnowballStemmer(BaseNormalizer):
     def language(self, value):
         self._language = value
         self.normalizer = stem.SnowballStemmer(self.language.lower())
+
+
+def language_to_name(language):
+    return language.lower().replace(' ', '') + 'ud'
+
+
+def file_to_name(file):
+    return file.replace('-', '').replace('_', '')
+
+
+def file_to_language(file):
+    return file[:file.find('ud')-1]\
+        .replace('-', ' ').replace('_', ' ').capitalize()
+
+
+class UDPipeModels:
+    server_url = "http://file.biolab.si/files/udpipe/"
+
+    def __init__(self):
+        self.local_data = os.path.join(data_dir(versioned=False), 'udpipe/')
+        self.serverfiles = serverfiles.ServerFiles(self.server_url)
+        self.localfiles = serverfiles.LocalFiles(self.local_data,
+                                                 serverfiles=self.serverfiles)
+        self._supported_languages = []
+
+    def __getitem__(self, language):
+        file_name = self._find_file(language_to_name(language))
+        return self.localfiles.localpath_download(file_name)
+
+    @property
+    def model_files(self):
+        try:
+            return self.serverfiles.listfiles()
+        except ConnectionError:
+            return self.localfiles.listfiles()
+
+    def _find_file(self, language):
+        return next(filter(lambda f: file_to_name(f).startswith(language),
+                           map(lambda f: f[0], self.model_files)))
+
+    @property
+    def supported_languages(self):
+        self._supported_languages = list(map(lambda f: file_to_language(f[0]),
+                                             self.model_files))
+        return self._supported_languages
+
+    @property
+    def online(self):
+        try:
+            self.serverfiles.listfiles()
+            return True
+        except ConnectionError:
+            return False
+
+
+class UDPipeLemmatizer(BaseNormalizer):
+    name = 'UDPipe Lemmatizer'
+    str_format = '{self.name} ({self.language})'
+
+    def __init__(self, language='English'):
+        self._language = language
+        self.models = UDPipeModels()
+        self.model = None
+        self.output_format = udpipe.OutputFormat.newOutputFormat('epe')
+        self.use_tokenizer = False
+
+    def load_model(self):
+        if self.model is None:
+            self.model = udpipe.Model.load(self.models[self._language])
+
+    def normalize(self, token):
+        self.load_model()
+        sentence = udpipe.Sentence()
+        sentence.addWord(token)
+        self.model.tag(sentence, self.model.DEFAULT)
+        output = self.output_format.writeSentence(sentence)
+        return json.loads(output)['nodes'][0]['properties']['lemma']
+
+    def normalize_doc(self, document):
+        self.load_model()
+        tokens = []
+        tokenizer = self.model.newTokenizer(self.model.DEFAULT)
+        tokenizer.setText(document)
+        error = udpipe.ProcessingError()
+        sentence = udpipe.Sentence()
+        while tokenizer.nextSentence(sentence, error):
+            self.model.tag(sentence, self.model.DEFAULT)
+            output = self.output_format.writeSentence(sentence)
+            sentence = udpipe.Sentence()
+            tokens.extend([t['properties']['lemma']
+                           for t in json.loads(output)['nodes']])
+        return tokens
+
+    @property
+    def language(self):
+        return self._language
+
+    @language.setter
+    def language(self, value):
+        self._language = value
+        self.model = None
+
+    def __getstate__(self):
+        return {'language': self.language}
+
+    def __setstate__(self, state):
+        self.__init__(state['language'])
+

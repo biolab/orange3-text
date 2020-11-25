@@ -1,16 +1,18 @@
-import os
 import re
 import sre_constants
 from itertools import chain
 
-from AnyQt.QtCore import Qt, QUrl, QItemSelection, QItemSelectionModel, QItemSelectionRange
+from AnyQt.QtCore import (
+    Qt, QUrl, QItemSelection, QItemSelectionModel, QItemSelectionRange
+)
+
 from AnyQt.QtGui import QStandardItemModel, QStandardItem
 from AnyQt.QtWidgets import (QListView, QSizePolicy, QTableView,
                              QAbstractItemView, QHeaderView, QSplitter,
                              QApplication)
 
 from Orange.data.domain import filter_visible
-from Orange.widgets import gui, widget
+from Orange.widgets import gui
 from Orange.widgets.settings import Setting, ContextSetting, PerfectDomainContextHandler
 from Orange.widgets.widget import OWWidget, Msg, Input, Output
 from orangecontrib.text.corpus import Corpus
@@ -222,6 +224,12 @@ class OWCorpusViewer(OWWidget):
         <!doctype html>
         <html>
         <head>
+        <script type="text/javascript" src="resources/jquery-3.1.1.min.js">
+        </script>
+        <script type="text/javascript" src="resources/jquery.mark.min.js">
+        </script>
+        <script type="text/javascript" src="resources/highlighter.js">
+        </script>
         <meta charset='utf-8'>
         <style>
 
@@ -244,6 +252,26 @@ class OWCorpusViewer(OWWidget):
         .variables {{
             vertical-align: top;
             padding-right: 10px;
+        }}
+        
+        .content {{
+            /* Adopted from https://css-tricks.com/snippets/css/prevent-long-urls-from-breaking-out-of-container/ */
+        
+            /* These are technically the same, but use both */
+            overflow-wrap: break-word;
+            word-wrap: break-word;
+        
+            -ms-word-break: break-all;
+            /* This is the dangerous one in WebKit, as it breaks things wherever */
+            word-break: break-all;
+            /* Instead use this non-standard one: */
+            word-break: break-word;
+        
+            /* Adds a hyphen where the word breaks, if supported (No Blink) */
+            -ms-hyphens: auto;
+            -moz-hyphens: auto;
+            -webkit-hyphens: auto;
+            hyphens: auto;
         }}
 
         .token {{
@@ -291,14 +319,16 @@ class OWCorpusViewer(OWWidget):
             row_ind = index.data(Qt.UserRole).row_index
             for ind in self.display_indices:
                 feature = self.display_features[ind]
-                mark = 'class="mark-area"' if feature in marked_search_features else ''
                 value = str(index.data(Qt.UserRole)[feature.name])
+                if feature in marked_search_features:
+                    value = self.__mark_text(value)
+                value = value.replace('\n', '<br/>')
                 is_image = feature.attributes.get('type', '') == 'image'
                 if is_image and value != '?':
                     value = '<img src="{}"></img>'.format(value)
                 html += '<tr><td class="variables"><strong>{}:</strong></td>' \
-                        '<td {}>{}</td></tr>'.format(
-                    feature.name, mark, value)
+                        '<td class="content">{}</td></tr>'.format(
+                    feature.name, value)
 
             if self.show_tokens:
                 html += '<tr><td class="variables"><strong>Tokens & Tags:</strong></td>' \
@@ -306,17 +336,29 @@ class OWCorpusViewer(OWWidget):
                     token) for token in tokens[row_ind]))
 
         html += '</table>'
+        base = QUrl.fromLocalFile(__file__)
+        self.doc_webview.setHtml(HTML.format(html), base)
 
-        # QUrl is a workaround to allow local resources
-        # https://bugreports.qt.io/browse/QTBUG-55902?focusedCommentId=335945
-        self.doc_webview.setHtml(HTML.format(html), QUrl("file://"))
-        self.load_js()
-        self.highlight_docs()
+    def __mark_text(self, text):
+        search_keyword = self.regexp_filter.strip('|')
+        if not search_keyword:
+            return text
 
-    def load_js(self):
-        resources = os.path.join(os.path.dirname(__file__), 'resources')
-        for script in ('jquery-3.1.1.min.js', 'jquery.mark.min.js', 'highlighter.js', ):
-            self.doc_webview.evalJS(open(os.path.join(resources, script), encoding='utf-8').read())
+        try:
+            reg = re.compile(search_keyword, re.IGNORECASE | re.MULTILINE)
+        except sre_constants.error:
+            return text
+
+        matches = list(reg.finditer(text))
+        if not matches:
+            return text
+
+        text = list(text)
+        for m in matches[::-1]:
+            text[m.start():m.end()] = list('<mark data-markjs="true">{}</mark>'\
+                .format("".join(text[m.start():m.end()])))
+
+        return "".join(text)
 
     def search_features_changed(self):
         self.regenerate_docs()
@@ -337,12 +379,6 @@ class OWCorpusViewer(OWWidget):
             self.reset_selection()
             self.update_info()
             self.commit()
-
-    def highlight_docs(self):
-        search_keyword = self.regexp_filter.\
-            strip('|').replace('\\', '\\\\')    # escape one \ to  two for mark.js
-        if search_keyword:
-            self.doc_webview.evalJS('mark("{}");'.format(search_keyword))
 
     def update_info(self):
         if self.corpus is not None:
@@ -374,15 +410,22 @@ class OWCorpusViewer(OWWidget):
             self.Outputs.matching_docs.send(None)
             self.Outputs.other_docs.send(None)
 
+    def send_report(self):
+        self.report_items((
+            ("Query", self.regexp_filter),
+            ("Matching documents", self.n_matching),
+        ))
+
 
 if __name__ == '__main__':
-    from orangecontrib.text.tag import pos_tagger
+    from orangecontrib.text.tag.pos import AveragedPerceptronTagger
     app = QApplication([])
     widget = OWCorpusViewer()
     widget.show()
     corpus = Corpus.from_file('book-excerpts')
     corpus = corpus[:3]
-    corpus = pos_tagger.tag_corpus(corpus)
-    corpus.ngram_range = (1, 2)
-    widget.set_data(corpus)
+    tagger = AveragedPerceptronTagger()
+    tagged_corpus = tagger.tag_corpus(corpus)
+    tagged_corpus.ngram_range = (1, 2)
+    widget.set_data(tagged_corpus)
     app.exec()

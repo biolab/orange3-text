@@ -7,6 +7,7 @@ from Orange.widgets.widget import OWWidget, Msg, Output
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.language_codes import lang2code, code2lang
 from orangecontrib.text.widgets.utils import ComboBox, ListEdit, CheckListLayout, asynchronous
+
 from orangecontrib.text.wikipedia import WikipediaAPI
 
 
@@ -53,9 +54,11 @@ class OWWikipedia(OWWidget):
         layout.setSpacing(7)
 
         row = 0
-        query_edit = ListEdit(self, 'query_list', "Each line represents a separate query.", None, self)
+        self.query_edit = ListEdit(self, 'query_list', "Each line represents a "
+                                                  "separate query.", 100, self)
         layout.addWidget(QLabel('Query word list:'), row, 0, 1, self.label_width)
-        layout.addWidget(query_edit, row, self.label_width, 1, self.widgets_width)
+        layout.addWidget(self.query_edit, row, self.label_width, 1,
+                         self.widgets_width)
 
         # Language
         row += 1
@@ -81,7 +84,6 @@ class OWWikipedia(OWWidget):
         self.result_label = gui.label(self.info_box, self, self.info_label.format(0))
 
         self.button_box = gui.hBox(self.controlArea)
-        self.button_box.layout().addWidget(self.report_button)
 
         self.search_button = gui.button(self.button_box, self, 'Search', self.start_stop)
         self.search_button.setFocusPolicy(Qt.NoFocus)
@@ -101,13 +103,13 @@ class OWWikipedia(OWWidget):
 
     @search.callback(should_raise=False)
     def progress_with_info(self, progress, n_retrieved):
-        self.progressBarSet(100 * progress, None)
+        self.progressBarSet(100 * progress)
         self.result_label.setText(self.info_label.format(n_retrieved))
 
     @search.on_start
     def on_start(self):
         self.Error.api_error.clear()
-        self.progressBarInit(None)
+        self.progressBarInit()
         self.search_button.setText('Stop')
         self.result_label.setText(self.info_label.format(0))
         self.Outputs.corpus.send(None)
@@ -118,7 +120,7 @@ class OWWikipedia(OWWidget):
         self.result_label.setText(self.info_label.format(len(result) if result else 0))
         self.search_button.setText('Search')
         self.set_text_features()
-        self.progressBarFinished(None)
+        self.progressBarFinished()
 
     def set_text_features(self):
         self.Warning.no_text_fields.clear()
@@ -133,7 +135,7 @@ class OWWikipedia(OWWidget):
     def send_report(self):
         if self.result:
             items = (('Language', code2lang[self.language]),
-                     ('Query', self.query_list),
+                     ('Query', self.query_edit.toPlainText()),
                      ('Articles count', len(self.result)))
             self.report_items('Query', items)
 

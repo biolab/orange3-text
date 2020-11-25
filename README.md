@@ -1,6 +1,7 @@
 Orange3 Text 
 ============
 
+[![Discord Chat](https://img.shields.io/discord/633376992607076354)](https://discord.gg/FWrfeXV)
 [![Build Status](https://travis-ci.org/biolab/orange3-text.svg?branch=master)](https://travis-ci.org/biolab/orange3-text)
 [![codecov](https://codecov.io/gh/biolab/orange3-text/branch/master/graph/badge.svg)](https://codecov.io/gh/biolab/orange3-text)
 [![Documentation Status](https://readthedocs.org/projects/orange3-text/badge/?version=latest)](http://orange3-text.readthedocs.org/en/latest/?badge=latest)
@@ -12,6 +13,8 @@ it provides tools for preprocessing, constructing vector spaces (like
 bag-of-words, topic modeling, and similarity hashing) and visualizations like word cloud
 end geo map. All features can be combined with powerful data mining techniques
 from the Orange data mining framework.
+
+Please note that Text add-on won't work on 32-bit Windows systems. The add-on depends on conda-forge and they have [removed support for Windows 32](https://github.com/conda-forge/staged-recipes/issues/5640) in April 2018.
 
 Anaconda installation
 ---------------------

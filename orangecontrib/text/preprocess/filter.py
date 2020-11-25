@@ -61,20 +61,24 @@ class WordListMixin:
         # No encoding worked, raise
         raise UnicodeError("Couldn't determine file encoding")
 
-# get NLTK list of stopwords
-stopwords_listdir = []
-try:
-    stopwords_listdir = [file for file in os.listdir(stopwords._get_root())
-                         if file.islower()]
-except LookupError:     # when no NLTK data is available
-    pass
-
 
 class StopwordsFilter(BaseTokenFilter, WordListMixin):
     """ Remove tokens present in NLTK's language specific lists or a file. """
     name = 'Stopwords'
 
-    supported_languages = [file.capitalize() for file in stopwords_listdir]
+    @staticmethod
+    @wait_nltk_data
+    def supported_languages():
+        # get NLTK list of stopwords
+        stopwords_listdir = []
+        try:
+            stopwords_listdir = [file for file in
+                                 os.listdir(stopwords._get_root())
+                                 if file.islower()]
+        except LookupError:  # when no NLTK data is available
+            pass
+
+        return sorted(file.capitalize() for file in stopwords_listdir)
 
     @wait_nltk_data
     def __init__(self, language='English', word_list=None):
@@ -92,7 +96,8 @@ class StopwordsFilter(BaseTokenFilter, WordListMixin):
         if not self._language:
             self.stopwords = []
         else:
-            self.stopwords = set(stopwords.words(self.language.lower()))
+            self.stopwords = set(
+                x.strip() for x in stopwords.words(self.language.lower()))
 
     def __str__(self):
         config = ''

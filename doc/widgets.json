@@ -1,0 +1,179 @@
+[
+ [
+  "Text Mining",
+  [
+   {
+    "text": "Corpus",
+    "doc": "widgets/corpus-widget.md",
+    "icon": "../orangecontrib/text/widgets/icons/TextFile.svg",
+    "background": "light-blue",
+    "keywords": []
+   },
+   {
+    "text": "Import Documents",
+    "doc": "widgets/importdocuments.md",
+    "icon": "../orangecontrib/text/widgets/icons/ImportDocuments.svg",
+    "background": "light-blue",
+    "keywords": []
+   },
+   {
+    "text": "The Guardian",
+    "doc": "widgets/guardian-widget.md",
+    "icon": "../orangecontrib/text/widgets/icons/TheGuardian.svg",
+    "background": "light-blue",
+    "keywords": []
+   },
+   {
+    "text": "NY Times",
+    "doc": "widgets/nytimes.md",
+    "icon": "../orangecontrib/text/widgets/icons/NYTimes.svg",
+    "background": "light-blue",
+    "keywords": []
+   },
+   {
+    "text": "Pubmed",
+    "doc": "widgets/pubmed.md",
+    "icon": "../orangecontrib/text/widgets/icons/Pubmed.svg",
+    "background": "light-blue",
+    "keywords": []
+   },
+   {
+    "text": "Twitter",
+    "doc": "widgets/twitter-widget.md",
+    "icon": "../orangecontrib/text/widgets/icons/Twitter.svg",
+    "background": "light-blue",
+    "keywords": []
+   },
+   {
+    "text": "Wikipedia",
+    "doc": "widgets/wikipedia-widget.md",
+    "icon": "../orangecontrib/text/widgets/icons/Wikipedia.svg",
+    "background": "light-blue",
+    "keywords": []
+   },
+   {
+    "text": "Preprocess Text",
+    "doc": "widgets/preprocesstext.md",
+    "icon": "../orangecontrib/text/widgets/icons/TextPreprocess.svg",
+    "background": "light-blue",
+    "keywords": []
+   },
+   {
+    "text": "Corpus to Network",
+    "doc": "widgets/corpustonetwork.md",
+    "icon": "../orangecontrib/text/widgets/icons/CorpusToNetwork.svg",
+    "background": "light-blue",
+    "keywords": [
+     "text, network"
+    ]
+   },
+   {
+    "text": "Bag of Words",
+    "doc": "widgets/bagofwords-widget.md",
+    "icon": "../orangecontrib/text/widgets/icons/BagOfWords.svg",
+    "background": "light-blue",
+    "keywords": [
+     "BOW"
+    ]
+   },
+   {
+    "text": "Document Embedding",
+    "doc": "widgets/documentembedding.md",
+    "icon": "../orangecontrib/text/widgets/icons/TextEmbedding.svg",
+    "background": "light-blue",
+    "keywords": [
+     "embedding",
+     "document embedding",
+     "text"
+    ]
+   },
+   {
+    "text": "Similarity Hashing",
+    "doc": "widgets/similarityhashing.md",
+    "icon": "../orangecontrib/text/widgets/icons/Simhash.svg",
+    "background": "light-blue",
+    "keywords": [
+     "SimHash"
+    ]
+   },
+   {
+    "text": "Sentiment Analysis",
+    "doc": "widgets/sentimentanalysis.md",
+    "icon": "../orangecontrib/text/widgets/icons/SentimentAnalysis.svg",
+    "background": "light-blue",
+    "keywords": [
+     "emotion"
+    ]
+   },
+   {
+    "text": "Tweet Profiler",
+    "doc": "widgets/tweetprofiler.md",
+    "icon": "../orangecontrib/text/widgets/icons/TweetProfiler.svg",
+    "background": "light-blue",
+    "keywords": [
+     "Twitter"
+    ]
+   },
+   {
+    "text": "Topic Modelling",
+    "doc": "widgets/topicmodelling-widget.md",
+    "icon": "../orangecontrib/text/widgets/icons/TopicModeling.svg",
+    "background": "light-blue",
+    "keywords": [
+     "LDA"
+    ]
+   },
+   {
+    "text": "Corpus Viewer",
+    "doc": "widgets/corpusviewer.md",
+    "icon": "../orangecontrib/text/widgets/icons/CorpusViewer.svg",
+    "background": "light-blue",
+    "keywords": []
+   },
+   {
+    "text": "Word Cloud",
+    "doc": "widgets/wordcloud.md",
+    "icon": "../orangecontrib/text/widgets/icons/WordCloud.svg",
+    "background": "light-blue",
+    "keywords": []
+   },
+   {
+    "text": "Concordance",
+    "doc": "widgets/concordance.md",
+    "icon": "../orangecontrib/text/widgets/icons/Concordance.svg",
+    "background": "light-blue",
+    "keywords": []
+   },
+   {
+    "text": "Document Map",
+    "doc": "widgets/docmap.md",
+    "icon": "../orangecontrib/text/widgets/icons/DocMap.svg",
+    "background": "light-blue",
+    "keywords": [
+     "GeoMap"
+    ]
+   },
+   {
+    "text": "Word Enrichment",
+    "doc": "widgets/wordenrichment.md",
+    "icon": "../orangecontrib/text/widgets/icons/SetEnrichment.svg",
+    "background": "light-blue",
+    "keywords": []
+   },
+   {
+    "text": "Duplicate Detection",
+    "doc": "widgets/duplicatedetection.md",
+    "icon": "../orangecontrib/text/widgets/icons/Duplicates.svg",
+    "background": "light-blue",
+    "keywords": []
+   },
+   {
+    "text": "Statistics",
+    "doc": "widgets/statistics.md",
+    "icon": "../orangecontrib/text/widgets/icons/Statistics.svg",
+    "background": "light-blue",
+    "keywords": []
+   }
+  ]
+ ]
+]

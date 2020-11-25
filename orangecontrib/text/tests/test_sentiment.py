@@ -1,13 +1,14 @@
 import unittest
 
 from orangecontrib.text.corpus import Corpus
-from orangecontrib.text.sentiment import Liu_Hu_Sentiment, Vader_Sentiment
+from orangecontrib.text.sentiment import LiuHuSentiment, VaderSentiment, \
+    MultiSentiment
 
 
 class LiuHuTest(unittest.TestCase):
     def setUp(self):
         self.corpus = Corpus.from_file('deerwester')
-        self.method = Liu_Hu_Sentiment()
+        self.method = LiuHuSentiment('English')
         self.new_cols = 1
 
     def test_transform(self):
@@ -49,12 +50,52 @@ class LiuHuTest(unittest.TestCase):
                          len(self.corpus.domain) + self.new_cols)
         self.assertEqual(len(sentiment), 0)
 
+class LiuHuSlovenian(unittest.TestCase):
+    def setUp(self):
+        self.corpus = Corpus.from_file('slo-opinion-corpus')
+        self.method = LiuHuSentiment('Slovenian')
+        self.new_cols = 1
+
+    def test_transform(self):
+        sentiment = self.method.transform(self.corpus)
+        self.assertIsInstance(sentiment, Corpus)
+        self.assertEqual(len(sentiment.domain),
+                         len(self.corpus.domain) + self.new_cols)
+
+    def test_copy(self):
+        sentiment_t = self.method.transform(self.corpus, copy=True)
+        self.assertIsNot(self.corpus, sentiment_t)
+
+        sentiment_f = self.method.transform(self.corpus, copy=False)
+        self.assertIs(self.corpus, sentiment_f)
+
+    def test_compute_values(self):
+        sentiment = self.method.transform(self.corpus)
+        computed = Corpus.from_table(sentiment.domain, self.corpus)
+
+        self.assertEqual(sentiment.domain, computed.domain)
+        self.assertTrue((sentiment.X == computed.X).all())
+
+    def test_empty_corpus(self):
+        corpus = self.corpus[:0]
+        sentiment = self.method.transform(corpus)
+        self.assertEqual(len(sentiment.domain),
+                         len(self.corpus.domain) + self.new_cols)
+        self.assertEqual(len(sentiment), 0)
+
 
 class VaderTest(LiuHuTest):
     def setUp(self):
         self.corpus = Corpus.from_file('deerwester')
-        self.method = Vader_Sentiment()
+        self.method = VaderSentiment()
         self.new_cols = 4
+
+
+class MultiSentimentTest(LiuHuTest):
+    def setUp(self):
+        self.corpus = Corpus.from_file('deerwester')
+        self.method = MultiSentiment()
+        self.new_cols = 1
 
 
 if __name__ == "__main__":

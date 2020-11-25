@@ -18,6 +18,7 @@ Then create :class:`TheGuardianAPI` object and use it for searching:
 import requests
 import math
 import json
+import os
 
 from Orange import data
 
@@ -26,6 +27,10 @@ from orangecontrib.text.corpus import Corpus
 
 BASE_URL = 'http://content.guardianapis.com/search'
 ARTICLES_PER_PAGE = 10
+
+
+class APILimitError(Exception):
+    pass
 
 
 class TheGuardianCredentials:
@@ -41,7 +46,7 @@ class TheGuardianCredentials:
     def valid(self):
         """ Check if given API key is valid. """
         response = requests.get(BASE_URL, {'api-key': self.key})
-        return response.status_code != 403      # 403 == Forbidden
+        return response.status_code == 200
 
     def __eq__(self, other):
         return self.key == other.key
@@ -92,6 +97,10 @@ class TheGuardianAPI:
         data = self._build_query(query, from_date, to_date, page)
 
         response = requests.get(BASE_URL, data)
+        response.encoding = "UTF-8"
+        if response.status_code == 429:
+            raise APILimitError("API limit exceeded")
+
         parsed = json.loads(response.text)
 
         if page == 1:   # store number of pages
@@ -155,7 +164,8 @@ class TheGuardianAPI:
 
 
 if __name__ == '__main__':
-    credentials = TheGuardianCredentials('')
+    key = os.getenv('THE_GUARDIAN_API_KEY', 'test')
+    credentials = TheGuardianCredentials(key)
     print(credentials.valid)
     api = TheGuardianAPI(credentials=credentials)
     c = api.search('refugees', max_documents=10)

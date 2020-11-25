@@ -6,10 +6,16 @@ import sys
 import unittest
 from setuptools import setup, find_packages
 
+try:
+    # need recommonmark for build_htmlhelp command
+    import recommonmark
+except ImportError:
+    pass
+
 NAME = 'Orange3-Text'
 
 MAJOR = 0
-MINOR = 3
+MINOR = 9
 MICRO = 0
 IS_RELEASED = True
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
@@ -133,20 +139,6 @@ INSTALL_REQUIRES = sorted(set(
     for line in open(os.path.join(os.path.dirname(__file__), 'requirements.txt'))
 ) - {''})
 
-if 'test' in sys.argv:
-    # http://stackoverflow.com/a/37033551/892987
-    def discover_tests():
-        return unittest.defaultTestLoader.discover(
-            'orangecontrib.text',
-            pattern='test_*.py',
-            top_level_dir='.')
-
-    extra_setuptools_args = dict(
-        test_suite='setup.discover_tests'
-    )
-else:
-    extra_setuptools_args = dict()
-
 if __name__ == '__main__':
     write_version_py()
     setup(
@@ -165,5 +157,5 @@ if __name__ == '__main__':
         keywords=KEYWORDS,
         namespace_packages=['orangecontrib'],
         zip_safe=False,
-        **extra_setuptools_args
+        test_suite='orangecontrib.text.tests.suite'
     )

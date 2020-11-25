@@ -1,14 +1,16 @@
 import os
+import numpy as np
 
-from Orange.data import Table
+from Orange.data import Table, StringVariable, Variable
 from Orange.data.io import FileFormat
 from Orange.widgets import gui
-from Orange.widgets.utils.itemmodels import VariableListModel
+from Orange.widgets.utils.itemmodels import VariableListModel, DomainModel
 from Orange.widgets.data.owselectcolumns import VariablesListItemView
-from Orange.widgets.settings import Setting, ContextSetting, PerfectDomainContextHandler
+from Orange.widgets.settings import Setting, ContextSetting,\
+    DomainContextHandler
 from Orange.widgets.widget import OWWidget, Msg, Input, Output
 from orangecontrib.text.corpus import Corpus, get_sample_corpora_dir
-from orangecontrib.text.widgets.utils import widgets
+from orangecontrib.text.widgets.utils import widgets, QSize
 
 
 class OWCorpus(OWWidget):
@@ -34,9 +36,7 @@ class OWCorpus(OWWidget):
                   for f in sorted(set(FileFormat.readers.values()),
                                   key=list(FileFormat.readers.values()).index)))
 
-    settingsHandler = PerfectDomainContextHandler(
-        match_values=PerfectDomainContextHandler.MATCH_VALUES_ALL
-    )
+    settingsHandler = DomainContextHandler()
 
     recent_files = Setting([
         "book-excerpts.tab",
@@ -46,6 +46,7 @@ class OWCorpus(OWWidget):
         "andersen.tab",
     ])
     used_attrs = ContextSetting([])
+    title_variable = ContextSetting("")
 
     class Error(OWWidget.Error):
         read_file = Msg("Can't read file {} ({})")
@@ -68,10 +69,14 @@ class OWCorpus(OWWidget):
         )
         fbox.layout().addWidget(self.file_widget)
 
-        # Corpus info
-        ibox = gui.widgetBox(self.controlArea, "Corpus info", addSpace=True)
-        self.info_label = gui.label(ibox, self, "")
-        self.update_info()
+        # dropdown to select title variable
+        self.title_model = DomainModel(
+            valid_types=(StringVariable,), placeholder="(no title)")
+        gui.comboBox(
+            self.controlArea, self, "title_variable",
+            box="Title variable", model=self.title_model,
+            callback=self.update_feature_selection
+        )
 
         # Used Text Features
         fbox = gui.widgetBox(self.controlArea, orientation=0)
@@ -101,10 +106,14 @@ class OWCorpus(OWWidget):
                 get_sample_corpora_dir()),
             autoDefault=False,
         )
-        box.layout().addWidget(self.report_button)
 
         # load first file
         self.file_widget.select(0)
+        self.update_output_info()
+        self.update_input_info(None)
+
+    def sizeHint(self):
+        return QSize(400, 300)
 
     @Inputs.data
     def set_data(self, data):
@@ -113,6 +122,8 @@ class OWCorpus(OWWidget):
         # Enable/Disable command when data from input
         self.file_widget.setEnabled(not have_data)
         self.browse_documentation.setEnabled(not have_data)
+
+        self.update_input_info(data)
 
         if have_data:
             self.open_file(data=data)
@@ -135,7 +146,8 @@ class OWCorpus(OWWidget):
         else:
             return
 
-        self.update_info()
+        self.update_output_info()
+        self._setup_title_dropdown()
         self.used_attrs = list(self.corpus.text_features)
         if not self.corpus.text_features:
             self.Error.corpus_without_text_features()
@@ -147,31 +159,88 @@ class OWCorpus(OWWidget):
             [f for f in self.corpus.domain.metas
              if f.is_string and f not in self.used_attrs_model])
 
-    def update_info(self):
+    def _setup_title_dropdown(self):
+        self.title_model.set_domain(self.corpus.domain)
+
+        # if title variable is already marked in a dataset set it as a title
+        # variable
+        title_var = list(filter(
+            lambda x: x.attributes.get("title", False),
+            self.corpus.domain.metas))
+        if title_var:
+            self.title_variable = title_var[0]
+            return
+
+        # if not title attribute use heuristic for selecting it
+        v_len = np.vectorize(len)
+        first_selection = (None, 0)  # value, uniqueness
+        second_selection = (None, 100)  # value, avg text length
+
+        variables = [v for v in self.title_model
+                     if v is not None and isinstance(v, Variable)]
+
+        for variable in sorted(
+                variables, key=lambda var: var.name, reverse=True):
+            # if there is title, heading, or filename attribute in corpus
+            # heuristic should select them -
+            # in order title > heading > filename - this is why we use sort
+            if str(variable).lower() in ('title', 'heading', 'filename'):
+                first_selection = (variable, 0)
+                break
+
+            # otherwise uniqueness and length counts
+            column_values = self.corpus.get_column_view(variable)[0]
+            average_text_length = v_len(column_values).mean()
+            uniqueness = len(np.unique(column_values))
+
+            # if the variable is short enough to be a title select one with
+            # the highest number of unique values
+            if uniqueness > first_selection[1] and average_text_length <= 30:
+                first_selection = (variable, uniqueness)
+            # else select the variable with shortest average text that is
+            # shorter than 100 (if all longer than 100 leave empty)
+            elif average_text_length < second_selection[1]:
+                second_selection = (variable, average_text_length)
+
+        if first_selection[0] is not None:
+            self.title_variable = first_selection[0]
+        elif second_selection[0] is not None:
+            self.title_variable = second_selection[0]
+        else:
+            self.title_variable = None
+
+    def update_output_info(self):
         def describe(corpus):
             dom = corpus.domain
             text_feats = sum(m.is_string for m in dom.metas)
             other_feats = len(dom.attributes) + len(dom.metas) - text_feats
             text = \
-                "{} document(s), {} text features(s), {} other feature(s).". \
+                "{} document(s)\n{} text features(s)\n{} other feature(s)". \
                 format(len(corpus), text_feats, other_feats)
             if dom.has_continuous_class:
-                text += "<br/>Regression; numerical class."
+                text += "\nRegression; numerical class."
             elif dom.has_discrete_class:
-                text += "<br/>Classification; discrete class with {} values.". \
+                text += "\nClassification; discrete class with {} values.". \
                     format(len(dom.class_var.values))
             elif corpus.domain.class_vars:
-                text += "<br/>Multi-target; {} target variables.".format(
+                text += "\nMulti-target; {} target variables.".format(
                     len(corpus.domain.class_vars))
-            else:
-                text += "<br/>Data has no target variable."
-            text += "</p>"
             return text
 
         if self.corpus is None:
-            self.info_label.setText("No corpus loaded.")
+            self.info.set_output_summary(self.info.NoOutput)
         else:
-            self.info_label.setText(describe(self.corpus))
+            self.info.set_output_summary(
+                str(len(self.corpus)), describe(self.corpus))
+
+    def update_input_info(self, data):
+        if data:
+            self.info.set_input_summary(
+                str(len(data)),
+                f"{len(data)} data instance{'s' if len(data) > 1 else ''}"
+                f" on input")
+        else:
+            self.info.set_input_summary(self.info.NoInput)
 
     def update_feature_selection(self):
         self.Error.no_text_features_used.clear()
@@ -192,6 +261,7 @@ class OWCorpus(OWWidget):
             if len(self.unused_attrs_model) > 0 and not self.corpus.text_features:
                 self.Error.no_text_features_used()
 
+            self.corpus.set_title_variable(self.title_variable)
             # prevent sending "empty" corpora
             dom = self.corpus.domain
             empty = not (dom.variables or dom.metas) \

@@ -138,7 +138,7 @@ class PdfReader(Reader):
             for lt_obj in layout:
                 if isinstance(lt_obj, LTTextBox) or isinstance(lt_obj, LTTextLine):
                     extracted_text.append(lt_obj.get_text())
-        self.content = ' '.join(extracted_text)
+        self.content = ' '.join(extracted_text).replace('\x00', '')
 
 
 class XmlReader(Reader):

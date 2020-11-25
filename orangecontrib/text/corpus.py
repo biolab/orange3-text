@@ -1,7 +1,9 @@
 import os
+from collections import Counter, defaultdict
 from copy import copy
 from numbers import Integral
 from itertools import chain
+from typing import Union, Optional, List
 
 import nltk
 import numpy as np
@@ -9,7 +11,7 @@ import scipy.sparse as sp
 from gensim import corpora
 
 from Orange.data import ContinuousVariable, DiscreteVariable, \
-    Domain, RowInstance, Table
+    Domain, RowInstance, Table, StringVariable
 from orangecontrib.text.vectorization import BowVectorizer
 
 
@@ -66,6 +68,7 @@ class Corpus(Table):
         self.attributes = {}
         self.pos_tags = None
         self.used_preprocessor = None   # required for compute values
+        self._titles: Optional[np.ndarray] = None
 
         if domain is not None and text_features is None:
             self._infer_text_features()
@@ -76,6 +79,7 @@ class Corpus(Table):
             self.ids = ids
         else:
             Table._init_ids(self)
+        self._set_unique_titles()
 
     def set_text_features(self, feats):
         """
@@ -95,6 +99,70 @@ class Corpus(Table):
             self._infer_text_features()
         self._tokens = None     # invalidate tokens
 
+    def set_title_variable(
+            self, title_variable: Union[StringVariable, str, None]
+    ) -> None:
+        """
+        Set the title attribute. Only one column can be a title attribute.
+
+        Parameters
+        ----------
+        title_variable
+            Variable that need to be set as a title variable. If it is None,
+            do not set a variable.
+        """
+        for a in self.domain.variables + self.domain.metas:
+            a.attributes.pop("title", None)
+
+        if title_variable and title_variable in self.domain:
+            self.domain[title_variable].attributes["title"] = True
+
+        self._set_unique_titles()
+
+    def _set_unique_titles(self):
+        """
+        Define self._titles variable as a list of titles (a title for each
+        document). It is used to have an unique title for each document. In
+        case when the document have the same title as the other document we
+        put a number beside.
+        """
+        if self.domain is None:
+            return
+        attrs = [attr for attr in
+                 chain(self.domain.variables, self.domain.metas)
+                 if attr.attributes.get('title', False)]
+
+        if attrs:
+            self._titles = np.array(self._unique_titles(
+                self.documents_from_features(attrs)))
+        else:
+            self._titles = np.array([
+                'Document {}'.format(i + 1) for i in range(len(self))])
+
+    @staticmethod
+    def _unique_titles(titles: List[str]) -> List[str]:
+        """
+        Function adds numbers to the non-unique values fo the title.
+
+        Parameters
+        ----------
+        titles
+            List of titles - not necessary unique
+
+        Returns
+        -------
+        List with unique titles.
+        """
+        counts = Counter(titles)
+        cur_appearances = defaultdict(int)
+        new_titles = []
+        for t in titles:
+            if counts[t] > 1:
+                cur_appearances[t] += 1
+                t += f" ({cur_appearances[t]})"
+            new_titles.append(t)
+        return new_titles
+
     def _infer_text_features(self):
         """
         Infer which text features to use. If nothing was provided
@@ -111,22 +179,6 @@ class Corpus(Table):
         if len(include_feats) == 0 and first:
             include_feats.append(first)
         self.set_text_features(include_feats)
-
-    def extend(self, instances):
-        if self.domain != instances.domain:
-            raise NotImplementedError(
-                'Extending corpora with different domains is not supported.')
-        super().extend(instances)
-        if self._tokens is None or instances._tokens is None:
-            self._tokens = None
-        else:
-            self._tokens = np.append(self._tokens, instances._tokens)
-        self._dictionary = corpora.Dictionary(self._tokens)
-        if self.pos_tags is None or instances.pos_tags is None:
-            self.pos_tags = None
-        else:
-            self.pos_tags = np.append(self.pos_tags, instances.pos_tags)
-        self._ngrams_corpus = None  # Todo: extend instead of reset
 
     def extend_corpus(self, metadata, Y):
         """
@@ -153,6 +205,7 @@ class Corpus(Table):
         Table._init_ids(self)
 
         self._tokens = None     # invalidate tokens
+        self._set_unique_titles()
 
     def extend_attributes(self, X, feature_names, feature_values=None,
                           compute_values=None, var_attrs=None, sparse=False):
@@ -211,21 +264,8 @@ class Corpus(Table):
     @property
     def titles(self):
         """ Returns a list of titles. """
-        attrs = [attr for attr in chain(self.domain.variables, self.domain.metas)
-                 if attr.attributes.get('title', False)]
-        # Alternatively, use heuristics
-        if not attrs:
-            for var in sorted(chain(self.domain.metas, self.domain),
-                              key=lambda var: var.name,
-                              reverse=True):  # reverse so that title < heading < filename
-                if var.name.lower() in ('title', 'heading', 'h1', 'filename') \
-                        and not var.attributes.get('hidden', False):    # skip BoW features
-                    attrs = [var]
-                    break
-        if attrs:
-            return self.documents_from_features(attrs)
-        else:
-            return ['Document {}'.format(i+1) for i in range(len(self))]
+        assert self._titles is not None
+        return self._titles.tolist()
 
     def documents_from_features(self, feats):
         """
@@ -235,8 +275,8 @@ class Corpus(Table):
         Returns: a list of strings constructed by joining feats.
         """
         # create a Table where feats are in metas
-        data = Table(Domain([], [], [i.name for i in feats],
-                            source=self.domain), self)
+        data = Table.from_table(Domain([], [], [i.name for i in feats],
+                                       source=self.domain), self)
 
         # When we use only features coming from sparse X data.metas is sparse.
         # Transform it to dense.
@@ -328,6 +368,7 @@ class Corpus(Table):
         c.pos_tags = self.pos_tags
         c.name = self.name
         c.used_preprocessor = self.used_preprocessor
+        c._titles = self._titles
         return c
 
     @staticmethod
@@ -360,10 +401,6 @@ class Corpus(Table):
         for ind in title_indices:
             domain[ind].attributes['title'] = True
 
-        for attr in domain.attributes:
-            if isinstance(attr, DiscreteVariable):
-                attr.values = []
-
         def to_val(attr, val):
             if isinstance(attr, DiscreteVariable):
                 attr.val_from_str_add(val)
@@ -371,9 +408,9 @@ class Corpus(Table):
 
         if documents:
             X = np.array([[to_val(attr, func(doc)) for attr, func in attributes]
-                          for doc in documents])
+                          for doc in documents], dtype=np.float64)
             Y = np.array([[to_val(attr, func(doc)) for attr, func in class_vars]
-                          for doc in documents])
+                          for doc in documents], dtype=np.float64)
             metas = np.array([[to_val(attr, func(doc)) for attr, func in metas]
                               for doc in documents], dtype=object)
         else:   # assure shapes match the number of columns
@@ -399,6 +436,26 @@ class Corpus(Table):
         return c
 
     @classmethod
+    def from_numpy(cls, *args, **kwargs):
+        c = super().from_numpy(*args, **kwargs)
+        c._set_unique_titles()
+        return c
+
+    @classmethod
+    def from_list(cls, domain, rows, weights=None):
+        c = super().from_list(domain, rows, weights)
+        c._set_unique_titles()
+        return c
+
+    @classmethod
+    def from_table_rows(cls, source, row_indices):
+        c = super().from_table_rows(source, row_indices)
+        if hasattr(source, "_titles"):
+            # covering case when from_table_rows called by from_table
+            c._titles = source._titles[row_indices]
+        return c
+
+    @classmethod
     def from_file(cls, filename):
         if not os.path.exists(filename):  # check the default location
             abs_path = os.path.join(get_sample_corpora_dir(), filename)
@@ -410,15 +467,16 @@ class Corpus(Table):
                 filename = abs_path
 
         table = Table.from_file(filename)
-        return cls(table.domain, table.X, table.Y, table.metas, table.W)
+        corpus = cls(table.domain, table.X, table.Y, table.metas, table.W)
+        return corpus
 
     @staticmethod
     def retain_preprocessing(orig, new, key=...):
         """ Set preprocessing of 'new' object to match the 'orig' object. """
         if isinstance(orig, Corpus):
+            if isinstance(key, tuple):  # get row selection
+                key = key[0]
             if orig._tokens is not None:  # retain preprocessing
-                if isinstance(key, tuple):  # get row selection
-                    key = key[0]
                 if isinstance(key, Integral):
                     new._tokens = np.array([orig._tokens[key]])
                     new.pos_tags = None if orig.pos_tags is None else np.array(
@@ -433,6 +491,7 @@ class Corpus(Table):
                 else:
                     raise TypeError('Indexing by type {} not supported.'.format(type(key)))
                 new._dictionary = orig._dictionary
+            new._titles = orig._titles[key]
             new_domain_metas = set(new.domain.metas)
             new.text_features = [tf for tf in orig.text_features if tf in new_domain_metas]
             new.ngram_range = orig.ngram_range

@@ -1,7 +1,7 @@
 # Category metadata.
 
 # Category icon show in the menu
-ICON = "icons/WordNGrams.svg"
+ICON = "icons/category.svg"
 
 # Background color for category background in menu
 # and widget icon background in workflow.
@@ -21,5 +21,5 @@ WIDGET_HELP_PATH = (
     # Url should point to a page with a section Widgets. This section should
     # includes links to documentation pages of each widget. Matching is
     # performed by comparing link caption to widget name.
-    ("http://orange3-text.readthedocs.io/en/latest/", "")
+    ("https://orange3-text.readthedocs.io/en/latest/", "")
 )

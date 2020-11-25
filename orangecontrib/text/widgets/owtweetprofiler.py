@@ -15,6 +15,7 @@ class OWTweetProfiler(OWWidget):
                   "emotions in tweets."
     icon = "icons/TweetProfiler.svg"
     priority = 330
+    keywords = ["Twitter"]
 
     class Inputs:
         corpus = Input("Corpus", Corpus)
@@ -46,7 +47,6 @@ class OWTweetProfiler(OWWidget):
 
         # Auto commit
         buttons_layout = QHBoxLayout()
-        buttons_layout.addWidget(self.report_button)
         buttons_layout.addSpacing(15)
         buttons_layout.addWidget(
             gui.auto_commit(None, self, 'auto_commit', 'Commit', box=False)

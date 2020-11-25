@@ -8,9 +8,9 @@ from AnyQt.QtWidgets import (QVBoxLayout, QButtonGroup, QRadioButton,
 
 from Orange.widgets import settings
 from Orange.widgets import gui
-from Orange.widgets.widget import OWWidget, Input, Output
+from Orange.widgets.settings import DomainContextHandler
+from Orange.widgets.widget import OWWidget, Input, Output, Msg
 from Orange.data import Table
-from Orange.widgets.data.contexthandlers import DomainContextHandler
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.topics import Topic, LdaWrapper, HdpWrapper, LsiWrapper
 from orangecontrib.text.widgets.utils.concurrent import asynchronous
@@ -101,6 +101,7 @@ class OWTopicModeling(OWWidget):
     description = "Uncover the hidden thematic structure in a corpus."
     icon = "icons/TopicModeling.svg"
     priority = 400
+    keywords = ["LDA"]
 
     settingsHandler = DomainContextHandler()
 
@@ -129,12 +130,18 @@ class OWTopicModeling(OWWidget):
     hdp = settings.SettingProvider(HdpWidget)
     lda = settings.SettingProvider(LdaWidget)
 
+    selection = settings.Setting(None, schema_only=True)
+
     control_area_width = 300
+
+    class Warning(OWWidget.Warning):
+        less_topics_found = Msg('Less topics found than requested.')
 
     def __init__(self):
         super().__init__()
         self.corpus = None
         self.learning_thread = None
+        self.__pending_selection = self.selection
 
         # Commit button
         gui.auto_commit(self.buttonsArea, self, 'autocommit', 'Commit', box=False)
@@ -169,6 +176,7 @@ class OWTopicModeling(OWWidget):
 
     @Inputs.corpus
     def set_data(self, data=None):
+        self.Warning.less_topics_found.clear()
         self.corpus = data
         self.apply()
 
@@ -199,16 +207,18 @@ class OWTopicModeling(OWWidget):
 
     @asynchronous
     def learning_task(self):
-        return self.model.fit_transform(self.corpus.copy(), chunk_number=100, on_progress=self.on_progress)
+        return self.model.fit_transform(self.corpus.copy(), chunk_number=100,
+                                        on_progress=self.on_progress)
 
     @learning_task.on_start
     def on_start(self):
-        self.progressBarInit(None)
+        self.Warning.less_topics_found.clear()
+        self.progressBarInit()
         self.topic_desc.clear()
 
     @learning_task.on_result
     def on_result(self, corpus):
-        self.progressBarFinished(None)
+        self.progressBarFinished()
         self.Outputs.corpus.send(corpus)
         if corpus is None:
             self.topic_desc.clear()
@@ -216,11 +226,16 @@ class OWTopicModeling(OWWidget):
             self.Outputs.all_topics.send(None)
         else:
             self.topic_desc.show_model(self.model)
+            if self.__pending_selection:
+                self.topic_desc.select(self.__pending_selection)
+                self.__pending_selection = None
+            if self.model.actual_topics != self.model.num_topics:
+                self.Warning.less_topics_found()
             self.Outputs.all_topics.send(self.model.get_all_topics_table())
 
     @learning_task.callback
     def on_progress(self, p):
-        self.progressBarSet(100 * p, processEvents=None)
+        self.progressBarSet(100 * p)
 
     def send_report(self):
         self.report_items(*self.widgets[self.method_index].report_model())
@@ -228,8 +243,10 @@ class OWTopicModeling(OWWidget):
             self.report_items('Topics', self.topic_desc.report())
 
     def send_topic_by_id(self, topic_id=None):
+        self.selection = topic_id
         if self.model.model and topic_id is not None:
-            self.Outputs.selected_topic.send(self.model.get_topics_table_by_id(topic_id))
+            self.Outputs.selected_topic.send(
+                self.model.get_topics_table_by_id(topic_id))
 
 
 class TopicViewerTreeWidgetItem(QTreeWidgetItem):
@@ -273,6 +290,7 @@ class TopicViewer(QTreeWidget):
         self.resize_columns()
         self.itemSelectionChanged.connect(self.selected_topic_changed)
         self.setItemDelegate(HTMLDelegate())    # enable colors
+        self.selected_id = None
 
     def resize_columns(self):
         for i in range(self.columnCount()):
@@ -295,9 +313,8 @@ class TopicViewer(QTreeWidget):
     def selected_topic_changed(self):
         selected = self.selectedItems()
         if selected:
-            topic_id = selected[0].topic_id
-            self.setCurrentItem(self.topLevelItem(topic_id))
-            self.topicSelected.emit(topic_id)
+            self.select(selected[0].topic_id)
+            self.topicSelected.emit(self.selected_id)
         else:
             self.topicSelected.emit(None)
 
@@ -309,6 +326,10 @@ class TopicViewer(QTreeWidget):
 
     def sizeHint(self):
         return QSize(700, 300)
+
+    def select(self, index):
+        self.selected_id = index
+        self.setCurrentItem(self.topLevelItem(index))
 
 
 class HTMLDelegate(QStyledItemDelegate):

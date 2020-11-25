@@ -23,6 +23,11 @@ class BaseTests:
         # self.assertAlmostEqual(topic1.W.sum(), 1.)
         self.assertFalse(any(topic1.W == np.nan))
 
+    def test_get_all_topics(self):
+        self.model.fit_transform(self.corpus)
+        topics = self.model.get_all_topics_table()
+        self.assertEqual(len(topics), self.model.actual_topics)
+
     def test_top_words_by_topic(self):
         self.model.fit(self.corpus)
         words, _ = self.model.get_top_words_by_id(1, num_of_words=10)
@@ -53,6 +58,24 @@ class BaseTests:
     def test_get_top_words(self):
         self.model.fit(self.corpus)
         self.assertRaises(ValueError, self.model.get_topics_table_by_id, 1000)
+
+    def test_marginal_probability(self):
+        tokens = [['a', 'b', 'c', 'd'],
+                  ['a', 'd', 'e'],
+                  ['e', 'c']]
+        doc_topics = np.array([[0.6, 0.1, 0.3],
+                               [0.2, 0.6, 0.2],
+                               [0.2, 0.3, 0.5]])
+        np.testing.assert_allclose(self.model._marginal_probability(
+                                   tokens, doc_topics),
+                                   [[0.37777778], [0.31111111], [0.31111111]])
+
+    def test_existing_attributes(self):
+        """ doc_topic should not include existing X of corpus, just topics """
+        corpus = Corpus.from_file('election-tweets-2016')[:100]
+        self.model.fit_transform(corpus)
+        self.assertEqual(self.model.doc_topic.shape[1],
+                         self.model.actual_topics)
 
 
 class LDATests(unittest.TestCase, BaseTests):

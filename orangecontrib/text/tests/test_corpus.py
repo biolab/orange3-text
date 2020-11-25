@@ -62,31 +62,6 @@ class CorpusTests(unittest.TestCase):
         c2 = Corpus(c.domain, c.X, c.Y, c.metas, c.text_features)
         self.assertEqual(c, c2)
 
-    @unittest.skipIf(LooseVersion(Orange.__version__) < LooseVersion('3.4.3'),
-                     'Not supported in versions of Orange below 3.4.3')
-    def test_extend(self):
-        c = Corpus.from_file('deerwester')
-        c2 = c[:5]
-        self.assertEqual(len(c2), 5)
-        n = len(c)
-        self.pos_tagger.tag_corpus(c)
-        self.assertIsNot(c._tokens, None)
-        self.assertIsNot(c.pos_tags, None)
-        self.assertIs(c2._tokens, None)
-        self.assertIs(c2.pos_tags, None)
-
-        c.extend(c2)
-        self.assertEqual(len(c), n + 5)
-        self.assertIs(c._tokens, None)
-        self.assertIs(c.pos_tags, None)
-
-        self.pos_tagger.tag_corpus(c)
-        self.pos_tagger.tag_corpus(c2)
-        c.extend(c2)
-        self.assertEqual(len(c), n + 10)
-        self.assertEqual(len(c._tokens), n + 10)
-        self.assertEqual(len(c.pos_tags), n + 10)
-
     def test_extend_corpus(self):
         c = Corpus.from_file('book-excerpts')
         n_classes = len(c.domain.class_var.values)
@@ -188,19 +163,65 @@ class CorpusTests(unittest.TestCase):
         for title in titles:
             self.assertIn('Document ', title)
 
-        # inferred title from heuristics
-        expected = list(map(str, range(len(c))))
-        c2 = Corpus(Domain([], [], (StringVariable('heading'),)),
-                    None, None, np.c_[expected])
-        titles = c2.titles
-        self.assertEqual(titles, expected)
-
         # title feature set
-        c.domain[0].attributes['title'] = True
+        c.set_title_variable(c.domain[0])
         titles = c.titles
         self.assertEqual(len(titles), len(c))
-        for title in titles:
-            self.assertIn(title, c.domain.class_var.values)
+
+        # first 50 are children
+        for title, c in zip(titles[:50], range(1, 51)):
+            self.assertEqual(f"children ({c})", title)
+
+        # others are adults
+        for title, a in zip(titles[50:100], range(1, 51)):
+            self.assertEqual(f"adult ({a})", title)
+
+        # first 50 are children
+        for title, c in zip(titles[100:120], range(51, 71)):
+            self.assertEqual(f"children ({c})", title)
+
+        # others are adults
+        for title, a in zip(titles[120:140], range(51, 71)):
+            self.assertEqual(f"adult ({a})", title)
+
+    def test_titles_no_numbers(self):
+        """
+        The case when no number is used since the title appears only once.
+        """
+        c = Corpus.from_file('andersen')
+        c.set_title_variable(c.domain.metas[0])
+
+        # title feature set
+        self.assertEqual("The Little Match-Seller", c.titles[0])
+
+    def test_titles_read_document(self):
+        """
+        When we read the document with a title marked it should have titles
+        set correctly.
+        """
+        c = Corpus.from_file('election-tweets-2016')
+
+        self.assertEqual(len(c), len(c.titles))
+
+    def test_titles_sample(self):
+        c = Corpus.from_file('book-excerpts')
+        c.set_title_variable(c.domain[0])
+
+        c_sample = c[10:20]
+        for title, i in zip(c_sample.titles, range(11, 21)):
+            self.assertEqual(f"children ({i})", title)
+
+        c_sample = c[60:70]
+        for title, i in zip(c_sample.titles, range(11, 21)):
+            self.assertEqual(f"adult ({i})", title)
+
+        c_sample = c[[10, 11, 12]]
+        for title, i in zip(c_sample.titles, range(11, 14)):
+            self.assertEqual(f"children ({i})", title)
+
+        c_sample = c[np.array([10, 11, 12])]
+        for title, i in zip(c_sample.titles, range(11, 14)):
+            self.assertEqual(f"children ({i})", title)
 
     def test_documents_from_features(self):
         c = Corpus.from_file('book-excerpts')
@@ -214,8 +235,6 @@ class CorpusTests(unittest.TestCase):
         self.assertEqual(len(types), 1)
         self.assertIn(str, types)
 
-    @unittest.skipIf(LooseVersion(Orange.__version__) < LooseVersion('3.3.6'),
-                     'Not supported in versions of Orange below 3.3.6')
     def test_documents_from_sparse_features(self):
         t = Table.from_file('brown-selected')
         c = Corpus.from_table(t.domain, t)
@@ -401,3 +420,50 @@ class CorpusTests(unittest.TestCase):
         self.assertFalse(len(d.text_features))
         # Make sure that copying works.
         d.copy()
+
+    def test_set_title_from_domain(self):
+        """
+        When we setup domain from data (e.g. from_numpy) _title variable
+        must be set.
+        """
+        domain = Domain([], metas=[StringVariable("title"), StringVariable("a")])
+        metas = [["title1", "a"], ["title2", "b"]]
+
+        corpus = Corpus.from_numpy(
+            domain, X=np.empty((2, 0)), metas=np.array(metas)
+        )
+        self.assertListEqual(["Document 1", "Document 2"], corpus.titles)
+
+        domain["title"].attributes["title"] = True
+        corpus = Corpus.from_numpy(
+            domain, X=np.empty((2, 0)), metas=np.array(metas)
+        )
+        self.assertListEqual(["title1", "title2"], corpus.titles)
+
+    def test_titles_from_rows(self):
+        domain = Domain([],
+                        metas=[StringVariable("title"), StringVariable("a")])
+        metas = [["title1", "a"], ["title2", "b"], ["titles3", "c"]]
+
+        corpus = Corpus.from_numpy(
+            domain, X=np.empty((3, 0)), metas=np.array(metas)
+        )
+        corpus = Corpus.from_table_rows(corpus, [0, 2])
+        self.assertListEqual(["Document 1", "Document 3"], corpus.titles)
+
+    def test_titles_from_list(self):
+        domain = Domain(
+            [], metas=[StringVariable("title"), StringVariable("a")]
+        )
+        corpus = Corpus.from_list(
+            domain, [["title1", "a"], ["title2", "b"]])
+        self.assertListEqual(["Document 1", "Document 2"], corpus.titles)
+
+        domain["title"].attributes["title"] = True
+        corpus = Corpus.from_list(
+            domain, [["title1", "a"], ["title2", "b"]])
+        self.assertListEqual(["title1", "title2"], corpus.titles)
+
+
+if __name__ == "__main__":
+    unittest.main()

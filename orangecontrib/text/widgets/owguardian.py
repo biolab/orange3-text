@@ -11,7 +11,7 @@ from Orange.widgets import gui
 from Orange.widgets.widget import Output
 
 from orangecontrib.text.corpus import Corpus
-from orangecontrib.text.guardian import TheGuardianCredentials, TheGuardianAPI
+from orangecontrib.text.guardian import TheGuardianCredentials, TheGuardianAPI, APILimitError
 from orangecontrib.text.widgets.utils import CheckListLayout, QueryBox, DatePickerInterval, gui_require, asynchronous
 
 
@@ -88,6 +88,7 @@ class OWGuardian(OWWidget):
     class Error(OWWidget.Error):
         no_api = Msg('Please provide a valid API key.')
         no_query = Msg('Please provide a query.')
+        limit_exceeded = Msg('Requests limit reached.')
 
     def __init__(self):
         super().__init__()
@@ -125,7 +126,6 @@ class OWGuardian(OWWidget):
 
         # Buttons
         self.button_box = gui.hBox(self.controlArea)
-        self.button_box.layout().addWidget(self.report_button)
 
         self.search_button = gui.button(self.button_box, self, 'Search',
                                         self.start_stop,
@@ -150,7 +150,11 @@ class OWGuardian(OWWidget):
     @gui_require('api', 'no_api')
     @gui_require('recent_queries', 'no_query')
     def run_search(self):
-        self.search()
+        self.Error.limit_exceeded.clear()
+        try:
+            self.search()
+        except APILimitError:
+            self.Error.limit_exceeded()
 
     @asynchronous
     def search(self):
@@ -159,20 +163,20 @@ class OWGuardian(OWWidget):
 
     @search.callback(should_raise=False)
     def progress_with_info(self, n_retrieved, n_all):
-        self.progressBarSet(100 * (n_retrieved / n_all if n_all else 1), None)  # prevent division by 0
+        self.progressBarSet(100 * (n_retrieved / n_all if n_all else 1))  # prevent division by 0
         self.output_info = '{}/{}'.format(n_retrieved, n_all)
 
     @search.on_start
     def on_start(self):
         self.Error.no_query.clear()
-        self.progressBarInit(None)
+        self.progressBarInit()
         self.search_button.setText('Stop')
         self.Outputs.corpus.send(None)
 
     @search.on_result
     def on_result(self, result):
         self.search_button.setText('Search')
-        self.progressBarFinished(None)
+        self.progressBarFinished()
         self.corpus = result
         self.set_text_features()
 

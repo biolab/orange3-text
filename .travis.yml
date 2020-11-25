@@ -1,39 +1,39 @@
 language: python
 
-sudo: false   # use container-based infrastructure
-
-matrix:
-    include:
-        - python: '3.4'
-        - &docs
-          env: BUILD_DOCS=true
-          python: '3.5'
-          install:
-              - source $TRAVIS_BUILD_DIR/.travis/install_miniconda.sh
-              - source $TRAVIS_BUILD_DIR/.travis/create_conda_env.sh
-              - python setup.py develop
-          script: source $TRAVIS_BUILD_DIR/.travis/build_doc.sh
-        - &pyqt5
-          python: '3.5'
-          env: PYQT5=true
-          dist: trusty
-          addons: { apt: { packages: [] } }
+dist: xenial
 
 addons:
     apt:
         packages:
-            - gfortran
-            - libblas-dev
-            - liblapack-dev
-            - libqt4-dev
+            - libxkbcommon-x11-0  # for PyQt 5.12
+
+matrix:
+    include:
+        - &docs
+          env: BUILD_DOCS=true ORANGE="master"
+          python: '3.6'
+          script: source $TRAVIS_BUILD_DIR/.travis/build_doc.sh
+        - &python36
+          python: '3.6'
+          env: ORANGE="release"
+        - &python37
+          python: '3.7'
+          env: ORANGE="release"
+        - &master
+          python: '3.6'
+          env: ORANGE="master"
+        - &orange3-25-0
+          python: '3.7'
+          env: ORANGE="3.25.0"
+
+env:
+    global:
+        - BOTO_CONFIG=/dev/null  # it solves boto travis issue https://github.com/boto/boto/issues/3717
 
 cache:
     apt: true   # does not work for public repos
-    directories:
-        - $HOME/.cache/pip
-        - $HOME/.ccache
-        - $HOME/nltk_data
-        - $TRAVIS_BUILD_DIR/pyqt
+    pip: true
+    ccache: true
 
 before_cache:   # prevent logs from caching
     - rm -f $HOME/.cache/pip/log/debug.log
@@ -42,22 +42,18 @@ before_install:
     - source $TRAVIS_BUILD_DIR/.travis/util.sh
     - pip install -U setuptools pip wheel
     - pip install codecov
-    # Gensim (2.2.0) requires numpy>=1.11.3 but cannot update it itself?
-    - pip install -U numpy
     - mkdir -p /home/travis/.local/share/Orange  # create orange app dir
 
 install:
+    - pip install pyqt5 pyqtwebengine
+    - pip install Orange3-Network
+    - source $TRAVIS_BUILD_DIR/.travis/install_orange.sh
     - travis_wait pip install -r requirements.txt
-    - source $TRAVIS_BUILD_DIR/.travis/install_pyqt.sh
-    - python setup.py develop   # assure version.py is present; required for imports
-
-before_script:  # required for widget tests
-    - "export DISPLAY=:99.0"
-    - "sh -e /etc/init.d/xvfb start"
-    - sleep 3 # give xvfb some time to start
+    - pip install -e .
 
 script:
-    - coverage run setup.py test
+    - XVFBARGS="-screen 0 1280x1024x24"
+    - catchsegv xvfb-run -a -s "$XVFBARGS" coverage run setup.py test
 
 after_success:
     - codecov

@@ -6,9 +6,12 @@ from datetime import datetime
 import numpy as np
 from Bio import Entrez
 from Bio import Medline
-from validate_email import validate_email
 
-from Orange.canvas.utils import environ
+try:
+    from Orange.misc import environ
+except ImportError:
+    from Orange.canvas.utils import environ
+
 from Orange.data import StringVariable, DiscreteVariable, TimeVariable, Domain
 from orangecontrib.text.corpus import Corpus
 
@@ -169,8 +172,6 @@ class Pubmed:
     MAX_BATCH_SIZE = 1000
 
     def __init__(self, email, progress_callback=None, error_callback=None):
-        if not validate_email(email):
-            raise ValueError('{} is not a valid email address.'.format(email))
 
         Entrez.email = email
 
@@ -184,7 +185,7 @@ class Pubmed:
         self.stop_signal = False
 
         self.cache_path = None
-        cache_folder = os.path.join(environ.buffer_dir, 'pubmedcache')
+        cache_folder = os.path.join(environ.cache_dir(), 'pubmedcache')
 
         if not os.path.exists(cache_folder):
             os.makedirs(cache_folder)

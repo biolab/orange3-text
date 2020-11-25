@@ -1,11 +1,14 @@
 from typing import Optional
 
 from itertools import chain
+import numpy as np
+
 from AnyQt.QtCore import Qt, QAbstractTableModel, QSize, QItemSelectionModel, \
     QItemSelection, QModelIndex
 from AnyQt.QtWidgets import QSizePolicy, QApplication, QTableView, \
     QStyledItemDelegate
 from AnyQt.QtGui import QColor
+from Orange.data import Domain, StringVariable, Table
 
 from Orange.widgets import gui
 from Orange.widgets.settings import Setting, ContextSetting, PerfectDomainContextHandler
@@ -151,6 +154,21 @@ class ConcordanceModel(QAbstractTableModel):
         else:
             return 0
 
+    def get_data(self):
+        domain = Domain([], metas=[StringVariable("Conc. {}".format(
+            self.word)), StringVariable("Document")])
+        data = []
+        docs = []
+        for row in range(self.rowCount()):
+            txt = []
+            for column in range(self.columnCount()):
+                index = self.index(row, column)
+                txt.append(str(self.data(index)))
+            data.append([" ".join(txt)])
+            docs.append([self.corpus.titles[self.word_index[row][0]]])
+        conc = np.array(np.hstack((data, docs)), dtype=object)
+        return Corpus(domain, metas=conc, text_features=[domain.metas[0]])
+
 
 class OWConcordance(OWWidget):
     name = "Concordance"
@@ -164,6 +182,7 @@ class OWConcordance(OWWidget):
 
     class Outputs:
         selected_documents = Output("Selected Documents", Corpus)
+        concordances = Output("Concordances", Corpus)
 
     settingsHandler = PerfectDomainContextHandler(
         match_values = PerfectDomainContextHandler.MATCH_VALUES_ALL
@@ -277,6 +296,7 @@ class OWConcordance(OWWidget):
             self.set_word()
 
     def set_word(self):
+        self.selected_rows = []
         self.model.set_word(self.word)
         self.update_widget()
         self.commit()
@@ -313,11 +333,13 @@ class OWConcordance(OWWidget):
     def commit(self):
         selected_docs = sorted(set(self.model.word_index[row][0]
                                    for row in self.selected_rows))
+        concordance = self.model.get_data()
         if selected_docs:
             selected = self.corpus[selected_docs]
             self.Outputs.selected_documents.send(selected)
         else:
             self.Outputs.selected_documents.send(None)
+        self.Outputs.concordances.send(concordance)
 
     def send_report(self):
         view = self.conc_view
