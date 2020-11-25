@@ -5,6 +5,38 @@ Change Log
 ------------
 * ...
 
+[1.2.0] - 2020-10-12
+--------------------
+##### Enhancements
+* Document embedders: additional languages ([#565](../../pull/565))
+* Corpus Viewer: Output selected data and memorize selection ([#562](../../pull/562))
+* List files that are not loaded ([#560](../../pull/560))
+
+##### Bugfixes
+* Corpus - from_table: keep text feature when renamed ([#585](../../pull/585))
+* Corpus - extend attributes: Fix error with renamed text feature ([#574](../../pull/574))
+* Import documents: normalize imported text and file names ([#568](../../pull/568))
+* Corpus to network ([#559](../../pull/559))
+* Corpus: fix deprecated use of array ([#563](../../pull/563))
+* Preprocess: Retain corpus ids ([#553](../../pull/553))
+
+[1.1.0] - 2020-08-07
+--------------------
+##### Bugfixes
+* Preprocess: Retain corpus ids ([#553](../../pull/553))
+
+[1.0.0] - 2020-06-12
+--------------------
+##### Enhancements
+* Refactor preprocessors ([#506](../../pull/506))
+
+##### Bugfixes
+* Twitter: Fix errors ([#538](../../pull/538))
+* Update ulr to use https for udpipe models ([#524](../../pull/524))
+
+[0.9.1] - 2020-05-05
+--------------------
+
 [0.9.0] - 2020-04-29
 --------------------
 ##### Enhancements
@@ -195,7 +227,13 @@ Change Log
 --------------------
 
 
-[next]: https://github.com/biolab/orange3-text/compare/0.7.4...HEAD
+[next]: https://github.com/biolab/orange3-text/compare/1.2.0...HEAD
+[1.2.0]: https://github.com/biolab/orange3-text/compare/1.1.0...1.2.0
+[1.1.0]: https://github.com/biolab/orange3-text/compare/1.0.0...1.1.0
+[1.0.0]: https://github.com/biolab/orange3-text/compare/0.9.1...1.0.0
+[0.9.1]: https://github.com/biolab/orange3-text/compare/0.9.0...0.9.1
+[0.9.0]: https://github.com/biolab/orange3-text/compare/0.8.0...0.9.0
+[0.8.0]: https://github.com/biolab/orange3-text/compare/0.7.4...0.8.0
 [0.7.4]: https://github.com/biolab/orange3-text/compare/0.7.3...0.7.4
 [0.7.3]: https://github.com/biolab/orange3-text/compare/0.7.2...0.7.3
 [0.7.2]: https://github.com/biolab/orange3-text/compare/0.7.1...0.7.2
