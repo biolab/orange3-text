@@ -13,6 +13,7 @@ import traceback
 
 from types import SimpleNamespace as namespace
 from concurrent.futures._base import TimeoutError
+from typing import List, Optional
 
 from AnyQt.QtCore import Qt, QEvent, QFileInfo, QThread
 from AnyQt.QtCore import pyqtSlot as Slot
@@ -24,6 +25,7 @@ from AnyQt.QtWidgets import (
     QVBoxLayout, QLabel
 )
 
+from Orange.data import Table, Domain, StringVariable
 from Orange.widgets import widget, gui, settings
 from Orange.widgets.utils.filedialogs import RecentPath
 from Orange.widgets.utils.concurrent import (
@@ -38,6 +40,13 @@ try:
     from orangecanvas.preview.previewbrowser import TextLabel
 except ImportError:
     from Orange.canvas.preview.previewbrowser import TextLabel
+
+
+# domain for skipped images output
+SKIPPED_DOMAIN = Domain([], metas=[
+    StringVariable("name"),
+    StringVariable("path")
+])
 
 
 def prettifypath(path):
@@ -79,22 +88,20 @@ class OWImportDocuments(widget.OWWidget):
 
     class Outputs:
         data = Output("Corpus", Corpus)
+        skipped_documents = Output("Skipped documents", Table)
 
     #: list of recent paths
-    recent_paths = settings.Setting([])  # type: List[RecentPath]
-    currentPath = settings.Setting(None)
+    recent_paths: List[RecentPath] = settings.Setting([])
+    currentPath: Optional[str] = settings.Setting(None)
 
     want_main_area = False
     resizing_enabled = False
 
     Modality = Qt.ApplicationModal
-
     MaxRecentItems = 20
-
 
     class Warning(widget.OWWidget.Warning):
         read_error = widget.Msg("{} couldn't be read.")
-
 
     def __init__(self):
         super().__init__()
@@ -103,7 +110,7 @@ class OWImportDocuments(widget.OWWidget):
         self.corpus = None
         self.n_text_categories = 0
         self.n_text_data = 0
-        self.n_skipped = 0
+        self.skipped_documents = []
 
         self.__invalidated = False
         self.__pendingTask = None
@@ -169,7 +176,8 @@ class OWImportDocuments(widget.OWWidget):
             minimum=0, maximum=100
         )
         self.cancel_button = QPushButton(
-            "Cancel", icon=self.style().standardIcon(QStyle.SP_DialogCancelButton),
+            "Cancel",
+            icon=self.style().standardIcon(QStyle.SP_DialogCancelButton),
         )
         self.cancel_button.clicked.connect(self.cancel)
 
@@ -286,7 +294,7 @@ class OWImportDocuments(widget.OWWidget):
         elif self.__state == State.Done:
             nvalid = self.n_text_data
             ncategories = self.n_text_categories
-            n_skipped = self.n_skipped
+            n_skipped = len(self.skipped_documents)
             if ncategories < 2:
                 text = "{} document{}".format(nvalid, "s" if nvalid != 1 else "")
             else:
@@ -536,10 +544,13 @@ class OWImportDocuments(widget.OWWidget):
                 if corpus.domain.class_var else 0
 
         self.corpus = corpus
-        self.n_skipped = len(errors)
+        self.corpus.name = "Documents"
+        self.skipped_documents = errors
 
         if len(errors):
-            self.Warning.read_error("Some files" if len(errors) > 1 else "One file")
+            self.Warning.read_error(
+                "Some files" if len(errors) > 1 else "One file"
+            )
 
         self.__setRuntimeState(state)
         self.commit()
@@ -561,14 +572,25 @@ class OWImportDocuments(widget.OWWidget):
         assert QThread.currentThread() is self.thread()
         if self.__state == State.Processing:
             self.pathlabel.setText(prettifypath(arg.lastpath))
-            self.progress_widget.setValue(arg.progress)
-            self.progress_widget.setValue(100 * arg.progress)
+            self.progress_widget.setValue(int(100 * arg.progress))
 
     def commit(self):
         """
         Create and commit a Corpus from the collected text meta data.
         """
         self.Outputs.data.send(self.corpus)
+        if self.skipped_documents:
+            skipped_table = (
+                Table.from_list(
+                    SKIPPED_DOMAIN,
+                    [[x, os.path.join(self.currentPath, x)]
+                     for x in self.skipped_documents]
+                )
+            )
+            skipped_table.name = "Skipped documents"
+        else:
+            skipped_table = None
+        self.Outputs.skipped_documents.send(skipped_table)
 
     def onDeleteWidget(self):
         self.cancel()
@@ -615,8 +637,8 @@ class OWImportDocuments(widget.OWWidget):
                  ('Number of documents', self.n_text_data)]
         if self.n_text_categories:
             items += [('Categories', self.n_text_categories)]
-        if self.n_skipped:
-            items += [('Number of skipped', self.n_skipped)]
+        if self.skipped_documents:
+            items += [('Number of skipped', len(self.skipped_documents))]
         self.report_items(items, )
 
 
@@ -645,6 +667,7 @@ def main(argv=sys.argv):
     w.saveSettings()
     w.onDeleteWidget()
     return 0
+
 
 if __name__ == "__main__":
     sys.exit(main())

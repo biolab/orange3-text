@@ -6,6 +6,7 @@ import re
 
 from collections import namedtuple
 from types import SimpleNamespace as namespace
+from unicodedata import normalize
 
 import numpy as np
 
@@ -199,9 +200,16 @@ class ImportDocuments:
         category_var = DiscreteVariable.make("category", values=values)
         for textdata in self._text_data:
             data.append(
-                [textdata.name,
-                 textdata.path,
-                 textdata.content]
+                [
+                    # some characters are written as decomposed (č is char c
+                    # and separate char for caron), with NFC normalization we
+                    # normalize them to be written as precomposed (č is one
+                    # unicode char - 0x10D)
+                    # https://docs.python.org/3/library/unicodedata.html#unicodedata.normalize
+                    normalize('NFC', textdata.name),
+                    normalize('NFC', textdata.path),
+                    normalize('NFC', textdata.content)
+                ]
             )
             category_data.append(category_var.to_val(textdata.category))
         if len(text_categories) > 1:

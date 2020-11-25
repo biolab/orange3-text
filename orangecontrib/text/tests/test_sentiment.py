@@ -18,11 +18,8 @@ class LiuHuTest(unittest.TestCase):
                          len(self.corpus.domain) + self.new_cols)
 
     def test_copy(self):
-        sentiment_t = self.method.transform(self.corpus, copy=True)
+        sentiment_t = self.method.transform(self.corpus)
         self.assertIsNot(self.corpus, sentiment_t)
-
-        sentiment_f = self.method.transform(self.corpus, copy=False)
-        self.assertIs(self.corpus, sentiment_f)
 
     def test_compute_values(self):
         sentiment = self.method.transform(self.corpus)
@@ -50,6 +47,7 @@ class LiuHuTest(unittest.TestCase):
                          len(self.corpus.domain) + self.new_cols)
         self.assertEqual(len(sentiment), 0)
 
+
 class LiuHuSlovenian(unittest.TestCase):
     def setUp(self):
         self.corpus = Corpus.from_file('slo-opinion-corpus')
@@ -63,11 +61,8 @@ class LiuHuSlovenian(unittest.TestCase):
                          len(self.corpus.domain) + self.new_cols)
 
     def test_copy(self):
-        sentiment_t = self.method.transform(self.corpus, copy=True)
+        sentiment_t = self.method.transform(self.corpus)
         self.assertIsNot(self.corpus, sentiment_t)
-
-        sentiment_f = self.method.transform(self.corpus, copy=False)
-        self.assertIs(self.corpus, sentiment_f)
 
     def test_compute_values(self):
         sentiment = self.method.transform(self.corpus)

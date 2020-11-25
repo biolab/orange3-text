@@ -6,11 +6,17 @@ addons:
     apt:
         packages:
             - libxkbcommon-x11-0  # for PyQt 5.12
+            - libxcb-icccm4
+            - libxcb-image0
+            - libxcb-keysyms1
+            - libxcb-randr0
+            - libxcb-render-util0
+            - libxcb-xinerama0
 
 matrix:
     include:
         - &docs
-          env: BUILD_DOCS=true ORANGE="master"
+          env: BUILD_DOCS=true ORANGE="master" ORANGE3_NETWORK=true
           python: '3.6'
           script: source $TRAVIS_BUILD_DIR/.travis/build_doc.sh
         - &python36
@@ -19,12 +25,15 @@ matrix:
         - &python37
           python: '3.7'
           env: ORANGE="release"
+        - &python38
+          python: '3.8'
+          env: ORANGE="release" ORANGE3_NETWORK=true
         - &master
-          python: '3.6'
+          python: '3.8'
           env: ORANGE="master"
-        - &orange3-25-0
+        - &orange3-25-1
           python: '3.7'
-          env: ORANGE="3.25.0"
+          env: ORANGE="3.25.1"
 
 env:
     global:
@@ -46,14 +55,13 @@ before_install:
 
 install:
     - pip install pyqt5 pyqtwebengine
-    - pip install Orange3-Network
     - source $TRAVIS_BUILD_DIR/.travis/install_orange.sh
     - travis_wait pip install -r requirements.txt
     - pip install -e .
 
 script:
     - XVFBARGS="-screen 0 1280x1024x24"
-    - catchsegv xvfb-run -a -s "$XVFBARGS" coverage run setup.py test
+    - catchsegv xvfb-run -a -s "$XVFBARGS" coverage run -m unittest discover -v
 
 after_success:
     - codecov

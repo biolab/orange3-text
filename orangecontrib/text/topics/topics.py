@@ -74,12 +74,16 @@ class GensimWrapper:
         """ Create a table with topics representation. """
         topics = self.model[corpus.ngrams_corpus]
         self.actual_topics = self.model.get_topics().shape[0]
-        matrix = matutils.corpus2dense(topics, num_docs=len(corpus),
-                                       num_terms=self.num_topics).T
-        corpus.extend_attributes(matrix[:, :self.actual_topics],
-                                 self.topic_names[:self.actual_topics])
+        matrix = matutils.corpus2dense(
+            topics, num_docs=len(corpus), num_terms=self.num_topics
+        ).T.astype(np.float64)
+        corpus = corpus.extend_attributes(
+            matrix[:, :self.actual_topics],
+            self.topic_names[:self.actual_topics]
+        )
         self.doc_topic = matrix[:, :self.actual_topics]
         self.tokens = corpus.tokens
+        corpus.store_tokens(self.tokens)
         return corpus
 
     def fit_transform(self, corpus, **kwargs):

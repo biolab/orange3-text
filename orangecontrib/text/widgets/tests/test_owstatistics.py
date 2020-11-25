@@ -168,6 +168,12 @@ class TestStatisticsWidget(WidgetTest):
             data.X.flatten(), [1, 1, 0.909091, 1]
         )
 
+        self.corpus[1][-1] = ""
+        data = self._compute_features("Per cent unique words")
+        np.testing.assert_array_almost_equal(
+            data.X.flatten(), [1, np.nan, 0.909091, 1]
+        )
+        
         self.send_signal(self.widget.Inputs.corpus, None)
         self.assertIsNone(self.get_output(self.widget.Outputs.corpus))
 
@@ -235,7 +241,7 @@ class TestStatisticsWidget(WidgetTest):
         self.assertTrue(self.widget.Warning.not_computed.is_shown())
 
         tagger = AveragedPerceptronTagger()
-        result = tagger.tag_corpus(self.corpus)
+        result = tagger(self.corpus)
 
         self.send_signal(self.widget.Inputs.corpus, result)
         self._set_feature("POS tag", "NN")
@@ -243,7 +249,7 @@ class TestStatisticsWidget(WidgetTest):
         self.wait_until_finished()
         res = self.get_output(self.widget.Outputs.corpus)
         self.assertTupleEqual((len(self.corpus), 1), res.X.shape)
-        np.testing.assert_array_almost_equal(res.X.flatten(), [7, 6, 4, 6])
+        np.testing.assert_array_almost_equal(res.X.flatten(), [6, 5, 4, 5])
         self.assertFalse(self.widget.Warning.not_computed.is_shown())
 
     def test_statistics_combination(self):
@@ -378,16 +384,16 @@ class TestStatisticsWidget(WidgetTest):
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
         in_sum.assert_called_with(
             len(self.corpus),
-            "4 instances, 1 variable\nFeatures: —\nTarget: —\nMetas: string "
-            "(not shown)",
+            "4 instances, 1 variable\nFeatures: — (No missing values)"
+            "\nTarget: —\nMetas: string",
         )
         in_sum.reset_mock()
 
         self.send_signal(self.widget.Inputs.corpus, self.book_data)
         in_sum.assert_called_with(
             len(self.book_data),
-            "140 instances, 2 variables\nFeatures: —\nTarget: categorical\n"
-            "Metas: string (not shown)",
+            "140 instances, 2 variables\nFeatures: — (No missing values)"
+            "\nTarget: categorical\nMetas: string",
         )
         in_sum.reset_mock()
 
@@ -402,8 +408,8 @@ class TestStatisticsWidget(WidgetTest):
         self.wait_until_finished()
         out_sum.assert_called_with(
             len(self.corpus),
-            "4 instances, 3 variables\nFeatures: 2 numeric\nTarget: —\nMetas: "
-            "string (not shown)",
+            "4 instances, 3 variables\nFeatures: 2 numeric (No missing values)"
+            "\nTarget: —\nMetas: string",
         )
         out_sum.reset_mock()
 
@@ -411,28 +417,14 @@ class TestStatisticsWidget(WidgetTest):
         self.wait_until_finished()
         out_sum.assert_called_with(
             len(self.book_data),
-            "140 instances, 4 variables\nFeatures: 2 numeric\nTarget: "
-            "categorical\nMetas: string (not shown)",
+            "140 instances, 4 variables\nFeatures: 2 numeric (No missing values)"
+            "\nTarget: categorical\nMetas: string",
         )
         out_sum.reset_mock()
 
         self.send_signal(self.widget.Inputs.corpus, None)
         self.wait_until_finished()
         out_sum.assert_called_with(self.widget.info.NoOutput)
-
-    def test_remove_function(self):
-        """
-        This test will start to fail when version of Orange >= 3.27.0
-        When this tests fails:
-        - removes `format_summary_details` and `format_variables_string` from
-          utils.widget
-        - replace `format_summary_details` in statistics widget with the same
-          function from core orange
-        - set minimum orange version to 3.25 for the text add-on
-        """
-        self.assertLessEqual(
-            pkg_resources.get_distribution("orange3").version, "3.27.0"
-        )
 
 
 if __name__ == "__main__":

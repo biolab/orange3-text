@@ -6,3 +6,22 @@ like NY Times, Twitter and PubMed. Further, it provides tools for preprocessing,
 constructing vector spaces (like bag-of-words, topic modeling and word2vec) and
 visualizations like word cloud end geo map. All features can be combined with
 powerful data mining techniques from the Orange data mining framework.
+
+See [documentation](http://orange3-text.readthedocs.org/).
+
+Features
+--------
+#### Access to data
+* Load a corpus of text documents
+* Access publicly available data (The Guardian, NY Times, Twitter, Wikipedia, PubMed)
+
+#### Text analysis
+* Preprocess corpus
+* Generate bag of words
+* Embed documents into vector space
+* Perform sentiment analysis
+* Detect emotions in tweets
+* Discover topics in the text
+* Compute document statistics
+* Visualize frequent words in the word cloud
+* Find words that enrich selected documents

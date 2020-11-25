@@ -17,33 +17,36 @@ except Exception:
 from orangecontrib.text import Corpus
 
 
-def run(corpus_to_network: CorpusToNetwork,
-        document_nodes: bool,
-        threshold: int,
-        window_size: int,
-        freq_threshold: int,
-        state: TaskState) -> Tuple[Network, Table]:
-
+def run(
+    corpus_to_network: CorpusToNetwork,
+    document_nodes: bool,
+    threshold: int,
+    window_size: int,
+    freq_threshold: int,
+    state: TaskState,
+) -> Tuple[Network, Table]:
     def advance(progress):
         if state.is_interruption_requested():
             raise InterruptedError
         state.set_progress_value(progress)
 
-    network = corpus_to_network(document_nodes=document_nodes,
-                                window_size=window_size,
-                                threshold=threshold,
-                                freq_threshold=freq_threshold,
-                                progress_callback=advance)
+    network = corpus_to_network(
+        document_nodes=document_nodes,
+        window_size=window_size,
+        threshold=threshold,
+        freq_threshold=freq_threshold,
+        progress_callback=advance,
+    )
     items = corpus_to_network.get_current_items(document_nodes)
 
     return (network, items)
 
 
 class OWCorpusToNetwork(OWWidget, ConcurrentWidgetMixin):
-    name = 'Corpus to Network'
-    description = 'Constructs network from given corpus.'
-    keywords = ['text, network']
-    icon = 'icons/CorpusToNetwork.svg'
+    name = "Corpus to Network"
+    description = "Constructs network from given corpus."
+    keywords = ["text, network"]
+    icon = "icons/CorpusToNetwork.svg"
     priority = 250
 
     want_main_area = False
@@ -54,19 +57,23 @@ class OWCorpusToNetwork(OWWidget, ConcurrentWidgetMixin):
     freq_threshold = Setting(default=1)
 
     class Inputs:
-        corpus = Input('Corpus', Corpus)
+        corpus = Input("Corpus", Corpus)
 
     class Outputs:
-        network = Output("Network", Network)
+        network = Output("Network", Network) if Network else None
         items = Output("Node Data", Table)
 
     class Error(OWWidget.Error):
-        unexpected_error = Msg('Unknown error: {}')
-        no_network_addon = Msg('Please install network add-on to use this widget.')
+        unexpected_error = Msg("Unknown error: {}")
+        no_network_addon = Msg(
+            "Please install network add-on to use this widget."
+        )
 
     class Information(OWWidget.Information):
-        params_changed = Msg("Parameters have been changed. Press Start to" +
-                             " run with new parameters.")
+        params_changed = Msg(
+            "Parameters have been changed. Press Start to"
+            + " run with new parameters."
+        )
 
     def __init__(self):
         OWWidget.__init__(self)
@@ -74,8 +81,8 @@ class OWCorpusToNetwork(OWWidget, ConcurrentWidgetMixin):
 
         self._corpus_to_network = None
         self.corpus = None
-        self.node_types = ['Document', 'Word']
-        self._task_state = 'waiting'
+        self.node_types = ["Document", "Word"]
+        self._task_state = "waiting"
         self._setup_layout()
         if Network is None:
             self.Error.no_network_addon()
@@ -88,46 +95,56 @@ class OWCorpusToNetwork(OWWidget, ConcurrentWidgetMixin):
         self.controlArea.setMinimumWidth(self.sizeHint().width())
         self.layout().setSizeConstraint(QLayout.SetFixedSize)
 
-        widget_box = widgetBox(self.controlArea, 'Settings')
+        widget_box = widgetBox(self.controlArea, "Settings")
 
-        self.node_type_cb = comboBox(widget=widget_box,
-                                     master=self,
-                                     value='node_type',
-                                     label='Node type',
-                                     items=self.node_types,
-                                     callback=self._option_changed)
+        self.node_type_cb = comboBox(
+            widget=widget_box,
+            master=self,
+            value="node_type",
+            label="Node type",
+            items=self.node_types,
+            callback=self._option_changed,
+        )
 
-        self.threshold_spin = spin(widget=widget_box,
-                                   master=self,
-                                   value='threshold',
-                                   minv=1,
-                                   maxv=10000,
-                                   step=1,
-                                   label='Threshold',
-                                   callback=self._option_changed)
+        self.threshold_spin = spin(
+            widget=widget_box,
+            master=self,
+            value="threshold",
+            minv=1,
+            maxv=10000,
+            step=1,
+            label="Threshold",
+            callback=self._option_changed,
+        )
 
-        self.window_size_spin = spin(widget=widget_box,
-                                     master=self,
-                                     value='window_size',
-                                     minv=1,
-                                     maxv=1000,
-                                     step=1,
-                                     label='Window size',
-                                     callback=self._option_changed)
+        self.window_size_spin = spin(
+            widget=widget_box,
+            master=self,
+            value="window_size",
+            minv=1,
+            maxv=1000,
+            step=1,
+            label="Window size",
+            callback=self._option_changed,
+        )
 
-        self.freq_thresold_spin = spin(widget=widget_box,
-                                       master=self,
-                                       value='freq_threshold',
-                                       minv=1,
-                                       maxv=10000,
-                                       step=1,
-                                       label='Frequency Threshold',
-                                       callback=self._option_changed)
+        self.freq_thresold_spin = spin(
+            widget=widget_box,
+            master=self,
+            value="freq_threshold",
+            minv=1,
+            maxv=10000,
+            step=1,
+            label="Frequency Threshold",
+            callback=self._option_changed,
+        )
 
-        self.button = button(widget=self.controlArea,
-                             master=self,
-                             label='Start',
-                             callback=self._toggle)
+        self.button = button(
+            widget=self.controlArea,
+            master=self,
+            label="Start",
+            callback=self._toggle,
+        )
 
         self._option_changed()
 
@@ -137,7 +154,7 @@ class OWCorpusToNetwork(OWWidget, ConcurrentWidgetMixin):
             self.Error.no_network_addon()
             return
         self.cancel()
-        self._task_state = 'running'
+        self._task_state = "running"
         self.button.setText("Stop")
         if not data:
             self._corpus_to_network = None
@@ -163,26 +180,28 @@ class OWCorpusToNetwork(OWWidget, ConcurrentWidgetMixin):
         self.Error.clear()
         self.Information.params_changed(shown=False)
 
-        self.start(run,
-                   self._corpus_to_network,
-                   (self.node_type == 0),
-                   self.threshold,
-                   self.window_size,
-                   self.freq_threshold)
+        self.start(
+            run,
+            self._corpus_to_network,
+            (self.node_type == 0),
+            self.threshold,
+            self.window_size,
+            self.freq_threshold,
+        )
 
     def _option_changed(self):
-        word_active = (self.node_type == 1)
+        word_active = self.node_type == 1
         self.window_size_spin.setDisabled(not word_active)
         self.freq_thresold_spin.setDisabled(not word_active)
-        self.Information.params_changed(shown=(self._task_state == 'running'))
+        self.Information.params_changed(shown=(self._task_state == "running"))
         self.cancel()
 
     def _toggle(self):
         if Network is None:
             self.Error.no_network_addon()
             return
-        if self._task_state == 'waiting':
-            self._task_state = 'running'
+        if self._task_state == "waiting":
+            self._task_state = "running"
             self.button.setText("Stop")
             self.commit()
         else:
@@ -196,22 +215,22 @@ class OWCorpusToNetwork(OWWidget, ConcurrentWidgetMixin):
         self.Outputs.items.send(result[1])
 
     def cancel(self):
-        self._task_state = 'waiting'
+        self._task_state = "waiting"
         self.button.setText("Start")
         super().cancel()
 
     def on_done(self, result: Any) -> None:
-        self._task_state = 'waiting'
+        self._task_state = "waiting"
         self.button.setText("Start")
         network = result[0]
         self._send_output_signals(result)
         nodes = network.number_of_nodes()
         edges = network.number_of_edges()
-        summary = '{} / {}'.format(nodes, edges)
-        directed = 'Directed' if network.edges[0].directed else 'Undirected'
-        details = '{} network with {} nodes and {} edges.'.format(directed,
-                                                                  nodes,
-                                                                  edges)
+        summary = "{} / {}".format(nodes, edges)
+        directed = "Directed" if network.edges[0].directed else "Undirected"
+        details = "{} network with {} nodes and {} edges.".format(
+            directed, nodes, edges
+        )
         self.info.set_output_summary(summary, details)
 
     def on_partial_result(self, result: Any):
@@ -226,6 +245,7 @@ class OWCorpusToNetwork(OWWidget, ConcurrentWidgetMixin):
         super().onDeleteWidget()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     from orangewidget.utils.widgetpreview import WidgetPreview
-    WidgetPreview(OWCorpusToNetwork).run(Corpus.from_file('book-excerpts'))
+
+    WidgetPreview(OWCorpusToNetwork).run(Corpus.from_file("book-excerpts"))

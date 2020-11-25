@@ -10,6 +10,7 @@ from AnyQt.QtWidgets import QComboBox, QGridLayout, QLabel, QLineEdit
 from Orange.widgets import gui
 from Orange.widgets.settings import ContextSetting
 from Orange.widgets.utils.concurrent import ConcurrentWidgetMixin, TaskState
+from Orange.widgets.utils.state_summary import format_summary_details
 from Orange.widgets.utils.widgetpreview import WidgetPreview
 from Orange.widgets.widget import Input, Output, OWWidget
 from orangewidget.widget import Msg
@@ -21,9 +22,7 @@ from orangecontrib.text.preprocess import (
     LowercaseTransformer,
     Preprocessor,
     RegexpTokenizer,
-    UrlRemover,
-)
-from orangecontrib.text.widgets.utils import format_summary_details
+    PreprocessorList)
 from orangecontrib.text.widgets.utils.context import (
     AlmostPerfectContextHandler,
 )
@@ -80,12 +79,12 @@ def preprocess_only_words(corpus: Corpus) -> Corpus:
     -------
     Preprocessed corpus. Result of pre-processing is saved in tokens/ngrams.
     """
-    p = Preprocessor(
-        transformers=[LowercaseTransformer()],
-        # by default regexp keeps only words (no punctuations, no spaces)
-        tokenizer=RegexpTokenizer(),
+    p = PreprocessorList(
+        [LowercaseTransformer(),
+         # by default regexp keeps only words (no punctuations, no spaces)
+         RegexpTokenizer()]
     )
-    return p(corpus, inplace=False)
+    return p(corpus)
 
 
 # every statistic returns a np.ndarray with statistics
@@ -231,6 +230,8 @@ def per_cent_unique_words(
 
     def perc_unique(tokens: str):
         callback()
+        if not tokens:
+            return np.nan
         return len(set(tokens)) / len(tokens)
 
     return np.c_[list(map(perc_unique, corpus.tokens))], ["% unique words"]
@@ -662,17 +663,10 @@ class OWStatistics(OWWidget, ConcurrentWidgetMixin):
                     comput_values.append(comp_value)
         if not_computed:
             self.Warning.not_computed(", ".join(not_computed))
-        # here we will use extend_attributes function - this function add
-        # attributes to existing corpus so it must be copied first
-        # TODO: when change of pre-processing is finished change this function
-        #  to have inplace parameter which is False by default,
-        #  also I would prefer extend_attriubtes where you give variables
-        #  instead of strings on input
-        new_corpus = self.corpus.copy()
-        if to_stack:
-            new_corpus.extend_attributes(
-                np.hstack(to_stack), attributes, compute_values=comput_values
-            )
+        new_corpus = self.corpus.extend_attributes(
+            np.hstack(to_stack) if to_stack else np.empty((len(self.corpus), 0)),
+            attributes, compute_values=comput_values
+        )
         self.Outputs.corpus.send(new_corpus)
 
         # summary

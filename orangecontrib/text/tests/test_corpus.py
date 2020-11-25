@@ -1,11 +1,10 @@
 import os
 import unittest
-from distutils.version import LooseVersion
 
 import numpy as np
+from numpy.testing import assert_array_equal
 from scipy.sparse import csr_matrix, issparse
 
-import Orange
 from Orange.data import Table, DiscreteVariable, StringVariable, Domain, ContinuousVariable
 
 from orangecontrib.text import preprocess
@@ -82,20 +81,67 @@ class CorpusTests(unittest.TestCase):
             c.extend_corpus(c.metas, c.Y)
 
     def test_extend_attributes(self):
+        """
+        Test correctness of extending attributes, variables must have unique
+        values and must not happen inplace
+        """
         # corpus without features
         c = Corpus.from_file('book-excerpts')
         X = np.random.random((len(c), 3))
-        c.extend_attributes(X, ['1', '2', '3'])
-        self.assertEqual(c.X.shape, (len(c), 3))
+        new_c = c.extend_attributes(X, ['1', '2', '3'])
+        self.assertEqual(new_c.X.shape, (len(c), 3))
 
         # add to non empty corpus
-        c.extend_attributes(X, ['1', '2', '3'])
-        self.assertEqual(c.X.shape, (len(c), 6))
+        new_c = new_c.extend_attributes(X, ['1', '2', '4'])
+        self.assertEqual(new_c.X.shape, (len(c), 6))
+        self.assertListEqual(
+            [a.name for a in new_c.domain.attributes],
+            ['1', '2', '3', '1 (1)', '2 (1)', '4']
+        )
+        self.assertEqual(0, len(c.domain.attributes))
 
         # extend sparse
-        c.extend_attributes(csr_matrix(X), ['1', '2', '3'])
-        self.assertEqual(c.X.shape, (len(c), 9))
-        self.assertTrue(issparse(c.X))
+        new_c = new_c.extend_attributes(csr_matrix(X), ['1', '2', '3'])
+        self.assertEqual(new_c.X.shape, (len(c), 9))
+        self.assertTrue(issparse(new_c.X))
+        self.assertListEqual(
+            [a.name for a in new_c.domain.attributes],
+            ['1', '2', '3', '1 (1)', '2 (1)', '4', '1 (2)', '2 (2)', '3 (1)']
+        )
+        self.assertEqual(0, len(c.domain.attributes))
+
+    def test_extend_attribute_rename_existing(self):
+        """
+        Test correctness of extending attributes, case when we want to rename
+        existing attributes
+        """
+        # corpus without features
+        c = Corpus.from_file('book-excerpts')
+        X = np.random.random((len(c), 3))
+        new_c = c.extend_attributes(X, ['1', '2', '3'])
+        self.assertEqual(new_c.X.shape, (len(c), 3))
+
+        # add to non empty corpus
+        new_c = new_c.extend_attributes(
+            X, ['1', '2', '4'], rename_existing=True
+        )
+        self.assertEqual(new_c.X.shape, (len(c), 6))
+        self.assertListEqual(
+            [a.name for a in new_c.domain.attributes],
+            ['1 (1)', '2 (1)', '3', '1', '2', '4']
+        )
+        self.assertEqual(0, len(c.domain.attributes))
+
+    def test_extend_attribute_rename_text_features(self):
+        """
+        Test correctness of extending attributes, case when we want to rename
+        existing attributes
+        """
+        # corpus without features
+        c = Corpus.from_file('book-excerpts')
+        X = np.random.random((len(c), 2))
+        new_c = c.extend_attributes(X, ['Text', '2',], rename_existing=True)
+        self.assertEqual(new_c.X.shape, (len(c), 2))
 
     def test_corpus_not_eq(self):
         c = Corpus.from_file('book-excerpts')
@@ -134,6 +180,18 @@ class CorpusTests(unittest.TestCase):
         np.testing.assert_equal(t.metas, c.metas)
         self.assertEqual(c.text_features, [t.domain.metas[0]])
 
+    def test_from_table_renamed(self):
+        c1 = Corpus.from_file('book-excerpts')
+        new_domain = Domain(c1.domain.attributes, metas=[c1.domain.metas[0].renamed("text1")])
+
+        # when text feature renamed
+        c2 = Corpus.from_table(new_domain, c1)
+        self.assertIsInstance(c2, Corpus)
+        self.assertEqual(len(c1), len(c2))
+        np.testing.assert_equal(c1.metas, c2.metas)
+        self.assertEqual(1, len(c2.text_features))
+        self.assertEqual("text1", c2.text_features[0].name)
+
     def test_infer_text_features(self):
         c = Corpus.from_file('friends-transcripts')
         tf = c.text_features
@@ -153,6 +211,14 @@ class CorpusTests(unittest.TestCase):
         self.assertEqual(len(docs), len(c))
         self.assertEqual(len(types), 1)
         self.assertIn(str, types)
+
+    def test_pp_documents(self):
+        c = Corpus.from_file('book-excerpts')
+        self.assertEqual(c.documents, c.pp_documents)
+
+        pp_c = preprocess.BASE_TRANSFORMER(c)
+        self.assertEqual(c.documents, pp_c.documents)
+        self.assertNotEqual(c.pp_documents, pp_c.pp_documents)
 
     def test_titles(self):
         c = Corpus.from_file('book-excerpts')
@@ -265,7 +331,7 @@ class CorpusTests(unittest.TestCase):
         self.assertEqual(len(c[:, :]), len(c))
 
         # run default preprocessing
-        c.tokens
+        c.store_tokens(c.tokens)
 
         sel = c[:, :]
         self.assertEqual(sel, c)
@@ -295,6 +361,12 @@ class CorpusTests(unittest.TestCase):
         sel = c[...]
         self.assertEqual(sel, c)
 
+        sel = c[range(0, 5)]
+        self.assertEqual(len(sel), 5)
+        self.assertEqual(len(sel._tokens), 5)
+        np.testing.assert_equal(sel._tokens, c._tokens[0:5])
+        self.assertEqual(sel._dictionary, c._dictionary)
+
     def test_set_text_features(self):
         c = Corpus.from_file('friends-transcripts')[:100]
         c2 = c.copy()
@@ -318,21 +390,20 @@ class CorpusTests(unittest.TestCase):
 
     def test_has_tokens(self):
         corpus = Corpus.from_file('deerwester')
-
         self.assertFalse(corpus.has_tokens())
-        corpus.tokens   # default tokenizer
+        corpus.store_tokens(corpus.tokens)   # default tokenizer
         self.assertTrue(corpus.has_tokens())
 
     def test_copy(self):
         corpus = Corpus.from_file('deerwester')
 
-        p = preprocess.Preprocessor(tokenizer=preprocess.RegexpTokenizer('\w+\s}'))
+        p = preprocess.RegexpTokenizer('\w+\s}')
         copied = corpus.copy()
-        p(copied, inplace=True)
+        copied = p(copied)
         self.assertIsNot(copied, corpus)
         self.assertNotEqual(copied, corpus)
 
-        p(corpus, inplace=True)
+        p(corpus)
         copied = corpus.copy()
         self.assertIsNot(copied, corpus)
         self.assertEqual(copied, corpus)
@@ -352,11 +423,11 @@ class CorpusTests(unittest.TestCase):
             self.assertIn(ngram, list(c.ngrams_iterator(join_with=None))[0])
             self.assertIn('-'.join(ngram), list(c.ngrams_iterator(join_with='-'))[0])
 
-        self.pos_tagger.tag_corpus(c)
+        c = self.pos_tagger(c)
         c.ngram_range = (1, 1)
         for doc in c.ngrams_iterator(join_with='_', include_postags=True):
             for token in doc:
-                self.assertRegexpMatches(token, '\w+_[A-Z]+')
+                self.assertRegex(token, '\w+_[A-Z]+')
 
     def test_from_documents(self):
         documents = [
@@ -432,13 +503,13 @@ class CorpusTests(unittest.TestCase):
         corpus = Corpus.from_numpy(
             domain, X=np.empty((2, 0)), metas=np.array(metas)
         )
-        self.assertListEqual(["Document 1", "Document 2"], corpus.titles)
+        assert_array_equal(["Document 1", "Document 2"], corpus.titles)
 
         domain["title"].attributes["title"] = True
         corpus = Corpus.from_numpy(
             domain, X=np.empty((2, 0)), metas=np.array(metas)
         )
-        self.assertListEqual(["title1", "title2"], corpus.titles)
+        assert_array_equal(["title1", "title2"], corpus.titles)
 
     def test_titles_from_rows(self):
         domain = Domain([],
@@ -449,7 +520,7 @@ class CorpusTests(unittest.TestCase):
             domain, X=np.empty((3, 0)), metas=np.array(metas)
         )
         corpus = Corpus.from_table_rows(corpus, [0, 2])
-        self.assertListEqual(["Document 1", "Document 3"], corpus.titles)
+        assert_array_equal(["Document 1", "Document 3"], corpus.titles)
 
     def test_titles_from_list(self):
         domain = Domain(
@@ -457,12 +528,12 @@ class CorpusTests(unittest.TestCase):
         )
         corpus = Corpus.from_list(
             domain, [["title1", "a"], ["title2", "b"]])
-        self.assertListEqual(["Document 1", "Document 2"], corpus.titles)
+        assert_array_equal(["Document 1", "Document 2"], corpus.titles)
 
         domain["title"].attributes["title"] = True
         corpus = Corpus.from_list(
             domain, [["title1", "a"], ["title2", "b"]])
-        self.assertListEqual(["title1", "title2"], corpus.titles)
+        assert_array_equal(["title1", "title2"], corpus.titles)
 
 
 if __name__ == "__main__":

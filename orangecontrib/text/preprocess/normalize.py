@@ -1,44 +1,39 @@
+from typing import List, Callable
 import os
 import json
 import ufal.udpipe as udpipe
 import serverfiles
 from nltk import stem
 from requests.exceptions import ConnectionError
+
 from Orange.misc.environ import data_dir
+from Orange.util import wrap_callback, dummy_callback
 
-
+from orangecontrib.text import Corpus
 from orangecontrib.text.misc import wait_nltk_data
+from orangecontrib.text.preprocess import Preprocessor, TokenizedPreprocessor
 
 __all__ = ['BaseNormalizer', 'WordNetLemmatizer', 'PorterStemmer',
-           'SnowballStemmer', 'DictionaryLookupNormalizer',
-           'UDPipeLemmatizer']
+           'SnowballStemmer', 'UDPipeLemmatizer']
 
 
-class BaseNormalizer:
+class BaseNormalizer(TokenizedPreprocessor):
     """ A generic normalizer class.
     You should either overwrite `normalize` method or provide a custom
     normalizer.
-
-    Attributes:
-        name(str): A short name for normalization method (will be used in OWPreprocessor)
-        normalizer(Callable): An callabale object to be used for normalization.
-
     """
-    name = NotImplemented
     normalizer = NotImplemented
-    str_format = '{self.name}'
 
-    def __call__(self, tokens):
-        """ Normalizes tokens to canonical form. """
-        if isinstance(tokens, str):
-            return self.normalize(tokens)
-        return [self.normalize(token) for token in tokens]
+    def __call__(self, corpus: Corpus, callback: Callable = None) -> Corpus:
+        if callback is None:
+            callback = dummy_callback
+        corpus = super().__call__(corpus, wrap_callback(callback, end=0.2))
+        callback(0.2, "Normalizing...")
+        return self._store_tokens(corpus, wrap_callback(callback, start=0.2))
 
-    def normalize(self, token):
-        return self.normalizer(token)
-
-    def __str__(self):
-        return self.str_format.format(self=self)
+    def _preprocess(self, string: str) -> str:
+        """ Normalizes token to canonical form. """
+        return self.normalizer(string)
 
 
 class WordNetLemmatizer(BaseNormalizer):
@@ -50,18 +45,6 @@ class WordNetLemmatizer(BaseNormalizer):
         super().__init__()
 
 
-class DictionaryLookupNormalizer(BaseNormalizer):
-    """ Normalizes token with a <token: canonical_form> dictionary. """
-    name = 'Dictionary Lookup'
-
-    def __init__(self, dictionary):
-        super().__init__()
-        self.dictionary = dictionary
-
-    def normalize(self, token):
-        return self.dictionary.get(token, token)
-
-
 class PorterStemmer(BaseNormalizer):
     name = 'Porter Stemmer'
     normalizer = stem.PorterStemmer().stem
@@ -69,24 +52,13 @@ class PorterStemmer(BaseNormalizer):
 
 class SnowballStemmer(BaseNormalizer):
     name = 'Snowball Stemmer'
-    str_format = '{self.name} ({self.language})'
     supported_languages = [l.capitalize() for l in stem.SnowballStemmer.languages]
 
     def __init__(self, language='English'):
-        self._language = language
-        self.normalizer = stem.SnowballStemmer(self.language.lower())
+        self.normalizer = stem.SnowballStemmer(language.lower())
 
-    def normalize(self, token):
+    def _preprocess(self, token):
         return self.normalizer.stem(token)
-
-    @property
-    def language(self):
-        return self._language
-
-    @language.setter
-    def language(self, value):
-        self._language = value
-        self.normalizer = stem.SnowballStemmer(self.language.lower())
 
 
 def language_to_name(language):
@@ -103,14 +75,13 @@ def file_to_language(file):
 
 
 class UDPipeModels:
-    server_url = "http://file.biolab.si/files/udpipe/"
+    server_url = "https://file.biolab.si/files/udpipe/"
 
     def __init__(self):
         self.local_data = os.path.join(data_dir(versioned=False), 'udpipe/')
         self.serverfiles = serverfiles.ServerFiles(self.server_url)
         self.localfiles = serverfiles.LocalFiles(self.local_data,
                                                  serverfiles=self.serverfiles)
-        self._supported_languages = []
 
     def __getitem__(self, language):
         file_name = self._find_file(language_to_name(language))
@@ -129,9 +100,7 @@ class UDPipeModels:
 
     @property
     def supported_languages(self):
-        self._supported_languages = list(map(lambda f: file_to_language(f[0]),
-                                             self.model_files))
-        return self._supported_languages
+        return list(map(lambda f: file_to_language(f[0]), self.model_files))
 
     @property
     def online(self):
@@ -142,56 +111,62 @@ class UDPipeModels:
             return False
 
 
+class UDPipeStopIteration(StopIteration):
+    pass
+
+
 class UDPipeLemmatizer(BaseNormalizer):
     name = 'UDPipe Lemmatizer'
-    str_format = '{self.name} ({self.language})'
 
-    def __init__(self, language='English'):
-        self._language = language
+    def __init__(self, language='English', use_tokenizer=False):
+        self.__language = language
+        self.__use_tokenizer = use_tokenizer
         self.models = UDPipeModels()
-        self.model = None
-        self.output_format = udpipe.OutputFormat.newOutputFormat('epe')
-        self.use_tokenizer = False
+        self.__model = None
+        self.__output_format = None
 
-    def load_model(self):
-        if self.model is None:
-            self.model = udpipe.Model.load(self.models[self._language])
+    @property
+    def use_tokenizer(self):
+        return self.__use_tokenizer
 
-    def normalize(self, token):
-        self.load_model()
+    @property
+    def normalizer(self):
+        return self.__normalize_document if self.__use_tokenizer \
+            else self.__normalize_token
+
+    def __call__(self, corpus: Corpus, callback: Callable = None) -> Corpus:
+        try:
+            self.__model = udpipe.Model.load(self.models[self.__language])
+        except StopIteration:
+            raise UDPipeStopIteration
+
+        self.__output_format = udpipe.OutputFormat.newOutputFormat('epe')
+        if self.__use_tokenizer:
+            corpus = Preprocessor.__call__(self, corpus)
+            if callback is None:
+                callback = dummy_callback
+            callback(0, "Normalizing...")
+            return self._store_tokens_from_documents(corpus, callback)
+        else:
+            return super().__call__(corpus, callback)
+
+    def __normalize_token(self, token: str) -> str:
         sentence = udpipe.Sentence()
         sentence.addWord(token)
-        self.model.tag(sentence, self.model.DEFAULT)
-        output = self.output_format.writeSentence(sentence)
+        self.__model.tag(sentence, self.__model.DEFAULT)
+        output = self.__output_format.writeSentence(sentence)
         return json.loads(output)['nodes'][0]['properties']['lemma']
 
-    def normalize_doc(self, document):
-        self.load_model()
+    def __normalize_document(self, document: str) -> List[str]:
         tokens = []
-        tokenizer = self.model.newTokenizer(self.model.DEFAULT)
+        tokenizer = self.__model.newTokenizer(self.__model.DEFAULT)
         tokenizer.setText(document)
         error = udpipe.ProcessingError()
         sentence = udpipe.Sentence()
         while tokenizer.nextSentence(sentence, error):
-            self.model.tag(sentence, self.model.DEFAULT)
-            output = self.output_format.writeSentence(sentence)
+            self.__model.tag(sentence, self.__model.DEFAULT)
+            output = self.__output_format.writeSentence(sentence)
             sentence = udpipe.Sentence()
             tokens.extend([t['properties']['lemma']
                            for t in json.loads(output)['nodes']])
         return tokens
-
-    @property
-    def language(self):
-        return self._language
-
-    @language.setter
-    def language(self, value):
-        self._language = value
-        self.model = None
-
-    def __getstate__(self):
-        return {'language': self.language}
-
-    def __setstate__(self, state):
-        self.__init__(state['language'])
-

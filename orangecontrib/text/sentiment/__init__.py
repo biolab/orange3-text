@@ -32,12 +32,11 @@ class LiuHuSentiment:
         self.positive = set(self.methods[self.language].positive())
         self.negative = set(self.methods[self.language].negative())
 
-    def transform(self, corpus, copy=True):
+    def transform(self, corpus):
         scores = []
-        tokenizer = WordPunctTokenizer()
-        tokens = tokenizer(corpus.documents)
+        corpus = WordPunctTokenizer()(corpus)
 
-        for doc in tokens:
+        for doc in corpus.tokens:
             pos_words = sum(word in self.positive for word in doc)
             neg_words = sum(word in self.negative for word in doc)
             scores.append([100*(pos_words - neg_words)/max(len(doc), 1)])
@@ -48,9 +47,7 @@ class LiuHuSentiment:
         cv = [VectorizationComputeValue(shared_cv, col)
               for col in self.sentiments]
 
-        if copy:
-            corpus = corpus.copy()
-        corpus.extend_attributes(X, self.sentiments, compute_values=cv)
+        corpus = corpus.extend_attributes(X, self.sentiments, compute_values=cv)
         return corpus
 
 
@@ -62,7 +59,7 @@ class VaderSentiment:
     def __init__(self):
         self.vader = SentimentIntensityAnalyzer()
 
-    def transform(self, corpus, copy=True):
+    def transform(self, corpus):
         scores = []
         for text in corpus.documents:
             pol_sc = self.vader.polarity_scores(text)
@@ -74,9 +71,7 @@ class VaderSentiment:
         cv = [VectorizationComputeValue(shared_cv, col)
               for col in self.sentiments]
 
-        if copy:
-            corpus = corpus.copy()
-        corpus.extend_attributes(X, self.sentiments, compute_values=cv)
+        corpus = corpus.extend_attributes(X, self.sentiments, compute_values=cv)
         return corpus
 
 
@@ -111,13 +106,12 @@ class MultiSentiment:
             code = self.LANGS[self._language]
             self.positive, self.negative = self.dictionaries[code]
 
-    def transform(self, corpus, copy=True):
+    def transform(self, corpus):
         self.load_dict()
         scores = []
-        tokenizer = WordPunctTokenizer()
-        tokens = tokenizer(corpus.documents)
+        corpus = WordPunctTokenizer()(corpus)
 
-        for doc in tokens:
+        for doc in corpus.tokens:
             pos_words = sum(word in self.positive for word in doc)
             neg_words = sum(word in self.negative for word in doc)
             scores.append([100 * (pos_words - neg_words) / max(len(doc), 1)])
@@ -128,9 +122,7 @@ class MultiSentiment:
         cv = [VectorizationComputeValue(shared_cv, col)
               for col in self.sentiments]
 
-        if copy:
-            corpus = corpus.copy()
-        corpus.extend_attributes(X, self.sentiments, compute_values=cv)
+        corpus = corpus.extend_attributes(X, self.sentiments, compute_values=cv)
         return corpus
 
     @property

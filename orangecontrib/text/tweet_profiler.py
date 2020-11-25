@@ -26,7 +26,6 @@ class TweetProfiler:
         if not self.assure_server():
             return None
 
-        corpus = corpus.copy()
         metas_ind = corpus.domain.metas.index(meta_var)
         tweets = corpus.metas[:, metas_ind].tolist()
 
@@ -37,7 +36,7 @@ class TweetProfiler:
             json = {'tweets': tweets[i: i+self.BATCH_SIZE],
                     'model_name': model_name,
                     'output_mode': output_mode,
-            }
+                    }
 
             json = self.server_call('tweet_profiler', json=json)
 
@@ -50,7 +49,7 @@ class TweetProfiler:
             results.append(profile)
 
             if callable(on_advance):
-                on_advance(self.BATCH_SIZE)
+                on_advance()
 
         if results:
             results = np.vstack(results)
@@ -70,10 +69,12 @@ class TweetProfiler:
                 feature_names = class_vars
                 feature_values = tuple(['no', 'yes'] for _ in class_vars)
 
-            corpus.extend_attributes(results,
-                                     feature_names=feature_names,
-                                     feature_values=feature_values,
-                                     var_attrs=var_attrs)
+            corpus = corpus.extend_attributes(
+                results,
+                feature_names=feature_names,
+                feature_values=feature_values,
+                var_attrs=var_attrs
+            )
             return corpus
         else:
             return None

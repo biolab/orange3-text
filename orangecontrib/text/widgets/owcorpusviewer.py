@@ -1,6 +1,7 @@
 import re
 import sre_constants
 from itertools import chain
+from typing import Set
 
 from AnyQt.QtCore import (
     Qt, QUrl, QItemSelection, QItemSelectionModel, QItemSelectionRange
@@ -38,9 +39,8 @@ class OWCorpusViewer(OWWidget):
     search_indices = ContextSetting([], exclude_metas=False)   # features included in search
     display_indices = ContextSetting([], exclude_metas=False)  # features for display
     display_features = ContextSetting([], exclude_metas=False)
+    selected_documents = ContextSetting([])
     regexp_filter = ContextSetting("")
-
-    selection = [0]  # TODO: DataHashContextHandler
 
     show_tokens = Setting(False)
     autocommit = Setting(True)
@@ -54,7 +54,6 @@ class OWCorpusViewer(OWWidget):
 
         self.corpus = None              # Corpus
         self.corpus_docs = None         # Documents generated from Corpus
-        self.output_mask = []           # Output corpus indices
         self.doc_webview = None         # WebView for showing content
         self.search_features = []       # two copies are needed since Display allows drag & drop
         self.display_list_indices = [0]
@@ -101,7 +100,6 @@ class OWCorpusViewer(OWWidget):
             orientation=Qt.Horizontal,
             childrenCollapsible=False,
         )
-
         # Document list
         self.doc_list = QTableView()
         self.doc_list.setSelectionBehavior(QTableView.SelectRows)
@@ -113,8 +111,9 @@ class OWCorpusViewer(OWWidget):
 
         self.doc_list_model = QStandardItemModel(self)
         self.doc_list.setModel(self.doc_list_model)
-        self.doc_list.selectionModel().selectionChanged.connect(self.show_docs)
-
+        self.doc_list.selectionModel().selectionChanged.connect(
+            self.selection_changed
+        )
         # Document contents
         self.doc_webview = gui.WebviewWidget(self.splitter, debug=False)
 
@@ -141,7 +140,7 @@ class OWCorpusViewer(OWWidget):
             self.display_features = list(filter_visible(chain(domain.variables, domain.metas)))
             self.search_indices = list(range(len(self.search_features)))
             self.display_indices = list(range(len(self.display_features)))
-            self.selection = [0]
+            self.selected_documents = [corpus.titles[0]]
             self.openContext(self.corpus)
             self.display_list_indices = self.display_indices
             self.regenerate_docs()
@@ -155,7 +154,6 @@ class OWCorpusViewer(OWWidget):
         # Corpus
         self.corpus = None
         self.corpus_docs = None
-        self.output_mask = []
         self.display_features = []
         # Widgets
         self.search_listbox.clear()
@@ -185,38 +183,65 @@ class OWCorpusViewer(OWWidget):
         def is_match(x):
             return not bool(search_keyword) or reg.search(x)
 
-        self.output_mask.clear()
         self.doc_list_model.clear()
 
         for i, (doc, title, content) in enumerate(zip(self.corpus, self.corpus.titles,
                                                       self.corpus_docs)):
             if is_match(content):
                 item = QStandardItem()
-                item.setData(title, Qt.DisplayRole)
+                item.setData(str(title), Qt.DisplayRole)
                 item.setData(doc, Qt.UserRole)
                 self.doc_list_model.appendRow(item)
-                self.output_mask.append(i)
 
-    def reset_selection(self):
-        if self.doc_list_model.rowCount() > 0:
-            self.doc_list.selectRow(0)  # Select the first document
-        else:
-            self.doc_webview.setHtml('')
+    def get_selected_documents_from_view(self) -> Set[str]:
+        """
+        Returns
+        -------
+        Set with names of selected documents in the QTableView
+        """
+        return {
+            i.data(Qt.DisplayRole)
+            for i in self.doc_list.selectionModel().selectedRows()
+        }
 
-    def set_selection(self):
+    def set_selection(self) -> None:
+        """
+        Select documents in selected_documents attribute in the view
+        """
         view = self.doc_list
-        if len(self.selection):
-            selection = QItemSelection()
+        model = view.model()
 
-            for row in self.selection:
-                selection.append(
-                    QItemSelectionRange(
-                        view.model().index(row, 0),
-                        view.model().index(row, 0)
-                    )
-                )
-            view.selectionModel().select(
-                selection, QItemSelectionModel.ClearAndSelect)
+        previously_selected = self.selected_documents.copy()
+        selection = QItemSelection()
+        for row in range(model.rowCount()):
+            document = model.data(model.index(row, 0), Qt.DisplayRole)
+            if document in self.selected_documents:
+                selection.append(QItemSelectionRange(
+                    view.model().index(row, 0),
+                    view.model().index(row, 0)
+                ))
+        view.selectionModel().select(
+            selection, QItemSelectionModel.ClearAndSelect
+        )
+        if len(selection) == 0:
+            # in cases when selection is empty qt's selection_changed is not
+            # called and so we need to manually trigger show_docs
+            self.show_docs()
+        # select emmit selection change signal which causes calling
+        # selection_changed when filtering it means that documents which
+        # are currently filtered out get removed from self.selected_douments
+        # we still want to keep them to be still selected after user removes
+        # filter
+        self.selected_documents = previously_selected
+
+    def selection_changed(self) -> None:
+        """
+        Function is called every time the selection changes - when user select
+        new range of documents
+        """
+        self.selected_documents = self.get_selected_documents_from_view()
+        self.show_docs()
+        self.commit()
 
     def show_docs(self):
         """ Show the selected documents in the right area """
@@ -308,9 +333,6 @@ class OWCorpusViewer(OWWidget):
                                   if i in self.search_indices]
 
         html = '<table>'
-        selection = [i.row() for i in self.doc_list.selectionModel().selectedRows()]
-        if selection != []:
-            self.selection = selection
         for doc_count, index in enumerate(self.doc_list.selectionModel().selectedRows()):
             if doc_count > 0:   # add split
                 html += '<tr class="line separator"><td/><td/></tr>' \
@@ -376,7 +398,7 @@ class OWCorpusViewer(OWWidget):
     def refresh_search(self):
         if self.corpus is not None:
             self.list_docs()
-            self.reset_selection()
+            self.set_selection()
             self.update_info()
             self.commit()
 
@@ -399,16 +421,23 @@ class OWCorpusViewer(OWWidget):
             self.ngram_range = ''
 
     def commit(self):
-        if self.corpus is not None:
-            matched = self.corpus[self.output_mask]
-            output_mask = set(self.output_mask)
-            unmatched_mask = [i for i in range(len(self.corpus)) if i not in output_mask]
-            unmatched = self.corpus[unmatched_mask]
-            self.Outputs.matching_docs.send(matched)
-            self.Outputs.other_docs.send(unmatched)
-        else:
-            self.Outputs.matching_docs.send(None)
-            self.Outputs.other_docs.send(None)
+        matched = unmatched = None
+        corpus = self.corpus
+        if corpus is not None:
+            # it returns a set of selected documents which are in view
+            selected_docs = self.get_selected_documents_from_view()
+            titles = corpus.titles
+            matched_mask = [
+                i for i, t in enumerate(titles) if t in selected_docs
+            ]
+            unmatched_mask = [
+                i for i, t in enumerate(titles) if t not in selected_docs
+            ]
+
+            matched = corpus[matched_mask] if len(matched_mask) else None
+            unmatched = corpus[unmatched_mask] if len(unmatched_mask) else None
+        self.Outputs.matching_docs.send(matched)
+        self.Outputs.other_docs.send(unmatched)
 
     def send_report(self):
         self.report_items((
@@ -416,16 +445,30 @@ class OWCorpusViewer(OWWidget):
             ("Matching documents", self.n_matching),
         ))
 
+    def showEvent(self, event):
+        super().showEvent(event)
+        self.update_splitter()
+
+    def update_splitter(self):
+        """
+        Update splitter that document list on the left never take more
+        than 1/3 of the space. It is only set on showEvent. If user
+        later changes sizes it stays as it is.
+        """
+        w1, w2 = self.splitter.sizes()
+        ws = w1 + w2
+        if w2 < 2/3 * ws:
+            self.splitter.setSizes([ws * 1/3, ws * 2/3])
+
 
 if __name__ == '__main__':
+    from orangecontrib.text.preprocess import BASE_TOKENIZER
     from orangecontrib.text.tag.pos import AveragedPerceptronTagger
-    app = QApplication([])
-    widget = OWCorpusViewer()
-    widget.show()
+    from orangewidget.utils.widgetpreview import WidgetPreview
+
     corpus = Corpus.from_file('book-excerpts')
     corpus = corpus[:3]
     tagger = AveragedPerceptronTagger()
-    tagged_corpus = tagger.tag_corpus(corpus)
+    tagged_corpus = tagger(BASE_TOKENIZER(corpus))
     tagged_corpus.ngram_range = (1, 2)
-    widget.set_data(tagged_corpus)
-    app.exec()
+    WidgetPreview(OWCorpusViewer).run(tagged_corpus)

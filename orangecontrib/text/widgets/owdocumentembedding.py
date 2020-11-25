@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Tuple
 import numpy as np
 
 from AnyQt.QtWidgets import QPushButton, QStyle, QLayout
@@ -19,8 +19,7 @@ from orangecontrib.text.corpus import Corpus
 def run_pretrained_embedder(corpus: Corpus,
                             language: str,
                             aggregator: str,
-                            state: TaskState) -> Corpus:
-
+                            state: TaskState) -> Tuple[Corpus, Corpus]:
     """Runs DocumentEmbedder.
 
     Parameters
@@ -53,8 +52,8 @@ def run_pretrained_embedder(corpus: Corpus,
         if success:
             state.set_progress_value(next(ticks))
 
-    new_corpus = embedder(corpus, processed_callback=advance)
-    return new_corpus
+    new_corpus, skipped_corpus = embedder(corpus, processed_callback=advance)
+    return new_corpus, skipped_corpus
 
 
 class OWDocumentEmbedding(OWWidget, ConcurrentWidgetMixin):
@@ -71,7 +70,8 @@ class OWDocumentEmbedding(OWWidget, ConcurrentWidgetMixin):
         corpus = Input('Corpus', Corpus)
 
     class Outputs:
-        new_corpus = Output('Corpus', Corpus)
+        new_corpus = Output('Embeddings', Corpus, default=True)
+        skipped = Output('Skipped documents', Corpus)
 
     class Error(OWWidget.Error):
         no_connection = Msg("No internet connection. " +
@@ -89,7 +89,7 @@ class OWDocumentEmbedding(OWWidget, ConcurrentWidgetMixin):
         OWWidget.__init__(self)
         ConcurrentWidgetMixin.__init__(self)
 
-        self.languages = list(LANGS_TO_ISO.keys())
+        self.languages = sorted(list(LANGS_TO_ISO.keys()))
         self.aggregators = AGGREGATORS
         self.corpus = None
         self.new_corpus = None
@@ -105,13 +105,17 @@ class OWDocumentEmbedding(OWWidget, ConcurrentWidgetMixin):
 
         widget_box = widgetBox(self.controlArea, 'Settings')
 
-        self.language_cb = comboBox(widget=widget_box,
-                                    master=self,
-                                    value='language',
-                                    label='Language: ',
-                                    orientation=Qt.Horizontal,
-                                    items=self.languages,
-                                    callback=self._option_changed)
+        self.language_cb = comboBox(
+            widget=widget_box,
+            master=self,
+            value='language',
+            label='Language: ',
+            orientation=Qt.Horizontal,
+            items=self.languages,
+            callback=self._option_changed,
+            searchable=True
+         )
+        self.language_cb.setCurrentText("English")
 
         self.aggregator_cb = comboBox(widget=widget_box,
                                       master=self,
@@ -146,17 +150,20 @@ class OWDocumentEmbedding(OWWidget, ConcurrentWidgetMixin):
             self.info.set_input_summary(str(len(corpus)), "{} documents."
                                         .format(len(corpus)))
 
-    def set_output_corpus_summary(self, corpus):
-        if corpus is None:
+    def set_output_corpus_summary(self, embeddings, skipped):
+        if embeddings is None and skipped is None:
             self.info.set_output_summary(self.info.NoOutput)
         else:
-            unsuccessful = len(self.corpus) - len(corpus)
+            successful = len(embeddings) if embeddings else 0
+            unsuccessful = len(skipped) if skipped else 0
             if unsuccessful > 0:
                 self.Warning.unsuccessful_embeddings()
             self.info.set_output_summary(
-                str(int(len(corpus))),
+                f"{successful}|{unsuccessful}",
                 "Successful: {}, Unsuccessful: {}".format(
-                    int(len(corpus)), int(unsuccessful)))
+                    successful, unsuccessful
+                )
+            )
 
     @Inputs.corpus
     def set_data(self, data):
@@ -170,7 +177,7 @@ class OWDocumentEmbedding(OWWidget, ConcurrentWidgetMixin):
             return
 
         self.corpus = data
-        self.commit()
+        self.unconditional_commit()
 
     def _option_changed(self):
         self.commit()
@@ -180,7 +187,7 @@ class OWDocumentEmbedding(OWWidget, ConcurrentWidgetMixin):
             self.clear_outputs()
             return
 
-        self._set_fields(False)
+        self.cancel_button.setDisabled(False)
 
         self.start(run_pretrained_embedder,
                    self.corpus,
@@ -189,16 +196,16 @@ class OWDocumentEmbedding(OWWidget, ConcurrentWidgetMixin):
 
         self.Error.clear()
 
-    def on_done(self, result: Any) -> None:
-        self._set_fields(True)
-        self._send_output_signals(result)
+    def on_done(self, embeddings: Tuple[Corpus, Corpus]) -> None:
+        self.cancel_button.setDisabled(True)
+        self._send_output_signals(embeddings[0], embeddings[1])
 
     def on_partial_result(self, result: Any):
         self.cancel()
         self.Error.no_connection()
 
     def on_exception(self, ex: Exception):
-        self._set_fields(False)
+        self.cancel_button.setDisabled(True)
         if isinstance(ex, EmbeddingConnectionError):
             self.Error.no_connection()
         else:
@@ -207,21 +214,16 @@ class OWDocumentEmbedding(OWWidget, ConcurrentWidgetMixin):
         self.clear_outputs()
 
     def cancel(self):
-        self._set_fields(True)
+        self.cancel_button.setDisabled(True)
         super().cancel()
 
-    def _set_fields(self, active):
-        self.auto_commit_widget.setDisabled(not active)
-        self.cancel_button.setDisabled(active)
-        self.language_cb.setDisabled(not active)
-        self.aggregator_cb.setDisabled(not active)
-
-    def _send_output_signals(self, result):
-        self.Outputs.new_corpus.send(result)
-        self.set_output_corpus_summary(result)
+    def _send_output_signals(self, embeddings, skipped):
+        self.Outputs.new_corpus.send(embeddings)
+        self.Outputs.skipped.send(skipped)
+        self.set_output_corpus_summary(embeddings, skipped)
 
     def clear_outputs(self):
-        self._send_output_signals(None)
+        self._send_output_signals(None, None)
 
     def onDeleteWidget(self):
         self.cancel()

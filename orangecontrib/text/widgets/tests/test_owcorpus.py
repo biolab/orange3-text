@@ -1,3 +1,4 @@
+import unittest
 from unittest.mock import Mock
 
 import numpy as np
@@ -27,6 +28,7 @@ class TestOWCorpus(WidgetTest):
                 self.assertFalse(attr.attributes.get("title", False))
 
     def test_title_combo(self):
+        self.wait_until_finished()
         # default corpus dataset
         self.assertEqual(self.widget.corpus.name, "book-excerpts")
 
@@ -44,6 +46,7 @@ class TestOWCorpus(WidgetTest):
         # default corpus dataset
         data = Corpus.from_file("election-tweets-2016")
         self.send_signal(self.widget.Inputs.data, data)
+        self.wait_until_finished()
 
         self.assertEqual(data.domain["Content"], self.widget.title_variable)
         self.check_output("Content")
@@ -62,6 +65,7 @@ class TestOWCorpus(WidgetTest):
                    ["c" * 100, "a" * 40, "b" * 40]]
         )
         self.send_signal(self.widget.Inputs.data, data)
+        self.wait_until_finished()
         self.assertEqual(data.domain["title"], self.widget.title_variable)
         self.check_output("title")
 
@@ -74,6 +78,7 @@ class TestOWCorpus(WidgetTest):
                    ["c" * 100, "a" * 40, "b" * 40]]
         )
         self.send_signal(self.widget.Inputs.data, data)
+        self.wait_until_finished()
         self.assertEqual(data.domain["Title"], self.widget.title_variable)
         self.check_output("Title")
 
@@ -89,6 +94,7 @@ class TestOWCorpus(WidgetTest):
                    ["c" * 100, "a" * 40, "b" * 40]]
         )
         self.send_signal(self.widget.Inputs.data, data)
+        self.wait_until_finished()
         self.assertEqual(data.domain["Title"], self.widget.title_variable)
         self.check_output("Title")
 
@@ -103,6 +109,7 @@ class TestOWCorpus(WidgetTest):
                    ["c" * 100, "a" * 40, "b" * 40]]
         )
         self.send_signal(self.widget.Inputs.data, data)
+        self.wait_until_finished()
         self.assertEqual(data.domain["Title"], self.widget.title_variable)
         self.check_output("Title")
 
@@ -117,6 +124,7 @@ class TestOWCorpus(WidgetTest):
                    ["c" * 100, "a" * 40, "b" * 40]]
         )
         self.send_signal(self.widget.Inputs.data, data)
+        self.wait_until_finished()
         self.assertEqual(data.domain["Heading"], self.widget.title_variable)
         self.check_output("Heading")
 
@@ -134,6 +142,7 @@ class TestOWCorpus(WidgetTest):
                    ["a" * 10, "c" * 10]]
         )
         self.send_signal(self.widget.Inputs.data, data)
+        self.wait_until_finished()
         self.assertEqual(data.domain["b"], self.widget.title_variable)
         self.check_output("b")
 
@@ -153,6 +162,7 @@ class TestOWCorpus(WidgetTest):
                    ["c" * 100, "a" * 10, "b" * 10]]
         )
         self.send_signal(self.widget.Inputs.data, data)
+        self.wait_until_finished()
         self.assertEqual(data.domain["c"], self.widget.title_variable)
         self.check_output("c")
 
@@ -171,6 +181,7 @@ class TestOWCorpus(WidgetTest):
                    ["c" * 100, "a" * 40, "b" * 40]]
         )
         self.send_signal(self.widget.Inputs.data, data)
+        self.wait_until_finished()
         self.assertEqual(data.domain["c"], self.widget.title_variable)
         self.check_output("c")
 
@@ -202,6 +213,7 @@ class TestOWCorpus(WidgetTest):
         out_sum = self.widget.info.set_output_summary = Mock()
 
         self.send_signal(self.widget.Inputs.data, data)
+        self.wait_until_finished()
         out_sum.assert_called_with(
             str(len(data)),
             "6444 document(s)\n4 text features(s)\n7 other feature(s)\n"
@@ -213,6 +225,7 @@ class TestOWCorpus(WidgetTest):
                        data.X, metas=data.metas,
                        text_features=data.text_features)
         self.send_signal(self.widget.Inputs.data, data1)
+        self.wait_until_finished()
         out_sum.assert_called_with(
             str(len(data)),
             "6444 document(s)\n4 text features(s)\n7 other feature(s)")
@@ -226,6 +239,7 @@ class TestOWCorpus(WidgetTest):
                        metas=data.metas,
                        text_features=data.text_features)
         self.send_signal(self.widget.Inputs.data, data1)
+        self.wait_until_finished()
         out_sum.assert_called_with(
             str(len(data)),
             "6444 document(s)\n4 text features(s)\n7 other feature(s)\n"
@@ -234,6 +248,7 @@ class TestOWCorpus(WidgetTest):
 
         # default dataset is on the output
         self.send_signal(self.widget.Inputs.data, None)
+        self.wait_until_finished()
         out_sum.assert_called_with(
             "140",
             "140 document(s)\n1 text features(s)\n0 other feature(s)\n"
@@ -248,22 +263,29 @@ class TestOWCorpus(WidgetTest):
         attributes = [
             ContinuousVariable("a"), ContinuousVariable("b"),
             ContinuousVariable("c")]
-        metas = [StringVariable("c"), StringVariable("d"),
-                 StringVariable("e"), StringVariable("f"),
-                 StringVariable("g"), StringVariable("h")]
+        metas = [StringVariable("d"), StringVariable("e"),
+                 StringVariable("f"), StringVariable("g"),
+                 StringVariable("h"), StringVariable("i")]
         data = Table(
             Domain(attributes, metas=metas),
             np.array([[0] * len(attributes)]),
             metas=[["a" * 10] * len(metas)]
         )
         self.send_signal(self.widget.Inputs.data, data)
+        self.wait_until_finished()
         prew_selected = data.domain.metas[1:3]
         self.widget.used_attrs = prew_selected
 
         self.send_signal(self.widget.Inputs.data, None)
+        self.wait_until_finished()
 
         data = Table.from_table(
             Domain(attributes[:-1], [], metas=metas), data
         )
         self.send_signal(self.widget.Inputs.data, data)
+        self.wait_until_finished()
         self.assertListEqual(list(prew_selected), self.widget.used_attrs)
+
+
+if __name__ == "__main__":
+    unittest.main()
