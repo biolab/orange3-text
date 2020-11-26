@@ -1,3 +1,5 @@
+from typing import List
+
 from AnyQt.QtCore import Qt
 from AnyQt.QtWidgets import QApplication, QGridLayout, QLabel
 
@@ -6,7 +8,9 @@ from Orange.widgets.utils.signals import Input, Output
 from Orange.widgets.widget import OWWidget, Msg
 from orangecontrib.text import Corpus
 from orangecontrib.text.sentiment import VaderSentiment, LiuHuSentiment, \
-    MultiSentiment, SentimentDictionaries
+    MultiSentiment, SentimentDictionaries, CustomDictionaries
+from orangecontrib.text.widgets.owpreprocess import FileLoader, _to_abspath
+from orangewidget.utils.filedialogs import RecentPath
 
 
 class OWSentimentAnalysis(OWWidget):
@@ -32,20 +36,26 @@ class OWSentimentAnalysis(OWWidget):
     METHODS = [
         LiuHuSentiment,
         VaderSentiment,
-        MultiSentiment
+        MultiSentiment,
+        CustomDictionaries
     ]
     LANG = ['English', 'Slovenian']
     MULTI_LANG = MultiSentiment.LANGS.keys()
+    DEFAULT_NONE = None
 
     class Warning(OWWidget.Warning):
         senti_offline = Msg('No internet connection! Sentiment now only works '
                             'with local models.')
         senti_offline_no_lang = Msg('No internet connection and no local '
                                     'language resources are available.')
+        one_dict_only = Msg(f'Only one dictionary loaded.')
+        no_dicts_loaded = Msg('No dictionaries loaded.')
 
     def __init__(self):
         super().__init__()
         self.corpus = None
+        self.pos_file = None
+        self.neg_file = None
 
         self.form = QGridLayout()
         self.method_box = box = gui.radioButtonsInBox(
@@ -65,6 +75,18 @@ class OWSentimentAnalysis(OWWidget):
                                       sendSelectedValue=True,
                                       contentsLength=10, items=[''],
                                       callback=self._method_changed)
+        self.custom_list = gui.appendRadioButton(box, "Custom dictionary",
+                                                 addToLayout=False)
+
+        self.__posfile_loader = FileLoader()
+        self.__posfile_loader.set_file_list()
+        self.__posfile_loader.activated.connect(self.__pos_loader_activated)
+        self.__posfile_loader.file_loaded.connect(self.__pos_loader_activated)
+
+        self.__negfile_loader = FileLoader()
+        self.__negfile_loader.set_file_list()
+        self.__negfile_loader.activated.connect(self.__neg_loader_activated)
+        self.__negfile_loader.file_loaded.connect(self.__neg_loader_activated)
 
         self.form.addWidget(self.liu_hu, 0, 0, Qt.AlignLeft)
         self.form.addWidget(QLabel("Language:"), 0, 1, Qt.AlignRight)
@@ -73,6 +95,17 @@ class OWSentimentAnalysis(OWWidget):
         self.form.addWidget(self.multi_sent, 2, 0, Qt.AlignLeft)
         self.form.addWidget(QLabel("Language:"), 2, 1, Qt.AlignRight)
         self.form.addWidget(self.multi_box, 2, 2, Qt.AlignRight)
+        self.form.addWidget(self.custom_list, 3, 0, Qt.AlignLeft)
+        self.filegrid = QGridLayout()
+        self.form.addLayout(self.filegrid, 4, 0, 1, 3)
+        self.filegrid.addWidget(QLabel("Positive:"), 0, 0, Qt.AlignRight)
+        self.filegrid.addWidget(self.__posfile_loader.file_combo, 0, 1)
+        self.filegrid.addWidget(self.__posfile_loader.browse_btn, 0, 2)
+        self.filegrid.addWidget(self.__posfile_loader.load_btn, 0, 3)
+        self.filegrid.addWidget(QLabel("Negative:"), 1, 0, Qt.AlignRight)
+        self.filegrid.addWidget(self.__negfile_loader.file_combo, 1, 1)
+        self.filegrid.addWidget(self.__negfile_loader.browse_btn, 1, 2)
+        self.filegrid.addWidget(self.__negfile_loader.load_btn, 1, 3)
 
         self.senti_dict = SentimentDictionaries()
         self.update_multi_box()
@@ -82,6 +115,28 @@ class OWSentimentAnalysis(OWWidget):
         ac = gui.auto_commit(self.controlArea, self, 'autocommit', 'Commit',
                              'Autocommit is on')
         ac.layout().insertSpacing(1, 8)
+
+    def __pos_loader_activated(self):
+        cf = self.__posfile_loader.get_current_file()
+        self.pos_file = cf.abspath if cf else None
+        self._method_changed()
+
+    def __neg_loader_activated(self):
+        cf = self.__negfile_loader.get_current_file()
+        self.neg_file = cf.abspath if cf else None
+        self._method_changed()
+
+    def __set_pos_path(self, path: RecentPath, paths: List[RecentPath] = []):
+        self._posfile_loader.recent_paths = paths
+        self.__posfile_loader.set_file_list()
+        self.__posfile_loader.set_current_file(_to_abspath(path))
+        self.pos_file = self.__posfile_loader.get_current_file()
+
+    def __set_lx_path(self, path: RecentPath, paths: List[RecentPath] = []):
+        self.__negfile_loader.recent_paths = paths
+        self.__negfile_loader.set_file_list()
+        self.__negfile_loader.set_current_file(_to_abspath(path))
+        self.neg_file = self.__negfile_loader.get_current_file()
 
     def update_multi_box(self):
         if self.senti_dict.supported_languages:
@@ -116,6 +171,8 @@ class OWSentimentAnalysis(OWWidget):
     def commit(self):
         if self.corpus is not None:
             self.Warning.senti_offline.clear()
+            self.Warning.one_dict_only.clear()
+            self.Warning.no_dicts_loaded.clear()
             method = self.METHODS[self.method_idx]
             if self.method_idx == 0:
                 out = method(language=self.liu_language).transform(self.corpus)
@@ -126,6 +183,13 @@ class OWSentimentAnalysis(OWWidget):
                     return
                 else:
                     out = method(language=self.multi_language).transform(self.corpus)
+            elif self.method_idx == 3:
+                out = method(self.pos_file, self.neg_file).transform(self.corpus)
+                if (self.pos_file and not self.neg_file) or \
+                    (self.neg_file and not self.pos_file):
+                    self.Warning.one_dict_only()
+                if not self.pos_file and not self.neg_file:
+                    self.Warning.no_dicts_loaded()
             else:
                 out = method().transform(self.corpus)
             self.Outputs.corpus.send(out)

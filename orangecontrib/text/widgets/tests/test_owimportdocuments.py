@@ -8,17 +8,17 @@ from orangecontrib.text.widgets.owimportdocuments import OWImportDocuments
 class TestOWImportDocuments(WidgetTest):
     def setUp(self) -> None:
         self.widget: OWImportDocuments = self.create_widget(OWImportDocuments)
-        path = os.path.join(os.path.dirname(__file__), "data")
+        path = os.path.join(os.path.dirname(__file__), "data/documents")
         self.widget.setCurrentPath(path)
         self.widget.reload()
         self.wait_until_finished()
 
     def test_current_path(self):
-        path = os.path.join(os.path.dirname(__file__), "data")
+        path = os.path.join(os.path.dirname(__file__), "data/documents")
         self.assertEqual(path, self.widget.currentPath)
 
     def test_no_skipped(self):
-        path = os.path.join(os.path.dirname(__file__), "data", "good")
+        path = os.path.join(os.path.dirname(__file__), "data/documents", "good")
         self.widget.setCurrentPath(path)
         self.widget.reload()
         self.wait_until_finished()

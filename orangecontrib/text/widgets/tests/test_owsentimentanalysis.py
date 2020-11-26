@@ -1,3 +1,6 @@
+import os
+import numpy as np
+
 from unittest import mock, skip
 from unittest.mock import patch
 
@@ -39,6 +42,18 @@ class TestSentimentWidget(WidgetTest):
         out_corpus = self.get_output(self.widget.Outputs.corpus)
         self.assertEqual(len(out_corpus.domain), len(self.corpus.domain) + 1)
 
+        # test custom files
+        self.widget.pos_file = os.path.join(os.path.dirname(__file__),
+                                            "data/sentiment/pos.txt")
+        self.widget.neg_file = os.path.join(os.path.dirname(__file__),
+                                            "data/sentiment/neg.txt")
+        self.widget.custom_list.click()
+        out_corpus = self.get_output(self.widget.Outputs.corpus)
+        self.assertEqual(len(out_corpus.domain), len(self.corpus.domain) + 1)
+        res = np.array([[0], [10], [16.66666667], [12.5], [11.11111111],
+                        [-14.28571429], [0], [-10], [0]])
+        np.testing.assert_array_almost_equal(out_corpus.X, res, decimal=8)
+
     def test_language_changed(self):
         """Test if output changes on language change"""
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
@@ -63,3 +78,23 @@ class TestSentimentWidget(WidgetTest):
             self.send_signal(widget.Inputs.corpus, self.corpus)
             widget.multi_sent.click()
             self.assertTrue(widget.Warning.senti_offline.is_shown())
+
+    def test_no_file_warnings(self):
+        widget = self.create_widget(OWSentimentAnalysis)
+        self.send_signal(widget.Inputs.corpus, self.corpus)
+        self.assertFalse(widget.Warning.no_dicts_loaded.is_shown())
+        widget.custom_list.click()
+        self.assertTrue(widget.Warning.no_dicts_loaded.is_shown())
+        widget.pos_file = os.path.join(os.path.dirname(__file__),
+                                       "data/sentiment/pos.txt")
+        widget.commit()
+        self.assertTrue(widget.Warning.one_dict_only.is_shown())
+        self.assertFalse(widget.Warning.no_dicts_loaded.is_shown())
+        widget.neg_file = os.path.join(os.path.dirname(__file__),
+                                       "data/sentiment/neg.txt")
+        widget.commit()
+        self.assertFalse(widget.Warning.one_dict_only.is_shown())
+        self.assertFalse(widget.Warning.no_dicts_loaded.is_shown())
+        widget.vader.click()
+        self.assertFalse(widget.Warning.one_dict_only.is_shown())
+        self.assertFalse(widget.Warning.no_dicts_loaded.is_shown())
