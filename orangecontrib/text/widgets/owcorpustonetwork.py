@@ -60,7 +60,7 @@ class OWCorpusToNetwork(OWWidget, ConcurrentWidgetMixin):
         corpus = Input("Corpus", Corpus)
 
     class Outputs:
-        network = Output("Network", Network) if Network else None
+        network = Output("Network", "orangecontrib.network.Network")
         items = Output("Node Data", Table)
 
     class Error(OWWidget.Error):
