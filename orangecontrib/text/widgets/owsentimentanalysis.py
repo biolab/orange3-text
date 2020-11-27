@@ -8,7 +8,8 @@ from Orange.widgets.utils.signals import Input, Output
 from Orange.widgets.widget import OWWidget, Msg
 from orangecontrib.text import Corpus, preprocess
 from orangecontrib.text.sentiment import VaderSentiment, LiuHuSentiment, \
-    MultiSentiment, CustomDictionaries, MultisentimentDictionaries
+    MultiSentiment, CustomDictionaries, SentiArt, MultisentimentDictionaries, \
+    SentiArtDictionaries
 from orangecontrib.text.widgets.owpreprocess import FileLoader, _to_abspath
 from orangecontrib.text.preprocess import PreprocessorList
 from orangewidget.utils.filedialogs import RecentPath
@@ -31,6 +32,7 @@ class OWSentimentAnalysis(OWWidget):
     autocommit = settings.Setting(True)
     liu_language = settings.Setting('English')
     multi_language = settings.Setting('English')
+    senti_language = settings.Setting('English')
     want_main_area = False
     resizing_enabled = False
 
@@ -38,10 +40,12 @@ class OWSentimentAnalysis(OWWidget):
         LiuHuSentiment,
         VaderSentiment,
         MultiSentiment,
+        SentiArt,
         CustomDictionaries
     ]
     LANG = ['English', 'Slovenian']
     MULTI_LANG = MultiSentiment.LANGS.keys()
+    SENTI_LANG = SentiArt.LANGS.keys()
     DEFAULT_NONE = None
 
     class Warning(OWWidget.Warning):
@@ -58,6 +62,7 @@ class OWSentimentAnalysis(OWWidget):
         self.pp_corpus = None
         self.pos_file = None
         self.neg_file = None
+        self.senti_dict = None
 
         self.form = QGridLayout()
         self.method_box = box = gui.radioButtonsInBox(
@@ -74,6 +79,12 @@ class OWSentimentAnalysis(OWWidget):
                                                      "sentiment",
                                                 addToLayout=False)
         self.multi_box = gui.comboBox(None, self, 'multi_language',
+                                      sendSelectedValue=True,
+                                      contentsLength=10, items=[''],
+                                      callback=self._method_changed)
+        self.senti_art = gui.appendRadioButton(box, "SentiArt",
+                                               addToLayout=False)
+        self.senti_box = gui.comboBox(None, self, 'senti_language',
                                       sendSelectedValue=True,
                                       contentsLength=10, items=[''],
                                       callback=self._method_changed)
@@ -97,9 +108,12 @@ class OWSentimentAnalysis(OWWidget):
         self.form.addWidget(self.multi_sent, 2, 0, Qt.AlignLeft)
         self.form.addWidget(QLabel("Language:"), 2, 1, Qt.AlignRight)
         self.form.addWidget(self.multi_box, 2, 2, Qt.AlignRight)
-        self.form.addWidget(self.custom_list, 3, 0, Qt.AlignLeft)
+        self.form.addWidget(self.senti_art, 3, 0, Qt.AlignLeft)
+        self.form.addWidget(QLabel("Language:"), 3, 1, Qt.AlignRight)
+        self.form.addWidget(self.senti_box, 3, 2, Qt.AlignRight)
+        self.form.addWidget(self.custom_list, 4, 0, Qt.AlignLeft)
         self.filegrid = QGridLayout()
-        self.form.addLayout(self.filegrid, 4, 0, 1, 3)
+        self.form.addLayout(self.filegrid, 5, 0, 1, 3)
         self.filegrid.addWidget(QLabel("Positive:"), 0, 0, Qt.AlignRight)
         self.filegrid.addWidget(self.__posfile_loader.file_combo, 0, 1)
         self.filegrid.addWidget(self.__posfile_loader.browse_btn, 0, 2)
@@ -109,9 +123,11 @@ class OWSentimentAnalysis(OWWidget):
         self.filegrid.addWidget(self.__negfile_loader.browse_btn, 1, 2)
         self.filegrid.addWidget(self.__negfile_loader.load_btn, 1, 3)
 
-        self.senti_dict = MultisentimentDictionaries()
-        self.update_multi_box()
-        self.senti_online = self.senti_dict.online
+        self.multi_dict = MultisentimentDictionaries()
+        self.senti_dict = SentiArtDictionaries()
+        self.update_box(self.multi_box, self.multi_dict, MultiSentiment)
+        self.update_box(self.senti_box, self.senti_dict, SentiArt)
+        self.online = self.multi_dict.online
         self.check_sentiment_online()
 
         ac = gui.auto_commit(self.controlArea, self, 'autocommit', 'Commit',
@@ -140,24 +156,31 @@ class OWSentimentAnalysis(OWWidget):
         self.__negfile_loader.set_current_file(_to_abspath(path))
         self.neg_file = self.__negfile_loader.get_current_file()
 
-    def update_multi_box(self):
-        if self.senti_dict.supported_languages():
-            self.multi_box.clear()
-            items = sorted([key for (key, value) in MultiSentiment.LANGS.items()
-                            if value in self.senti_dict.supported_languages()])
-            self.multi_box.addItems(items)
-            self.multi_box.setCurrentIndex(items.index("English"))
+    def update_box(self, box, dictionary, method):
+        box.clear()
+        supported_languages = dictionary.supported_languages()
+        if supported_languages:
+            items = sorted([key for (key, value) in method.LANGS.items()
+                            if value in supported_languages])
+            box.addItems(items)
+            box.setCurrentIndex(items.index("English"))
 
     def check_sentiment_online(self):
-        current_state = self.senti_dict.online
-        if self.senti_online != current_state:
-            self.update_multi_box()
-            self.senti_online = current_state
+        current_state = self.multi_dict.online
+        if self.online != current_state:
+            self.update_box(self.multi_box, self.multi_dict, MultiSentiment)
+            self.update_box(self.senti_box, self.senti_dict, SentiArt)
+            self.online = current_state
 
         self.Warning.senti_offline.clear()
         self.Warning.senti_offline_no_lang.clear()
         if not current_state and self.method_idx == 2:
-            if self.senti_dict.supported_languages():
+            if self.multi_dict.supported_languages():
+                self.Warning.senti_offline()
+            else:
+                self.Warning.senti_offline_no_lang()
+        if not current_state and self.method_idx == 3:
+            if self.senti_dict_dict.supported_languages():
                 self.Warning.senti_offline()
             else:
                 self.Warning.senti_offline_no_lang()
@@ -192,6 +215,12 @@ class OWSentimentAnalysis(OWWidget):
                     return
                 else:
                     out = method(language=self.multi_language).transform(corpus)
+            elif method.name == 'SentiArt':
+                if not self.senti_dict.online:
+                    self.Warning.senti_offline()
+                    self.update_box(self.senti_box, self.senti_dict, SentiArt)
+                    return
+                out = method(language=self.senti_language).transform(corpus)
             elif method.name == 'Custom Dictionaries':
                 out = method(self.pos_file, self.neg_file).transform(corpus)
                 if (self.pos_file and not self.neg_file) or \

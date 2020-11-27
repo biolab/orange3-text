@@ -22,6 +22,11 @@ def read_file(file):
         return f.read().split('\n')
 
 
+def read_pickle(file):
+    with open(file, 'rb') as f:
+        return pickle.loads(f.read())
+
+
 def compute_from_dict(tokens, pos, neg):
     scores = []
     for doc in tokens:
@@ -193,6 +198,47 @@ class MultiSentiment(Sentiment):
 
     def __setstate__(self, state):
         self.__init__(state['language'])
+
+
+class SentiArtDictionaries(SentimentDictionaries):
+    server_url = "http://file.biolab.si/files/sentiart/"
+
+    def __init__(self):
+        super().__init__()
+
+    def __getitem__(self, language):
+        filtering_dict = read_pickle(self.localfiles.localpath_download(
+                                     f"SentiArt_{language}.pickle"))
+        return filtering_dict
+
+    def supported_languages(self):
+        regex = "SentiArt_(.*)\.pickle"
+        supported_languages = set()
+        for i in self.lang_files:
+            res = re.fullmatch(regex, i[0])
+            if res:
+                supported_languages.add(res.group(1))
+        return supported_languages
+
+
+class SentiArt(Sentiment):
+    sentiments = ('sentiment', 'anger', 'fear', 'disgust', 'happiness',
+                  'sadness', 'surprise')
+    name = 'SentiArt'
+
+    LANGS = {'English': 'EN', 'German': 'DE'}
+
+    def __init__(self, language='English'):
+        self.language = language
+        self.dictionary = SentiArtDictionaries()[self.LANGS[self.language]]
+
+    def get_scores(self, corpus):
+        scores = []
+        for doc in corpus.tokens:
+            score = np.array([list(self.dictionary[word].values()) for word in\
+                                   doc if word in self.dictionary]).mean(axis=0)
+            scores.append(score)
+        return scores
 
 
 class CustomDictionaries(Sentiment):
