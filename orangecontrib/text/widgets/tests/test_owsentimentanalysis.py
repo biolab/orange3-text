@@ -50,7 +50,7 @@ class TestSentimentWidget(WidgetTest):
         self.widget.custom_list.click()
         out_corpus = self.get_output(self.widget.Outputs.corpus)
         self.assertEqual(len(out_corpus.domain), len(self.corpus.domain) + 1)
-        res = np.array([[0], [10], [16.66666667], [12.5], [11.11111111],
+        res = np.array([[12.5], [10], [16.66666667], [12.5], [11.11111111],
                         [-14.28571429], [0], [-10], [0]])
         np.testing.assert_array_almost_equal(out_corpus.X, res, decimal=8)
 
