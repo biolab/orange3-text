@@ -6,10 +6,11 @@ from AnyQt.QtWidgets import QApplication, QGridLayout, QLabel
 from Orange.widgets import gui, settings
 from Orange.widgets.utils.signals import Input, Output
 from Orange.widgets.widget import OWWidget, Msg
-from orangecontrib.text import Corpus
+from orangecontrib.text import Corpus, preprocess
 from orangecontrib.text.sentiment import VaderSentiment, LiuHuSentiment, \
-    MultiSentiment, SentimentDictionaries, CustomDictionaries
+    MultiSentiment, CustomDictionaries, MultisentimentDictionaries
 from orangecontrib.text.widgets.owpreprocess import FileLoader, _to_abspath
+from orangecontrib.text.preprocess import PreprocessorList
 from orangewidget.utils.filedialogs import RecentPath
 
 
@@ -54,6 +55,7 @@ class OWSentimentAnalysis(OWWidget):
     def __init__(self):
         super().__init__()
         self.corpus = None
+        self.pp_corpus = None
         self.pos_file = None
         self.neg_file = None
 
@@ -107,7 +109,7 @@ class OWSentimentAnalysis(OWWidget):
         self.filegrid.addWidget(self.__negfile_loader.browse_btn, 1, 2)
         self.filegrid.addWidget(self.__negfile_loader.load_btn, 1, 3)
 
-        self.senti_dict = SentimentDictionaries()
+        self.senti_dict = MultisentimentDictionaries()
         self.update_multi_box()
         self.senti_online = self.senti_dict.online
         self.check_sentiment_online()
@@ -139,10 +141,10 @@ class OWSentimentAnalysis(OWWidget):
         self.neg_file = self.__negfile_loader.get_current_file()
 
     def update_multi_box(self):
-        if self.senti_dict.supported_languages:
+        if self.senti_dict.supported_languages():
             self.multi_box.clear()
             items = sorted([key for (key, value) in MultiSentiment.LANGS.items()
-                            if value in self.senti_dict.supported_languages])
+                            if value in self.senti_dict.supported_languages()])
             self.multi_box.addItems(items)
             self.multi_box.setCurrentIndex(items.index("English"))
 
@@ -155,14 +157,20 @@ class OWSentimentAnalysis(OWWidget):
         self.Warning.senti_offline.clear()
         self.Warning.senti_offline_no_lang.clear()
         if not current_state and self.method_idx == 2:
-            if self.senti_dict.supported_languages:
+            if self.senti_dict.supported_languages():
                 self.Warning.senti_offline()
             else:
                 self.Warning.senti_offline_no_lang()
 
+
     @Inputs.corpus
     def set_corpus(self, data=None):
         self.corpus = data
+        # create preprocessed corpus upon setting data to avoid preprocessing
+        # at each method run
+        pp_list = [preprocess.LowercaseTransformer(),
+                   preprocess.WordPunctTokenizer()]
+        self.pp_corpus = PreprocessorList(pp_list)(self.corpus)
         self.commit()
 
     def _method_changed(self):
@@ -174,24 +182,25 @@ class OWSentimentAnalysis(OWWidget):
             self.Warning.one_dict_only.clear()
             self.Warning.no_dicts_loaded.clear()
             method = self.METHODS[self.method_idx]
-            if self.method_idx == 0:
-                out = method(language=self.liu_language).transform(self.corpus)
-            elif self.method_idx == 2:
+            corpus = self.pp_corpus
+            if method.name == 'Liu Hu':
+                out = method(language=self.liu_language).transform(corpus)
+            elif method.name == 'Multilingual Sentiment':
                 if not self.senti_dict.online:
                     self.Warning.senti_offline()
-                    self.update_multi_box()
+                    self.update_box(self.multi_box, self.multi_dict, MultiSentiment)
                     return
                 else:
-                    out = method(language=self.multi_language).transform(self.corpus)
-            elif self.method_idx == 3:
-                out = method(self.pos_file, self.neg_file).transform(self.corpus)
+                    out = method(language=self.multi_language).transform(corpus)
+            elif method.name == 'Custom Dictionaries':
+                out = method(self.pos_file, self.neg_file).transform(corpus)
                 if (self.pos_file and not self.neg_file) or \
                     (self.neg_file and not self.pos_file):
                     self.Warning.one_dict_only()
                 if not self.pos_file and not self.neg_file:
                     self.Warning.no_dicts_loaded()
             else:
-                out = method().transform(self.corpus)
+                out = method().transform(corpus)
             self.Outputs.corpus.send(out)
         else:
             self.Outputs.corpus.send(None)
