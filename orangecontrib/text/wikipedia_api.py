@@ -1,4 +1,5 @@
 import wikipedia
+# from wikipedia.exceptions import PageError
 
 from Orange import data
 from orangecontrib.text import Corpus

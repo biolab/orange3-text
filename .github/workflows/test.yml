@@ -1,0 +1,94 @@
+name: Test
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.experimental }}
+    timeout-minutes: 15
+    name: ${{ matrix.name }} (${{ matrix.os }}, ${{ matrix.python-version }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-18.04, macos-10.15, windows-2016]
+        python-version: [3.7, 3.8]
+        tox_env: [py-orange-released]
+        experimental: [false]
+        name: [Released]
+        include:
+          - os: windows-2019
+            python-version: 3.8
+            tox_env: py-orange-released
+            experimental: true
+            name: Windows10
+          - os: macos-11.0
+            python-version: 3.8
+            tox_env: py-orange-released
+            experimental: true
+            name: Big Sur
+
+          - os: windows-2016
+            python-version: 3.7
+            tox_env: py-orange-oldest
+            experimental: false
+            name: Oldest
+          - os: macos-10.15
+            python-version: 3.7
+            tox_env: py-orange-oldest
+            name: Oldest
+            experimental: false
+          - os: ubuntu-18.04
+            python-version: 3.7
+            tox_env: py-orange-oldest
+            name: Oldest
+            experimental: false
+
+          - os: windows-2016
+            python-version: 3.8
+            tox_env: py-orange-latest
+            experimental: false
+            name: Latest
+          - os: macos-10.15
+            python-version: 3.8
+            tox_env: py-orange-latest
+            experimental: false
+            name: Latest
+          - os: ubuntu-18.04
+            python-version: 3.8
+            tox_env: py-orange-latest
+            experimental: false
+            name: Latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --upgrade tox tox-pip-version
+
+      - name: Test with Tox
+        run: |
+          tox -e ${{ matrix.tox_env }}
+        env:
+          QT_QPA_PLATFORM: offscreen
+
+      - name: Upload code coverage
+        if: |
+          matrix.python-version == '3.8' &&  
+          matrix.os == 'ubuntu-18.04' && 
+          matrix.tox_env == 'py-orange-released'
+        run: |
+          pip install codecov
+          codecov
