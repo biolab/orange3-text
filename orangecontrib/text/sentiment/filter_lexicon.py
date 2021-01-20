@@ -1,12 +1,18 @@
+import fnmatch
 import os
+import pickle
 
 
 class FilterSentiment:
 
     @staticmethod
     def read_file(file):
-        with open(file, 'r') as f:
-            return f.read().split('\n')
+        if fnmatch.fnmatch(file, '*.pickle'):
+            with open(file, 'rb') as f:
+                return pickle.loads(f.read())
+        else:
+            with open(file, 'r') as f:
+                return f.read().split('\n')
 
 
 class SloSentiment(FilterSentiment):

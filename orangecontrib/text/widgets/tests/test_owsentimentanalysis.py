@@ -37,6 +37,11 @@ class TestSentimentWidget(WidgetTest):
         out_corpus = self.get_output(self.widget.Outputs.corpus)
         self.assertEqual(len(out_corpus.domain), len(self.corpus.domain) + 1)
 
+        # test SentiArt
+        self.widget.senti_art.click()
+        out_corpus = self.get_output(self.widget.Outputs.corpus)
+        self.assertEqual(len(out_corpus.domain), len(self.corpus.domain) + 7)
+
         # test liu hu
         self.widget.liu_hu.click()
         out_corpus = self.get_output(self.widget.Outputs.corpus)

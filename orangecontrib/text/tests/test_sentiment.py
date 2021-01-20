@@ -2,7 +2,7 @@ import unittest
 
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.sentiment import LiuHuSentiment, VaderSentiment, \
-    MultiSentiment
+    MultiSentiment, SentiArt
 
 
 class LiuHuTest(unittest.TestCase):
@@ -91,6 +91,13 @@ class MultiSentimentTest(LiuHuTest):
         self.corpus = Corpus.from_file('deerwester')
         self.method = MultiSentiment()
         self.new_cols = 1
+
+
+class SentiArtTest(LiuHuTest):
+    def setUp(self):
+        self.corpus = Corpus.from_file('deerwester')
+        self.method = SentiArt()
+        self.new_cols = 7
 
 
 if __name__ == "__main__":
