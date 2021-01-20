@@ -27,6 +27,8 @@ class BaseTests:
         self.model.fit_transform(self.corpus)
         topics = self.model.get_all_topics_table()
         self.assertEqual(len(topics), self.model.actual_topics)
+        self.assertTrue(np.all([isinstance(i, float) for i in
+                                topics.metas[:, 1]]))
 
     def test_top_words_by_topic(self):
         self.model.fit(self.corpus)
