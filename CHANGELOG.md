@@ -5,6 +5,19 @@ Change Log
 ------------
 * ...
 
+[1.3.0] - 2021-01-21
+--------------------
+##### Enhancements
+* Sentiment Analysis: Add SentiArt method ([#605](../../pull/605))
+* Preprocess Text: update documentation ([#604](../../pull/604))
+* [DOC] Sentiment Analysis: custom files and documentation ([#557](../../pull/557))
+
+##### Bugfixes
+* Preprocess: Filter by absolute frequency ([#601](../../pull/601))
+* Corpus: extend_attributes retain preprocessing ([#599](../../pull/599))
+* owwordcloud: Work with empty token list ([#588](../../pull/588))
+* Simhash: Fix error when hash function is None ([#589](../../pull/589))
+
 [1.2.0] - 2020-10-12
 --------------------
 ##### Enhancements
@@ -227,7 +240,8 @@ Change Log
 --------------------
 
 
-[next]: https://github.com/biolab/orange3-text/compare/1.2.0...HEAD
+[next]: https://github.com/biolab/orange3-text/compare/1.3.0...HEAD
+[1.3.0]: https://github.com/biolab/orange3-text/compare/1.2.0...1.3.0
 [1.2.0]: https://github.com/biolab/orange3-text/compare/1.1.0...1.2.0
 [1.1.0]: https://github.com/biolab/orange3-text/compare/1.0.0...1.1.0
 [1.0.0]: https://github.com/biolab/orange3-text/compare/0.9.1...1.0.0
