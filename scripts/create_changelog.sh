@@ -16,16 +16,17 @@ RELEASE_DATE=$(date "+%Y-%m-%d")
 # compile a list of already reported PRs
 reported="$(mktemp)"
 
-grep -E "#[0-9]{4}" -o CHANGELOG.md | sort > "$reported"
+# TODO: {1,4} - change when more than 10000 PR/issues
+grep -E "#[0-9]{1,4}" -o CHANGELOG.md | sort > "$reported"
 
 echo "[$VERSION] - $RELEASE_DATE"
 echo "--------------------"
 echo '##### Enhancements'
 git log stable..master --first-parent --format='%s %b' |
     sed -E 's/.*#([0-9]+).*\[ENH\] *(.*)/\* \2 ([#\1](\.\.\/\.\.\/pull\/\1))/' |
-    grep -E '^\*' | grep -v -F -f "$reported"
+    { grep -E '^\*' || true; } | { grep -v -F -f "$reported" || true; }
 echo
 echo "##### Bugfixes"
 git log stable..master --first-parent --format='%s %b' |
     sed -E 's/.*#([0-9]+).*\[FIX\] *(.*)/\* \2 ([#\1](\.\.\/\.\.\/pull\/\1))/' |
-    grep -E '^\*' | grep -v -F -f "$reported"
+    { grep -E '^\*' || true; } | { grep -v -F -f "$reported" || true; }

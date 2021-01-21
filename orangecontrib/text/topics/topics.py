@@ -143,14 +143,18 @@ class GensimWrapper:
             X.append(weights)
         X = np.array(X)
 
+
         # take only first n_topics; e.g. when user requested 10, but gensim
         # returns only 9 — when the rank is lower than num_topics requested
-        names = np.array(self.topic_names[:n_topics])[:, None]
+        names = np.array(self.topic_names[:n_topics], dtype=object)[:, None]
+
         attrs = [ContinuousVariable(w) for w in sorted_words]
         metas = [StringVariable('Topics'),
                  ContinuousVariable('Marginal Topic Probability')]
 
-        topic_proba = self._marginal_probability(self.tokens, self.doc_topic)
+        topic_proba = np.array(self._marginal_probability(self.tokens,
+                                                          self.doc_topic),
+                               dtype=object)
 
         t = Table.from_numpy(Domain(attrs, metas=metas), X=X,
                              metas=np.hstack((names, topic_proba)))

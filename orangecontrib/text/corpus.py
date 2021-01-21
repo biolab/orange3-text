@@ -9,6 +9,7 @@ import nltk
 import numpy as np
 import scipy.sparse as sp
 from gensim import corpora
+import fasttext
 
 from Orange.data import (
     Variable,
@@ -82,6 +83,7 @@ class Corpus(Table):
         from orangecontrib.text.preprocess import PreprocessorList
         self.__used_preprocessor = PreprocessorList([])   # required for compute values
         self._titles: Optional[np.ndarray] = None
+        self.languages = None
         self._pp_documents = None  # preprocessed documents
 
         if domain is not None and text_features is None:
@@ -224,6 +226,22 @@ class Corpus(Table):
             new_titles.append(t)
         return new_titles
 
+    def detect_languages(self):
+        """
+        Detects language of each document using fastText language
+        identification model.
+        [A. Joulin, E. Grave, P. Bojanowski, T. Mikolov,
+        Bag of Tricks for Efficient Text Classification],
+        [A. Joulin, E. Grave, P. Bojanowski, M. Douze, H. Jégou, T. Mikolov,
+        FastText.zip: Compressing text classification models]
+        """
+        path = os.path.join(os.path.dirname(__file__), 'models', 'lid.176.ftz')
+        model = fasttext.load_model(path)
+        texts = [' '.join(t.replace('\n', ' ').split(' ')[:2000])
+                 for t in self.documents]
+        self.languages = [model.predict(t)[0][0].replace('__label__', '')
+                          for t in texts]
+
     def _infer_text_features(self):
         """
         Infer which text features to use. If nothing was provided
@@ -345,7 +363,7 @@ class Corpus(Table):
                 class_vars=curr_class_var,
                 metas=curr_metas
         )
-        return Corpus(
+        c = Corpus(
             new_domain,
             X,
             self.Y.copy(),
@@ -353,6 +371,8 @@ class Corpus(Table):
             self.W.copy(),
             copy(self.text_features)
         )
+        Corpus.retain_preprocessing(self, c)
+        return c
 
     @property
     def documents(self):
