@@ -18,7 +18,7 @@ from orangecontrib.text.vectorization.base import SharedTransform, \
 
 
 def read_file(file):
-    with open(file, 'r') as f:
+    with open(file, 'r', encoding='utf8') as f:
         return f.read().split('\n')
 
 

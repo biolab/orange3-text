@@ -25,7 +25,7 @@ class TestWordEnrichment(WidgetTest):
 
         self.send_signal(widget.Inputs.data, self.corpus_vect)
         self.send_signal(widget.Inputs.selected_data, self.subset_corpus)
-        self.wait_until_finished(timeout=10000)
+        self.wait_until_finished(timeout=100000)
 
         # test p-value filter
         widget.filter_by_p = True
@@ -162,7 +162,7 @@ class TestWordEnrichment(WidgetTest):
 
         self.send_signal(w.Inputs.selected_data, self.subset_corpus)
         self.send_signal(w.Inputs.data, self.corpus_vect)
-        self.wait_until_finished(timeout=10000)
+        self.wait_until_finished(timeout=100000)
 
         self.assertEqual(w.info_fil.text(), "Words displayed: 3")
 
@@ -190,7 +190,7 @@ class TestWordEnrichment(WidgetTest):
 
         self.send_signal(w.Inputs.data, self.corpus_vect)
         self.send_signal(w.Inputs.selected_data, self.subset_corpus)
-        self.wait_until_finished(timeout=10000)
+        self.wait_until_finished(timeout=100000)
 
         # test p-value filter
         w.controls.filter_by_p.click()  # set to true
@@ -232,7 +232,7 @@ class TestWordEnrichment(WidgetTest):
 
         self.send_signal(w.Inputs.data, self.corpus_vect)
         self.send_signal(w.Inputs.selected_data, self.subset_corpus)
-        self.wait_until_finished(timeout=10000)
+        self.wait_until_finished(timeout=100000)
 
         w.send_report()
 
