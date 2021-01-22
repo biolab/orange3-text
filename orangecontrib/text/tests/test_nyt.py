@@ -67,14 +67,14 @@ class NYTTests(unittest.TestCase):
     API_KEY = 'api_key'
 
     def setUp(self):
-        self.tmp = tempfile.NamedTemporaryFile(delete=False)
-        os.remove(self.tmp.name)
+        # self.tmp = tempfile.NamedTemporaryFile(delete=False)
+        # os.remove(self.tmp.name)
         self.nyt = NYT(self.API_KEY)
-        self.nyt.cache_path = self.tmp.name
+        # self.nyt.cache_path = self.tmp.name
 
-    def tearDown(self):
-        if os.path.exists(self.tmp.name):
-            os.remove(self.tmp.name)
+    # def tearDown(self):
+    #     if os.path.exists(self.tmp.name):
+    #         os.remove(self.tmp.name)
 
     def test_nyt_key(self):
         self.assertTrue(self.nyt.api_key_valid())
