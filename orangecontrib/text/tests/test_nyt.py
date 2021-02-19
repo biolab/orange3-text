@@ -67,14 +67,20 @@ class NYTTests(unittest.TestCase):
     API_KEY = 'api_key'
 
     def setUp(self):
+        # NamedTemporaryFile actually creates and opens the file. On windows you can not open it a second time.
+        # More: https://docs.python.org/3.8/library/tempfile.html#tempfile.NamedTemporaryFile
         self.tmp = tempfile.NamedTemporaryFile(delete=False)
-        os.remove(self.tmp.name)
+        self.tmp.close()
+        os.unlink(self.tmp.name)
+
         self.nyt = NYT(self.API_KEY)
         self.nyt.cache_path = self.tmp.name
 
     def tearDown(self):
-        if os.path.exists(self.tmp.name):
-            os.remove(self.tmp.name)
+        cache_path = f'{self.nyt.cache_path}.db'
+        self.tmp.close()
+        if os.path.exists(cache_path):
+            os.unlink(cache_path)
 
     def test_nyt_key(self):
         self.assertTrue(self.nyt.api_key_valid())
@@ -194,16 +200,18 @@ class NYTTestsErrorRaising(unittest.TestCase):
 class NYTTestsErrorRaising(unittest.TestCase):
     API_KEY = 'api_key'
 
-    def test_url_errors(self):
-        nyt = NYT(self.API_KEY)
-        nyt.on_no_connection = MagicMock()
-        c = nyt.search('slovenia')
-        self.assertIsNone(c)
-        self.assertEqual(nyt.on_no_connection.call_count, 1)
+    def setUp(self):
+        self.nyt = NYT(self.API_KEY)
 
-        nyt.on_no_connection = None
+    def test_url_errors(self):
+        self.nyt.on_no_connection = MagicMock()
+        c = self.nyt.search('slovenia')
+        self.assertIsNone(c)
+        self.assertEqual(self.nyt.on_no_connection.call_count, 1)
+
+        self.nyt.on_no_connection = None
         with self.assertRaises(URLError):
-            nyt.search('slovenia')
+            self.nyt.search('slovenia')
 
 
 class NYTTestsApiValidErrorRaising(unittest.TestCase):

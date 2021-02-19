@@ -167,5 +167,8 @@ if __name__ == '__main__':
         keywords=KEYWORDS,
         namespace_packages=['orangecontrib'],
         zip_safe=False,
-        test_suite="setup.temp_test_suite"
+        test_suite="setup.temp_test_suite",
+        extras_require={
+            'test': ['coverage']
+            },
     )

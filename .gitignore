@@ -23,6 +23,7 @@ __pycache__
 .pydevproject
 .settings/*
 .DS_Store
+.vscode/
 
 # Coverage
 .coverage

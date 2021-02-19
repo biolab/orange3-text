@@ -351,12 +351,15 @@ class FilteringTests(unittest.TestCase):
         self.assertEqual(len(corpus.used_preprocessor.preprocessors), 2)
 
     def test_lexicon(self):
-        f = tempfile.NamedTemporaryFile()
+        f = tempfile.NamedTemporaryFile(delete=False)
         f.write(b'filter\n')
         f.flush()
+        f.close()
         lexicon = preprocess.LexiconFilter(f.name)
         self.assertFalse(lexicon._check('false'))
         self.assertTrue(lexicon._check('filter'))
+        f.close()
+        os.unlink(f.name)
 
     def test_keep_n(self):
         ff = preprocess.MostFrequentTokensFilter(keep_n=5)
@@ -396,12 +399,15 @@ class FilteringTests(unittest.TestCase):
                             for fr in dictionary.dfs.values()))
 
     def test_word_list(self):
-        f = tempfile.NamedTemporaryFile()
+        f = tempfile.NamedTemporaryFile(delete=False)
         f.write(b'hello\nworld\n')
         f.flush()
+        f.close()
         lexicon = preprocess.LexiconFilter(f.name)
         self.assertIn('hello', lexicon._lexicon)
         self.assertIn('world', lexicon._lexicon)
+        f.close()
+        os.unlink(f.name)
 
     def test_regex_filter(self):
         self.assertFalse(preprocess.RegexpFilter.validate_regexp('?'))
