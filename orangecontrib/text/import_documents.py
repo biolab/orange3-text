@@ -44,6 +44,10 @@ TextDataError.isvalid = property(lambda self: False)
 log = logging.getLogger(__name__)
 
 
+class NoDocumentsException(Exception):
+    pass
+
+
 class Reader(metaclass=Registry):
     def __init__(self, path, replace_white_space=False):
         self.path = path
@@ -167,6 +171,9 @@ class ImportDocuments:
         paths = self.scan(self.startdir, include_patterns=patterns)
         n_paths = len(paths)
         batch = []
+
+        if n_paths == 0:
+            raise NoDocumentsException()
 
         for path in paths:
             if len(batch) == 1 and self._report_progress is not None:
