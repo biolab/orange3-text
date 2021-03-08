@@ -53,6 +53,32 @@ class CorpusTests(unittest.TestCase):
         c2 = Corpus.from_file('book-excerpts.tab')
         self.assertEqual(c, c2)
 
+    def test_corpus_from_numpy(self):
+        domain = Domain(
+            [], metas=[StringVariable("title"), StringVariable("a")]
+        )
+        corpus = Corpus.from_numpy(
+            domain,
+            np.empty((2, 0)),
+            metas=np.array([["title1", "a"], ["title2", "b"]])
+        )
+        self.assertEqual(2, len(corpus))
+        assert_array_equal(["Document 1", "Document 2"], corpus.titles)
+        self.assertListEqual([StringVariable("title")], corpus.text_features)
+        self.assertIsNone(corpus._tokens)
+        self.assertListEqual([], corpus.used_preprocessor.preprocessors)
+
+    def test_corpus_from_list(self):
+        domain = Domain(
+            [], metas=[StringVariable("title"), StringVariable("a")]
+        )
+        corpus = Corpus.from_list(domain, [["title1", "a"], ["title2", "b"]])
+        self.assertEqual(2, len(corpus))
+        assert_array_equal(["Document 1", "Document 2"], corpus.titles)
+        self.assertListEqual([StringVariable("title")], corpus.text_features)
+        self.assertIsNone(corpus._tokens)
+        self.assertListEqual([], corpus.used_preprocessor.preprocessors)
+
     def test_corpus_from_file_missing(self):
         with self.assertRaises(FileNotFoundError):
             Corpus.from_file('missing_file')
