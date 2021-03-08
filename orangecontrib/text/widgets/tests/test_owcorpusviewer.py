@@ -110,6 +110,11 @@ class TestCorpusViewerWidget(WidgetTest):
         self.assertIsNone(self.get_output(self.widget.Outputs.matching_docs))
         self.assertIsNone(self.get_output(self.widget.Outputs.other_docs))
 
+    def test_empty_corpus(self):
+        self.send_signal(self.widget.Inputs.corpus, self.corpus[:0])
+        self.assertListEqual(self.widget.selected_documents, [])
+        self.assertEqual(self.widget.doc_list.model().rowCount(), 0)
+
     def test_report(self):
         self.widget.send_report()
 
