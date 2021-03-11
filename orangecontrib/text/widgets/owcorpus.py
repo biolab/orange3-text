@@ -82,7 +82,7 @@ class OWCorpus(OWWidget, ConcurrentWidgetMixin):
 
         # Used Text Features
         fbox = gui.widgetBox(self.controlArea, orientation=0)
-        ubox = gui.widgetBox(fbox, "Used text features", addSpace=False)
+        ubox = gui.widgetBox(fbox, "Used text features")
         self.used_attrs_model = VariableListModel(enable_dnd=True)
         self.used_attrs_view = VariablesListItemView()
         self.used_attrs_view.setModel(self.used_attrs_model)
@@ -94,7 +94,7 @@ class OWCorpus(OWWidget, ConcurrentWidgetMixin):
         aa.rowsRemoved.connect(self.update_feature_selection)
 
         # Ignored Text Features
-        ibox = gui.widgetBox(fbox, "Ignored text features", addSpace=False)
+        ibox = gui.widgetBox(fbox, "Ignored text features")
         self.unused_attrs_model = VariableListModel(enable_dnd=True)
         self.unused_attrs_view = VariablesListItemView()
         self.unused_attrs_view.setModel(self.unused_attrs_model)
@@ -146,6 +146,7 @@ class OWCorpus(OWWidget, ConcurrentWidgetMixin):
     def open_file(self, path=None, data=None):
         self.closeContext()
         self.Error.clear()
+        self.cancel()
         self.unused_attrs_model[:] = []
         self.used_attrs_model[:] = []
         self.start(self._load_corpus, path, data)
@@ -158,7 +159,8 @@ class OWCorpus(OWWidget, ConcurrentWidgetMixin):
         self.update_output_info()
         self._setup_title_dropdown()
         self.used_attrs = list(self.corpus.text_features)
-        if not self.corpus.text_features:
+        all_str_features = [f for f in self.corpus.domain.metas if f.is_string]
+        if not all_str_features:
             self.Error.corpus_without_text_features()
             self.Outputs.corpus.send(None)
             return

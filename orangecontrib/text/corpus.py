@@ -554,14 +554,20 @@ class Corpus(Table):
 
     @classmethod
     def from_numpy(cls, *args, **kwargs):
-        c = super().from_numpy(*args, **kwargs)
-        c._set_unique_titles()
+        t = super().from_numpy(*args, **kwargs)
+        # t is corpus but its constructor was not called since from_numpy
+        # calls just class method __new__, call it here to set default values
+        # for attributes such as _titles, _tokens, preprocessors, text_features
+        c = Corpus(t.domain, t.X, t.Y, t.metas, t.W, ids=t.ids)
         return c
 
     @classmethod
     def from_list(cls, domain, rows, weights=None):
-        c = super().from_list(domain, rows, weights)
-        c._set_unique_titles()
+        t = super().from_list(domain, rows, weights)
+        # t is corpus but its constructor was not called since from_numpy
+        # calls just class method __new__, call it here to set default values
+        # for attributes such as _titles, _tokens, preprocessors, text_features
+        c = Corpus(t.domain, t.X, t.Y, t.metas, t.W, ids=t.ids)
         return c
 
     @classmethod

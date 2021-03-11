@@ -11,7 +11,7 @@ from orangecontrib.text.widgets.owcorpus import OWCorpus
 
 class TestOWCorpus(WidgetTest):
     def setUp(self):
-        self.widget = self.create_widget(OWCorpus)
+        self.widget: OWCorpus = self.create_widget(OWCorpus)
 
     def check_output(self, sel_title):
         """
@@ -285,6 +285,40 @@ class TestOWCorpus(WidgetTest):
         self.send_signal(self.widget.Inputs.data, data)
         self.wait_until_finished()
         self.assertListEqual(list(prew_selected), self.widget.used_attrs)
+
+    def test_no_text_feature(self):
+        """
+        Test with data which have empty text_features. Widget should not show
+        the error but, should have all features unused.
+        """
+        # widget already loads book-excerpts from file and store context
+        # settings this call restore context settings to default otherwise
+        # Text variable is moved to used_attributes by the context
+        self.widget.settingsHandler.reset_to_original(self.widget)
+        data = Corpus.from_file("book-excerpts")
+        data.text_features = []
+        self.send_signal(self.widget.Inputs.data, data)
+        self.wait_until_finished()
+        self.assertFalse(
+            self.widget.Error.corpus_without_text_features.is_shown()
+        )
+        self.assertEqual(0, len(list(self.widget.used_attrs_model)))
+        self.assertListEqual(
+            [data.domain["Text"]],
+            list(self.widget.unused_attrs_model)
+        )
+
+    def test_corpus_without_text_features(self):
+        """
+        Test if corpus_without_text_features is correctly raised for data
+        without text features
+        """
+        data = Table("iris")
+        self.send_signal(self.widget.Inputs.data, data)
+        self.wait_until_finished()
+        self.assertTrue(
+            self.widget.Error.corpus_without_text_features.is_shown()
+        )
 
 
 if __name__ == "__main__":
