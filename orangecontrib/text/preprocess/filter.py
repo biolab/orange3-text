@@ -43,7 +43,7 @@ class FileWordListMixin:
     @staticmethod
     def from_file(path):
         if not path:
-            return []
+            return set()
 
         for encoding in ('utf-8', None, detect_encoding(path)):
             try:
@@ -166,7 +166,7 @@ class FrequencyFilter(FitDictionaryFilter):
         self._corpus_len = len(corpus)
         self._dictionary = corpora.Dictionary(corpus.tokens)
         self._dictionary.filter_extremes(self.min_df, self.max_df, None)
-        self._lexicon = list(self._dictionary.token2id.keys())
+        self._lexicon = set(self._dictionary.token2id.keys())
 
     @property
     def max_df(self):
@@ -194,4 +194,4 @@ class MostFrequentTokensFilter(FitDictionaryFilter):
     def _fit(self, corpus: Corpus):
         self._dictionary = corpora.Dictionary(corpus.tokens)
         self._dictionary.filter_extremes(0, 1, self._keep_n)
-        self._lexicon = list(self._dictionary.token2id.keys())
+        self._lexicon = set(self._dictionary.token2id.keys())
