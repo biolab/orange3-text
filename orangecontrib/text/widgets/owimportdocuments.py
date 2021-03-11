@@ -34,7 +34,8 @@ from Orange.widgets.utils.concurrent import (
 from Orange.widgets.widget import Output
 
 from orangecontrib.text.corpus import Corpus
-from orangecontrib.text.import_documents import ImportDocuments
+from orangecontrib.text.import_documents import ImportDocuments, \
+    NoDocumentsException
 
 try:
     from orangecanvas.preview.previewbrowser import TextLabel
@@ -526,13 +527,15 @@ class OWImportDocuments(widget.OWWidget):
         task = self.__pendingTask
         self.__pendingTask = None
 
+        corpus, errors = None, []
         try:
             corpus, errors = task.future.result()
+        except NoDocumentsException:
+            state = State.Error
+            self.error("Folder contains no readable files.")
         except Exception:
             sys.excepthook(*sys.exc_info())
             state = State.Error
-            corpus = None
-            errors = []
             self.error(traceback.format_exc())
         else:
             state = State.Done
@@ -544,7 +547,8 @@ class OWImportDocuments(widget.OWWidget):
                 if corpus.domain.class_var else 0
 
         self.corpus = corpus
-        self.corpus.name = "Documents"
+        if self.corpus:
+            self.corpus.name = "Documents"
         self.skipped_documents = errors
 
         if len(errors):

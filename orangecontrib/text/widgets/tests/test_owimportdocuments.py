@@ -1,5 +1,6 @@
 import os
 import unittest
+from unittest.mock import patch, Mock
 
 from Orange.widgets.tests.base import WidgetTest
 from orangecontrib.text.widgets.owimportdocuments import OWImportDocuments
@@ -80,6 +81,16 @@ class TestOWImportDocuments(WidgetTest):
         self.assertEqual(
             "No document set selected", self.widget.info_area.text()
         )
+
+    @patch("orangecontrib.text.import_documents.ImportDocuments.scan",
+           Mock(return_value=[]))
+    def test_load_empty_folder(self):
+        widget = self.create_widget(OWImportDocuments)
+        path = os.path.join(os.path.dirname(__file__), "data/documents")
+        widget.setCurrentPath(path)
+        widget.reload()
+        self.wait_until_finished(widget=widget)
+        self.assertIsNone(self.get_output(widget.Outputs.data))
 
 
 if __name__ == "__main__":
