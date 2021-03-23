@@ -364,11 +364,51 @@ class TestOWWordList(WidgetTest):
         settings = {"word_list_library": [{"name": "Hello world",
                                            "words": self._word_list_1},
                                           {"name": "Word list 1",
-                                           "words": self._word_list_2}],
-                    "words": {"foo"}}
+                                           "words": self._word_list_2}]}
         widget = self.create_widget(OWWordList, stored_settings=settings)
         words = self.get_output(widget.Outputs.words, widget=widget)
-        self.assertListEqual(list(words.metas[:, 0]), ["foo"])
+        self.assertListEqual(list(words.metas[:, 0]), ["foo", "bar", "baz"])
+        swords = self.get_output(widget.Outputs.selected_words, widget=widget)
+        self.assertIsNone(swords)
+
+    def test_saved_workflow_with_changed_words(self):
+        settings = {"word_list_library": [{"name": "Hello world",
+                                           "words": self._word_list_1},
+                                          {"name": "Word list 1",
+                                           "words": self._word_list_2}],
+                    "words": ["bar", "foo"]}
+        widget = self.create_widget(OWWordList, stored_settings=settings)
+        words = self.get_output(widget.Outputs.words, widget=widget)
+        self.assertListEqual(list(words.metas[:, 0]), ["bar", "foo"])
+        swords = self.get_output(widget.Outputs.selected_words, widget=widget)
+        self.assertIsNone(swords)
+
+    def test_saved_workflow_with_selection(self):
+        settings = {"word_list_library": [{"name": "Hello world",
+                                           "words": self._word_list_1},
+                                          {"name": "Word list 1",
+                                           "words": self._word_list_2}],
+                    "words": ["bar", "foo"],
+                    "selected_words": {"foo"}}
+        widget = self.create_widget(OWWordList, stored_settings=settings)
+        words = self.get_output(widget.Outputs.words, widget=widget)
+        self.assertListEqual(list(words.metas[:, 0]), ["bar", "foo"])
+        swords = self.get_output(widget.Outputs.selected_words, widget=widget)
+        self.assertListEqual(list(swords.metas[:, 0]), ["foo"])
+
+    def test_saved_workflow_with_input(self):
+        settings = {"word_list_library": [{"name": "Hello world",
+                                           "words": self._word_list_1},
+                                          {"name": "Word list 1",
+                                           "words": self._word_list_2}],
+                    "words": ["bar", "foo"],
+                    "selected_words": {"foo"}}
+        widget = self.create_widget(OWWordList, stored_settings=settings)
+        self.send_signal(widget.Inputs.words, self._input_table, widget=widget)
+        words = self.get_output(widget.Outputs.words, widget=widget)
+        self.assertListEqual(list(words.metas[:, 0]), ["bar", "foo"])
+        swords = self.get_output(widget.Outputs.selected_words, widget=widget)
+        self.assertListEqual(list(swords.metas[:, 0]), ["foo"])
 
 
 if __name__ == "__main__":

@@ -23,8 +23,6 @@ from Orange.widgets.utils.itemmodels import DomainModel, ModelActionsWidget, \
     PyListModel
 from Orange.widgets.widget import Input, Output, OWWidget, Msg
 
-from orangecontrib.text import Corpus
-
 
 @contextmanager
 def disconnected(signal, slot, connection_type=Qt.AutoConnection):
@@ -156,7 +154,7 @@ class OWWordList(OWWidget):
 
     class Outputs:
         selected_words = Output("Selected Words", Table)
-        words = Output("Words", Corpus)
+        words = Output("Words", Table)
 
     class Warning(OWWidget.Warning):
         no_string_vars = Msg("Input 'Words' needs at least one Text variable.")
@@ -277,6 +275,7 @@ class OWWordList(OWWidget):
             current = index[0]
             word_list: WordList = self.library_model[current]
             self.word_list_index = current
+            self.selected_words = set()
             self.words_model.wrap(list(word_list.cached_words))
             self._apply_update_rule()
 
@@ -492,9 +491,19 @@ class OWWordList(OWWidget):
             self.library_model[lib_index].update_rule_flag = modified
             self._set_word_list_modified(mod_type=self.NONE)
             self.library_view.repaint()
-        self.commit()
+
+        # Apply selection. selection_changed invokes commit().
+        # If there is no selection, call commit explicitly.
+        if any(w in self.selected_words for w in self.words_model):
+            self.set_selected_words()
+            self.words_view.repaint()
+        else:
+            self.commit()
 
     def commit(self):
+        selection = self._get_selected_words_indices()
+        self.selected_words = set(np.array(self.words_model)[selection])
+
         words, selected_words = None, None
         if self.words_model:
             words_var = StringVariable("Words")
@@ -502,7 +511,6 @@ class OWWordList(OWWidget):
             domain = Domain([], metas=[words_var])
             _words = Table.from_list(domain, [[w] for w in self.words_model])
             _words.name = "Words"
-            selection = self._get_selected_words_indices()
             if selection:
                 selected_words = _words[selection]
             words = create_annotated_table(_words, selection)
@@ -546,28 +554,33 @@ class OWWordList(OWWidget):
         rows = self.words_view.selectionModel().selectedRows()
         return [row.row() for row in rows]
 
+    def set_selected_words(self):
+        if self.selected_words:
+            indices = [i for i, w in enumerate(self.words_model)
+                       if w in self.selected_words]
+            self._set_selected_words(indices)
+
     def _restore_state(self):
-        index = self.word_list_index
         source = [WordList.from_dict(s) for s in self.word_list_library]
         self.library_model.wrap(source)
-        self._set_selected_word_list(index)
+        # __on_library_selection_changed() (invoked by _set_selected_word_list)
+        # clears self.selected_words
+        selected_words = self.selected_words
+        self._set_selected_word_list(self.word_list_index)
 
         if self.words is not None:
             self.words_model.wrap(list(self.words))
             self._set_word_list_modified(mod_type=self.CACHED)
-            if self.selected_words:
-                indices = [i for i, w in enumerate(self.words)
-                           if w in self.selected_words]
-                self._set_selected_words(indices)
-            else:
+            if selected_words:
+                self.selected_words = selected_words
+                self.set_selected_words()
+            elif len(self.word_list_library) > self.word_list_index and \
+                self.word_list_library[self.word_list_index] != self.words:
                 self.commit()
 
     def _save_state(self):
         self.word_list_library = [s.as_dict() for s in self.library_model]
         self.words = self.words_model[:]
-
-        selected_indices = self._get_selected_words_indices()
-        self.selected_words = set(np.array(self.words_model)[selected_indices])
 
 
 if __name__ == "__main__":
