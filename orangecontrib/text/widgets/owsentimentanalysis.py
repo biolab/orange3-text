@@ -28,7 +28,7 @@ class OWSentimentAnalysis(OWWidget):
     class Outputs:
         corpus = Output("Corpus", Corpus)
 
-    method_idx = settings.Setting(1)
+    method_idx = settings.Setting(2)
     autocommit = settings.Setting(True)
     liu_language = settings.Setting('English')
     multi_language = settings.Setting('English')
