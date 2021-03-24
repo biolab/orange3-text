@@ -1,3 +1,4 @@
+import collections
 import os
 import pickle
 import re
@@ -6,7 +7,9 @@ import serverfiles
 from requests.exceptions import ConnectionError
 
 import numpy as np
-from nltk.corpus import opinion_lexicon
+
+from nltk import NaiveBayesClassifier
+from nltk.corpus import opinion_lexicon, movie_reviews
 from nltk.sentiment import SentimentIntensityAnalyzer
 
 from Orange.misc.environ import data_dir
@@ -35,6 +38,29 @@ def compute_from_dict(tokens, pos, neg):
         scores.append([100 * (pos_words - neg_words) / max(len(doc), 1)])
     return scores
 
+def split_label_feats(lfeats, split=0.75):
+    train_feats = []
+    test_feats = []
+
+    for label, feats in lfeats.items():
+        cutoff = int(len(feats) * split)
+        train_feats.extend([(feat, label) for feat in feats[:cutoff]])
+        test_feats.extend([(feat, label) for feat in feats[cutoff:]])
+
+    return train_feats, test_feats
+
+def bag_of_words(words):
+    return dict([(word, True) for word in words])
+
+def label_feats_from_corpus(corp, feature_detector=bag_of_words):
+    label_feats = collections.defaultdict(list)
+
+    for label in corp.categories():
+        for fileid in corp.fileids(categories=[label]):
+            feats = feature_detector(corp.words(fileids=[fileid]))
+            label_feats[label].append(feats)
+
+    return label_feats
 
 class Sentiment:
     sentiments = None
@@ -103,6 +129,22 @@ class VaderSentiment(Sentiment):
             scores.append([pol_sc[x] for x in self.sentiments])
         return scores
 
+class NaiveBayesSentiment(Sentiment):
+    sentiments = ('isPositive',)
+    name = 'Naive Bayes'
+
+    train_feats, test_feats = split_label_feats(label_feats_from_corpus(movie_reviews), split=0.75)
+    nb_classifier = NaiveBayesClassifier.train(labeled_featuresets=train_feats)
+
+    def __init__(self):
+        super().__init__()
+
+    def get_scores(self, corpus):
+        res = []
+        for document in corpus.documents:
+            valuation = self.nb_classifier.classify(bag_of_words(document.split()))
+            res.append([1 if valuation=='pos' else 0])
+        return res
 
 class SentimentDictionaries:
     server_url = None

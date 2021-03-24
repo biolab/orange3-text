@@ -2,8 +2,7 @@ import unittest
 
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.sentiment import LiuHuSentiment, VaderSentiment, \
-    MultiSentiment, SentiArt
-
+    MultiSentiment, SentiArt, NaiveBayesSentiment
 
 class LiuHuTest(unittest.TestCase):
     def setUp(self):
@@ -85,6 +84,21 @@ class VaderTest(LiuHuTest):
         self.method = VaderSentiment()
         self.new_cols = 4
 
+class NaiveBayesSentimentTest(unittest.TestCase):
+    def setUp(self):
+        self.corpus = Corpus.from_file('deerwester')
+        self.method = NaiveBayesSentiment()
+        self.new_cols = 1
+
+    def test_transform(self):
+        sentiment = self.method.transform(self.corpus)
+        self.assertEqual(len(sentiment.domain.attributes), 1)
+        self.assertEqual(sentiment.domain.attributes[0].name, "isPositive")
+
+    def test_empty_corpus(self):
+        corpus = Corpus.from_file('deerwester')[:0]
+        sentiment = self.method.transform(corpus)
+        self.assertEqual(len(sentiment.domain.attributes), 1)
 
 class MultiSentimentTest(LiuHuTest):
     def setUp(self):

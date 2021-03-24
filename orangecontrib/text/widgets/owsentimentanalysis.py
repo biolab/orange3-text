@@ -7,7 +7,7 @@ from Orange.widgets import gui, settings
 from Orange.widgets.utils.signals import Input, Output
 from Orange.widgets.widget import OWWidget, Msg
 from orangecontrib.text import Corpus, preprocess
-from orangecontrib.text.sentiment import VaderSentiment, LiuHuSentiment, \
+from orangecontrib.text.sentiment import NaiveBayesSentiment, VaderSentiment, LiuHuSentiment, \
     MultiSentiment, CustomDictionaries, SentiArt, MultisentimentDictionaries, \
     SentiArtDictionaries
 from orangecontrib.text.widgets.owpreprocess import FileLoader, _to_abspath
@@ -38,6 +38,7 @@ class OWSentimentAnalysis(OWWidget):
 
     METHODS = [
         LiuHuSentiment,
+        NaiveBayesSentiment,
         VaderSentiment,
         MultiSentiment,
         SentiArt,
@@ -69,6 +70,7 @@ class OWSentimentAnalysis(OWWidget):
             self.controlArea, self, "method_idx", [], box="Method",
             orientation=self.form, callback=self._method_changed)
         self.liu_hu = gui.appendRadioButton(box, "Liu Hu", addToLayout=False)
+        self.naive_bayes = gui.appendRadioButton(box, "Naive Bayes", addToLayout=False)
         self.liu_lang = gui.comboBox(None, self, 'liu_language',
                                      sendSelectedValue=True,
                                      contentsLength=10,
@@ -105,15 +107,16 @@ class OWSentimentAnalysis(OWWidget):
         self.form.addWidget(QLabel("Language:"), 0, 1, Qt.AlignRight)
         self.form.addWidget(self.liu_lang, 0, 2, Qt.AlignRight)
         self.form.addWidget(self.vader, 1, 0, Qt.AlignLeft)
-        self.form.addWidget(self.multi_sent, 2, 0, Qt.AlignLeft)
-        self.form.addWidget(QLabel("Language:"), 2, 1, Qt.AlignRight)
-        self.form.addWidget(self.multi_box, 2, 2, Qt.AlignRight)
-        self.form.addWidget(self.senti_art, 3, 0, Qt.AlignLeft)
+        self.form.addWidget(self.naive_bayes, 2, 0, Qt.AlignLeft)
+        self.form.addWidget(self.multi_sent, 3, 0, Qt.AlignLeft)
         self.form.addWidget(QLabel("Language:"), 3, 1, Qt.AlignRight)
-        self.form.addWidget(self.senti_box, 3, 2, Qt.AlignRight)
-        self.form.addWidget(self.custom_list, 4, 0, Qt.AlignLeft)
+        self.form.addWidget(self.multi_box, 3, 2, Qt.AlignRight)
+        self.form.addWidget(self.senti_art, 4, 0, Qt.AlignLeft)
+        self.form.addWidget(QLabel("Language:"), 4, 1, Qt.AlignRight)
+        self.form.addWidget(self.senti_box, 4, 2, Qt.AlignRight)
+        self.form.addWidget(self.custom_list, 5, 0, Qt.AlignLeft)
         self.filegrid = QGridLayout()
-        self.form.addLayout(self.filegrid, 5, 0, 1, 3)
+        self.form.addLayout(self.filegrid, 6, 0, 1, 3)
         self.filegrid.addWidget(QLabel("Positive:"), 0, 0, Qt.AlignRight)
         self.filegrid.addWidget(self.__posfile_loader.file_combo, 0, 1)
         self.filegrid.addWidget(self.__posfile_loader.browse_btn, 0, 2)
@@ -185,7 +188,6 @@ class OWSentimentAnalysis(OWWidget):
             else:
                 self.Warning.senti_offline_no_lang()
 
-
     @Inputs.corpus
     def set_corpus(self, data=None):
         self.corpus = data
@@ -206,7 +208,9 @@ class OWSentimentAnalysis(OWWidget):
             self.Warning.no_dicts_loaded.clear()
             method = self.METHODS[self.method_idx]
             corpus = self.pp_corpus
-            if method.name == 'Liu Hu':
+            if method.name == 'Naive Bayes':
+                out = method().transform(corpus)
+            elif method.name == 'Liu Hu':
                 out = method(language=self.liu_language).transform(corpus)
             elif method.name == 'Multilingual Sentiment':
                 if not self.senti_dict.online:
