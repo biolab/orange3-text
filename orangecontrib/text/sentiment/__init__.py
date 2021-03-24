@@ -8,7 +8,6 @@ from requests.exceptions import ConnectionError
 
 import numpy as np
 
-import nltk
 from nltk import NaiveBayesClassifier
 from nltk.corpus import opinion_lexicon, movie_reviews
 from nltk.sentiment import SentimentIntensityAnalyzer
@@ -139,10 +138,6 @@ class NaiveBayesSentiment(Sentiment):
 
     def __init__(self):
         super().__init__()
-        try:
-            nltk.data.find('corpora/movie_reviews')
-        except LookupError:
-            nltk.download('movie_reviews')
 
     def get_scores(self, corpus):
         res = []
