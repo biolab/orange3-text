@@ -582,6 +582,18 @@ class OWWordList(OWWidget):
         self.word_list_library = [s.as_dict() for s in self.library_model]
         self.words = self.words_model[:]
 
+    def send_report(self):
+        library = self.library_model[self.word_list_index].name \
+            if self.library_model else "/"
+        settings = [("Library", library)]
+        if self.__input_words:
+            self.report_data("Input Words", self.__input_words)
+            settings.append(("Word variable", self.words_var))
+            rule = UpdateRules.ITEMS[self.update_rule_index]
+            settings.append(("Update", rule))
+        self.report_items("Settings", settings)
+        self.report_paragraph("Words", ", ".join(self.words_model[:]))
+
 
 if __name__ == "__main__":
     from Orange.widgets.utils.widgetpreview import WidgetPreview
