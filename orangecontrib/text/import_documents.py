@@ -1,11 +1,15 @@
+import contextlib
 import fnmatch
 import logging
 import os
 import pathlib
 import re
+from urllib.parse import quote
 
 from collections import namedtuple
+from tempfile import NamedTemporaryFile
 from types import SimpleNamespace as namespace
+from typing import List, Tuple, Callable
 from unicodedata import normalize
 
 import numpy as np
@@ -20,12 +24,13 @@ from pdfminer.converter import PDFPageAggregator
 from pdfminer.layout import LAParams, LTTextBox, LTTextLine
 from bs4 import BeautifulSoup
 
+import serverfiles
+
 from Orange.data import DiscreteVariable, Domain, StringVariable
-from Orange.data.io import detect_encoding
+from Orange.data.io import detect_encoding, UrlReader as CoreUrlReader
 from Orange.util import Registry
 
 from orangecontrib.text.corpus import Corpus
-
 
 DefaultFormats = ("docx", "odt", "txt", "pdf", "xml")
 
@@ -156,19 +161,53 @@ class XmlReader(Reader):
         self.content = soup.get_text()
 
 
+class UrlReader(Reader, CoreUrlReader):
+    ext = [".url"]
+
+    def __init__(self, path, *args):
+        CoreUrlReader.__init__(self, path)
+        Reader.__init__(self, self.filename, *args)
+
+    def read_file(self):
+        path, name = os.path.split(self.filename)
+        self.filename = os.path.join(path, quote(name))
+        self.filename = self._trim(self._resolve_redirects(self.filename))
+        with contextlib.closing(self.urlopen(self.filename)) as response:
+            name = self._suggest_filename(
+                response.headers["content-disposition"])
+            extension = "".join(pathlib.Path(name).suffixes)
+            with NamedTemporaryFile(suffix=extension, delete=False) as f:
+                f.write(response.read())
+            reader = Reader.get_reader(f.name)
+            reader.read_file()
+            self.content = reader.content
+            os.remove(f.name)
+
+    def make_text_data(self):
+        text_data = super().make_text_data()
+        ext = pathlib.Path(self.path).suffix
+        return TextData(text_data.name, text_data.path, [ext],
+                        text_data.category, text_data.content)
+
+
 class ImportDocuments:
-    def __init__(self, startdir, formats=DefaultFormats, report_progress=None):
+    def __init__(self, startdir: str,
+                 is_url: bool = False,
+                 formats: Tuple[str] = DefaultFormats,
+                 report_progress: Callable = None):
         self.startdir = startdir
         self.formats = formats
         self._report_progress = report_progress
         self.cancelled = False
         self._text_data = []
+        self._is_url = is_url
 
-    def run(self):
+    def run(self) -> Tuple[Corpus, List]:
         text_data = []
         errors = []
         patterns = ["*.{}".format(fmt.lower()) for fmt in self.formats]
-        paths = self.scan(self.startdir, include_patterns=patterns)
+        scan = self.scan_url if self._is_url else self.scan
+        paths = scan(self.startdir, include_patterns=patterns)
         n_paths = len(paths)
         batch = []
 
@@ -183,7 +222,8 @@ class ImportDocuments:
                               batch=batch))
                 batch = []
 
-            reader = Reader.get_reader(path)
+            reader = Reader.get_reader(path) if not self._is_url \
+                else UrlReader(path)
             text, error = reader.read()
             if text is not None:
                 text_data.append(text)
@@ -197,7 +237,7 @@ class ImportDocuments:
         self._text_data = text_data
         return self._create_corpus(), errors
 
-    def _create_corpus(self):
+    def _create_corpus(self) -> Corpus:
         corpus = None
         names = ["name", "path", "content"]
         data = []
@@ -258,10 +298,6 @@ class ImportDocuments:
         if include_patterns is None:
             include_patterns = ["*"]
 
-        def matches_any(fname, patterns):
-            return any(fnmatch.fnmatch(fname.lower(), pattern)
-                       for pattern in patterns)
-
         paths = []
 
         for dirpath, dirnames, filenames in os.walk(topdir):
@@ -275,3 +311,20 @@ class ImportDocuments:
                             and not matches_any(fname, exclude_patterns)]
             paths = paths + [os.path.join(dirpath, fname) for fname in filenames]
         return paths
+
+    @staticmethod
+    def scan_url(topdir: str, include_patterns: Tuple[str] = ("*",),
+                 exclude_patterns: Tuple[str] = (".*",)) -> List[str]:
+        include_patterns = include_patterns or ("*",)
+        paths = []
+        for filenames in serverfiles.ServerFiles(topdir).listfiles():
+            path = os.path.join(topdir, os.path.join(*filenames))
+            if matches_any(path, include_patterns) and \
+                    not matches_any(path, exclude_patterns):
+                paths.append(path)
+        return paths
+
+
+def matches_any(fname: str, patterns: Tuple[str]) -> bool:
+    return any(fnmatch.fnmatch(fname.lower(), pattern)
+               for pattern in patterns)
