@@ -1,4 +1,7 @@
 import unittest
+from unittest.mock import patch
+
+import pandas as pd
 
 from orangecontrib.text.import_documents import ImportDocuments, UrlReader, \
     TxtReader, TextData
@@ -53,32 +56,57 @@ class TestImportDocuments(unittest.TestCase):
         path = "http://file.biolab.si/text-semantics/data/semeval/"
         importer = ImportDocuments(path, True)
         paths = importer.scan_url(path)
-        print(paths)
+        self.assertEqual(len(paths), 101)
 
     def test_scan_url_txt(self):
         path = "http://file.biolab.si/text-semantics/data/semeval/"
         importer = ImportDocuments(path, True)
         paths = importer.scan_url(path, include_patterns=["*.txt"])
-        print(paths)
+        self.assertEqual(len(paths), 100)
 
     def test_scan_url_csv(self):
         path = "http://file.biolab.si/text-semantics/data/"
         importer = ImportDocuments(path, True)
         paths = importer.scan_url(path, include_patterns=["*.csv"])
-        print(paths)
+        self.assertEqual(len(paths), 6)
 
-    def test_run_url(self):
+    def test_read_meta_data_url(self):
         path = "http://file.biolab.si/text-semantics/data/semeval/"
         importer = ImportDocuments(path, True)
-        res, err = importer.run()
-        print(res)
+        data1, err = importer._read_meta_data()
+        self.assertIsInstance(data1, pd.DataFrame)
+        self.assertEqual(len(err), 0)
 
-    def test_run_url_metadata(self):
+    @patch("orangecontrib.text.import_documents.ImportDocuments."
+           "META_DATA_FILE_KEY", "File")
+    def test_merge_metadata_url(self):
         path = "http://file.biolab.si/text-semantics/data/semeval/"
-        importer = ImportDocuments(path, True, formats=["csv"])
-        res, err = importer.run()
-        print(res)
-        print(err)
+        importer = ImportDocuments(path, True)
+        text_data, _ = importer._read_text_data()
+        meta_data, _ = importer._read_meta_data()
+
+        importer._text_data = text_data[:4]  # 'C-1', 'C-14', 'C-17', 'C-18'
+        importer._meta_data = meta_data[:50]
+        corpus = importer._create_corpus()
+        corpus = importer._add_metadata(corpus)
+        self.assertEqual(len(corpus), 4)
+        columns = ["name", "path", "content", "Content", "File", "Keywords"]
+        self.assertEqual([v.name for v in corpus.domain.metas], columns)
+
+        importer._text_data = text_data[:4]  # 'C-1', 'C-14', 'C-17', 'C-18'
+        importer._meta_data = None
+        corpus = importer._create_corpus()
+        corpus = importer._add_metadata(corpus)
+        self.assertEqual(len(corpus), 4)
+        columns = ["name", "path", "content"]
+        self.assertEqual([v.name for v in corpus.domain.metas], columns)
+
+    def test_run_url(self):
+        path = "http://file.biolab.si/text-semantics/data/" \
+               "elektrotehniski-vestnik-clanki/"
+        importer = ImportDocuments(path, True)
+        corpus, errors = importer.run()
+        self.assertEqual(len(corpus), 382)
 
 
 if __name__ == "__main__":

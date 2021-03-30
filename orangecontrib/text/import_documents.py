@@ -4,7 +4,9 @@ import logging
 import os
 import pathlib
 import re
+import yaml
 from urllib.parse import quote
+from requests.exceptions import ConnectionError
 
 from collections import namedtuple
 from tempfile import NamedTemporaryFile
@@ -13,6 +15,7 @@ from typing import List, Tuple, Callable
 from unicodedata import normalize
 
 import numpy as np
+import pandas as pd
 
 import docx2txt
 from odf.opendocument import load
@@ -28,6 +31,7 @@ import serverfiles
 
 from Orange.data import DiscreteVariable, Domain, StringVariable
 from Orange.data.io import detect_encoding, UrlReader as CoreUrlReader
+from Orange.data.util import get_unique_names
 from Orange.util import Registry
 
 from orangecontrib.text.corpus import Corpus
@@ -161,6 +165,21 @@ class XmlReader(Reader):
         self.content = soup.get_text()
 
 
+class CsvMetaReader(Reader):
+    ext = [".csv"]
+
+    def read_file(self):
+        self.content = pd.read_csv(self.path)
+
+
+class YamlMetaReader(Reader):
+    ext = [".yaml"]
+
+    def read_file(self):
+        with open(self.path, "r") as f:
+            self.content = yaml.safe_load(f)
+
+
 class UrlReader(Reader, CoreUrlReader):
     ext = [".url"]
 
@@ -191,6 +210,8 @@ class UrlReader(Reader, CoreUrlReader):
 
 
 class ImportDocuments:
+    META_DATA_FILE_KEY = "Text file"
+
     def __init__(self, startdir: str,
                  is_url: bool = False,
                  formats: Tuple[str] = DefaultFormats,
@@ -199,10 +220,18 @@ class ImportDocuments:
         self.formats = formats
         self._report_progress = report_progress
         self.cancelled = False
-        self._text_data = []
         self._is_url = is_url
+        self._text_data = []
+        self._meta_data: pd.DataFrame = None
 
     def run(self) -> Tuple[Corpus, List]:
+        self._text_data, errors_text = self._read_text_data()
+        self._meta_data, errors_meta = self._read_meta_data()
+        corpus = self._create_corpus()
+        corpus = self._add_metadata(corpus)
+        return corpus, errors_text + errors_meta
+
+    def _read_text_data(self):
         text_data = []
         errors = []
         patterns = ["*.{}".format(fmt.lower()) for fmt in self.formats]
@@ -234,8 +263,29 @@ class ImportDocuments:
             if self.cancelled:
                 return
 
-        self._text_data = text_data
-        return self._create_corpus(), errors
+        return text_data, errors
+
+    def _read_meta_data(self):
+        scan = self.scan_url if self._is_url else self.scan
+        patterns = ["*.csv", "*.yaml", "*.yml"]
+        paths = scan(self.startdir, include_patterns=patterns)
+        meta_dfs, errors = [], []
+        for path in paths:
+            reader = Reader.get_reader(path) if not self._is_url \
+                else UrlReader(path)
+            data, error = reader.read()
+            if data is not None:
+                content = data.content
+                if isinstance(content, dict):
+                    content = pd.DataFrame(content, index=[0])
+                meta_dfs.append(content)
+            else:
+                errors.append(error)
+
+            if self.cancelled:
+                return
+
+        return pd.concat(meta_dfs) if meta_dfs else None, errors
 
     def _create_corpus(self) -> Corpus:
         corpus = None
@@ -277,6 +327,27 @@ class ImportDocuments:
 
         return corpus
 
+    def _add_metadata(self, corpus: Corpus) -> Corpus:
+        if "path" not in corpus.domain or self._meta_data is None \
+                or self.META_DATA_FILE_KEY not in self._meta_data.columns:
+            return corpus
+
+        df = self._meta_data.set_index(
+            self.startdir + self._meta_data[self.META_DATA_FILE_KEY]
+        )
+        path_column = corpus.get_column_view("path")[0]
+        if len(df.index.drop_duplicates()) != len(df.index):
+            df = df[~df.index.duplicated(keep='first')]
+        filtered = df.reindex(path_column)
+        for column in filtered.columns:
+            corpus = corpus.add_column(
+                StringVariable(get_unique_names(corpus.domain, column)),
+                filtered[column].to_numpy(),
+                to_metas=True
+            )
+
+        return corpus
+
     @staticmethod
     def scan(topdir, include_patterns=("*",), exclude_patterns=(".*",)):
         """
@@ -315,10 +386,15 @@ class ImportDocuments:
     @staticmethod
     def scan_url(topdir: str, include_patterns: Tuple[str] = ("*",),
                  exclude_patterns: Tuple[str] = (".*",)) -> List[str]:
+        try:
+            files = serverfiles.ServerFiles(topdir).listfiles()
+        except ConnectionError:
+            return []
+
         include_patterns = include_patterns or ("*",)
         paths = []
-        for filenames in serverfiles.ServerFiles(topdir).listfiles():
-            path = os.path.join(topdir, os.path.join(*filenames))
+        for filename in files:
+            path = os.path.join(topdir, os.path.join(*filename))
             if matches_any(path, include_patterns) and \
                     not matches_any(path, exclude_patterns):
                 paths.append(path)
