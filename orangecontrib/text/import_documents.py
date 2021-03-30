@@ -188,8 +188,7 @@ class UrlReader(Reader, CoreUrlReader):
         Reader.__init__(self, self.filename, *args)
 
     def read_file(self):
-        path, name = os.path.split(self.filename)
-        self.filename = os.path.join(path, quote(name))
+        self.filename = quote(self.filename, safe="/:")
         self.filename = self._trim(self._resolve_redirects(self.filename))
         with contextlib.closing(self.urlopen(self.filename)) as response:
             name = self._suggest_filename(
@@ -216,6 +215,10 @@ class ImportDocuments:
                  is_url: bool = False,
                  formats: Tuple[str] = DefaultFormats,
                  report_progress: Callable = None):
+        if is_url and not startdir.endswith("/"):
+            startdir += "/"
+        elif not is_url:
+            startdir = os.path.join(startdir, "")
         self.startdir = startdir
         self.formats = formats
         self._report_progress = report_progress
@@ -394,7 +397,7 @@ class ImportDocuments:
         include_patterns = include_patterns or ("*",)
         paths = []
         for filename in files:
-            path = os.path.join(topdir, os.path.join(*filename))
+            path = topdir + "/".join(filename)
             if matches_any(path, include_patterns) and \
                     not matches_any(path, exclude_patterns):
                 paths.append(path)

@@ -5,7 +5,7 @@ numpy
 python-dateutil<3.0.0  # denpendency for botocore
 gensim>=0.12.3  # LDA's show topics unified in 0.12.3
 setuptools-git
-Orange3 >=3.25.0
+Orange3 >=3.28.0
 tweepy
 beautifulsoup4
 simhash >=1.11
