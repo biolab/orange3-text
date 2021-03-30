@@ -79,7 +79,7 @@ class WordList:
 
 class UpdateRules:
     INTERSECT, UNION, INPUT, LIBRARY = range(4)
-    ITEMS = ["Intersection", "Union", "Only Input", "Ignore Input"]
+    ITEMS = ["Intersection", "Union", "Only input", "Ignore input"]
 
     @staticmethod
     def update(model: PyListModel, lib_words: List, in_words: List, rule: int):
@@ -157,7 +157,7 @@ class OWWordList(OWWidget):
         words = Output("Words", Table)
 
     class Warning(OWWidget.Warning):
-        no_string_vars = Msg("Input 'Words' needs at least one Text variable.")
+        no_string_vars = Msg("Input needs at least one Text variable.")
 
     NONE, CACHED, LIBRARY = range(3)  # library list modification types
 
@@ -165,12 +165,6 @@ class OWWordList(OWWidget):
     resizing_enabled = True
 
     settingsHandler = DomainContextHandler()
-    # word_list_library: List[Dict] = Setting([
-    #     {"name": "Untitled",
-    #      "words": ["foo", "bar", "baz"]},
-    #     {"name": "Word list",
-    #      "words": ["word 1", "word 2", "word 3", "word 4"]},
-    # ])
     word_list_library: List[Dict] = Setting([
         {"name": WordList.generate_word_list_name([]), "words": []},
     ])
