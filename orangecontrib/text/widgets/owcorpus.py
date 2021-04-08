@@ -307,9 +307,5 @@ class OWCorpus(OWWidget, ConcurrentWidgetMixin):
 
 
 if __name__ == '__main__':
-    from AnyQt.QtWidgets import QApplication
-    app = QApplication([])
-    widget = OWCorpus()
-    widget.show()
-    app.exec()
-    widget.saveSettings()
+    from orangewidget.utils.widgetpreview import WidgetPreview
+    WidgetPreview(OWCorpus).run()
