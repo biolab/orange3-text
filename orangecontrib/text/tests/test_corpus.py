@@ -31,13 +31,13 @@ class CorpusTests(unittest.TestCase):
     def test_corpus_from_file(self):
         c = Corpus.from_file('book-excerpts')
         self.assertEqual(len(c), 140)
-        self.assertEqual(len(c.domain), 1)
+        self.assertEqual(len(c.domain.variables), 1)
         self.assertEqual(len(c.domain.metas), 1)
         self.assertEqual(c.metas.shape, (140, 1))
 
         c = Corpus.from_file('deerwester')
         self.assertEqual(len(c), 9)
-        self.assertEqual(len(c.domain), 1)
+        self.assertEqual(len(c.domain.variables), 1)
         self.assertEqual(len(c.domain.metas), 1)
         self.assertEqual(c.metas.shape, (9, 1))
 

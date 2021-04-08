@@ -14,8 +14,8 @@ class LiuHuTest(unittest.TestCase):
     def test_transform(self):
         sentiment = self.method.transform(self.corpus)
         self.assertIsInstance(sentiment, Corpus)
-        self.assertEqual(len(sentiment.domain),
-                         len(self.corpus.domain) + self.new_cols)
+        self.assertEqual(len(sentiment.domain.variables),
+                         len(self.corpus.domain.variables) + self.new_cols)
 
     def test_copy(self):
         sentiment_t = self.method.transform(self.corpus)
@@ -43,8 +43,8 @@ class LiuHuTest(unittest.TestCase):
     def test_empty_corpus(self):
         corpus = Corpus.from_file('deerwester')[:0]
         sentiment = self.method.transform(corpus)
-        self.assertEqual(len(sentiment.domain),
-                         len(self.corpus.domain) + self.new_cols)
+        self.assertEqual(len(sentiment.domain.variables),
+                         len(self.corpus.domain.variables) + self.new_cols)
         self.assertEqual(len(sentiment), 0)
 
 
@@ -57,8 +57,8 @@ class LiuHuSlovenian(unittest.TestCase):
     def test_transform(self):
         sentiment = self.method.transform(self.corpus)
         self.assertIsInstance(sentiment, Corpus)
-        self.assertEqual(len(sentiment.domain),
-                         len(self.corpus.domain) + self.new_cols)
+        self.assertEqual(len(sentiment.domain.variables),
+                         len(self.corpus.domain.variables) + self.new_cols)
 
     def test_copy(self):
         sentiment_t = self.method.transform(self.corpus)
@@ -74,8 +74,8 @@ class LiuHuSlovenian(unittest.TestCase):
     def test_empty_corpus(self):
         corpus = self.corpus[:0]
         sentiment = self.method.transform(corpus)
-        self.assertEqual(len(sentiment.domain),
-                         len(self.corpus.domain) + self.new_cols)
+        self.assertEqual(len(sentiment.domain.variables),
+                         len(self.corpus.domain.variables) + self.new_cols)
         self.assertEqual(len(sentiment), 0)
 
 

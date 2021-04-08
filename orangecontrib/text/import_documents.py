@@ -83,7 +83,7 @@ class Reader(metaclass=Registry):
         directory = pathlib.PurePath(self.path).parent
         category = directory.parts[-1] or "None"
         if self.replace_white_space:
-            self.content = re.sub('\s+', ' ', self.content)
+            self.content = re.sub(r'\s+', ' ', self.content)
         return TextData(name, self.path, self.ext, category, self.content)
 
 

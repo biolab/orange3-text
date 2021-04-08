@@ -30,22 +30,27 @@ class TestSentimentWidget(WidgetTest):
 
         # test default settings
         out_corpus = self.get_output(self.widget.Outputs.corpus)
-        self.assertEqual(len(out_corpus.domain), len(self.corpus.domain) + 4)
+        self.assertEqual(len(out_corpus.domain.variables),
+                         len(self.corpus.domain.variables) + 4)
 
         # test multisentiment
         self.widget.multi_sent.click()
         out_corpus = self.get_output(self.widget.Outputs.corpus)
-        self.assertEqual(len(out_corpus.domain), len(self.corpus.domain) + 1)
+        self.assertEqual(len(out_corpus.domain.variables),
+                         len(self.corpus.domain.variables) + 1)
 
         # test SentiArt
         self.widget.senti_art.click()
         out_corpus = self.get_output(self.widget.Outputs.corpus)
-        self.assertEqual(len(out_corpus.domain), len(self.corpus.domain) + 7)
+        self.assertEqual(len(out_corpus.domain.variables),
+                         len(self.corpus.domain.variables)
+                         + 7)
 
         # test liu hu
         self.widget.liu_hu.click()
         out_corpus = self.get_output(self.widget.Outputs.corpus)
-        self.assertEqual(len(out_corpus.domain), len(self.corpus.domain) + 1)
+        self.assertEqual(len(out_corpus.domain.variables),
+                         len(self.corpus.domain.variables) + 1)
 
         # test custom files
         self.widget.pos_file = os.path.join(os.path.dirname(__file__),
@@ -54,7 +59,8 @@ class TestSentimentWidget(WidgetTest):
                                             "data/sentiment/neg.txt")
         self.widget.custom_list.click()
         out_corpus = self.get_output(self.widget.Outputs.corpus)
-        self.assertEqual(len(out_corpus.domain), len(self.corpus.domain) + 1)
+        self.assertEqual(len(out_corpus.domain.variables),
+                         len(self.corpus.domain.variables) + 1)
         res = np.array([[12.5], [10], [16.66666667], [12.5], [11.11111111],
                         [-14.28571429], [0], [-10], [0]])
         np.testing.assert_array_almost_equal(out_corpus.X, res, decimal=8)

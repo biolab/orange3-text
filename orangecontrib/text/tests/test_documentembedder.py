@@ -51,7 +51,8 @@ class DocumentEmbedderTest(unittest.TestCase):
     def test_success_shapes(self):
         res, skipped = self.embedder(self.corpus)
         self.assertEqual(res.X.shape, (len(self.corpus), 2))
-        self.assertEqual(len(res.domain), len(self.corpus.domain) + 2)
+        self.assertEqual(len(res.domain.variables),
+                         len(self.corpus.domain.variables) + 2)
         self.assertIsNone(skipped)
 
     @patch(PATCH_METHOD, make_dummy_post(b''))
