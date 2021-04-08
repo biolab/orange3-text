@@ -511,8 +511,8 @@ class FilteringModule(MultipleMethodModule):
     DEFAULT_METHODS = [Stopwords]
     DEFAULT_LANG = "English"
     DEFAULT_NONE = None
-    DEFAULT_PATTERN = "\.|,|:|;|!|\?|\(|\)|\||\+|\'|\"|‘|’|“|”|\'|" \
-                      "\’|…|\-|–|—|\$|&|\*|>|<|\/|\[|\]"
+    DEFAULT_PATTERN = r"\.|,|:|;|!|\?|\(|\)|\||\+|\'|\"|‘|’|“|”|\'|" \
+                      r"\’|…|\-|–|—|\$|&|\*|>|<|\/|\[|\]"
     DEFAULT_FREQ_TYPE = 0  # 0 - relative freq, 1 - absolute freq
     DEFAULT_REL_START, DEFAULT_REL_END, REL_MIN, REL_MAX = 0.1, 0.9, 0, 1
     DEFAULT_ABS_START, DEFAULT_ABS_END, ABS_MIN, ABS_MAX = 1, 10, 0, 10000

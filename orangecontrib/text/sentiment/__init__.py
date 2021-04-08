@@ -151,8 +151,8 @@ class MultisentimentDictionaries(SentimentDictionaries):
         return pos, neg
 
     def supported_languages(self):
-        re_pos = "positive_words_(.*)\.txt"
-        re_neg = "negative_words_(.*)\.txt"
+        re_pos = r"positive_words_(.*)\.txt"
+        re_neg = r"negative_words_(.*)\.txt"
         pos = neg = set()
         for i in self.lang_files:
             res_pos = re.fullmatch(re_pos, i[0])
@@ -212,7 +212,7 @@ class SentiArtDictionaries(SentimentDictionaries):
         return filtering_dict
 
     def supported_languages(self):
-        regex = "SentiArt_(.*)\.pickle"
+        regex = r"SentiArt_(.*)\.pickle"
         supported_languages = set()
         for i in self.lang_files:
             res = re.fullmatch(regex, i[0])

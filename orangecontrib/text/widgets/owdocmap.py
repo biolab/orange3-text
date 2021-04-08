@@ -20,7 +20,7 @@ from orangecontrib.text.country_codes import \
     CC_WORLD, INV_CC_WORLD, \
     CC_USA, INV_CC_USA, SET_CC_USA
 
-CC_NAMES = re.compile('[\w\s\.\-]+')
+CC_NAMES = re.compile(r'[\w\s\.\-]+')
 
 
 class Map:
