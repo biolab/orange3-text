@@ -248,6 +248,35 @@ class CorpusTests(unittest.TestCase):
         self.assertEqual(len(tf), 1)
         self.assertEqual(tf[0].name, 'Text')
 
+    def test_infer_text_features_str_include(self):
+        """
+        In orange 3.29 include attribute is read as boolean. corpus must still
+        support older versions of Orange where include attribute is a string.
+        Test behaviour with string attribute.
+        """
+        c = Corpus.from_file('andersen')
+        c.domain["Content"].attributes["include"] = "False"
+        c._infer_text_features()
+        self.assertListEqual(c.text_features, [c.domain["Title"]])
+
+        c.domain["Content"].attributes["include"] = "True"
+        c._infer_text_features()
+        self.assertListEqual(c.text_features, [c.domain["Content"]])
+
+    def test_infer_text_features_bool_include(self):
+        """
+        In orange 3.29 include attribute is read as boolean.
+        Test behaviour with boolean attribute.
+        """
+        c = Corpus.from_file('andersen')
+        c.domain["Content"].attributes["include"] = False
+        c._infer_text_features()
+        self.assertListEqual(c.text_features, [c.domain["Title"]])
+
+        c.domain["Content"].attributes["include"] = True
+        c._infer_text_features()
+        self.assertListEqual(c.text_features, [c.domain["Content"]])
+
     def test_documents(self):
         c = Corpus.from_file('book-excerpts')
         docs = c.documents

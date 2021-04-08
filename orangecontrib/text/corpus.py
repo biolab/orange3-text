@@ -235,7 +235,11 @@ class Corpus(Table):
             if attr.is_string:
                 if first is None:
                     first = attr
-                if attr.attributes.get('include', 'False') == 'True':
+                incl = attr.attributes.get('include', False)
+                # variable attributes can be boolean from Orange 3.29
+                # they are string in older versions
+                # incl == True, since without == string "False" would be True
+                if incl == "True" or incl == True:
                     include_feats.append(attr)
         if len(include_feats) == 0 and first:
             include_feats.append(first)
