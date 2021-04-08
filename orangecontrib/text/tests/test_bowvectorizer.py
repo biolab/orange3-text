@@ -14,7 +14,7 @@ class BowVectorizationTest(unittest.TestCase):
 
         result = vect.transform(corpus)
         self.assertIsInstance(result, Corpus)
-        self.assertEqual(len(result.domain), 43)
+        self.assertEqual(len(result.domain.variables), 43)
 
     def test_binary(self):
         vect = BowVectorizer(wlocal=BowVectorizer.BINARY)
