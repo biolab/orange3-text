@@ -21,7 +21,7 @@ from Orange.widgets.widget import Input, Output, OWWidget, Msg
 
 from orangecontrib.text import Corpus
 from orangecontrib.text.keywords import ScoringMethods, AggregationMethods, \
-    YAKE_LANGUAGE_MAPPING
+    YAKE_LANGUAGE_MAPPING, RAKE_LANGUAGES
 from orangecontrib.text.preprocess import BaseNormalizer
 
 WORDS_COLUMN_NAME = "Words"
@@ -179,6 +179,7 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
     settingsHandler = DomainContextHandler()
     selected_scoring_methods: Set[str] = Setting({ScoringMethods.TF_IDF})
     yake_lang_index: int = Setting(YAKE_LANGUAGES.index("English"))
+    rake_lang_index: int = Setting(RAKE_LANGUAGES.index("English"))
     agg_method: int = Setting(AggregationMethods.MEAN)
     sel_method: int = ContextSetting(SelectionMethods.N_BEST)
     n_selected: int = ContextSetting(3)
@@ -213,6 +214,10 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
             self.controlArea, self, "yake_lang_index", items=YAKE_LANGUAGES,
             callback=self.__on_yake_lang_changed
         )
+        rake_cb = gui.comboBox(
+            self.controlArea, self, "rake_lang_index", items=RAKE_LANGUAGES,
+            callback=self.__on_rake_lang_changed
+        )
 
         for i, (method_name, _) in enumerate(ScoringMethods.ITEMS):
             check_box = QCheckBox(method_name, self)
@@ -224,6 +229,8 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
             box.layout().addWidget(check_box, i, 0)
             if method_name == ScoringMethods.YAKE:
                 box.layout().addWidget(yake_cb, i, 1)
+            if method_name == ScoringMethods.RAKE:
+                box.layout().addWidget(rake_cb, i, 1)
 
         box = gui.vBox(self.controlArea, "Aggregation")
         gui.comboBox(
@@ -295,6 +302,12 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
                 del self.__cached_keywords[ScoringMethods.YAKE]
             self.update_scores()
 
+    def __on_rake_lang_changed(self):
+        if ScoringMethods.RAKE in self.selected_scoring_methods:
+            if ScoringMethods.RAKE in self.__cached_keywords:
+                del self.__cached_keywords[ScoringMethods.RAKE]
+            self.update_scores()
+
     def __on_filter_changed(self):
         model = self.view.model()
         model.setFilterFixedString(self.__filter_line_edit.text().strip())
@@ -351,7 +364,11 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
             ScoringMethods.YAKE: {
                 "language": YAKE_LANGUAGES[self.yake_lang_index],
                 "max_len": self.corpus.ngram_range[1] if self.corpus else 1
-            }
+            },
+            ScoringMethods.RAKE: {
+                "language": RAKE_LANGUAGES[self.rake_lang_index],
+                "max_len": self.corpus.ngram_range[1] if self.corpus else 1
+            },
         }
         self.start(run, self.corpus, self.words, self.__cached_keywords,
                    self.selected_scoring_methods, kwargs, self.agg_method)

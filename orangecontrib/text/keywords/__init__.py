@@ -174,8 +174,8 @@ class ScoringMethods:
     Scoring methods enum.
     """
     TF_IDF, RAKE, YAKE, EMBEDDING = "TF-IDF", "Rake", "YAKE!", "Embedding"
-    ITEMS = list(zip((TF_IDF, YAKE),
-                     (tfidf_keywords, yake_keywords)))
+    ITEMS = list(zip((TF_IDF, YAKE, RAKE),
+                     (tfidf_keywords, yake_keywords, rake_keywords)))
 
     TOKEN_METHODS = TF_IDF, EMBEDDING
     DOCUMENT_METHODS = RAKE, YAKE
