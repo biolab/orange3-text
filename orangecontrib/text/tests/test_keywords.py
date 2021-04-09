@@ -2,7 +2,7 @@
 import unittest
 
 from orangecontrib.text.keywords import tfidf_keywords, yake_keywords, \
-    AggregationMethods
+    rake_keywords, AggregationMethods
 
 
 class TestTfIdf(unittest.TestCase):
@@ -53,6 +53,29 @@ class TestYake(unittest.TestCase):
 
     def test_single_letter_documents(self):
         keywords = yake_keywords(["foo", "", "too"])
+        self.assertEqual(len(keywords), 3)
+        self.assertEqual(len(keywords[0]), 1)
+        self.assertEqual(len(keywords[1]), 0)
+        self.assertEqual(len(keywords[2]), 0)
+
+
+class TestRake(unittest.TestCase):
+    def test_extractor(self):
+        documents = [
+            "Human machine interface for lab abc computer applications",
+            "A survey of user opinion of computer system response time"
+        ]
+        keywords = rake_keywords(documents)
+        self.assertEqual(len(keywords), 2)
+        self.assertEqual(len(keywords[0]), 0)
+        self.assertEqual(len(keywords[1]), 1)
+
+    def test_empty_documents(self):
+        keywords = rake_keywords([])
+        self.assertEqual(len(keywords), 0)
+
+    def test_single_letter_documents(self):
+        keywords = rake_keywords(["foo", "", "too"])
         self.assertEqual(len(keywords), 3)
         self.assertEqual(len(keywords[0]), 1)
         self.assertEqual(len(keywords[1]), 0)
