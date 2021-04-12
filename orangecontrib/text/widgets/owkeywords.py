@@ -96,7 +96,7 @@ def run(
                 words = [preprocessor.normalizer(w) for w in words]
 
         # Filter scores using words
-        existing_words = [w for w in words if w in scores.index]
+        existing_words = [w for w in set(words) if w in scores.index]
         scores = scores.loc[existing_words] if existing_words \
             else scores.iloc[:0]
 
