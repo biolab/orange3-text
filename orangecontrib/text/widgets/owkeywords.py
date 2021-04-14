@@ -170,7 +170,7 @@ class SortFilterProxyModel(QSortFilterProxyModel):
 
 class OWKeywords(OWWidget, ConcurrentWidgetMixin):
     name = "Extract Keywords"
-    description = "Infer characteristic words from Corpus."
+    description = "Infers characteristic words from the input corpus."
     icon = "icons/Keywords.svg"
     priority = 1100
     keywords = ["characteristic", "term"]
