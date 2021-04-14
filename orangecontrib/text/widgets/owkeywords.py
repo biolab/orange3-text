@@ -126,6 +126,7 @@ class KeywordsTableView(QTableView):
         )
         self.setItemDelegate(gui.ColoredBarItemDelegate(self))
         self.verticalHeader().setDefaultSectionSize(22)
+        self.verticalHeader().hide()
 
     def mousePressEvent(self, event):
         super().mousePressEvent(event)
@@ -277,7 +278,6 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
         self.view.horizontalHeader().setSortIndicator(*self.DEFAULT_SORTING)
         self.view.horizontalHeader().sectionClicked.connect(
             self.__on_horizontal_header_clicked)
-        self.view.verticalHeader().sectionClicked.connect(select_manual)
         self.mainArea.layout().addWidget(self.view)
 
         proxy = SortFilterProxyModel()
