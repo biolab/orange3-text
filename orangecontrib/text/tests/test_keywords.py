@@ -93,6 +93,14 @@ class TestAggregationMethods(unittest.TestCase):
         self.assertAlmostEqual(scores[0][1], 0.3)
         self.assertAlmostEqual(scores[1][1], 0.2)
 
+    def test_aggregate_median(self):
+        keywords = [[("foo", 0.1)],
+                    [("foo", 0.3), ("bar", 0.6)],
+                    [("foo", 0.5)]]
+        scores = AggregationMethods.median(keywords)
+        self.assertEqual(scores[0], ("foo", 0.3))
+        self.assertEqual(scores[1], ("bar", 0.6))
+
     def test_aggregate_min(self):
         keywords = [[("foo", 0.1)],
                     [("foo", 0.3), ("bar", 0.6)],
@@ -118,6 +126,11 @@ class TestAggregationMethods(unittest.TestCase):
         self.assertEqual(scores[1][0], "bar")
         self.assertAlmostEqual(scores[0][1], 0.3)
         self.assertAlmostEqual(scores[1][1], 0.2)
+
+        scores = AggregationMethods.aggregate(keywords,
+                                              AggregationMethods.MEDIAN)
+        self.assertEqual(scores[0], ("foo", 0.3))
+        self.assertEqual(scores[1], ("bar", 0.6))
 
         scores = AggregationMethods.aggregate(keywords, AggregationMethods.MIN)
         self.assertEqual(scores[0], ("foo", 0.1))

@@ -7,13 +7,13 @@ from typing import List, Tuple, Callable
 
 import yake
 from nltk.corpus import stopwords
+import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 from Orange.util import dummy_callback
 
 from orangecontrib.text.keywords.rake import Rake
 from orangecontrib.text.preprocess import StopwordsFilter
-
 
 # all available languages for RAKE
 RAKE_LANGUAGES = StopwordsFilter.supported_languages()
@@ -185,8 +185,8 @@ class AggregationMethods:
     """
     Aggregation methods enum and helper functions.
     """
-    MEAN, MIN, MAX = range(3)
-    ITEMS = "Mean", "Minimum", "Maximum"
+    MEAN, MEDIAN, MIN, MAX = range(4)
+    ITEMS = "Mean", "Median", "Min", "Max"
 
     @staticmethod
     def aggregate(
@@ -201,13 +201,14 @@ class AggregationMethods:
         keywords : list
             List of keywords for each document.
         agg_method : int
-            Method type. One of: MEAN, MIN, MAX.
+            Method type. One of: MEAN, MEDIAN, MIN, MAX.
 
         Returns
         -------
         Aggregated keyword scores.
         """
         return [AggregationMethods.mean,
+                AggregationMethods.median,
                 AggregationMethods.min,
                 AggregationMethods.max][agg_method](keywords)
 
@@ -236,6 +237,30 @@ class AggregationMethods:
         return list(unique_scores.items())
 
     @staticmethod
+    def median(
+            keywords: List[List[Tuple[str, float]]]
+    ) -> List[Tuple[str, float]]:
+        """
+        'median' aggregation function.
+
+        Parameters
+        ----------
+        keywords : list
+            List of keywords for each document.
+
+        Returns
+        -------
+        Aggregated keyword scores.
+        """
+        scores = list(chain.from_iterable(keywords))
+        unique_scores = defaultdict(lambda: [])
+        for word, score in scores:
+            unique_scores[word].append(score)
+        for word, score in unique_scores.items():
+            unique_scores[word] = np.median(score)
+        return list(unique_scores.items())
+
+    @staticmethod
     def min(
             keywords: List[List[Tuple[str, float]]]
     ) -> List[Tuple[str, float]]:
@@ -252,11 +277,11 @@ class AggregationMethods:
         Aggregated keyword scores.
         """
         scores = list(chain.from_iterable(keywords))
-        unique_scores = defaultdict(lambda: 1.)
+        unique_scores = defaultdict(lambda: [])
         for word, score in scores:
-            assert score <= 1
-            if unique_scores[word] > score:
-                unique_scores[word] = score
+            unique_scores[word].append(score)
+        for word, score in unique_scores.items():
+            unique_scores[word] = np.min(score)
         return list(unique_scores.items())
 
     @staticmethod
@@ -276,13 +301,9 @@ class AggregationMethods:
         Aggregated keyword scores.
         """
         scores = list(chain.from_iterable(keywords))
-        unique_scores = defaultdict(lambda: 0.)
+        unique_scores = defaultdict(lambda: [])
         for word, score in scores:
-            assert score >= 0
-            if unique_scores[word] < score:
-                unique_scores[word] = score
+            unique_scores[word].append(score)
+        for word, score in unique_scores.items():
+            unique_scores[word] = np.max(score)
         return list(unique_scores.items())
-
-
-if __name__ == "__main__":
-    print(rake(["sample text"], "english", max_len=3))
