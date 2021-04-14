@@ -419,7 +419,7 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
     def on_done(self, results: Results):
         self.__cached_keywords = results.all_keywords
         self.model.wrap(results.scores)
-        self.model.setHorizontalHeaderLabels(["Words"] + results.labels)
+        self.model.setHorizontalHeaderLabels(["Word"] + results.labels)
         self._apply_sorting()
         if self.model.rowCount() > 0:
             self._select_rows()
