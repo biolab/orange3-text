@@ -997,7 +997,7 @@ class OWPreprocess(Orange.widgets.data.owpreprocess.OWPreprocess,
     @Inputs.corpus
     def set_data(self, data: Corpus):
         self.cancel()
-        super().set_data(data)
+        self.data = data
 
     def buildpreproc(self) -> PreprocessorList:
         plist = []
