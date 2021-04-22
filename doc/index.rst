@@ -29,6 +29,7 @@ Widgets
    widgets/duplicatedetection
    widgets/statistics
    widgets/corpustonetwork
+   widgets/keywords
 
 Scripting
 ---------
