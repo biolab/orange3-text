@@ -167,7 +167,7 @@ class TestOWWordList(WidgetTest):
         self.wait_until_finished(widget=widget)
         output = self.get_output(widget.Outputs.words, widget=widget)
         self.assertListEqual(list(output.metas[:, 0]),
-                             ["user", "graph", "trees"])
+                             ["user", "trees", "minors"])
 
     def test_sort_nans_asc(self):
         settings = {"selected_scoring_methods": {"TF-IDF", "YAKE!"},
@@ -177,7 +177,7 @@ class TestOWWordList(WidgetTest):
         self.wait_until_finished(widget=widget)
         output = self.get_output(widget.Outputs.words, widget=widget)
         self.assertListEqual(list(output.metas[:, 0]),
-                             ["widths", "opinion", "applications"])
+                             ["System", "Widths", "opinion"])
 
     def test_send_report(self):
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
