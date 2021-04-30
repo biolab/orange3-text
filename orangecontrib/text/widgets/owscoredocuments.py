@@ -19,7 +19,7 @@ from orangewidget import gui
 from orangewidget.settings import Setting
 from Orange.widgets.utils.itemmodels import PyTableModel, TableModel
 from AnyQt.QtWidgets import QTableView, QLineEdit, QHeaderView
-from AnyQt.QtCore import Qt, QSortFilterProxyModel, QSize
+from AnyQt.QtCore import Qt, QSortFilterProxyModel
 from sklearn.metrics.pairwise import cosine_similarity
 
 from orangecontrib.text import Corpus
@@ -187,8 +187,7 @@ class ScoreDocumentsTableView(QTableView):
         super().__init__(
             sortingEnabled=True,
             editTriggers=QTableView.NoEditTriggers,
-            selectionBehavior=QTableView.SelectRows,
-            selectionMode=QTableView.ExtendedSelection,
+            selectionMode=QTableView.NoSelection,
             cornerButtonEnabled=False,
         )
         self.setItemDelegate(gui.ColoredBarItemDelegate(self))
@@ -288,7 +287,7 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
         self.scores = {}
 
     def _setup_control_area(self) -> None:
-        box = gui.widgetBox(self.controlArea, "Word scoring")
+        box = gui.widgetBox(self.controlArea, "Word Scoring Methods")
         for value, (n, _, tt) in SCORING_METHODS.items():
             b = gui.hBox(box, margin=0)
             gui.checkBox(
@@ -309,12 +308,11 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
                     callback=self.__setting_changed,
                 )
 
-        box = gui.widgetBox(self.controlArea, "Aggregate scores")
+        box = gui.widgetBox(self.controlArea, "Aggregation")
         gui.comboBox(
             box,
             self,
             "aggregation",
-            searchable=True,
             items=[n for n in AGGREGATIONS],
             callback=self.__setting_changed,
         )
