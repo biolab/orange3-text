@@ -6,7 +6,7 @@ import base64
 import json
 import sys
 import warnings
-from typing import Tuple, Any, Optional
+from typing import Tuple, Any, Optional, Union, List
 import numpy as np
 
 from Orange.misc.server_embedder import ServerEmbedderCommunicator
@@ -93,13 +93,13 @@ class DocumentEmbedder:
                                          embedder_type='text')
 
     def __call__(
-        self, corpus: Corpus, processed_callback=None
-    ) -> Tuple[Corpus, Corpus]:
+        self, corpus: Union[Corpus, List[List[str]]], processed_callback=None
+    ) -> Union[Tuple[Corpus, Corpus], List[Optional[List[float]]]]:
         """Adds matrix of document embeddings to a corpus.
 
         Parameters
         ----------
-        corpus : Corpus
+        corpus : Corpus or list of lists
             Corpus on which transform is performed.
 
         Returns
@@ -114,11 +114,14 @@ class DocumentEmbedder:
         ValueError
             If corpus is not instance of Corpus.
         """
-        if not isinstance(corpus, Corpus):
-            raise ValueError("Input should be instance of Corpus.")
+        if not isinstance(corpus, (Corpus, list)):
+            raise ValueError("Input should be instance of Corpus or list.")
         embs = self._embedder.embedd_data(
-            list(corpus.ngrams),
+            list(corpus.ngrams) if isinstance(corpus, Corpus) else corpus,
             processed_callback=processed_callback)
+
+        if isinstance(corpus, list):
+            return embs
 
         dim = None
         for emb in embs:  # find embedding dimension
