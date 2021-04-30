@@ -83,7 +83,7 @@ SCORING_METHODS = {
         "Frequency of the word in the document.",
     ),
     "word_appearance": (
-        "Word in text",
+        "Word presence",
         _word_appearance,
         "Score word with one if it appears in the document, with zero otherwise.",
     ),
