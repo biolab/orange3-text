@@ -166,19 +166,19 @@ class TestOWScoreDocuments(WidgetTest):
         self.wait_until_finished()
         self.assertEqual(len(self.widget.model[0]), 3)
         self.assertEqual(model.headerData(1, Qt.Horizontal), "Word count")
-        self.assertEqual(model.headerData(2, Qt.Horizontal), "Word in text")
+        self.assertEqual(model.headerData(2, Qt.Horizontal), "Word presence")
 
         self.widget.controls.embedding_similarity.click()
         self.wait_until_finished()
         self.assertEqual(len(self.widget.model[0]), 4)
         self.assertEqual(model.headerData(1, Qt.Horizontal), "Word count")
-        self.assertEqual(model.headerData(2, Qt.Horizontal), "Word in text")
+        self.assertEqual(model.headerData(2, Qt.Horizontal), "Word presence")
         self.assertEqual(model.headerData(3, Qt.Horizontal), "Similarity")
 
         self.widget.controls.word_frequency.click()
         self.wait_until_finished()
         self.assertEqual(len(self.widget.model[0]), 3)
-        self.assertEqual(model.headerData(1, Qt.Horizontal), "Word in text")
+        self.assertEqual(model.headerData(1, Qt.Horizontal), "Word presence")
         self.assertEqual(model.headerData(2, Qt.Horizontal), "Similarity")
 
     @staticmethod
