@@ -297,6 +297,45 @@ class TestOWScoreDocuments(WidgetTest):
         data = [model.data(model.index(i, 0)) for i in range(model.rowCount())]
         self.assertListEqual(data, natural_sorted(self.corpus.titles)[::-1])
 
+    def test_sort_setting(self):
+        """
+        Test if sorting is correctly memorized in setting and restored
+        """
+        view = self.widget.view
+        model = view.model()
+        self.widget.sort_column_order = (1, Qt.DescendingOrder)
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.send_signal(self.widget.Inputs.words, self.words)
+        self.wait_until_finished()
+
+        header = self.widget.view.horizontalHeader()
+        current_sorting = (header.sortIndicatorSection(), header.sortIndicatorOrder())
+        data = [model.data(model.index(i, 1)) for i in range(model.rowCount())]
+        self.assertTupleEqual((1, Qt.DescendingOrder), current_sorting)
+        self.assertListEqual(sorted(data, reverse=True), data)
+
+        self.send_signal(self.widget.Inputs.words, None)
+        self.send_signal(self.widget.Inputs.words, self.words)
+        self.wait_until_finished()
+
+        header = self.widget.view.horizontalHeader()
+        current_sorting = (header.sortIndicatorSection(), header.sortIndicatorOrder())
+        data = [model.data(model.index(i, 1)) for i in range(model.rowCount())]
+        self.assertTupleEqual((1, Qt.DescendingOrder), current_sorting)
+        self.assertListEqual(sorted(data, reverse=True), data)
+
+        self.send_signal(self.widget.Inputs.corpus, None)
+        self.send_signal(self.widget.Inputs.words, None)
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.send_signal(self.widget.Inputs.words, self.words)
+        self.wait_until_finished()
+
+        header = self.widget.view.horizontalHeader()
+        current_sorting = (header.sortIndicatorSection(), header.sortIndicatorOrder())
+        data = [model.data(model.index(i, 1)) for i in range(model.rowCount())]
+        self.assertTupleEqual((1, Qt.DescendingOrder), current_sorting)
+        self.assertListEqual(sorted(data, reverse=True), data)
+
 
 if __name__ == "__main__":
     unittest.main()
