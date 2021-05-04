@@ -13,6 +13,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from Orange.util import dummy_callback
 
 from orangecontrib.text.keywords.rake import Rake
+from orangecontrib.text.keywords.embedding import embedding_keywords, EMBEDDING_LANGUAGE_MAPPING
 from orangecontrib.text.preprocess import StopwordsFilter
 
 # all available languages for RAKE

@@ -1,8 +1,10 @@
 # pylint: disable=missing-docstring
 import unittest
+from unittest.mock import patch
 
+import numpy as np
 from orangecontrib.text.keywords import tfidf_keywords, yake_keywords, \
-    rake_keywords, AggregationMethods
+    rake_keywords, AggregationMethods, embedding_keywords
 
 
 class TestTfIdf(unittest.TestCase):
@@ -80,6 +82,43 @@ class TestRake(unittest.TestCase):
         self.assertEqual(len(keywords[0]), 1)
         self.assertEqual(len(keywords[1]), 0)
         self.assertEqual(len(keywords[2]), 0)
+
+
+def mock_embedding(_, tokens, __):
+    emb_dict = {"foo": [1, 2, 3], "bar": [2, 3, 4], "baz": [4, 4, 4], "fobar": [1, 2, 3], "a": [1, 2, 3], "b": [4, 5, 6]}
+    emb = [np.mean([emb_dict.get(t, [1, 1, 1]) for t in tt], axis=0).tolist() if tt else [0, 0, 0] for tt in tokens]
+    return emb
+
+
+@patch("orangecontrib.text.vectorization.document_embedder.DocumentEmbedder.__call__", mock_embedding)
+class TestEmbedding(unittest.TestCase):
+    def test_extractor(self):
+        tokens = [["foo", "bar", "baz", "baz"],
+                  ["foobar"],
+                  []]
+        keywords = embedding_keywords(tokens)
+        self.assertEqual(len(keywords), 3)
+        self.assertEqual(len(keywords[0]), 3)
+        self.assertEqual(len(keywords[1]), 1)
+        self.assertEqual(len(keywords[2]), 0)
+
+        self.assertEqual(keywords[0][0][0], "baz")
+        np.testing.assert_almost_equal(keywords[0][0][1], 0.00780, decimal=4)
+
+        self.assertEqual(keywords[0][1][0], "bar")
+        self.assertEqual(keywords[0][2][0], "foo")
+
+        self.assertEqual(keywords[1][0][0], "foobar")
+
+    def test_empty_tokens(self):
+        keywords = embedding_keywords([])
+        self.assertEqual(len(keywords), 0)
+
+    def test_single_letter_tokens(self):
+        keywords = embedding_keywords([["a", "b", "b", " "]])
+        self.assertEqual(keywords[0][0][0], "b")
+        self.assertEqual(keywords[0][1][0], " ")
+        self.assertEqual(keywords[0][2][0], "a")
 
 
 class TestAggregationMethods(unittest.TestCase):
