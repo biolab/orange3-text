@@ -358,7 +358,7 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
         attrs = [
             a
             for a in words.domain.metas + words.domain.variables
-            if isinstance(a, (StringVariable, DiscreteVariable))
+            if isinstance(a, StringVariable)
         ]
         words_attr = next(
             (a for a in attrs if a.attributes.get("type", "") == "words"), None
