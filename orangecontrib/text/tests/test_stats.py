@@ -4,6 +4,7 @@ import scipy.sparse as sp
 
 from orangecontrib.text.stats import hypergeom_p_values, is_sorted
 
+
 class StatsTests(unittest.TestCase):
     x = np.array([[0, 0, 9, 0, 1],
                   [0, 1, 3, 0, 2],
@@ -32,3 +33,7 @@ class StatsTests(unittest.TestCase):
     def test_is_sorted(self):
         self.assertTrue(is_sorted(range(10)))
         self.assertFalse(is_sorted(range(10)[::-1]))
+
+
+if __name__ == "__main__":
+    unittest.main()
