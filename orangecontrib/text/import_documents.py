@@ -185,7 +185,7 @@ class UrlReader(Reader, CoreUrlReader):
 
     def __init__(self, path, *args):
         CoreUrlReader.__init__(self, path)
-        Reader.__init__(self, self.filename, *args)
+        Reader.__init__(self, path, *args)
 
     def read_file(self):
         # unquote prevent double quoting when filename is already quoted
