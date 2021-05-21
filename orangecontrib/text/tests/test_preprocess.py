@@ -255,6 +255,8 @@ class TokenNormalizerTests(unittest.TestCase):
 
     def test_udpipe_pickle(self):
         normalizer = preprocess.UDPipeLemmatizer('Slovenian', True)
+        # udpipe store model after first call - model is not picklable
+        normalizer(self.corpus)
         loaded = pickle.loads(pickle.dumps(normalizer))
         self.assertEqual(normalizer._UDPipeLemmatizer__language,
                          loaded._UDPipeLemmatizer__language)

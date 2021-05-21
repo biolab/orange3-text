@@ -170,3 +170,17 @@ class UDPipeLemmatizer(BaseNormalizer):
             tokens.extend([t['properties']['lemma']
                            for t in json.loads(output)['nodes']])
         return tokens
+
+    def __getstate__(self):
+        """
+        This function remove udpipe.Model that cannot be pickled
+
+        Note: __setstate__ is not required since we do not make any harm if
+              model is not restored. It will be loaded on __call__
+        """
+        # copy to avoid editing original dict
+        state = self.__dict__.copy()
+        # Remove the unpicklable Model and output format.
+        state['_UDPipeLemmatizer__model'] = None
+        state['_UDPipeLemmatizer__output_format'] = None
+        return state
