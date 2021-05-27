@@ -2,10 +2,16 @@ import unittest
 from unittest.mock import Mock
 
 import Orange
+import numpy as np
 from Orange.data import Table, Domain
 from Orange.widgets.tests.base import WidgetTest
 
 from orangecontrib.text.corpus import Corpus
+from orangecontrib.text.preprocess import (
+    PreprocessorList,
+    BASE_TRANSFORMER,
+    RegexpTokenizer,
+)
 from orangecontrib.text.vectorization import BowVectorizer
 from orangecontrib.text.widgets.owwordenrichment import OWWordEnrichment
 
@@ -25,7 +31,7 @@ class TestWordEnrichment(WidgetTest):
 
         self.send_signal(widget.Inputs.data, self.corpus_vect)
         self.send_signal(widget.Inputs.selected_data, self.subset_corpus)
-        self.wait_until_finished(timeout=10000)
+        self.wait_until_finished(timeout=100000)
 
         # test p-value filter
         widget.filter_by_p = True
@@ -162,7 +168,7 @@ class TestWordEnrichment(WidgetTest):
 
         self.send_signal(w.Inputs.selected_data, self.subset_corpus)
         self.send_signal(w.Inputs.data, self.corpus_vect)
-        self.wait_until_finished(timeout=10000)
+        self.wait_until_finished(timeout=100000)
 
         self.assertEqual(w.info_fil.text(), "Words displayed: 3")
 
@@ -190,7 +196,7 @@ class TestWordEnrichment(WidgetTest):
 
         self.send_signal(w.Inputs.data, self.corpus_vect)
         self.send_signal(w.Inputs.selected_data, self.subset_corpus)
-        self.wait_until_finished(timeout=10000)
+        self.wait_until_finished(timeout=100000)
 
         # test p-value filter
         w.controls.filter_by_p.click()  # set to true
@@ -232,9 +238,34 @@ class TestWordEnrichment(WidgetTest):
 
         self.send_signal(w.Inputs.data, self.corpus_vect)
         self.send_signal(w.Inputs.selected_data, self.subset_corpus)
-        self.wait_until_finished(timeout=10000)
+        self.wait_until_finished(timeout=100000)
 
         w.send_report()
+
+    def test_result(self):
+        pp = PreprocessorList([BASE_TRANSFORMER, RegexpTokenizer()])
+        corpus = pp(Corpus.from_file("book-excerpts")[::3])
+        vect = BowVectorizer()
+        corpus_vect = vect.transform(corpus)
+
+        words = ["beheld", "events", "dragged", "basin", "visit", "have"]
+        d = Domain([corpus_vect.domain[w] for w in words])
+        corpus_vect = corpus_vect.transform(d)
+
+        self.send_signal(self.widget.Inputs.data, corpus_vect)
+        self.send_signal(self.widget.Inputs.selected_data, corpus_vect[:1])
+        self.wait_until_finished(timeout=100000)
+
+        np.testing.assert_array_almost_equal(
+            self.widget.results.p_values,
+            [0.02128, 1, 0.04255, 0.06383, 0.08511, 0.97872],
+            decimal=5,
+        )
+        np.testing.assert_array_almost_equal(
+            self.widget.results.fdr_values,
+            [0.12766, 1, 0.12766, 0.12766, 0.12766, 1],
+            decimal=5,
+        )
 
 
 if __name__ == "__main__":

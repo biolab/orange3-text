@@ -5,6 +5,11 @@ Change Log
 ------------
 * ...
 
+[1.3.1] - 2021-01-22
+--------------------
+##### Bugfixes
+* Revert #592 since fastText cannot be installed on Windows ([#618](../../pull/618))
+
 [1.3.0] - 2021-01-21
 --------------------
 ##### Enhancements
@@ -240,8 +245,8 @@ Change Log
 --------------------
 
 
-
 [next]: https://github.com/biolab/orange3-text/compare/1.3.0...HEAD
+[1.3.1]: https://github.com/biolab/orange3-text/compare/1.3.0...1.3.1
 [1.3.0]: https://github.com/biolab/orange3-text/compare/1.2.0...1.3.0
 [1.2.0]: https://github.com/biolab/orange3-text/compare/1.1.0...1.2.0
 [1.1.0]: https://github.com/biolab/orange3-text/compare/1.0.0...1.1.0

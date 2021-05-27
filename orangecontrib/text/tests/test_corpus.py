@@ -31,13 +31,13 @@ class CorpusTests(unittest.TestCase):
     def test_corpus_from_file(self):
         c = Corpus.from_file('book-excerpts')
         self.assertEqual(len(c), 140)
-        self.assertEqual(len(c.domain), 1)
+        self.assertEqual(len(c.domain.variables), 1)
         self.assertEqual(len(c.domain.metas), 1)
         self.assertEqual(c.metas.shape, (140, 1))
 
         c = Corpus.from_file('deerwester')
         self.assertEqual(len(c), 9)
-        self.assertEqual(len(c.domain), 1)
+        self.assertEqual(len(c.domain.variables), 1)
         self.assertEqual(len(c.domain.metas), 1)
         self.assertEqual(c.metas.shape, (9, 1))
 
@@ -52,6 +52,32 @@ class CorpusTests(unittest.TestCase):
         c = Corpus.from_file('book-excerpts')
         c2 = Corpus.from_file('book-excerpts.tab')
         self.assertEqual(c, c2)
+
+    def test_corpus_from_numpy(self):
+        domain = Domain(
+            [], metas=[StringVariable("title"), StringVariable("a")]
+        )
+        corpus = Corpus.from_numpy(
+            domain,
+            np.empty((2, 0)),
+            metas=np.array([["title1", "a"], ["title2", "b"]])
+        )
+        self.assertEqual(2, len(corpus))
+        assert_array_equal(["Document 1", "Document 2"], corpus.titles)
+        self.assertListEqual([StringVariable("title")], corpus.text_features)
+        self.assertIsNone(corpus._tokens)
+        self.assertListEqual([], corpus.used_preprocessor.preprocessors)
+
+    def test_corpus_from_list(self):
+        domain = Domain(
+            [], metas=[StringVariable("title"), StringVariable("a")]
+        )
+        corpus = Corpus.from_list(domain, [["title1", "a"], ["title2", "b"]])
+        self.assertEqual(2, len(corpus))
+        assert_array_equal(["Document 1", "Document 2"], corpus.titles)
+        self.assertListEqual([StringVariable("title")], corpus.text_features)
+        self.assertIsNone(corpus._tokens)
+        self.assertListEqual([], corpus.used_preprocessor.preprocessors)
 
     def test_corpus_from_file_missing(self):
         with self.assertRaises(FileNotFoundError):
@@ -221,6 +247,35 @@ class CorpusTests(unittest.TestCase):
         tf = c.text_features
         self.assertEqual(len(tf), 1)
         self.assertEqual(tf[0].name, 'Text')
+
+    def test_infer_text_features_str_include(self):
+        """
+        In orange 3.29 include attribute is read as boolean. corpus must still
+        support older versions of Orange where include attribute is a string.
+        Test behaviour with string attribute.
+        """
+        c = Corpus.from_file('andersen')
+        c.domain["Content"].attributes["include"] = "False"
+        c._infer_text_features()
+        self.assertListEqual(c.text_features, [c.domain["Title"]])
+
+        c.domain["Content"].attributes["include"] = "True"
+        c._infer_text_features()
+        self.assertListEqual(c.text_features, [c.domain["Content"]])
+
+    def test_infer_text_features_bool_include(self):
+        """
+        In orange 3.29 include attribute is read as boolean.
+        Test behaviour with boolean attribute.
+        """
+        c = Corpus.from_file('andersen')
+        c.domain["Content"].attributes["include"] = False
+        c._infer_text_features()
+        self.assertListEqual(c.text_features, [c.domain["Title"]])
+
+        c.domain["Content"].attributes["include"] = True
+        c._infer_text_features()
+        self.assertListEqual(c.text_features, [c.domain["Content"]])
 
     def test_documents(self):
         c = Corpus.from_file('book-excerpts')
@@ -572,14 +627,6 @@ class CorpusTests(unittest.TestCase):
         for pp in self.pp_list:
             c = pp(c)
         pickle.dumps(c)
-
-    def test_languages(self):
-        corpus = Corpus.from_file('deerwester')
-
-        self.assertIsNone(corpus.languages)
-        corpus.detect_languages()
-        self.assertEqual(len(corpus.languages), len(corpus))
-        self.assertListEqual(corpus.languages, ['en' for _ in range(len(corpus))])
 
 
 if __name__ == "__main__":

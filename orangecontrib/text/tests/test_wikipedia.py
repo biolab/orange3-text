@@ -1,9 +1,7 @@
 import unittest
 from unittest import mock
 
-import wikipedia
-
-from orangecontrib.text.wikipedia import WikipediaAPI
+from orangecontrib.text.wikipedia_api import WikipediaAPI, wikipedia
 from orangecontrib.text.corpus import Corpus
 
 

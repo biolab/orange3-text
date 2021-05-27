@@ -9,7 +9,6 @@ import nltk
 import numpy as np
 import scipy.sparse as sp
 from gensim import corpora
-import fasttext
 
 from Orange.data import (
     Variable,
@@ -83,7 +82,6 @@ class Corpus(Table):
         from orangecontrib.text.preprocess import PreprocessorList
         self.__used_preprocessor = PreprocessorList([])   # required for compute values
         self._titles: Optional[np.ndarray] = None
-        self.languages = None
         self._pp_documents = None  # preprocessed documents
 
         if domain is not None and text_features is None:
@@ -226,22 +224,6 @@ class Corpus(Table):
             new_titles.append(t)
         return new_titles
 
-    def detect_languages(self):
-        """
-        Detects language of each document using fastText language
-        identification model.
-        [A. Joulin, E. Grave, P. Bojanowski, T. Mikolov,
-        Bag of Tricks for Efficient Text Classification],
-        [A. Joulin, E. Grave, P. Bojanowski, M. Douze, H. Jégou, T. Mikolov,
-        FastText.zip: Compressing text classification models]
-        """
-        path = os.path.join(os.path.dirname(__file__), 'models', 'lid.176.ftz')
-        model = fasttext.load_model(path)
-        texts = [' '.join(t.replace('\n', ' ').split(' ')[:2000])
-                 for t in self.documents]
-        self.languages = [model.predict(t)[0][0].replace('__label__', '')
-                          for t in texts]
-
     def _infer_text_features(self):
         """
         Infer which text features to use. If nothing was provided
@@ -253,7 +235,11 @@ class Corpus(Table):
             if attr.is_string:
                 if first is None:
                     first = attr
-                if attr.attributes.get('include', 'False') == 'True':
+                incl = attr.attributes.get('include', False)
+                # variable attributes can be boolean from Orange 3.29
+                # they are string in older versions
+                # incl == True, since without == string "False" would be True
+                if incl == "True" or incl == True:
                     include_feats.append(attr)
         if len(include_feats) == 0 and first:
             include_feats.append(first)
@@ -572,14 +558,20 @@ class Corpus(Table):
 
     @classmethod
     def from_numpy(cls, *args, **kwargs):
-        c = super().from_numpy(*args, **kwargs)
-        c._set_unique_titles()
+        t = super().from_numpy(*args, **kwargs)
+        # t is corpus but its constructor was not called since from_numpy
+        # calls just class method __new__, call it here to set default values
+        # for attributes such as _titles, _tokens, preprocessors, text_features
+        c = Corpus(t.domain, t.X, t.Y, t.metas, t.W, ids=t.ids)
         return c
 
     @classmethod
     def from_list(cls, domain, rows, weights=None):
-        c = super().from_list(domain, rows, weights)
-        c._set_unique_titles()
+        t = super().from_list(domain, rows, weights)
+        # t is corpus but its constructor was not called since from_numpy
+        # calls just class method __new__, call it here to set default values
+        # for attributes such as _titles, _tokens, preprocessors, text_features
+        c = Corpus(t.domain, t.X, t.Y, t.metas, t.W, ids=t.ids)
         return c
 
     @classmethod

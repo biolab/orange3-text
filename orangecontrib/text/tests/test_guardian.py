@@ -37,11 +37,13 @@ class TestGuardian(unittest.TestCase):
         self.api = guardian.TheGuardianAPI(c)
 
     @skip_limit_exceeded
+    @unittest.skipIf(API_KEY == 'test', 'THE_GUARDIAN_API_KEY needed to run test.')
     def test_search(self):
         corp = self.api.search('Slovenia', max_documents=20)
         self.assertEqual(len(corp), 20)
 
     @skip_limit_exceeded
+    @unittest.skipIf(API_KEY == 'test', 'THE_GUARDIAN_API_KEY needed to run test.')
     def test_search_from_to_date(self):
         from_date = date(2016, 12, 1)
         to_date = date(2016, 12, 31)
@@ -56,6 +58,7 @@ class TestGuardian(unittest.TestCase):
             self.assertLessEqual(dt.date(), to_date)
 
     @skip_limit_exceeded
+    @unittest.skipIf(API_KEY == 'test', 'THE_GUARDIAN_API_KEY needed to run test.')
     def test_breaking(self):
         self.api.should_break = lambda: True
         corp = self.api.search('Slovenia', max_documents=20)
@@ -63,6 +66,7 @@ class TestGuardian(unittest.TestCase):
         self.api.should_break = lambda: False
 
     @skip_limit_exceeded
+    @unittest.skipIf(API_KEY == 'test', 'THE_GUARDIAN_API_KEY needed to run test.')
     def test_accumulate(self):
         self.api.search('Slovenia', max_documents=10, accumulate=True)
         corp = self.api.search('Ljubljana', max_documents=10, accumulate=True)

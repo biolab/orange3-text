@@ -140,7 +140,8 @@ class OWCorpusViewer(OWWidget):
             self.display_features = list(filter_visible(chain(domain.variables, domain.metas)))
             self.search_indices = list(range(len(self.search_features)))
             self.display_indices = list(range(len(self.display_features)))
-            self.selected_documents = [corpus.titles[0]]
+            self.selected_documents = [corpus.titles[0]] if \
+                corpus.titles is not None and len(corpus.titles) else []
             self.openContext(self.corpus)
             self.display_list_indices = self.display_indices
             self.regenerate_docs()

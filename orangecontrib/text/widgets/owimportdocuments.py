@@ -10,6 +10,7 @@ import enum
 import warnings
 import logging
 import traceback
+from urllib.parse import urlparse
 
 from types import SimpleNamespace as namespace
 from concurrent.futures._base import TimeoutError
@@ -22,11 +23,14 @@ from AnyQt.QtGui import QStandardItem, QDropEvent
 from AnyQt.QtWidgets import (
     QAction, QPushButton, QComboBox, QApplication, QStyle, QFileDialog,
     QFileIconProvider, QStackedWidget, QProgressBar, QWidget, QHBoxLayout,
-    QVBoxLayout, QLabel
+    QVBoxLayout, QLabel, QGridLayout, QSizePolicy, QCompleter
 )
+
+from orangewidget.utils.itemmodels import PyListModel
 
 from Orange.data import Table, Domain, StringVariable
 from Orange.widgets import widget, gui, settings
+from Orange.widgets.data.owfile import LineEditSelectOnFocus
 from Orange.widgets.utils.filedialogs import RecentPath
 from Orange.widgets.utils.concurrent import (
     ThreadExecutor, FutureWatcher, methodinvoke
@@ -34,7 +38,8 @@ from Orange.widgets.utils.concurrent import (
 from Orange.widgets.widget import Output
 
 from orangecontrib.text.corpus import Corpus
-from orangecontrib.text.import_documents import ImportDocuments
+from orangecontrib.text.import_documents import ImportDocuments, \
+    NoDocumentsException
 
 try:
     from orangecanvas.preview.previewbrowser import TextLabel
@@ -90,9 +95,12 @@ class OWImportDocuments(widget.OWWidget):
         data = Output("Corpus", Corpus)
         skipped_documents = Output("Skipped documents", Table)
 
+    LOCAL_FILE, URL = range(2)
+    source = settings.Setting(LOCAL_FILE)
     #: list of recent paths
     recent_paths: List[RecentPath] = settings.Setting([])
     currentPath: Optional[str] = settings.Setting(None)
+    recent_urls: List[str] = settings.Setting([])
 
     want_main_area = False
     resizing_enabled = False
@@ -115,8 +123,18 @@ class OWImportDocuments(widget.OWWidget):
         self.__invalidated = False
         self.__pendingTask = None
 
-        vbox = gui.vBox(self.controlArea)
-        hbox = gui.hBox(vbox)
+        layout = QGridLayout()
+        layout.setSpacing(4)
+        gui.widgetBox(self.controlArea, orientation=layout, box='Source')
+        source_box = gui.radioButtons(None, self, "source", box=True,
+                                      callback=self.start, addToLayout=False)
+        rb_button = gui.appendRadioButton(source_box, "Folder:",
+                                          addToLayout=False)
+        layout.addWidget(rb_button, 0, 0, Qt.AlignVCenter)
+
+        box = gui.hBox(None, addToLayout=False, margin=0)
+        box.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Fixed)
+
         self.recent_cb = QComboBox(
             sizeAdjustPolicy=QComboBox.AdjustToMinimumContentsLengthWithIcon,
             minimumContentsLength=16,
@@ -147,25 +165,50 @@ class OWImportDocuments(widget.OWWidget):
             browseaction.iconText(),
             icon=browseaction.icon(),
             toolTip=browseaction.toolTip(),
-            clicked=browseaction.trigger
+            clicked=browseaction.trigger,
+            default=False,
+            autoDefault=False,
         )
         reloadbutton = QPushButton(
             reloadaction.iconText(),
             icon=reloadaction.icon(),
             clicked=reloadaction.trigger,
-            default=True,
+            default=False,
+            autoDefault=False,
         )
+        box.layout().addWidget(self.recent_cb)
+        layout.addWidget(box, 0, 1)
+        layout.addWidget(browsebutton, 0, 2)
+        layout.addWidget(reloadbutton, 0, 3)
 
-        hbox.layout().addWidget(self.recent_cb)
-        hbox.layout().addWidget(browsebutton)
-        hbox.layout().addWidget(reloadbutton)
+        rb_button = gui.appendRadioButton(source_box, "URL:", addToLayout=False)
+        layout.addWidget(rb_button, 3, 0, Qt.AlignVCenter)
+
+        self.url_combo = url_combo = QComboBox()
+        url_model = PyListModel()
+        url_model.wrap(self.recent_urls)
+        url_combo.setLineEdit(LineEditSelectOnFocus())
+        url_combo.setModel(url_model)
+        url_combo.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+        url_combo.setEditable(True)
+        url_combo.setInsertPolicy(url_combo.InsertAtTop)
+        url_edit = url_combo.lineEdit()
+        l, t, r, b = url_edit.getTextMargins()
+        url_edit.setTextMargins(l + 5, t, r, b)
+        layout.addWidget(url_combo, 3, 1, 1, 3)
+        url_combo.activated.connect(self._url_set)
+        # whit completer we set that combo box is case sensitive when
+        # matching the history
+        completer = QCompleter()
+        completer.setCaseSensitivity(Qt.CaseSensitive)
+        url_combo.setCompleter(completer)
 
         self.addActions([browseaction, reloadaction])
 
         reloadaction.changed.connect(
             lambda: reloadbutton.setEnabled(reloadaction.isEnabled())
         )
-        box = gui.vBox(vbox, "Info")
+        box = gui.vBox(self.controlArea, "Info")
         self.infostack = QStackedWidget()
 
         self.info_area = QLabel(
@@ -178,6 +221,8 @@ class OWImportDocuments(widget.OWWidget):
         self.cancel_button = QPushButton(
             "Cancel",
             icon=self.style().standardIcon(QStyle.SP_DialogCancelButton),
+            default=False,
+            autoDefault=False,
         )
         self.cancel_button.clicked.connect(self.cancel)
 
@@ -208,6 +253,17 @@ class OWImportDocuments(widget.OWWidget):
         self.__executor = ThreadExecutor(self)
 
         QApplication.postEvent(self, QEvent(RuntimeEvent.Init))
+
+    def _url_set(self):
+        url = self.url_combo.currentText()
+        pos = self.recent_urls.index(url)
+        url = url.strip()
+        if not urlparse(url).scheme:
+            url = "http://" + url
+            self.url_combo.setItemText(pos, url)
+            self.recent_urls[pos] = url
+        self.source = self.URL
+        self.start()
 
     def __initRecentItemsModel(self):
         if self.currentPath is not None and \
@@ -335,7 +391,8 @@ class OWImportDocuments(widget.OWWidget):
         """
         if self.currentPath is not None and path is not None and \
                 os.path.isdir(self.currentPath) and os.path.isdir(path) and \
-                os.path.samefile(self.currentPath, path):
+                os.path.samefile(self.currentPath, path) and \
+                self.source == self.LOCAL_FILE:
             return True
 
         success = True
@@ -369,7 +426,7 @@ class OWImportDocuments(widget.OWWidget):
 
         if self.__state == State.Processing:
             self.cancel()
-
+        self.source = self.LOCAL_FILE
         return success
 
     def addRecentPath(self, path):
@@ -446,7 +503,7 @@ class OWImportDocuments(widget.OWWidget):
         """
         if self.__state == State.Processing:
             self.cancel()
-
+        self.source = self.LOCAL_FILE
         self.corpus = None
         self.start()
 
@@ -459,7 +516,9 @@ class OWImportDocuments(widget.OWWidget):
         self.progress_widget.setValue(0)
 
         self.__invalidated = False
-        if self.currentPath is None:
+        startdir = self.currentPath if self.source == self.LOCAL_FILE \
+            else self.url_combo.currentText().strip()
+        if not startdir:
             return
 
         if self.__state == State.Processing:
@@ -469,14 +528,13 @@ class OWImportDocuments(widget.OWWidget):
                      .format(self.__pendingTask.startdir))
             self.cancel()
 
-        startdir = self.currentPath
-
         self.__setRuntimeState(State.Processing)
 
         report_progress = methodinvoke(
             self, "__onReportProgress", (object,))
 
-        task = ImportDocuments(startdir, report_progress=report_progress)
+        task = ImportDocuments(startdir, self.source == self.URL,
+                               report_progress=report_progress)
 
         # collect the task state in one convenient place
         self.__pendingTask = taskstate = namespace(
@@ -526,13 +584,15 @@ class OWImportDocuments(widget.OWWidget):
         task = self.__pendingTask
         self.__pendingTask = None
 
+        corpus, errors = None, []
         try:
             corpus, errors = task.future.result()
+        except NoDocumentsException:
+            state = State.Error
+            self.error("Folder contains no readable files.")
         except Exception:
             sys.excepthook(*sys.exc_info())
             state = State.Error
-            corpus = None
-            errors = []
             self.error(traceback.format_exc())
         else:
             state = State.Done
@@ -544,7 +604,8 @@ class OWImportDocuments(widget.OWWidget):
                 if corpus.domain.class_var else 0
 
         self.corpus = corpus
-        self.corpus.name = "Documents"
+        if self.corpus:
+            self.corpus.name = "Documents"
         self.skipped_documents = errors
 
         if len(errors):

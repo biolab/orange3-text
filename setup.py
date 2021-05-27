@@ -16,9 +16,9 @@ except ImportError:
 NAME = 'Orange3-Text'
 
 MAJOR = 1
-MINOR = 3
+MINOR = 4
 MICRO = 0
-IS_RELEASED = False
+IS_RELEASED = True
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 FULL_VERSION = VERSION
 
@@ -167,5 +167,8 @@ if __name__ == '__main__':
         keywords=KEYWORDS,
         namespace_packages=['orangecontrib'],
         zip_safe=False,
-        test_suite="setup.temp_test_suite"
+        test_suite="setup.temp_test_suite",
+        extras_require={
+            'test': ['coverage']
+            },
     )

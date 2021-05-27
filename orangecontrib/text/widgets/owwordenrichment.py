@@ -33,11 +33,12 @@ class Runner:
         state.set_status("Listing words")
         result.words = [
             i.name for i in selected_data_transformed.domain.attributes]
+
         state.set_status("Computing p-values")
         result.p_values = hypergeom_p_values(
             data.X, selected_data_transformed.X,
-            callback=state.set_progress_value
         )
+
         state.set_status("Computing FDR values")
         result.fdr_values = FDR(result.p_values)
 

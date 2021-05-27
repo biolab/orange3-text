@@ -3,9 +3,9 @@ nltk>=3.0.5     # TweetTokenizer introduced in 3.0.5
 scikit-learn
 numpy
 python-dateutil<3.0.0  # denpendency for botocore
-gensim>=0.12.3  # LDA's show topics unified in 0.12.3
+gensim>=0.12.3,!=4.0.0,!=4.0.1  # LDA's show topics unified in 0.12.3; 4.0 and 4.0.1 require numpy>=1.17 but do not have that in requirements - text addon do not work in envs with numpy<1.17
 setuptools-git
-Orange3 >=3.25.0
+Orange3 >=3.28.0
 tweepy
 beautifulsoup4
 simhash >=1.11
@@ -16,4 +16,5 @@ docx2txt>=0.6
 lxml
 biopython # Enables Pubmed widget.
 ufal.udpipe >=1.2.0.3
-fasttext
+orange-widget-base >=4.12.0
+yake
