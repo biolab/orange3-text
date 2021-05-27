@@ -5,6 +5,20 @@ Change Log
 ------------
 * ...
 
+[1.4.0] - 2021-05-27
+
+##### Enhancements
+* Score documents widget ([#632](../../pull/632))
+* Import documents: Import from URL ([#637](../../pull/637))
+* Extract Keywords: New widget ([#644](../../pull/644))
+* Word List: New widget ([#634](../../pull/634))
+
+##### Bugfixes
+* Fix infer text features ([#645](../../pull/645))
+* Corpus fix from_numpy and from_list; modify widget to work with corpuses without text_features ([#627](../../pull/627))
+* Corpus Viewer: Handle empty corpus ([#628](../../pull/628))
+* Import Documents: Handle loading folder with no readable files ([#626](../../pull/626))
+
 [1.3.1] - 2021-01-22
 --------------------
 ##### Bugfixes
@@ -245,7 +259,8 @@ Change Log
 --------------------
 
 
-[next]: https://github.com/biolab/orange3-text/compare/1.3.0...HEAD
+[next]: https://github.com/biolab/orange3-text/compare/1.4.0...HEAD
+[1.3.1]: https://github.com/biolab/orange3-text/compare/1.3.1...1.4.0
 [1.3.1]: https://github.com/biolab/orange3-text/compare/1.3.0...1.3.1
 [1.3.0]: https://github.com/biolab/orange3-text/compare/1.2.0...1.3.0
 [1.2.0]: https://github.com/biolab/orange3-text/compare/1.1.0...1.2.0
