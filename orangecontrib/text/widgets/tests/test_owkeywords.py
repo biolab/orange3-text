@@ -6,9 +6,11 @@ from unittest.mock import Mock, patch
 import numpy as np
 
 from Orange.data import StringVariable, Table, Domain
-from Orange.widgets.tests.base import WidgetTest
+from Orange.widgets.tests.base import WidgetTest, simulate
 
 from orangecontrib.text import Corpus
+from orangecontrib.text.keywords import tfidf_keywords, yake_keywords, \
+    rake_keywords, embedding_keywords
 from orangecontrib.text.preprocess import *
 from orangecontrib.text.widgets.owkeywords import OWKeywords, run, \
     AggregationMethods, ScoringMethods
@@ -126,7 +128,7 @@ class TestRunner(unittest.TestCase):
                     self.assertEqual(x1, x2)
 
 
-class TestOWWordList(WidgetTest):
+class TestOWKeywords(WidgetTest):
     def setUp(self):
         self.widget = self.create_widget(OWKeywords)
         self.corpus = Corpus.from_file("deerwester")
@@ -178,6 +180,36 @@ class TestOWWordList(WidgetTest):
         output = self.get_output(widget.Outputs.words, widget=widget)
         self.assertListEqual(list(output.metas[:, 0]),
                              ["System", "Widths", "opinion"])
+
+    def test_scoring_methods(self):
+        methods = [("TF-IDF", Mock(wraps=tfidf_keywords)),
+                   ("YAKE!", Mock(wraps=yake_keywords)),
+                   ("Rake", Mock(wraps=rake_keywords)),
+                   ("Embedding", Mock(wraps=embedding_keywords))]
+        with patch.object(ScoringMethods, "ITEMS", methods) as m:
+            scores = {"TF-IDF", "YAKE!", "Rake", "Embedding"}
+            settings = {"selected_scoring_methods": scores}
+            widget = self.create_widget(OWKeywords, stored_settings=settings)
+
+            cb = widget.controls.yake_lang_index
+            simulate.combobox_activate_item(cb, "Arabic")
+            cb = widget.controls.rake_lang_index
+            simulate.combobox_activate_item(cb, "Finnish")
+            cb = widget.controls.embedding_lang_index
+            simulate.combobox_activate_item(cb, "Kazakh")
+
+            self.send_signal(widget.Inputs.corpus, self.corpus, widget=widget)
+            self.wait_until_finished(widget=widget, timeout=10000)
+            out = self.get_output(widget.Outputs.words, widget=widget)
+            self.assertEqual(scores, {a.name for a in out.domain.attributes})
+
+            m[0][1].assert_called_once()
+            m[1][1].assert_called_once()
+            m[2][1].assert_called_once()
+            m[3][1].assert_called_once()
+            self.assertEqual(m[1][1].call_args[1]["language"], "Arabic")
+            self.assertEqual(m[2][1].call_args[1]["language"], "Finnish")
+            self.assertEqual(m[3][1].call_args[1]["language"], "Kazakh")
 
     def test_send_report(self):
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
