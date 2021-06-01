@@ -377,55 +377,6 @@ class TestStatisticsWidget(WidgetTest):
         remove_button.click()
         self.assertListEqual([], self.widget.active_rules)
 
-    def test_input_summary(self):
-        """ Test correctness of the input summary """
-        self.widget.info.set_input_summary = in_sum = Mock()
-
-        self.send_signal(self.widget.Inputs.corpus, self.corpus)
-        in_sum.assert_called_with(
-            len(self.corpus),
-            "4 instances, 1 variable\nFeatures: — (No missing values)"
-            "\nTarget: —\nMetas: string",
-        )
-        in_sum.reset_mock()
-
-        self.send_signal(self.widget.Inputs.corpus, self.book_data)
-        in_sum.assert_called_with(
-            len(self.book_data),
-            "140 instances, 2 variables\nFeatures: — (No missing values)"
-            "\nTarget: categorical\nMetas: string",
-        )
-        in_sum.reset_mock()
-
-        self.send_signal(self.widget.Inputs.corpus, None)
-        in_sum.assert_called_with(self.widget.info.NoInput)
-
-    def test_output_summary(self):
-        """ Test correctness of the output summary"""
-        self.widget.info.set_output_summary = out_sum = Mock()
-
-        self.send_signal(self.widget.Inputs.corpus, self.corpus)
-        self.wait_until_finished()
-        out_sum.assert_called_with(
-            len(self.corpus),
-            "4 instances, 3 variables\nFeatures: 2 numeric (No missing values)"
-            "\nTarget: —\nMetas: string",
-        )
-        out_sum.reset_mock()
-
-        self.send_signal(self.widget.Inputs.corpus, self.book_data)
-        self.wait_until_finished()
-        out_sum.assert_called_with(
-            len(self.book_data),
-            "140 instances, 4 variables\nFeatures: 2 numeric (No missing values)"
-            "\nTarget: categorical\nMetas: string",
-        )
-        out_sum.reset_mock()
-
-        self.send_signal(self.widget.Inputs.corpus, None)
-        self.wait_until_finished()
-        out_sum.assert_called_with(self.widget.info.NoOutput)
-
 
 if __name__ == "__main__":
     unittest.main()

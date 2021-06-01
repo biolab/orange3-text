@@ -1,5 +1,4 @@
 import unittest
-from unittest.mock import Mock
 
 import numpy as np
 import pkg_resources
@@ -149,59 +148,6 @@ class TestWordCloudWidget(WidgetTest):
         self.assertListEqual(
             self.topic.metas[:, 0].tolist(), self.widget.shown_words.tolist())
         np.testing.assert_array_almost_equal(self.topic.W, self.widget.shown_weights)
-
-    def test_input_summary(self):
-        insum = self.widget.info.set_input_summary = Mock()
-
-        self.send_signal(self.widget.Inputs.corpus, self.corpus)
-        self.wait_until_finished()
-        insum.assert_called_with("42", "9 documents with 42 words\n")
-
-        self.send_signal(self.widget.Inputs.topic, self.topic)
-        self.wait_until_finished()
-        insum.assert_called_with(
-            "42 | 10", "9 documents with 42 words\n10 words in a topic.")
-
-        self.send_signal(self.widget.Inputs.corpus, None)
-        self.wait_until_finished()
-        insum.assert_called_with(f"10", "10 words in a topic.")
-
-        self.send_signal(self.widget.Inputs.topic, None)
-        self.wait_until_finished()
-        insum.assert_called_with(self.widget.info.NoInput)
-
-        self.send_signal(self.widget.Inputs.topic, self.topic)
-        self.wait_until_finished()
-        insum.assert_called_with(f"10", "10 words in a topic.")
-
-    def test_output_summary(self):
-        outsum = self.widget.info.set_output_summary = Mock()
-
-        self.send_signal(self.widget.Inputs.corpus, self.corpus)
-        self.wait_until_finished()
-        outsum.assert_called_with(
-            "0 | 0 | 42", "0 documents\n0 selected words\n42 words with counts"
-        )
-
-        self.send_signal(self.widget.Inputs.topic, self.topic)
-        self.wait_until_finished()
-        outsum.assert_called_with(
-            "0 | 0 | 42", "0 documents\n0 selected words\n42 words with counts"
-        )
-
-        self.send_signal(self.widget.Inputs.corpus, None)
-        self.wait_until_finished()
-        outsum.assert_called_with(self.widget.info.NoOutput)
-
-        self.send_signal(self.widget.Inputs.topic, None)
-        self.wait_until_finished()
-        outsum.assert_called_with(self.widget.info.NoOutput)
-
-    def test_send_report(self):
-        self.widget.send_report()
-        self.send_signal(self.widget.Inputs.corpus, self.corpus)
-        self.wait_until_finished()
-        self.widget.send_report()
 
     def test_no_tokens(self):
         """

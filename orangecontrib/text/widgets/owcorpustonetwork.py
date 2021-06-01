@@ -158,14 +158,10 @@ class OWCorpusToNetwork(OWWidget, ConcurrentWidgetMixin):
         self.button.setText("Stop")
         if not data:
             self._corpus_to_network = None
-            self.info.set_input_summary(self.info.NoInput)
             self.clear_outputs()
             return
 
         self.corpus = data
-        summary = str(len(self.corpus))
-        details = "Corpus with {} documents.".format(len(self.corpus))
-        self.info.set_input_summary(summary, details)
         self._corpus_to_network = CorpusToNetwork(corpus=data)
         self.commit()
 
@@ -222,16 +218,7 @@ class OWCorpusToNetwork(OWWidget, ConcurrentWidgetMixin):
     def on_done(self, result: Any) -> None:
         self._task_state = "waiting"
         self.button.setText("Start")
-        network = result[0]
         self._send_output_signals(result)
-        nodes = network.number_of_nodes()
-        edges = network.number_of_edges()
-        summary = "{} / {}".format(nodes, edges)
-        directed = "Directed" if network.edges[0].directed else "Undirected"
-        details = "{} network with {} nodes and {} edges.".format(
-            directed, nodes, edges
-        )
-        self.info.set_output_summary(summary, details)
 
     def on_partial_result(self, result: Any):
         self.cancel()

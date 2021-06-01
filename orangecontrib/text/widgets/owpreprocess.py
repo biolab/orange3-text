@@ -1076,9 +1076,6 @@ class OWPreprocess(Orange.widgets.data.owpreprocess.OWPreprocess,
         data, msgs = result.corpus, result.msgs
         for msg in msgs:
             msg()
-        summary = len(data) if data else self.info.NoOutput
-        detail = self.get_corpus_info(data) if data else ""
-        self.info.set_output_summary(summary, detail)
         self.Outputs.corpus.send(data)
         self.update_preview(data)
 
@@ -1113,12 +1110,6 @@ class OWPreprocess(Orange.widgets.data.owpreprocess.OWPreprocess,
     def onDeleteWidget(self):
         self.shutdown()
         super().onDeleteWidget()
-
-    @staticmethod
-    def get_corpus_info(corpus: Corpus) -> str:
-        return f"Document count: {len(corpus)}\n" \
-               f"Total tokens: {sum(map(len, corpus.tokens))}\n" \
-               f"Total types: {len(corpus.dictionary)}"
 
     @classmethod
     def migrate_settings(cls, settings: Dict, version: int):

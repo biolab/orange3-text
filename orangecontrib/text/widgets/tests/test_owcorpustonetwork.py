@@ -40,24 +40,6 @@ class TestOWCorpusToNetwork(WidgetTest):
         self.assertIsNotNone(self.get_output(self.widget.Outputs.network))
         self.assertIsNotNone(self.get_output(self.widget.Outputs.items))
 
-    def test_input_summary(self):
-        input_summary = self.widget.info.set_input_summary = Mock()
-        self.send_signal("Corpus", None)
-        input_summary.assert_called_with(self.widget.info.NoInput)
-
-        self.send_signal("Corpus", self.corpus)
-        input_summary.assert_called_with(str(len(self.corpus)),
-                                         "Corpus with 9 documents.")
-
-    def test_output_summary(self):
-        cbox = self.widget.controls.node_type
-        simulate.combobox_activate_index(cbox, 0)
-        output_summary = self.widget.info.set_output_summary = Mock()
-        self.send_signal("Corpus", self.corpus)
-        self.wait_until_finished()
-        summary = "Undirected network with 9 nodes and 26 edges."
-        output_summary.assert_called_with("9 / 26", summary)
-
     def test_disabled(self):
         cbox = self.widget.controls.node_type
         simulate.combobox_activate_index(cbox, 0)

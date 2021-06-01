@@ -10,7 +10,6 @@ from AnyQt.QtWidgets import QComboBox, QGridLayout, QLabel, QLineEdit
 from Orange.widgets import gui
 from Orange.widgets.settings import ContextSetting
 from Orange.widgets.utils.concurrent import ConcurrentWidgetMixin, TaskState
-from Orange.widgets.utils.state_summary import format_summary_details
 from Orange.widgets.utils.widgetpreview import WidgetPreview
 from Orange.widgets.widget import Input, Output, OWWidget
 from orangewidget.widget import Msg
@@ -598,16 +597,7 @@ class OWStatistics(OWWidget, ConcurrentWidgetMixin):
         self.result_dict = {}  # empty computational results when new data
         # reset old output - it also handle case with corpus == None
         self.Outputs.corpus.send(None)
-
-        # summary
-        if corpus:
-            self.info.set_input_summary(
-                len(corpus), format_summary_details(corpus)
-            )
-            self.apply()
-        else:
-            self.info.set_input_summary(self.info.NoInput)
-        self.info.set_output_summary(self.info.NoOutput)
+        self.apply()
 
     def apply(self) -> None:
         """
@@ -668,11 +658,6 @@ class OWStatistics(OWWidget, ConcurrentWidgetMixin):
             attributes, compute_values=comput_values
         )
         self.Outputs.corpus.send(new_corpus)
-
-        # summary
-        self.info.set_output_summary(
-            len(new_corpus), format_summary_details(new_corpus)
-        )
 
 
 if __name__ == "__main__":

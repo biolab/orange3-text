@@ -143,32 +143,9 @@ class OWDocumentEmbedding(OWWidget, ConcurrentWidgetMixin):
         hbox.layout().addWidget(self.cancel_button)
         self.cancel_button.setDisabled(True)
 
-    def set_input_corpus_summary(self, corpus):
-        if corpus is None:
-            self.info.set_input_summary(self.info.NoInput)
-        else:
-            self.info.set_input_summary(str(len(corpus)), "{} documents."
-                                        .format(len(corpus)))
-
-    def set_output_corpus_summary(self, embeddings, skipped):
-        if embeddings is None and skipped is None:
-            self.info.set_output_summary(self.info.NoOutput)
-        else:
-            successful = len(embeddings) if embeddings else 0
-            unsuccessful = len(skipped) if skipped else 0
-            if unsuccessful > 0:
-                self.Warning.unsuccessful_embeddings()
-            self.info.set_output_summary(
-                f"{successful}|{unsuccessful}",
-                "Successful: {}, Unsuccessful: {}".format(
-                    successful, unsuccessful
-                )
-            )
-
     @Inputs.corpus
     def set_data(self, data):
         self.Warning.clear()
-        self.set_input_corpus_summary(data)
         self.cancel()
 
         if not data:
@@ -220,7 +197,9 @@ class OWDocumentEmbedding(OWWidget, ConcurrentWidgetMixin):
     def _send_output_signals(self, embeddings, skipped):
         self.Outputs.new_corpus.send(embeddings)
         self.Outputs.skipped.send(skipped)
-        self.set_output_corpus_summary(embeddings, skipped)
+        unsuccessful = len(skipped) if skipped else 0
+        if unsuccessful > 0:
+            self.Warning.unsuccessful_embeddings()
 
     def clear_outputs(self):
         self._send_output_signals(None, None)

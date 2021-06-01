@@ -331,12 +331,6 @@ class OWTwitter(OWWidget, ConcurrentWidgetMixin):
 
     def on_done(self, result):
         self.search_button.setText("Search")
-        if result:
-            self.info.set_output_summary(
-                len(result), f"{len(result)} tweets on output"
-            )
-        else:
-            self.info.set_output_summary(self.info.NoOutput)
         self.corpus = result
         self.set_text_features()
 

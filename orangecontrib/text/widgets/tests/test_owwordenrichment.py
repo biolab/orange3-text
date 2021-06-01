@@ -1,5 +1,4 @@
 import unittest
-from unittest.mock import Mock
 
 import Orange
 import numpy as np
@@ -140,50 +139,6 @@ class TestWordEnrichment(WidgetTest):
         self.send_signal(w.Inputs.selected_data, self.subset_corpus)
         self.send_signal(w.Inputs.data, self.corpus_vect)
         self.assertFalse(self.widget.Error.no_words_overlap.is_shown())
-
-    @unittest.skipIf(
-        Orange.__version__ < "3.24.0", "wait_until_finished not supported")
-    def test_input_info(self):
-        w = self.widget
-        input_sum = w.info.set_input_summary = Mock()
-
-        self.send_signal(w.Inputs.selected_data, self.subset_corpus)
-        self.send_signal(w.Inputs.data, self.corpus_vect)
-
-        input_sum.assert_called_with(
-            "5923|1204", "Total words: 5923\nWords in subset: 1204")
-
-        self.wait_until_stop_blocking()
-        self.send_signal(w.Inputs.selected_data, None)
-        self.send_signal(w.Inputs.data, None)
-        input_sum.assert_called_with(w.info.NoInput)
-
-    @unittest.skipIf(
-        Orange.__version__ < "3.24.0", "wait_until_finished not supported")
-    def test_output_info(self):
-        w = self.widget
-        w.filter_p_value = 1e-3
-        w.filter_by_p = True
-        w.filter_by_fdr = False
-
-        self.send_signal(w.Inputs.selected_data, self.subset_corpus)
-        self.send_signal(w.Inputs.data, self.corpus_vect)
-        self.wait_until_finished(timeout=100000)
-
-        self.assertEqual(w.info_fil.text(), "Words displayed: 3")
-
-        # test fdr filter
-        w.filter_by_p = True
-        w.filter_p_value = 1e-4
-        w.filter_by_fdr = True
-        w.filter_fdr_value = 1e-4
-        w.filter_and_display()
-        self.assertEqual(w.info_fil.text(), "Words displayed: 0")
-
-        self.send_signal(w.Inputs.selected_data, None)
-        self.assertEqual(w.info_fil.text(), "Words displayed: 0")
-        self.send_signal(w.Inputs.data, None)
-        self.assertEqual(w.info_fil.text(), "Words displayed: 0")
 
     @unittest.skipIf(
         Orange.__version__ < "3.24.0", "wait_until_finished not supported")
