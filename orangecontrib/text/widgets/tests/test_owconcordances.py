@@ -1,13 +1,19 @@
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, ANY
 
 from AnyQt.QtCore import QModelIndex, QItemSelection, Qt
 from AnyQt.QtGui import QBrush, QColor
-
 from Orange.widgets.tests.base import WidgetTest
+from Orange.util import dummy_callback
+
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.widgets.owconcordance import ConcordanceModel, \
                                                      OWConcordance
+
+
+class DummyState:
+    set_progress_value = dummy_callback
+    is_interruption_requested = lambda: False
 
 
 class TestConcordanceModel(unittest.TestCase):
@@ -21,7 +27,7 @@ class TestConcordanceModel(unittest.TestCase):
         self.assertEqual(model.rowCount(QModelIndex()), 0)
 
         model.set_corpus(self.corpus)
-        model.set_word("of")
+        model.set_word("of", DummyState)
 
         # The same document in two rows
         self.assertEqual(model.rowCount(QModelIndex()), 7)
@@ -47,7 +53,7 @@ class TestConcordanceModel(unittest.TestCase):
         """Other possibly implemented roles return correct types"""
         model = ConcordanceModel()
         model.set_corpus(self.corpus)
-        model.set_word("of")
+        model.set_word("of", DummyState)
         ind00 = model.index(0, 0)
         self.assertIsInstance(model.data(ind00, Qt.ForegroundRole),
                               (QBrush, type(None)))
@@ -61,7 +67,7 @@ class TestConcordanceModel(unittest.TestCase):
         model = ConcordanceModel()
         model.set_width(2)
         model.set_corpus(self.corpus)
-        model.set_word("of")
+        model.set_word("of", DummyState)
 
         color1 = model.data(model.index(0, 0), Qt.BackgroundRole)
         self.assertEqual(model.data(model.index(1, 0), Qt.BackgroundRole),
@@ -76,15 +82,15 @@ class TestConcordanceModel(unittest.TestCase):
         self.assertEqual(model.rowCount(QModelIndex()), 0)
         model.set_corpus(self.corpus)
         self.assertEqual(model.rowCount(QModelIndex()), 0)
-        model.set_word("of")
+        model.set_word("of", DummyState)
         self.assertEqual(model.rowCount(QModelIndex()), 7)
-        model.set_word("")
+        model.set_word("", DummyState)
         self.assertEqual(model.rowCount(QModelIndex()), 0)
-        model.set_word(None)
+        model.set_word(None, DummyState)
         self.assertEqual(model.rowCount(QModelIndex()), 0)
         model.set_corpus(None)
         self.assertEqual(model.rowCount(QModelIndex()), 0)
-        model.set_word("of")
+        model.set_word("of", DummyState)
         self.assertEqual(model.rowCount(QModelIndex()), 0)
         model.set_corpus(self.corpus)
         self.assertEqual(model.rowCount(QModelIndex()), 7)
@@ -100,15 +106,15 @@ class TestConcordanceModel(unittest.TestCase):
         model.set_corpus(self.corpus)
         model.set_width(2)
 
-        model.set_word("of")
+        model.set_word("of", DummyState)
         self.assertEqual(model.rowCount(QModelIndex()), 7)
         self.assertEqual(model.data(model.index(0, 0)), "A survey")
 
-        model.set_word("lab")
+        model.set_word("lab", DummyState)
         self.assertEqual(model.rowCount(QModelIndex()), 1)
         self.assertEqual(model.data(model.index(0, 0)), "interface for")
 
-        model.set_word(None)
+        model.set_word(None, DummyState)
         self.assertEqual(model.rowCount(QModelIndex()), 0)
 
     def test_signals(self):
@@ -127,19 +133,19 @@ class TestConcordanceModel(unittest.TestCase):
 
         toBeReset.reset_mock()
         hasBeenReset.reset_mock()
-        model.set_word(None)
+        model.set_word(None, DummyState)
         self.assertEqual(toBeReset.call_count, 1)
         self.assertEqual(hasBeenReset.call_count, 1)
 
     def test_matching_docs(self):
         model = ConcordanceModel()
-        model.set_word("of")
+        model.set_word("of", DummyState)
         model.set_corpus(self.corpus)
         self.assertEqual(model.matching_docs(), 6)
 
     def test_concordance_output(self):
         model = ConcordanceModel()
-        model.set_word("of")
+        model.set_word("of", DummyState)
         model.set_corpus(self.corpus)
         output = model.get_data()
         self.assertEqual(len(output), 7)
@@ -163,9 +169,12 @@ class TestConcordanceWidget(WidgetTest):
     def test_set_word(self):
         self.widget.model.set_word = set_word = Mock()
         self.widget.controls.word.setText("foo")
-        set_word.assert_called_with("foo")
+        self.wait_until_finished()
+        set_word.assert_called_with("foo", ANY)
+
         self.widget.controls.word.setText("")
-        set_word.assert_called_with("")
+        self.wait_until_finished()
+        set_word.assert_called_with("", ANY)
 
     def test_set_width(self):
         self.widget.model.set_width = set_width = Mock()
@@ -176,6 +185,8 @@ class TestConcordanceWidget(WidgetTest):
         self.send_signal("Corpus", self.corpus)
         widget = self.widget
         widget.controls.word.setText("of")
+        self.wait_until_finished()
+
         view = self.widget.conc_view
 
         # Select one row, two are selected, one document on the output
@@ -212,22 +223,29 @@ class TestConcordanceWidget(WidgetTest):
         view.selectRow(3)
         self.assertTrue(view.selectedIndexes())
         widget.controls.word.setText("o")
+        self.wait_until_finished()
         self.assertFalse(view.selectedIndexes())
 
     def test_signal_to_none(self):
         self.send_signal("Corpus", self.corpus)
         widget = self.widget
         widget.controls.word.setText("of")
+        self.wait_until_finished()
+
         view = self.widget.conc_view
         nrows = widget.model.rowCount()
         view.selectRow(1)
 
         self.send_signal("Corpus", None)
+        self.wait_until_finished()
+
         self.assertIsNone(self.get_output("Selected Documents"))
         self.assertEqual(widget.model.rowCount(), 0)
         self.assertEqual(widget.controls.word.text(), "")
 
         self.send_signal("Corpus", self.corpus)
+        self.wait_until_finished()
+
         self.assertEqual(widget.model.rowCount(), nrows)
 
 
