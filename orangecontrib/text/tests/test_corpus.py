@@ -1,9 +1,11 @@
 import os
 import pickle
 import unittest
+from unittest import skipIf
 
 import numpy as np
 from numpy.testing import assert_array_equal
+from orangecontrib.text.preprocess import RegexpTokenizer
 from scipy.sparse import csr_matrix, issparse
 
 from Orange.data import Table, DiscreteVariable, StringVariable, Domain, ContinuousVariable
@@ -11,6 +13,11 @@ from Orange.data import Table, DiscreteVariable, StringVariable, Domain, Continu
 from orangecontrib.text import preprocess
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.tag import AveragedPerceptronTagger
+
+try:
+    from orangewidget.utils.signals import summarize
+except ImportError:
+    summarize = None
 
 
 class CorpusTests(unittest.TestCase):
@@ -627,6 +634,42 @@ class CorpusTests(unittest.TestCase):
         for pp in self.pp_list:
             c = pp(c)
         pickle.dumps(c)
+
+
+@skipIf(summarize is None, "summarize is not available for orange-widget-base<4.13")
+class TestCorpusSummaries(unittest.TestCase):
+    def test_corpus_not_preprocessed(self):
+        """Check if details part of the summary is formatted correctly"""
+        corpus = Corpus.from_file("book-excerpts")
+
+        n_features = len(corpus.domain.variables) + len(corpus.domain.metas)
+        details = (
+            f"<nobr>{len(corpus)} instances, {n_features} variables</nobr><br/>"
+            f"<nobr>Features: — (no missing values)</nobr><br/>"
+            f"<nobr>Target: categorical</nobr><br/>"
+            f"<nobr>Metas: string</nobr><br/>"
+            f"<nobr>Corpus is not preprocessed</nobr>"
+        )
+        summary = summarize.dispatch(Corpus)(corpus)
+        self.assertEqual(140, summary.summary)
+        self.assertEqual(details, summary.details)
+
+    def test_corpus_preprocessed(self):
+        """Check if details part of the summary is formatted correctly"""
+        corpus = Corpus.from_file("book-excerpts")
+        corpus = RegexpTokenizer()(corpus)
+
+        n_features = len(corpus.domain.variables) + len(corpus.domain.metas)
+        details = (
+            f"<nobr>{len(corpus)} instances, {n_features} variables</nobr><br/>"
+            f"<nobr>Features: — (no missing values)</nobr><br/>"
+            f"<nobr>Target: categorical</nobr><br/>"
+            f"<nobr>Metas: string</nobr><br/>"
+            f"<nobr>Total tokens: 128020, Number unique tokens: 11712</nobr>"
+        )
+        summary = summarize.dispatch(Corpus)(corpus)
+        self.assertEqual(140, summary.summary)
+        self.assertEqual(details, summary.details)
 
 
 if __name__ == "__main__":
