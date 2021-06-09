@@ -10,7 +10,7 @@ from Orange.widgets.tests.base import WidgetTest, simulate
 
 from orangecontrib.text import Corpus
 from orangecontrib.text.keywords import tfidf_keywords, yake_keywords, \
-    rake_keywords, embedding_keywords
+    rake_keywords
 from orangecontrib.text.preprocess import *
 from orangecontrib.text.widgets.owkeywords import OWKeywords, run, \
     AggregationMethods, ScoringMethods
@@ -182,10 +182,14 @@ class TestOWKeywords(WidgetTest):
                              ["System", "Widths", "opinion"])
 
     def test_scoring_methods(self):
+        # speed-up the test execution
+        def dummy_embedding(tokens, language, progress_callback=None):
+            return tfidf_keywords(tokens, progress_callback)
+
         methods = [("TF-IDF", Mock(wraps=tfidf_keywords)),
                    ("YAKE!", Mock(wraps=yake_keywords)),
                    ("Rake", Mock(wraps=rake_keywords)),
-                   ("Embedding", Mock(wraps=embedding_keywords))]
+                   ("Embedding", Mock(side_effect=dummy_embedding))]
         with patch.object(ScoringMethods, "ITEMS", methods) as m:
             scores = {"TF-IDF", "YAKE!", "Rake", "Embedding"}
             settings = {"selected_scoring_methods": scores}
