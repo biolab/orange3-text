@@ -1,7 +1,6 @@
 from types import SimpleNamespace
-from typing import List, Optional, Any
+from typing import List, Optional
 
-import numpy as np
 from AnyQt.QtWidgets import QTreeWidget, QTreeView, QTreeWidgetItem
 
 from Orange.data import Table, Domain
@@ -172,14 +171,12 @@ class OWWordEnrichment(OWWidget, ConcurrentWidgetMixin):
                 self.Error.all_selected()
                 self.clear()
             else:
-                self.set_input_info()
                 self.apply()
         else:
             self.clear()
 
     def clear(self):
         self.sig_words.clear()
-        self.info.set_input_summary(self.info.NoInput)
         self.set_displayed_info(0)
 
     def filter_enabled(self, b):
@@ -218,16 +215,6 @@ class OWWordEnrichment(OWWidget, ConcurrentWidgetMixin):
                 self.sig_words.addTopLevelItem(it)
                 count += 1
         return count
-
-    def set_input_info(self) -> None:
-        cluster_words = len(self.selected_data_transformed.domain.attributes)
-        selected_words = np.count_nonzero(np_sp_sum(
-            self.selected_data_transformed.X, axis=0))
-
-        self.info.set_input_summary(
-            f"{cluster_words}|{selected_words}",
-            f"Total words: {cluster_words}\n"
-            f"Words in subset: {selected_words}")
 
     def set_displayed_info(self, count: int) -> None:
         self.info_fil.setText(f"Words displayed: {count}")

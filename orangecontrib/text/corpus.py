@@ -26,6 +26,13 @@ from Orange.preprocess.transformation import Identity
 from orangecontrib.text.vectorization.base import get_unique_names
 from orangecontrib.text.vectorization import BowVectorizer
 
+try:
+    from orangewidget.utils.signals import summarize, PartialSummary
+    # import to check if Table summary is available
+    from Orange.widgets.utils import state_summary
+except ImportError:
+    summarize, PartialSummary = None, None
+
 
 def get_sample_corpora_dir():
     path = os.path.dirname(__file__)
@@ -657,3 +664,23 @@ class Corpus(Table):
                 np.array_equal(self.pos_tags, other.pos_tags) and
                 self.domain == other.domain and
                 self.ngram_range == other.ngram_range)
+
+
+if summarize:
+    # summarize is not available in older versions of orange-widget-base
+    # skip if not available
+    @summarize.register(Corpus)
+    def summarize_(corpus: Corpus) -> PartialSummary:
+        """
+        Provides automated input and output summaries for Corpus
+        """
+        table_summary = summarize.dispatch(Table)(corpus)
+        extras = (
+            (
+                f"<br/><nobr>Total tokens: {sum(map(len, corpus.tokens))}, "
+                f"Number unique tokens: {len(corpus.dictionary)}</nobr>"
+            )
+            if corpus.has_tokens()
+            else "<br/><nobr>Corpus is not preprocessed</nobr>"
+        )
+        return PartialSummary(table_summary.summary, table_summary.details + extras)

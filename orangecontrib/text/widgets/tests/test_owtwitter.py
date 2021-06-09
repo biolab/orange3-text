@@ -59,17 +59,6 @@ class TestTwitterWidget(WidgetTest):
         self.assertEqual(3, len(output))
         self.assertGreater(len(str(output[0, "Content"])), 0)
 
-    @patch("orangecontrib.text.twitter.TwitterAPI.fetch", dummy_fetch)
-    def test_summary(self):
-        info = self.widget.info
-        self.widget.word_list = ["orange"]
-        self.widget.search_button.click()
-        self.wait_until_finished()
-        self.assertEqual("3", info._StateInfo__output_summary.brief)
-        self.assertEqual(
-            "3 tweets on output", info._StateInfo__output_summary.details
-        )
-
     @patch("tweepy.Cursor.items")
     def test_rate_limit(self, mock_items):
         mock_items.side_effect = TweepError("Rate limit error", Response(429))
