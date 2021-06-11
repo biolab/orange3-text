@@ -81,6 +81,10 @@ class TestCorpusViewerWidget(WidgetTest):
         self.assertEqual(
             9, len(self.get_output(self.widget.Outputs.other_docs))
         )
+        self.assertEqual(
+            len(self.corpus.domain.metas) + 1,
+            len(self.get_output(self.widget.Outputs.corpus).domain.metas)
+        )
 
         self.widget.doc_list.selectAll()  # selects current documents in list
         self.assertEqual(
@@ -89,14 +93,22 @@ class TestCorpusViewerWidget(WidgetTest):
         self.assertEqual(
             5, len(self.get_output(self.widget.Outputs.other_docs))
         )
+        output = self.get_output(self.widget.Outputs.corpus)
+        self.assertEqual(
+            len(self.get_output(self.widget.Outputs.matching_docs)),
+            sum(output.get_column_view("Selected")[0])
+        )
 
         self.widget.regexp_filter = "human"
         self.process_events()
-        # empty because none of mathching documents is selected
+        # empty because none of matching documents is selected
         self.assertIsNone(self.get_output(self.widget.Outputs.matching_docs))
         self.assertEqual(
             9, len(self.get_output(self.widget.Outputs.other_docs))
         )
+        output = self.get_output(self.widget.Outputs.corpus)
+        self.assertEqual(0,
+                         sum(output.get_column_view("Selected")[0]))
 
         self.widget.doc_list.selectAll()
         self.assertEqual(
@@ -105,10 +117,16 @@ class TestCorpusViewerWidget(WidgetTest):
         self.assertEqual(
             4, len(self.get_output(self.widget.Outputs.other_docs))
         )
+        output = self.get_output(self.widget.Outputs.corpus)
+        self.assertEqual(
+            len(self.get_output(self.widget.Outputs.matching_docs)),
+            sum(output.get_column_view("Selected")[0])
+        )
 
         self.send_signal(self.widget.Inputs.corpus, None)
         self.assertIsNone(self.get_output(self.widget.Outputs.matching_docs))
         self.assertIsNone(self.get_output(self.widget.Outputs.other_docs))
+        self.assertIsNone(self.get_output(self.widget.Outputs.corpus))
 
     def test_empty_corpus(self):
         self.send_signal(self.widget.Inputs.corpus, self.corpus[:0])
