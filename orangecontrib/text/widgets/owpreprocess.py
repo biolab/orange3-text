@@ -952,15 +952,20 @@ class OWPreprocess(Orange.widgets.data.owpreprocess.OWPreprocess,
                                     ("preprocess.filter", {})]
                   }  # type: Dict[str, List[Tuple[str, Dict]]]
     storedsettings = Setting(DEFAULT_PP)
+    buttons_area_orientation = Qt.Vertical
 
     def __init__(self):
         ConcurrentWidgetMixin.__init__(self)
         Orange.widgets.data.owpreprocess.OWPreprocess.__init__(self)
+
         box = gui.vBox(self.controlArea, "Preview")
         self.preview = ""
         gui.label(box, self, "%(preview)s", wordWrap=True)
         self.controlArea.layout().insertWidget(1, box)
-        self.controlArea.setFixedWidth(220)
+        box = gui.vBox(self.buttonsArea, "Output")
+        self.output_info = ""
+        gui.label(box, self, "%(output_info)s", wordWrap=True)
+        self.buttonsArea.layout().insertWidget(0, box)
 
     def load(self, saved: Dict) -> StandardItemModel:
         for i, (name, params) in enumerate(saved.get("preprocessors", [])):
@@ -1090,11 +1095,17 @@ class OWPreprocess(Orange.widgets.data.owpreprocess.OWPreprocess,
             try:
                 tokens = next(data.ngrams_iterator(include_postags=True))
                 self.preview = ", ".join(tokens[:5])
+                n_tokens = sum(
+                    map(len, data.tokens)) if data.has_tokens() else ''
+                n_types = len(data.dictionary) if data.has_tokens() else ''
+                self.output_info = f"Tokens: {n_tokens}\nTypes: {n_types}"
             except StopIteration:
                 self.preview = ""
+                self.output_info = ""
 
         else:
             self.preview = ""
+            self.output_info = ""
 
     def workflowEnvChanged(self, key: str, *_):
         if key == "basedir":
