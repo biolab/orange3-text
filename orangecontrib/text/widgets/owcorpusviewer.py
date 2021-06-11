@@ -15,6 +15,7 @@ from AnyQt.QtWidgets import (QListView, QSizePolicy, QTableView,
 from Orange.data.domain import filter_visible
 from Orange.widgets import gui
 from Orange.widgets.settings import Setting, ContextSetting, PerfectDomainContextHandler
+from Orange.widgets.utils.annotated_data import create_annotated_table
 from Orange.widgets.widget import OWWidget, Msg, Input, Output
 from orangecontrib.text.corpus import Corpus
 
@@ -31,6 +32,7 @@ class OWCorpusViewer(OWWidget):
     class Outputs:
         matching_docs = Output("Matching Docs", Corpus, default=True)
         other_docs = Output("Other Docs", Corpus)
+        corpus = Output("Corpus", Corpus)
 
     settingsHandler = PerfectDomainContextHandler(
         match_values = PerfectDomainContextHandler.MATCH_VALUES_ALL
@@ -422,7 +424,7 @@ class OWCorpusViewer(OWWidget):
             self.ngram_range = ''
 
     def commit(self):
-        matched = unmatched = None
+        matched = unmatched = annotated_corpus = None
         corpus = self.corpus
         if corpus is not None:
             # it returns a set of selected documents which are in view
@@ -437,8 +439,10 @@ class OWCorpusViewer(OWWidget):
 
             matched = corpus[matched_mask] if len(matched_mask) else None
             unmatched = corpus[unmatched_mask] if len(unmatched_mask) else None
+            annotated_corpus = create_annotated_table(corpus, matched_mask)
         self.Outputs.matching_docs.send(matched)
         self.Outputs.other_docs.send(unmatched)
+        self.Outputs.corpus.send(annotated_corpus)
 
     def send_report(self):
         self.report_items((
