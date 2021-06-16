@@ -34,10 +34,11 @@ def _word_frequency(
     corpus: Corpus, words: List[str], callback: Callable
 ) -> np.ndarray:
     res = []
-    for i, t in enumerate(corpus.tokens):
+    tokens = corpus.tokens
+    for i, t in enumerate(tokens):
         counts = Counter(t)
         res.append([counts.get(w, 0) for w in words])
-        callback((i + 1) / len(corpus.tokens))
+        callback((i + 1) / len(tokens))
     return np.array(res)
 
 
@@ -45,10 +46,11 @@ def _word_appearance(
     corpus: Corpus, words: List[str], callback: Callable
 ) -> np.ndarray:
     res = []
-    for i, t in enumerate(corpus.tokens):
+    tokens = corpus.tokens
+    for i, t in enumerate(tokens):
         t = set(t)
         res.append([w in t for w in words])
-        callback((i + 1) / len(corpus.tokens))
+        callback((i + 1) / len(tokens))
     return np.array(res)
 
 
