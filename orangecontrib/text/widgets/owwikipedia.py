@@ -8,7 +8,7 @@ from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.language_codes import lang2code, code2lang
 from orangecontrib.text.widgets.utils import ComboBox, ListEdit, CheckListLayout, asynchronous
 
-from orangecontrib.text.wikipedia import WikipediaAPI
+from orangecontrib.text.wikipedia_api import WikipediaAPI
 
 
 class OWWikipedia(OWWidget):
