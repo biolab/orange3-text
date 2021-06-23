@@ -190,6 +190,13 @@ class YamlMetaReader(Reader):
                     self.content[k] = ""
 
 
+class TsvMetaReader(Reader):
+    ext = [".tsv"]
+
+    def read_file(self):
+        self.content = pd.read_csv(self.path, delimiter="\t")
+
+
 class UrlReader(Reader, CoreUrlReader):
     ext = [".url"]
 
@@ -308,6 +315,8 @@ class ConlluReader(Reader):
 
 class ImportDocuments:
     META_DATA_FILE_KEY = "Text file"
+    # this is what we will merge meta data on, change to user-set variable
+    CONLLU_META_DATA = "ID"
 
     def __init__(self, startdir: str,
                  is_url: bool = False,
@@ -387,7 +396,7 @@ class ImportDocuments:
 
     def _read_meta_data(self):
         scan = self.scan_url if self._is_url else self.scan
-        patterns = ["*.csv", "*.yaml", "*.yml"]
+        patterns = ["*.csv", "*.yaml", "*.yml", "*.tsv"]
         paths = scan(self.startdir, include_patterns=patterns)
         meta_dfs, errors = [], []
         for path in paths:
@@ -450,13 +459,19 @@ class ImportDocuments:
 
     def _add_metadata(self, corpus: Corpus) -> Corpus:
         if "path" not in corpus.domain or self._meta_data is None \
-                or self.META_DATA_FILE_KEY not in self._meta_data.columns:
+                or (self.META_DATA_FILE_KEY not in self._meta_data.columns
+                    and self.CONLLU_META_DATA not in self._meta_data.columns):
             return corpus
 
-        df = self._meta_data.set_index(
-            self.startdir + self._meta_data[self.META_DATA_FILE_KEY]
-        )
-        path_column = corpus.get_column_view("path")[0]
+        if self.is_conllu:
+            df = self._meta_data.set_index(self.CONLLU_META_DATA)
+            path_column = corpus.get_column_view("utterance")[0]
+        else:
+            df = self._meta_data.set_index(
+                self.startdir + self._meta_data[self.META_DATA_FILE_KEY]
+            )
+            path_column = corpus.get_column_view("path")[0]
+
         if len(df.index.drop_duplicates()) != len(df.index):
             df = df[~df.index.duplicated(keep='first')]
         filtered = df.reindex(path_column)
