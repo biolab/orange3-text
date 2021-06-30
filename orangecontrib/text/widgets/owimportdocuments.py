@@ -25,6 +25,7 @@ from AnyQt.QtWidgets import (
     QFileIconProvider, QStackedWidget, QProgressBar, QWidget, QHBoxLayout,
     QVBoxLayout, QLabel, QGridLayout, QSizePolicy, QCompleter
 )
+from numpy import array
 
 from orangewidget.utils.itemmodels import PyListModel
 
@@ -45,7 +46,6 @@ try:
     from orangecanvas.preview.previewbrowser import TextLabel
 except ImportError:
     from Orange.canvas.preview.previewbrowser import TextLabel
-
 
 # domain for skipped images output
 SKIPPED_DOMAIN = Domain([], metas=[
@@ -101,6 +101,9 @@ class OWImportDocuments(widget.OWWidget):
     recent_paths: List[RecentPath] = settings.Setting([])
     currentPath: Optional[str] = settings.Setting(None)
     recent_urls: List[str] = settings.Setting([])
+    lemma_cb = settings.Setting(True)
+    pos_cb = settings.Setting(False)
+    ner_cb = settings.Setting(False)
 
     want_main_area = False
     resizing_enabled = False
@@ -115,10 +118,15 @@ class OWImportDocuments(widget.OWWidget):
         super().__init__()
         #: widget's runtime state
         self.__state = State.NoState
+        self.base_corpus = None
         self.corpus = None
         self.n_text_categories = 0
         self.n_text_data = 0
         self.skipped_documents = []
+        self.is_conllu = False
+        self.tokens = None
+        self.pos = None
+        self.ner = None
 
         self.__invalidated = False
         self.__pendingTask = None
@@ -208,6 +216,16 @@ class OWImportDocuments(widget.OWWidget):
         reloadaction.changed.connect(
             lambda: reloadbutton.setEnabled(reloadaction.isEnabled())
         )
+
+        box = gui.hBox(self.controlArea, "Conllu import options")
+        gui.checkBox(box, self, "lemma_cb", "Lemma",
+                     callback=self.commit)
+        gui.checkBox(box, self, "pos_cb", "POS tags",
+                     callback=self.commit)
+        gui.checkBox(box, self, "ner_cb", "NER",
+                     callback=self.commit)
+        self.controlArea.layout().addWidget(box)
+
         box = gui.vBox(self.controlArea, "Info")
         self.infostack = QStackedWidget()
 
@@ -284,7 +302,8 @@ class OWImportDocuments(widget.OWWidget):
 
         if self.currentPath is not None and \
                 os.path.isdir(self.currentPath) and self.recent_paths and \
-                os.path.samefile(self.currentPath, self.recent_paths[0].abspath):
+                os.path.samefile(self.currentPath,
+                                 self.recent_paths[0].abspath):
             self.recent_cb.setCurrentIndex(0)
         else:
             self.currentPath = None
@@ -352,9 +371,11 @@ class OWImportDocuments(widget.OWWidget):
             ncategories = self.n_text_categories
             n_skipped = len(self.skipped_documents)
             if ncategories < 2:
-                text = "{} document{}".format(nvalid, "s" if nvalid != 1 else "")
+                text = "{} document{}".format(nvalid,
+                                              "s" if nvalid != 1 else "")
             else:
-                text = "{} documents / {} categories".format(nvalid, ncategories)
+                text = "{} documents / {} categories".format(nvalid,
+                                                             ncategories)
             if n_skipped > 0:
                 text = text + ", {} skipped".format(n_skipped)
         elif self.__state == State.Cancelled:
@@ -584,9 +605,10 @@ class OWImportDocuments(widget.OWWidget):
         task = self.__pendingTask
         self.__pendingTask = None
 
-        corpus, errors = None, []
+        corpus, errors, lemmas, pos, ner, is_conllu = None, [], None, None, \
+                                                      None, False
         try:
-            corpus, errors = task.future.result()
+            corpus, errors, lemmas, pos, ner, is_conllu = task.future.result()
         except NoDocumentsException:
             state = State.Error
             self.error("Folder contains no readable files.")
@@ -600,10 +622,14 @@ class OWImportDocuments(widget.OWWidget):
 
         if corpus:
             self.n_text_data = len(corpus)
-            self.n_text_categories = len(corpus.domain.class_var.values)\
+            self.n_text_categories = len(corpus.domain.class_var.values) \
                 if corpus.domain.class_var else 0
 
-        self.corpus = corpus
+        self.base_corpus = self.corpus = corpus
+        self.is_conllu = is_conllu
+        self.tokens = lemmas
+        self.pos = pos
+        self.ner = ner
         if self.corpus:
             self.corpus.name = "Documents"
         self.skipped_documents = errors
@@ -635,10 +661,24 @@ class OWImportDocuments(widget.OWWidget):
             self.pathlabel.setText(prettifypath(arg.lastpath))
             self.progress_widget.setValue(int(100 * arg.progress))
 
+    def add_features(self):
+        lemma, pos, ner = self.lemma_cb, self.pos_cb, self.ner_cb
+        self.corpus = self.base_corpus.copy()
+        if lemma:
+            self.corpus.store_tokens(self.tokens)
+        if pos:
+            tags = array(self.pos, dtype=object)
+            self.corpus.pos_tags = tags
+        if ner:
+            var = StringVariable("named entities")
+            self.corpus = self.corpus.add_column(var, self.ner)
+
     def commit(self):
         """
         Create and commit a Corpus from the collected text meta data.
         """
+        if self.is_conllu:
+            self.add_features()
         self.Outputs.data.send(self.corpus)
         if self.skipped_documents:
             skipped_table = (
