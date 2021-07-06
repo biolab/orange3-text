@@ -663,6 +663,8 @@ class OWImportDocuments(widget.OWWidget):
 
     def add_features(self):
         lemma, pos, ner = self.lemma_cb, self.pos_cb, self.ner_cb
+        if self.corpus is None:
+            return
         self.corpus = self.base_corpus.copy()
         if lemma:
             self.corpus.store_tokens(self.tokens)
