@@ -1,5 +1,7 @@
 import re
+from collections import Counter
 from copy import copy
+from itertools import groupby
 from string import punctuation
 from typing import Callable, List, Optional, Tuple
 
@@ -12,6 +14,7 @@ from Orange.widgets.settings import ContextSetting
 from Orange.widgets.utils.concurrent import ConcurrentWidgetMixin, TaskState
 from Orange.widgets.utils.widgetpreview import WidgetPreview
 from Orange.widgets.widget import Input, Output, OWWidget
+from nltk import tokenize
 from orangewidget.widget import Msg
 
 from orangecontrib.text import Corpus
@@ -19,7 +22,6 @@ from orangecontrib.text import Corpus
 # those functions are implemented here since they are used in more statistics
 from orangecontrib.text.preprocess import (
     LowercaseTransformer,
-    Preprocessor,
     RegexpTokenizer,
     PreprocessorList)
 from orangecontrib.text.widgets.utils.context import (
@@ -325,6 +327,63 @@ def pos_tags(
     )
 
 
+def yule(
+    corpus: Corpus, _: str, callback: Callable
+) -> Optional[Tuple[np.ndarray, List[str]]]:
+    """
+    Yule's I measure: higher number is higher diversity - richer vocabulary
+    PSP volume 42 issue 2 Cover and Back matter. (1946).
+    Mathematical Proceedings of the Cambridge Philosophical Society, 42(2), B1-B2.
+    doi:10.1017/S0305004100022799
+    """
+    if corpus.pos_tags is None:
+        return None
+
+    def yules_i(tags):
+        callback()
+        d = Counter(tags)
+        m1 = float(len(d))
+        m2 = sum([len(list(g)) * (freq ** 2) for freq, g in
+                  groupby(sorted(d.values()))])
+        try:
+            return (m1 * m1) / (m2 - m1)
+        except ZeroDivisionError:
+            return 0
+
+    return (
+        np.c_[[yules_i(p) for p in corpus.pos_tags]],
+        [f"Yule's I"],
+    )
+
+
+def lix(
+    corpus: Corpus, _: str, callback: Callable
+) -> Optional[Tuple[np.ndarray, List[str]]]:
+    """
+    Readability index LIX
+    https://en.wikipedia.org/wiki/Lix_(readability_test)
+    """
+    corpus = preprocess_only_words(corpus)
+    tokenizer = tokenize.PunktSentenceTokenizer()
+
+    def lix_index(document, tokens):
+        callback()
+        # if the text is a single sentence, scores will be high
+        sentences = len(tokenizer.tokenize(document))
+        words = len(tokens)
+        long_words = len([token for token in tokens if len(token) > 6])
+        try:
+            return words/sentences + (long_words*100/words)
+        except ZeroDivisionError:
+            return 0
+
+    return (
+        np.c_[[lix_index(d, tokens) for d, tokens in zip(corpus.documents,
+                                                         corpus.tokens)]],
+        ["LIX index"],
+    )
+
+
 class ComputeValue:
     """
     Class which provides compute value functionality. It stores the function
@@ -375,6 +434,8 @@ STATISTICS = [
     ("Contains", contains, ""),
     ("Regex", regex, ""),
     ("POS tag", pos_tags, "NN,VV,JJ"),
+    ("Yule's I", yule, None),
+    ("LIX index", lix, None),
 ]
 STATISTICS_NAMES = list(list(zip(*STATISTICS))[0])
 STATISTICS_FUNCTIONS = list(list(zip(*STATISTICS))[1])
@@ -428,6 +489,7 @@ class OWStatistics(OWWidget, ConcurrentWidgetMixin):
         )
 
     want_main_area = False
+    mainArea_width_height_ratio = None
     settingsHandler = AlmostPerfectContextHandler(0.9)
 
     # settings
