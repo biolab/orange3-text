@@ -1,4 +1,5 @@
 import contextlib
+import datetime
 import fnmatch
 import logging
 import os
@@ -29,8 +30,10 @@ from bs4 import BeautifulSoup
 
 import serverfiles
 
-from Orange.data import DiscreteVariable, Domain, StringVariable
-from Orange.data.io import detect_encoding, UrlReader as CoreUrlReader
+from Orange.data import DiscreteVariable, Domain, StringVariable, \
+    guess_data_type
+from Orange.data.io import detect_encoding, sanitize_variable,\
+    UrlReader as CoreUrlReader
 from Orange.data.util import get_unique_names
 from Orange.util import Registry
 
@@ -284,6 +287,8 @@ class ImportDocuments:
                 content = data.content
                 if isinstance(content, dict):
                     content = pd.DataFrame(content, index=[0])
+                # if reader is YamlMetaReader:
+                #     content = content.replace("None", np.nan)
                 meta_dfs.append(content)
             else:
                 errors.append(error)
@@ -345,13 +350,18 @@ class ImportDocuments:
         if len(df.index.drop_duplicates()) != len(df.index):
             df = df[~df.index.duplicated(keep='first')]
         filtered = df.reindex(path_column)
-        for column in filtered.columns:
+        for name, column in filtered.iteritems():
+            data = column.astype(str).values
+            val_map, vals, var_type = guess_data_type(data)
+            values, variable = sanitize_variable(val_map, vals, data,
+                                                 var_type, {},
+                                                 name=get_unique_names(
+                                                     corpus.domain, name))
             corpus = corpus.add_column(
-                StringVariable(get_unique_names(corpus.domain, column)),
-                filtered[column].to_numpy(),
+                variable,
+                values,
                 to_metas=True
             )
-
         return corpus
 
     @staticmethod
