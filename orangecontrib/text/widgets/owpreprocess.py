@@ -501,13 +501,15 @@ class NormalizationModule(SingleMethodModule):
 
 
 class FilteringModule(MultipleMethodModule):
-    Stopwords, Lexicon, Regexp, DocFreq, DummyDocFreq, MostFreq = range(6)
+    Stopwords, Lexicon, Regexp, DocFreq, DummyDocFreq, MostFreq, PosTag = \
+        range(7)
     Methods = {Stopwords: StopwordsFilter,
                Lexicon: LexiconFilter,
                Regexp: RegexpFilter,
                DocFreq: FrequencyFilter,
                DummyDocFreq: FrequencyFilter,
-               MostFreq: MostFrequentTokensFilter}
+               MostFreq: MostFrequentTokensFilter,
+               PosTag: PosTagFilter}
     DEFAULT_METHODS = [Stopwords]
     DEFAULT_LANG = "English"
     DEFAULT_NONE = None
@@ -517,6 +519,7 @@ class FilteringModule(MultipleMethodModule):
     DEFAULT_REL_START, DEFAULT_REL_END, REL_MIN, REL_MAX = 0.1, 0.9, 0, 1
     DEFAULT_ABS_START, DEFAULT_ABS_END, ABS_MIN, ABS_MAX = 1, 10, 0, 10000
     DEFAULT_N_TOKEN = 100
+    DEFAULT_POS_TAGS = "NOUN,VERB"
 
     def __init__(self, parent=None, **kwargs):
         super().__init__(parent, **kwargs)
@@ -530,6 +533,7 @@ class FilteringModule(MultipleMethodModule):
         self.__abs_freq_st = self.DEFAULT_ABS_START
         self.__abs_freq_en = self.DEFAULT_ABS_END
         self.__n_token = self.DEFAULT_N_TOKEN
+        self.__pos_tag = self.DEFAULT_POS_TAGS
         self.__invalidated = False
 
         self.__combo = ComboBox(
@@ -574,6 +578,10 @@ class FilteringModule(MultipleMethodModule):
         self.__spin_n.editingFinished.connect(self.__spin_n_edited)
         self.__spin_n.valueChanged.connect(self.changed)
 
+        validator = PosTagFilter.validate_tags
+        self.__pos_edit = ValidatedLineEdit(self.__pos_tag, validator)
+        self.__pos_edit.editingFinished.connect(self.__pos_edit_finished)
+
         self.layout().addWidget(self.__combo, self.Stopwords, 1)
         self.layout().addWidget(self.__sw_loader.file_combo,
                                 self.Stopwords, 2, 1, 2)
@@ -595,6 +603,7 @@ class FilteringModule(MultipleMethodModule):
         title = self.layout().itemAtPosition(self.DummyDocFreq, 0).widget()
         title.hide()
         self.layout().addWidget(self.__spin_n, self.MostFreq, 1)
+        self.layout().addWidget(self.__pos_edit, self.PosTag, 1, 1, 5)
         self.layout().setColumnStretch(3, 1)
 
     def __sw_loader_activated(self):
@@ -624,6 +633,13 @@ class FilteringModule(MultipleMethodModule):
         if self.__pattern != pattern:
             self.__set_pattern(pattern)
             if self.Regexp in self.methods:
+                self.edited.emit()
+
+    def __pos_edit_finished(self):
+        tags = self.__pos_edit.text()
+        if self.__pos_tag != tags:
+            self.__set_tags(tags)
+            if self.PosTag in self.methods:
                 self.edited.emit()
 
     def __freq_group_clicked(self):
@@ -666,6 +682,7 @@ class FilteringModule(MultipleMethodModule):
             params.get("abs_end", self.DEFAULT_ABS_END)
         )
         self.__set_n_tokens(params.get("n_tokens", self.DEFAULT_N_TOKEN))
+        self.__set_tags(params.get("pos_tags", self.DEFAULT_POS_TAGS))
         self.__invalidated = False
 
     def __set_language(self, language: str):
@@ -692,6 +709,12 @@ class FilteringModule(MultipleMethodModule):
         if self.__pattern != pattern:
             self.__pattern = pattern
             self.__edit.setText(pattern)
+            self.changed.emit()
+
+    def __set_tags(self, tags: str):
+        if self.__pos_tag != tags:
+            self.__pos_tag = tags
+            self.__pos_edit.setText(tags)
             self.changed.emit()
 
     def __set_freq_type(self, freq_type: int):
@@ -750,6 +773,7 @@ class FilteringModule(MultipleMethodModule):
                        "abs_start": self.__abs_freq_st,
                        "abs_end": self.__abs_freq_en,
                        "n_tokens": self.__n_token,
+                       "pos_tags": self.__pos_tag,
                        "invalidated": self.__invalidated})
         return params
 
@@ -782,6 +806,9 @@ class FilteringModule(MultipleMethodModule):
         if FilteringModule.MostFreq in methods:
             n = params.get("n_tokens", FilteringModule.DEFAULT_N_TOKEN)
             filters.append(MostFrequentTokensFilter(keep_n=n))
+        if FilteringModule.PosTag in methods:
+            tags = params.get("pos_tags", FilteringModule.DEFAULT_POS_TAGS)
+            filters.append(PosTagFilter(tags=tags))
         return filters
 
     def __repr__(self):
@@ -801,6 +828,8 @@ class FilteringModule(MultipleMethodModule):
                     append = f"[{self.__abs_freq_st}, {self.__abs_freq_en}]"
             elif method == self.MostFreq:
                 append = f"{self.__n_token}"
+            elif method == self.PosTag:
+                append = f"{self.__pos_tag}"
             texts.append(f"{self.Methods[method].name} ({append})")
         return ", ".join(texts)
 

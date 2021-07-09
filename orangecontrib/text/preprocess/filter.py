@@ -2,6 +2,7 @@ from typing import List, Callable
 import os
 import re
 
+import numpy as np
 from gensim import corpora
 from nltk.corpus import stopwords
 
@@ -13,7 +14,8 @@ from orangecontrib.text.misc import wait_nltk_data
 from orangecontrib.text.preprocess import TokenizedPreprocessor
 
 __all__ = ['BaseTokenFilter', 'StopwordsFilter', 'LexiconFilter',
-           'RegexpFilter', 'FrequencyFilter', 'MostFrequentTokensFilter']
+           'RegexpFilter', 'FrequencyFilter', 'MostFrequentTokensFilter',
+           'PosTagFilter']
 
 
 class BaseTokenFilter(TokenizedPreprocessor):
@@ -195,3 +197,46 @@ class MostFrequentTokensFilter(FitDictionaryFilter):
         self._dictionary = corpora.Dictionary(corpus.tokens)
         self._dictionary.filter_extremes(0, 1, self._keep_n)
         self._lexicon = set(self._dictionary.token2id.keys())
+
+
+class PosTagFilter(BaseTokenFilter):
+    """Keep selected POS tags."""
+    name = 'POS tags'
+
+    def __init__(self, tags=None):
+        self._tags = set(i.strip().upper() for i in tags.split(","))
+
+    def __call__(self, corpus: Corpus, callback: Callable = None) -> Corpus:
+        if callback is None:
+            callback = dummy_callback
+        corpus = super().__call__(corpus, wrap_callback(callback, end=0.2))
+        return self._filter_tokens(corpus, wrap_callback(callback, start=0.2))
+
+    @staticmethod
+    def validate_tags(tags):
+        # should we keep a dict of existing POS tags and compare them with
+        # input?
+        return len(tags.split(",")) > 0
+
+    def _filter_tokens(self, corpus: Corpus, callback: Callable) -> Corpus:
+        if corpus.pos_tags is None:
+            return corpus
+        callback(0, "Filtering...")
+        filtered_tags = []
+        filtered_tokens = []
+        for tags, tokens in zip(corpus.pos_tags, corpus.tokens):
+            tmp_tags = []
+            tmp_tokens = []
+            for tag, token in zip(tags, tokens):
+                # should we consider partial matches, i.e. "NN" for "NNS"?
+                if tag in self._tags:
+                    tmp_tags.append(tag)
+                    tmp_tokens.append(token)
+            filtered_tags.append(tmp_tags)
+            filtered_tokens.append(tmp_tokens)
+        corpus.store_tokens(filtered_tokens)
+        corpus.pos_tags = filtered_tags
+        return corpus
+
+    def _check(self, token: str) -> bool:
+        pass
