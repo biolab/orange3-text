@@ -435,6 +435,18 @@ class FilteringTests(unittest.TestCase):
         self.assertEqual(filtered.tokens[0], [' http'])
         self.assertEqual(len(filtered.used_preprocessor.preprocessors), 2)
 
+    def test_pos_filter(self):
+        pos_filter = preprocess.PosTagFilter("NN")
+        pp_list = [preprocess.WordPunctTokenizer(),
+                   tag.AveragedPerceptronTagger()]
+        corpus = self.corpus
+        for pp in pp_list:
+            corpus = pp(corpus)
+        filtered = pos_filter(corpus)
+        self.assertTrue(len(filtered.pos_tags))
+        self.assertEqual(len(filtered.pos_tags[0]), 5)
+        self.assertEqual(len(filtered.tokens[0]), 5)
+
     def test_can_deepcopy(self):
         copied = copy.deepcopy(self.regexp)
         self.corpus.metas[0, 0] = 'foo bar'
