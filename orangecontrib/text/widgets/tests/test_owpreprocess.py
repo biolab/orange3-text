@@ -27,6 +27,16 @@ class TestOWPreprocess(WidgetTest):
         self.assertIsNot(pp_data, self.corpus)
         self.assertNotEqual(pp_data, self.corpus)
 
+    def test_previews(self):
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.wait_until_finished()
+        self.assertTrue(self.widget.preview)
+        self.assertTrue(self.widget.output_info)
+        self.send_signal(self.widget.Inputs.corpus, None)
+        self.wait_until_finished()
+        self.assertFalse(self.widget.preview)
+        self.assertFalse(self.widget.output_info)
+
     def test_available_preprocessors(self):
         self.assertEqual(self.widget.preprocessors.rowCount(), 6)
 
