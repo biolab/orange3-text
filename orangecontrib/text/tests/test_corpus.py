@@ -665,7 +665,7 @@ class TestCorpusSummaries(unittest.TestCase):
             f"<nobr>Features: — (no missing values)</nobr><br/>"
             f"<nobr>Target: categorical</nobr><br/>"
             f"<nobr>Metas: string</nobr><br/>"
-            f"<nobr>Total tokens: 128020, Number unique tokens: 11712</nobr>"
+            f"<nobr>Tokens: 128020, Types: 11712</nobr>"
         )
         summary = summarize.dispatch(Corpus)(corpus)
         self.assertEqual(140, summary.summary)

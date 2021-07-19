@@ -14,7 +14,7 @@ class TestCorpusViewerWidget(WidgetTest):
 
     def test_data(self):
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
-        self.assertEqual(self.widget.n_documents, 9)
+        self.assertEqual(len(self.widget.corpus), 9)
         self.widget.doc_list.selectAll()
         out_corpus = self.get_output(self.widget.Outputs.matching_docs)
         self.assertEqual(out_corpus, self.corpus)
@@ -25,6 +25,7 @@ class TestCorpusViewerWidget(WidgetTest):
         self.process_events()
         out_corpus = self.get_output(self.widget.Outputs.matching_docs)
         self.assertEqual(len(out_corpus), 1)
+        self.assertEqual(self.widget.matches, 7)
 
         # first document is selected, when filter with word that is not in
         # selected document out_corpus is None
@@ -32,6 +33,13 @@ class TestCorpusViewerWidget(WidgetTest):
         self.process_events()
         out_corpus = self.get_output(self.widget.Outputs.matching_docs)
         self.assertIsNone(out_corpus)
+        # word count doesn't depend on selection
+        self.assertEqual(self.widget.matches, 7)
+
+        # when filter is removed, matched words is 0
+        self.widget.regexp_filter = ""
+        self.process_events()
+        self.assertEqual(self.widget.matches, 0)
 
     def test_highlighting(self):
         self.send_signal(self.widget.Inputs.corpus, self.corpus)

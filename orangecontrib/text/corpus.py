@@ -677,8 +677,8 @@ if summarize:
         table_summary = summarize.dispatch(Table)(corpus)
         extras = (
             (
-                f"<br/><nobr>Total tokens: {sum(map(len, corpus.tokens))}, "
-                f"Number unique tokens: {len(corpus.dictionary)}</nobr>"
+                f"<br/><nobr>Tokens: {sum(map(len, corpus.tokens))}, "
+                f"Types: {len(corpus.dictionary)}</nobr>"
             )
             if corpus.has_tokens()
             else "<br/><nobr>Corpus is not preprocessed</nobr>"
