@@ -79,6 +79,7 @@ class Preprocessor:
         for i, doc in enumerate(corpus.pp_documents):
             callback(i / n)
             tokens.append(self._preprocess(doc))
+        corpus.pos_tags = None
         corpus.store_tokens(tokens)
         return corpus
 
