@@ -503,6 +503,15 @@ class TokenizerTests(unittest.TestCase):
         tokenizer = preprocess.RegexpTokenizer(pattern=r'\w')
         pickle.loads(pickle.dumps(tokenizer))
 
+    def test_reset_pos_tags(self):
+        corpus = Corpus.from_file('deerwester')
+        tagger = tag.AveragedPerceptronTagger()
+        tagged_corpus = tagger(corpus)
+        self.assertTrue(len(tagged_corpus.pos_tags))
+        tokenizer = preprocess.RegexpTokenizer(pattern=r'\w')
+        tokenized_corpus = tokenizer(corpus)
+        self.assertFalse(tokenized_corpus.pos_tags)
+
 
 class NGramsTests(unittest.TestCase):
     def setUp(self):
