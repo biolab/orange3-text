@@ -495,7 +495,8 @@ class TestFilterModule(WidgetTest):
                   "freq_type": 0,
                   "rel_start": 0.1, "rel_end": 0.9,
                   "abs_start": 1, "abs_end": 10,
-                  "n_tokens": 100, "invalidated": False}
+                  "n_tokens": 100, "pos_tags": "NOUN,VERB",
+                  "invalidated": False}
         self.assertDictEqual(self.editor.parameters(), params)
 
     def test_set_parameters(self):
@@ -509,7 +510,8 @@ class TestFilterModule(WidgetTest):
                   "freq_type": 1,
                   "rel_start": 0.2, "rel_end": 0.7,
                   "abs_start": 2, "abs_end": 15,
-                  "n_tokens": 10, "invalidated": False}
+                  "n_tokens": 10,  "pos_tags": "JJ",
+                  "invalidated": False}
         self.editor.setParameters(params)
         self.assertDictEqual(self.editor.parameters(), params)
 

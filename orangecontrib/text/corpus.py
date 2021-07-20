@@ -85,7 +85,7 @@ class Corpus(Table):
         self._ngrams_corpus = None
         self.ngram_range = (1, 1)
         self.attributes = {}
-        self.pos_tags = None
+        self._pos_tags = None
         from orangecontrib.text.preprocess import PreprocessorList
         self.__used_preprocessor = PreprocessorList([])   # required for compute values
         self._titles: Optional[np.ndarray] = None
@@ -447,6 +447,20 @@ class Corpus(Table):
         if self._dictionary is None:
             return self._base_tokens()[1]
         return self._dictionary
+
+    @property
+    def pos_tags(self):
+        """
+            np.ndarray: A list of lists containing POS tags. If there are no
+            POS tags available, return None.
+        """
+        if self._pos_tags is None:
+            return None
+        return np.array(self._pos_tags, dtype=object)
+
+    @pos_tags.setter
+    def pos_tags(self, pos_tags):
+        self._pos_tags = pos_tags
 
     def ngrams_iterator(self, join_with=' ', include_postags=False):
         if self.pos_tags is None:
