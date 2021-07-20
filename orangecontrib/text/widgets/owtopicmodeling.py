@@ -1,10 +1,13 @@
 import functools
+import numpy as np
 
 from AnyQt import QtGui, QtCore
 from AnyQt.QtCore import pyqtSignal, QSize
 from AnyQt.QtWidgets import (QVBoxLayout, QButtonGroup, QRadioButton,
                              QGroupBox, QTreeWidgetItem, QTreeWidget,
                              QStyleOptionViewItem, QStyledItemDelegate, QStyle)
+
+from gensim.models import CoherenceModel
 
 from Orange.widgets import settings
 from Orange.widgets import gui
@@ -142,6 +145,8 @@ class OWTopicModeling(OWWidget):
         self.corpus = None
         self.learning_thread = None
         self.__pending_selection = self.selection
+        self.perplexity = "n/a"
+        self.coherence = "n/a"
 
         # Commit button
         gui.auto_commit(self.buttonsArea, self, 'autocommit', 'Commit', box=False)
@@ -167,6 +172,11 @@ class OWTopicModeling(OWWidget):
         button_group.button(self.method_index).setChecked(True)
         self.toggle_widgets()
         method_layout.addStretch()
+
+        box = gui.vBox(self.controlArea, "Topic evaluation")
+        gui.label(box, self, "Log perplexity: %(perplexity)s")
+        gui.label(box, self, "Topic coherence: %(coherence)s")
+        self.controlArea.layout().insertWidget(1, box)
 
         # Topics description
         self.topic_desc = TopicViewer()
@@ -231,6 +241,15 @@ class OWTopicModeling(OWWidget):
                 self.__pending_selection = None
             if self.model.actual_topics != self.model.num_topics:
                 self.Warning.less_topics_found()
+            if self.model.name == "Latent Dirichlet Allocation":
+                bound = self.model.model.log_perplexity(
+                    corpus.ngrams_corpus)
+                self.perplexity = "{:.5f}".format(np.exp2(-bound))
+            cm = CoherenceModel(model=self.model.model,
+                                texts=corpus.tokens, corpus=corpus,
+                                coherence='c_v')
+            coherence = cm.get_coherence()
+            self.coherence = "{:.5f}".format(coherence)
             self.Outputs.all_topics.send(self.model.get_all_topics_table())
 
     @learning_task.callback
@@ -381,4 +400,3 @@ if __name__ == '__main__':
     widget.set_data(Corpus.from_file('deerwester'))
     widget.show()
     app.exec()
-    widget.saveSettings()
