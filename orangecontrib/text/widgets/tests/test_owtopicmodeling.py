@@ -66,6 +66,26 @@ class TestTopicModeling(WidgetTest):
         self.assertEqual(output.metas.shape[1],
                          self.widget.corpus.metas.shape[1] + 1)
 
+    def test_topic_evaluation(self):
+        def until(widget=self.widget):
+            return bool(self.get_output(widget.Outputs.selected_topic,
+                                        widget=widget))
+
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.process_events(until)
+
+        # test LSI
+        self.assertEqual(self.widget.perplexity, "n/a")
+        self.assertTrue(self.widget.coherence)
+
+        # test LDA, which is the only one with log perplexity
+        self.widget.method_index = 1
+        self.widget.commit()
+        self.process_events(until)
+
+        self.assertNotEqual(self.widget.perplexity, "n/a")
+        self.assertTrue(self.widget.coherence)
+
 
 if __name__ == "__main__":
     unittest.main()
