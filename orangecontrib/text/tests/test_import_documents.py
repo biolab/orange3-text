@@ -130,16 +130,16 @@ class TestImportDocuments(unittest.TestCase):
         importer = ImportDocuments(path, True)
         corpus2, _ = importer.run()
         self.assertGreater(len(corpus1), 0)
-        self.assertEqual(corpus1.metas[mask].tolist(),
-                         corpus2.metas[mask].tolist())
+        np.testing.assert_array_equal(corpus1.metas[mask].tolist(),
+                                      corpus2.metas[mask].tolist())
 
         path = "http://file.biolab.si/text-semantics/data" \
                "/predlogi-vladi-sample"
         importer = ImportDocuments(path, True)
         corpus3, _ = importer.run()
         self.assertGreater(len(corpus2), 0)
-        self.assertEqual(corpus1.metas[mask].tolist(),
-                         corpus3.metas[mask].tolist())
+        np.testing.assert_array_equal(corpus1.metas[mask].tolist(),
+                                      corpus3.metas[mask].tolist())
 
     def test_run_url_special_characters(self):
         path = "http://file.biolab.si/text-semantics/data/" \
