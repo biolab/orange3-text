@@ -9,4 +9,4 @@ class LdaWrapper(GensimWrapper):
     Model = models.LdaModel
 
     def __init__(self, **kwargs):
-        super().__init__(**kwargs, dtype=float64)
+        super().__init__(random_state=0, **kwargs, dtype=float64)
