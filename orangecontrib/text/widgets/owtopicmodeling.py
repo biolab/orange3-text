@@ -110,7 +110,7 @@ class OWTopicModeling(OWWidget):
         corpus = Input("Corpus", Corpus)
 
     class Outputs:
-        corpus = Output("Corpus", Table)
+        corpus = Output("Corpus", Table, default=True)
         selected_topic = Output("Selected Topic", Topic)
         all_topics = Output("All Topics", Table)
 

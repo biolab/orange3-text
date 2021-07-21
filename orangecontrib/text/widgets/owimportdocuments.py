@@ -92,7 +92,7 @@ class OWImportDocuments(widget.OWWidget):
     priority = 110
 
     class Outputs:
-        data = Output("Corpus", Corpus)
+        data = Output("Corpus", Corpus, default=True)
         skipped_documents = Output("Skipped documents", Table)
 
     LOCAL_FILE, URL = range(2)

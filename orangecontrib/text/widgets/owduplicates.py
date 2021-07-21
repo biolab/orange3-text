@@ -24,7 +24,8 @@ class OWDuplicates(widget.OWWidget):
         distances = Input("Distances", DistMatrix)
 
     class Outputs:
-        corpus_without_duplicates = Output("Corpus Without Duplicates", Corpus)
+        corpus_without_duplicates = Output("Corpus Without Duplicates",
+                                           Corpus, default=True)
         duplicates = Output("Duplicates Cluster", Corpus)
         corpus = Output("Corpus", Corpus)
 

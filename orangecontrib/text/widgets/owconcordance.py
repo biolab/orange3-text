@@ -189,7 +189,7 @@ class OWConcordance(OWWidget, ConcurrentWidgetMixin):
         query_word = Input("Query Word", Topic)
 
     class Outputs:
-        selected_documents = Output("Selected Documents", Corpus)
+        selected_documents = Output("Selected Documents", Corpus, default=True)
         concordances = Output("Concordances", Corpus)
 
     settingsHandler = PerfectDomainContextHandler(
