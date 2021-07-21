@@ -181,6 +181,9 @@ class YamlMetaReader(Reader):
     def read_file(self):
         with open(self.path, "r") as f:
             self.content = yaml.safe_load(f)
+            for k in self.content:
+                if self.content[k] is None:
+                    self.content[k] = ""
 
 
 class UrlReader(Reader, CoreUrlReader):
@@ -287,8 +290,6 @@ class ImportDocuments:
                 content = data.content
                 if isinstance(content, dict):
                     content = pd.DataFrame(content, index=[0])
-                # if reader is YamlMetaReader:
-                #     content = content.replace("None", np.nan)
                 meta_dfs.append(content)
             else:
                 errors.append(error)
