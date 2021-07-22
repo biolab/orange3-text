@@ -238,7 +238,8 @@ class OWTopicModeling(OWWidget, ConcurrentWidgetMixin):
 
     def on_done(self, corpus):
         self.Outputs.corpus.send(corpus)
-        self.topic_desc.show_model(self.model)
+        pos_tags = self.corpus.pos_tags is not None
+        self.topic_desc.show_model(self.model, pos_tags=pos_tags)
         if self.__pending_selection:
             self.topic_desc.select(self.__pending_selection)
             self.__pending_selection = None
@@ -277,15 +278,17 @@ class OWTopicModeling(OWWidget, ConcurrentWidgetMixin):
 
 class TopicViewerTreeWidgetItem(QTreeWidgetItem):
     def __init__(self, topic_id, words, weights, parent,
-                 color_by_weights=False):
+                 color_by_weights=False, pos_tags=False):
         super().__init__(parent)
         self.topic_id = topic_id
         self.words = words
         self.weights = weights
         self.color_by_weights = color_by_weights
+        self.pos_tags = pos_tags
 
         self.setText(0, '{:d}'.format(topic_id + 1))
-        self.setText(1, ', '.join(self._color(word, weight)
+        self.setText(1, ', '.join(self._color(word.rsplit("_", 1)[0], weight) if
+                                  self.pos_tags else self._color(word, weight)
                                   for word, weight in zip(words, weights)))
 
     def _color(self, word, weight):
@@ -322,7 +325,7 @@ class TopicViewer(QTreeWidget):
         for i in range(self.columnCount()):
             self.resizeColumnToContents(i)
 
-    def show_model(self, topic_model):
+    def show_model(self, topic_model, pos_tags=False):
         self.clear()
         if topic_model.model:
             for i in range(topic_model.num_topics):
@@ -330,7 +333,8 @@ class TopicViewer(QTreeWidget):
                 if words:
                     it = TopicViewerTreeWidgetItem(
                         i, words, weights, self,
-                        color_by_weights=topic_model.has_negative_weights)
+                        color_by_weights=topic_model.has_negative_weights,
+                        pos_tags=pos_tags)
                     self.addTopLevelItem(it)
 
             self.resize_columns()
