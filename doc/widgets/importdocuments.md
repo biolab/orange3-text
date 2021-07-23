@@ -10,17 +10,28 @@ Import text documents from folders.
 **Outputs**
 
 - Corpus: A collection of documents from the local machine.
+- Skipped Documents: A list of documents that couldn't be imported.
 
-**Import Documents** widget retrieves text files from folders and creates a corpus. The widget reads .txt, .docx, .odt, .pdf and .xml files. If a folder contains subfolders, they will be used as class labels.
+**Import Documents** widget retrieves text files from folders and creates a corpus. The widget reads .txt, .docx, .odt, .pdf, .xml, and .conllu files. If a folder contains subfolders, they will be used as class labels.
 
-![](images/Import-Documents-stamped.png)
+![](images/ImportDocuments.png)
 
 1. Folder being loaded.
 2. Load folder from a local machine.
 3. Reload the data.
-4. Number of documents retrieved.
+4. Options for importing .conllu files.
+5. Number of documents retrieved.
 
 If the widget cannot read the file for some reason, the file will be skipped. Files that were successfully retrieved will still be on the output.
+
+Conllu files
+------------
+
+![](images/ImportDocuments-Conllu.png)
+
+Since Text version 1.5.0, Orange supports reading [.conllu files](https://universaldependencies.org/format.html). Each file will be considered as a separate document in the corpus. If utterance IDs exist, utterances will become documents (each row in the corpus will be a single utterance).
+
+Lemmas and POS tags from *Conllu import options* will be added as tokens and the corpus will be considered preprocessed. Named entities will be added as a comma-separated string (if they exist in the file).
 
 Example
 -------

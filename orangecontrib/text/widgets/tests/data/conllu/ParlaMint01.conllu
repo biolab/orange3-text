@@ -1,0 +1,74 @@
+# newdoc id = ParlaMint-SI_2014-08-01-SDZ7-Redna-01.u1
+# newpar id = ParlaMint-SI_2014-08-01-SDZ7-Redna-01.seg1
+# sent_id = ParlaMint-SI_2014-08-01-SDZ7-Redna-01.seg1.1
+# text = Spoštovani, prosim, da zasedete svoja mesta.
+1	Spoštovani	spoštovan	ADJ	Appmpn	Case=Nom|Degree=Pos|Gender=Masc|Number=Sing|VerbForm=Part	3	discourse	_	NER=O|SpaceAfter=No
+2	,	,	PUNCT	Z	_	1	punct	_	NER=O
+3	prosim	prositi	VERB	Vmpr1s	Aspect=Imp|Mood=Ind|Number=Sing|Person=1|Tense=Pres|VerbForm=Fin	0	root	_	NER=O|SpaceAfter=No
+4	,	,	PUNCT	Z	_	6	punct	_	NER=O
+5	da	da	SCONJ	Cs	_	6	mark	_	NER=O
+6	zasedete	zasesti	VERB	Vmer2p	Aspect=Perf|Mood=Ind|Number=Plur|Person=2|Tense=Pres|VerbForm=Fin	3	ccomp	_	NER=O
+7	svoja	svoj	DET	Px-npa	Case=Acc|Gender=Neut|Number=Plur|Poss=Yes|PronType=Prs|Reflex=Yes	8	det	_	NER=O
+8	mesta	mesto	NOUN	Ncnpa	Case=Acc|Gender=Neut|Number=Plur	6	obj	_	NER=O|SpaceAfter=No
+9	.	.	PUNCT	Z	_	3	punct	_	NER=O
+
+# newpar id = ParlaMint-SI_2014-08-01-SDZ7-Redna-01.seg2
+# sent_id = ParlaMint-SI_2014-08-01-SDZ7-Redna-01.seg2.1
+# text = V naši sredini pozdravljam predsednika države, gospoda Boruta Pahorja in predsednika Državnega zbora, gospoda Janka Vebra.
+1	V	v	ADP	Sl	Case=Loc	3	case	_	NER=O
+2	naši	naš	DET	Ps1fslp	Case=Loc|Gender=Fem|Number=Sing|Number[psor]=Plur|Person=1|Poss=Yes|PronType=Prs	3	det	_	NER=O
+3	sredini	sredina	NOUN	Ncfsl	Case=Loc|Gender=Fem|Number=Sing	4	obl	_	NER=O
+4	pozdravljam	pozdravljati	VERB	Vmpr1s	Aspect=Imp|Mood=Ind|Number=Sing|Person=1|Tense=Pres|VerbForm=Fin	0	root	_	NER=O
+5	predsednika	predsednik	NOUN	Ncmsay	Animacy=Anim|Case=Acc|Gender=Masc|Number=Sing	4	obj	_	NER=O
+6	države	država	NOUN	Ncfsg	Case=Gen|Gender=Fem|Number=Sing	5	nmod	_	NER=O|SpaceAfter=No
+7	,	,	PUNCT	Z	_	8	punct	_	NER=O
+8	gospoda	gospod	NOUN	Ncmsay	Animacy=Anim|Case=Acc|Gender=Masc|Number=Sing	5	conj	_	NER=O
+9	Boruta	Borut	PROPN	Npmsay	Animacy=Anim|Case=Acc|Gender=Masc|Number=Sing	8	nmod	_	NER=B-PER
+10	Pahorja	Pahor	PROPN	Npmsay	Animacy=Anim|Case=Acc|Gender=Masc|Number=Sing	9	flat:name	_	NER=I-PER
+11	in	in	CCONJ	Cc	_	12	cc	_	NER=O
+12	predsednika	predsednik	NOUN	Ncmsay	Animacy=Anim|Case=Acc|Gender=Masc|Number=Sing	5	conj	_	NER=O
+13	Državnega	državen	ADJ	Agpmsg	Case=Gen|Degree=Pos|Gender=Masc|Number=Sing	14	amod	_	NER=B-ORG
+14	zbora	zbor	NOUN	Ncmsg	Case=Gen|Gender=Masc|Number=Sing	12	nmod	_	NER=I-ORG|SpaceAfter=No
+15	,	,	PUNCT	Z	_	16	punct	_	NER=O
+16	gospoda	gospod	NOUN	Ncmsay	Animacy=Anim|Case=Acc|Gender=Masc|Number=Sing	5	conj	_	NER=O
+17	Janka	Janko	PROPN	Npmsay	Animacy=Anim|Case=Acc|Gender=Masc|Number=Sing	16	nmod	_	NER=B-PER
+18	Vebra	Veber	PROPN	Npmsay	Animacy=Anim|Case=Acc|Gender=Masc|Number=Sing	17	flat:name	_	NER=I-PER|SpaceAfter=No
+19	.	.	PUNCT	Z	_	4	punct	_	NER=O
+
+# sent_id = ParlaMint-SI_2014-08-01-SDZ7-Redna-01.seg2.2
+# text = Lepo pozdravljena.
+1	Lepo	lepo	ADV	Rgp	Degree=Pos	2	advmod	_	NER=O
+2	pozdravljena	pozdravljen	ADJ	Appfsn	Case=Nom|Degree=Pos|Gender=Fem|Number=Sing|VerbForm=Part	0	root	_	NER=O|SpaceAfter=No
+3	.	.	PUNCT	Z	_	2	punct	_	NER=O
+
+# newdoc id = ParlaMint-SI_2014-08-01-SDZ7-Redna-01.u2
+# newpar id = ParlaMint-SI_2014-08-01-SDZ7-Redna-01.seg4
+# sent_id = ParlaMint-SI_2014-08-01-SDZ7-Redna-01.seg4.1
+# text = Hvala za besedo, predsedujoča.
+1	Hvala	hvala	NOUN	Ncfsn	Case=Nom|Gender=Fem|Number=Sing	0	root	_	NER=O
+2	za	za	ADP	Sa	Case=Acc	3	case	_	NER=O
+3	besedo	beseda	NOUN	Ncfsa	Case=Acc|Gender=Fem|Number=Sing	1	nmod	_	NER=O|SpaceAfter=No
+4	,	,	PUNCT	Z	_	5	punct	_	NER=O
+5	predsedujoča	predsedujoč	ADJ	Appfsn	Case=Nom|Degree=Pos|Gender=Fem|Number=Sing|VerbForm=Part	3	amod	_	NER=O|SpaceAfter=No
+6	.	.	PUNCT	Z	_	1	punct	_	NER=O
+
+# sent_id = ParlaMint-SI_2014-08-01-SDZ7-Redna-01.seg4.2
+# text = Spoštovani predsednik Republike Slovenije, gospod Borut Pahor, spoštovani poslanke in poslanci, gospe in gospodje!
+1	Spoštovani	spoštovan	ADJ	Appmsny	Case=Nom|Definite=Def|Degree=Pos|Gender=Masc|Number=Sing|VerbForm=Part	2	amod	_	NER=O
+2	predsednik	predsednik	NOUN	Ncmsn	Case=Nom|Gender=Masc|Number=Sing	0	root	_	NER=O
+3	Republike	republika	NOUN	Ncfsg	Case=Gen|Gender=Fem|Number=Sing	2	nmod	_	NER=B-ORG
+4	Slovenije	Slovenija	PROPN	Npfsg	Case=Gen|Gender=Fem|Number=Sing	3	nmod	_	NER=I-ORG|SpaceAfter=No
+5	,	,	PUNCT	Z	_	6	punct	_	NER=O
+6	gospod	gospod	NOUN	Ncmsn	Case=Nom|Gender=Masc|Number=Sing	2	conj	_	NER=O
+7	Borut	Borut	PROPN	Npmsn	Case=Nom|Gender=Masc|Number=Sing	6	nmod	_	NER=B-PER
+8	Pahor	Pahor	PROPN	Npmsn	Case=Nom|Gender=Masc|Number=Sing	7	flat:name	_	NER=I-PER|SpaceAfter=No
+9	,	,	PUNCT	Z	_	11	punct	_	NER=O
+10	spoštovani	spoštovan	ADJ	Appmpn	Case=Nom|Degree=Pos|Gender=Masc|Number=Plur|VerbForm=Part	11	amod	_	NER=O
+11	poslanke	poslanka	NOUN	Ncfpn	Case=Nom|Gender=Fem|Number=Plur	2	conj	_	NER=O
+12	in	in	CCONJ	Cc	_	13	cc	_	NER=O
+13	poslanci	poslanec	NOUN	Ncmpn	Case=Nom|Gender=Masc|Number=Plur	2	conj	_	NER=O|SpaceAfter=No
+14	,	,	PUNCT	Z	_	15	punct	_	NER=O
+15	gospe	gospa	NOUN	Ncfpn	Case=Nom|Gender=Fem|Number=Plur	2	conj	_	NER=O
+16	in	in	CCONJ	Cc	_	17	cc	_	NER=O
+17	gospodje	gospod	NOUN	Ncmpn	Case=Nom|Gender=Masc|Number=Plur	2	conj	_	NER=O|SpaceAfter=No
+18	!	!	PUNCT	Z	_	2	punct	_	NER=O

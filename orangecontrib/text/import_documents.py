@@ -7,6 +7,8 @@ import pathlib
 import re
 import yaml
 from urllib.parse import quote, unquote
+
+from conllu import parse_incr
 from requests.exceptions import ConnectionError
 
 from collections import namedtuple
@@ -39,7 +41,7 @@ from Orange.util import Registry
 
 from orangecontrib.text.corpus import Corpus
 
-DefaultFormats = ("docx", "odt", "txt", "pdf", "xml")
+DefaultFormats = ("docx", "odt", "txt", "pdf", "xml", "conllu")
 
 TextData = namedtuple(
     "Text",
@@ -88,7 +90,8 @@ class Reader(metaclass=Registry):
         return textdata, error
 
     def read_file(self):
-        raise NotImplementedError("No reader for {}".format(pathlib.Path(self.path).suffix))
+        raise NotImplementedError(
+            "No reader for {}".format(pathlib.Path(self.path).suffix))
 
     def make_text_data(self):
         name = pathlib.Path(self.path).stem
@@ -153,7 +156,8 @@ class PdfReader(Reader):
             interpreter.process_page(page)
             layout = device.get_result()
             for lt_obj in layout:
-                if isinstance(lt_obj, LTTextBox) or isinstance(lt_obj, LTTextLine):
+                if isinstance(lt_obj, LTTextBox) or isinstance(lt_obj,
+                                                               LTTextLine):
                     extracted_text.append(lt_obj.get_text())
         self.content = ' '.join(extracted_text).replace('\x00', '')
 
@@ -184,6 +188,13 @@ class YamlMetaReader(Reader):
             for k in self.content:
                 if self.content[k] is None:
                     self.content[k] = ""
+
+
+class TsvMetaReader(Reader):
+    ext = [".tsv"]
+
+    def read_file(self):
+        self.content = pd.read_csv(self.path, delimiter="\t")
 
 
 class UrlReader(Reader, CoreUrlReader):
@@ -217,8 +228,95 @@ class UrlReader(Reader, CoreUrlReader):
                         text_data.category, text_data.content)
 
 
+class ConlluReader(Reader):
+    TextData = namedtuple(
+        "Text",
+        ["name", "path", "ext", "category", "doc_id", "content"]
+    )
+
+    ext = [".conllu"]
+
+    def __init__(self, path):
+        super().__init__(path)
+        self.tokens = None
+        self.pos = None
+        self.ner = None
+
+    @staticmethod
+    def parse_ner(tokens):
+        entities = []
+        temp_ner = []
+        for token in tokens:
+            if token["misc"] is None or "NER" not in token["misc"]:
+                continue
+            # "0" means the token is not named entity
+            if token["misc"]["NER"] != "O":
+                # lemma?
+                temp_ner.append(token["lemma"])
+            elif temp_ner:
+                entities.append(" ".join(temp_ner))
+                temp_ner = []
+        if temp_ner:
+            entities.append(" ".join(temp_ner))
+        return entities
+
+    def read_file(self):
+        content = []
+        file = open(self.path, "r", encoding="utf-8")
+        utterance_id = ""
+        utterance = []
+        tokens = []
+        pos = []
+        ner = []
+        temp_tokens = []
+        temp_pos = []
+        temp_ner = []
+        for sentence in parse_incr(file):
+            if "newdoc id" in sentence.metadata.keys():
+                if utterance_id:
+                    content.append([utterance_id, " ".join(utterance)])
+                    tokens.append(temp_tokens)
+                    pos.append(temp_pos)
+                    ner.append(temp_ner)
+                    utterance = []
+                    temp_tokens = []
+                    temp_pos = []
+                    temp_ner = []
+                utterance_id = sentence.metadata["newdoc id"]
+            utterance.append(sentence.metadata["text"])
+            temp_tokens.extend([token["lemma"] for token in sentence])
+            temp_pos.extend([token["upos"] for token in sentence])
+            temp_ner.extend(self.parse_ner(sentence))
+        if temp_tokens or utterance:
+            content.append([utterance_id, " ".join(utterance)])
+            tokens.append(temp_tokens)
+            pos.append(temp_pos)
+            ner.append(temp_ner)
+        file.close()
+        self.tokens = tokens
+        self.pos = pos
+        self.ner = np.array([", ".join(tokens) for tokens in ner], dtype=object)
+        self.content = pd.DataFrame(content, columns=["newdoc id", "text"])
+
+    def make_text_data(self):
+        text_objects = []
+        name = pathlib.Path(self.path).stem
+        directory = pathlib.PurePath(self.path).parent
+        category = directory.parts[-1] or "None"
+        for _, row in self.content.iterrows():
+            if self.replace_white_space:
+                row["text"] = re.sub(r'\s+', ' ', row["text"])
+            text_objects.append(self.TextData(name, self.path, self.ext,
+                                              category,
+                                              row["newdoc id"],
+                                              row["text"]))
+        return text_objects
+
+
 class ImportDocuments:
     META_DATA_FILE_KEY = "Text file"
+    # this is what we will merge meta data on, change to user-set variable
+    CONLLU_META_DATA = "ID"
 
     def __init__(self, startdir: str,
                  is_url: bool = False,
@@ -235,13 +333,19 @@ class ImportDocuments:
         self._is_url = is_url
         self._text_data = []
         self._meta_data: pd.DataFrame = None
+        self.is_conllu = False
+        self.tokens = None
+        self.pos = None
+        self.ner = None
 
-    def run(self) -> Tuple[Corpus, List]:
-        self._text_data, errors_text = self._read_text_data()
+    def run(self) -> Tuple[Corpus, List, List, List, List, bool]:
+        self._text_data, errors_text, tokens, pos, ner, conllu \
+            = self._read_text_data()
         self._meta_data, errors_meta = self._read_meta_data()
+        self.is_conllu = conllu
         corpus = self._create_corpus()
         corpus = self._add_metadata(corpus)
-        return corpus, errors_text + errors_meta
+        return corpus, errors_text + errors_meta, tokens, pos, ner, conllu
 
     def _read_text_data(self):
         text_data = []
@@ -251,6 +355,10 @@ class ImportDocuments:
         paths = scan(self.startdir, include_patterns=patterns)
         n_paths = len(paths)
         batch = []
+        tokens = []
+        pos = []
+        ner = []
+        conllu = False
 
         if n_paths == 0:
             raise NoDocumentsException()
@@ -267,7 +375,16 @@ class ImportDocuments:
                 else UrlReader(path)
             text, error = reader.read()
             if text is not None:
-                text_data.append(text)
+                if type(reader) == ConlluReader:
+                    conllu = True
+                    for t in text:
+                        text_data.append(t)
+                    tokens.extend(reader.tokens)
+                    pos.extend(reader.pos)
+                    ner.extend(reader.ner)
+                else:
+                    conllu = False
+                    text_data.append(text)
                 batch.append(text_data)
             else:
                 errors.append(error)
@@ -275,11 +392,11 @@ class ImportDocuments:
             if self.cancelled:
                 return
 
-        return text_data, errors
+        return text_data, errors, tokens, pos, ner, conllu
 
     def _read_meta_data(self):
         scan = self.scan_url if self._is_url else self.scan
-        patterns = ["*.csv", "*.yaml", "*.yml"]
+        patterns = ["*.csv", "*.yaml", "*.yml", "*.tsv"]
         paths = scan(self.startdir, include_patterns=patterns)
         meta_dfs, errors = [], []
         for path in paths:
@@ -301,25 +418,27 @@ class ImportDocuments:
 
     def _create_corpus(self) -> Corpus:
         corpus = None
-        names = ["name", "path", "content"]
+        names = ["name", "path", "content"] if not self.is_conllu else [
+            "name", "path", "utterance", "content"]
         data = []
         category_data = []
         text_categories = list(set(t.category for t in self._text_data))
         values = list(set(text_categories))
         category_var = DiscreteVariable.make("category", values=values)
         for textdata in self._text_data:
-            data.append(
-                [
-                    # some characters are written as decomposed (č is char c
-                    # and separate char for caron), with NFC normalization we
-                    # normalize them to be written as precomposed (č is one
-                    # unicode char - 0x10D)
-                    # https://docs.python.org/3/library/unicodedata.html#unicodedata.normalize
-                    normalize('NFC', textdata.name),
-                    normalize('NFC', textdata.path),
-                    normalize('NFC', textdata.content)
-                ]
-            )
+            datum = [
+                # some characters are written as decomposed (č is char c
+                # and separate char for caron), with NFC normalization we
+                # normalize them to be written as precomposed (č is one
+                # unicode char - 0x10D)
+                # https://docs.python.org/3/library/unicodedata.html#unicodedata.normalize
+                normalize('NFC', textdata.name),
+                normalize('NFC', textdata.path),
+                normalize('NFC', textdata.content)
+            ]
+            if self.is_conllu:
+                datum.insert(2, normalize('NFC', textdata.doc_id))
+            data.append(datum)
             category_data.append(category_var.to_val(textdata.category))
         if len(text_categories) > 1:
             category_data = np.array(category_data)
@@ -335,19 +454,24 @@ class ImportDocuments:
             corpus = Corpus(domain,
                             Y=category_data,
                             metas=data,
-                            text_features=[domain.metas[2]])
-
+                            text_features=[domain.metas[-1]])
         return corpus
 
     def _add_metadata(self, corpus: Corpus) -> Corpus:
         if "path" not in corpus.domain or self._meta_data is None \
-                or self.META_DATA_FILE_KEY not in self._meta_data.columns:
+                or (self.META_DATA_FILE_KEY not in self._meta_data.columns
+                    and self.CONLLU_META_DATA not in self._meta_data.columns):
             return corpus
 
-        df = self._meta_data.set_index(
-            self.startdir + self._meta_data[self.META_DATA_FILE_KEY]
-        )
-        path_column = corpus.get_column_view("path")[0]
+        if self.is_conllu:
+            df = self._meta_data.set_index(self.CONLLU_META_DATA)
+            path_column = corpus.get_column_view("utterance")[0]
+        else:
+            df = self._meta_data.set_index(
+                self.startdir + self._meta_data[self.META_DATA_FILE_KEY]
+            )
+            path_column = corpus.get_column_view("path")[0]
+
         if len(df.index.drop_duplicates()) != len(df.index):
             df = df[~df.index.duplicated(keep='first')]
         filtered = df.reindex(path_column)
@@ -396,8 +520,9 @@ class ImportDocuments:
 
             filenames = [fname for fname in filenames
                          if matches_any(fname, include_patterns)
-                            and not matches_any(fname, exclude_patterns)]
-            paths = paths + [os.path.join(dirpath, fname) for fname in filenames]
+                         and not matches_any(fname, exclude_patterns)]
+            paths = paths + [os.path.join(dirpath, fname) for fname in
+                             filenames]
         return paths
 
     @staticmethod

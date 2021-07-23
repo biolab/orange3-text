@@ -71,6 +71,31 @@ class TestOWImportDocuments(WidgetTest):
     def test_send_report(self):
         self.widget.send_report()
 
+    def test_conllu_cb(self):
+        path = os.path.join(os.path.dirname(__file__), "data/conllu")
+        self.widget.setCurrentPath(path)
+        self.widget.reload()
+        self.wait_until_finished()
+        # default has only lemmas
+        corpus = self.get_output(self.widget.Outputs.data)
+        self.assertTrue(corpus.has_tokens())
+        # check pos tags are on the output
+        self.widget.controls.pos_cb.setChecked(True)
+        corpus = self.get_output(self.widget.Outputs.data)
+        self.assertTrue(len(corpus.pos_tags))
+        # check named entities are on the output
+        self.widget.controls.ner_cb.setChecked(True)
+        corpus = self.get_output(self.widget.Outputs.data)
+        self.assertEqual(len(corpus.domain.metas), 5)
+        # check only corpus is on the output when all boxes unchecked
+        self.widget.controls.lemma_cb.setChecked(False)
+        self.widget.controls.pos_cb.setChecked(False)
+        self.widget.controls.ner_cb.setChecked(False)
+        corpus = self.get_output(self.widget.Outputs.data)
+        self.assertFalse(corpus.has_tokens())
+        self.assertIsNone(corpus.pos_tags)
+        self.assertEqual(len(corpus.domain.metas), 4)
+
     def test_info_box(self):
         self.assertEqual(
             "4 documents, 1 skipped", self.widget.info_area.text()

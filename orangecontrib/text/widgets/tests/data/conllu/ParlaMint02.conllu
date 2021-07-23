@@ -1,0 +1,116 @@
+# newdoc id = ParlaMint-SI_2014-08-25-SDZ7-Izredna-01.u1
+# newpar id = ParlaMint-SI_2014-08-25-SDZ7-Izredna-01.seg1
+# sent_id = ParlaMint-SI_2014-08-25-SDZ7-Izredna-01.seg1.1
+# text = Spoštovane kolegice poslanke in kolegi poslanci, gospe in gospodje!
+1	Spoštovane	spoštovan	ADJ	Appfpn	Case=Nom|Degree=Pos|Gender=Fem|Number=Plur|VerbForm=Part	2	amod	_	NER=O
+2	kolegice	kolegica	NOUN	Ncfpn	Case=Nom|Gender=Fem|Number=Plur	0	root	_	NER=O
+3	poslanke	poslanka	NOUN	Ncfpn	Case=Nom|Gender=Fem|Number=Plur	2	nmod	_	NER=O
+4	in	in	CCONJ	Cc	_	5	cc	_	NER=O
+5	kolegi	kolega	NOUN	Ncmpn	Case=Nom|Gender=Masc|Number=Plur	2	conj	_	NER=O
+6	poslanci	poslanec	NOUN	Ncmpn	Case=Nom|Gender=Masc|Number=Plur	5	nmod	_	NER=O|SpaceAfter=No
+7	,	,	PUNCT	Z	_	8	punct	_	NER=O
+8	gospe	gospa	NOUN	Ncfpn	Case=Nom|Gender=Fem|Number=Plur	6	conj	_	NER=O
+9	in	in	CCONJ	Cc	_	10	cc	_	NER=O
+10	gospodje	gospod	NOUN	Ncmpn	Case=Nom|Gender=Masc|Number=Plur	6	conj	_	NER=O|SpaceAfter=No
+11	!	!	PUNCT	Z	_	2	punct	_	NER=O
+
+# newpar id = ParlaMint-SI_2014-08-25-SDZ7-Izredna-01.seg2
+# sent_id = ParlaMint-SI_2014-08-25-SDZ7-Izredna-01.seg2.1
+# text = Začenjam 1. izredno sejo Državnega zbora, ki sem jo sklical na podlagi drugega odstavka 58. člena in drugega odstavka 60. člena Poslovnika Državnega zbora.
+1	Začenjam	začenjati	VERB	Vmpr1s	Aspect=Imp|Mood=Ind|Number=Sing|Person=1|Tense=Pres|VerbForm=Fin	0	root	_	NER=O
+2	1.	1.	NUM	Mdo	NumForm=Digit|NumType=Ord	4	nummod	_	NER=O
+3	izredno	izreden	ADJ	Agpfsa	Case=Acc|Degree=Pos|Gender=Fem|Number=Sing	4	amod	_	NER=O
+4	sejo	seja	NOUN	Ncfsa	Case=Acc|Gender=Fem|Number=Sing	1	obj	_	NER=O
+5	Državnega	državen	ADJ	Agpmsg	Case=Gen|Degree=Pos|Gender=Masc|Number=Sing	6	amod	_	NER=B-ORG
+6	zbora	zbor	NOUN	Ncmsg	Case=Gen|Gender=Masc|Number=Sing	4	nmod	_	NER=I-ORG|SpaceAfter=No
+7	,	,	PUNCT	Z	_	11	punct	_	NER=O
+8	ki	ki	SCONJ	Cs	_	11	mark	_	NER=O
+9	sem	biti	AUX	Va-r1s-n	Mood=Ind|Number=Sing|Person=1|Polarity=Pos|Tense=Pres|VerbForm=Fin	11	aux	_	NER=O
+10	jo	on	PRON	Pp3fsa--y	Case=Acc|Gender=Fem|Number=Sing|Person=3|PronType=Prs|Variant=Short	11	obj	_	NER=O
+11	sklical	sklicati	VERB	Vmep-sm	Aspect=Perf|Gender=Masc|Number=Sing|VerbForm=Part	6	acl	_	NER=O
+12	na	na	ADP	Sl	Case=Loc	13	case	_	NER=O
+13	podlagi	podlaga	NOUN	Ncfsl	Case=Loc|Gender=Fem|Number=Sing	11	obl	_	NER=O
+14	drugega	drug	ADJ	Mlpmsg	Case=Gen|Gender=Masc|Number=Sing	15	amod	_	NER=O
+15	odstavka	odstavek	NOUN	Ncmsg	Case=Gen|Gender=Masc|Number=Sing	13	nmod	_	NER=O
+16	58.	58.	NUM	Mdo	NumForm=Digit|NumType=Ord	17	nummod	_	NER=O
+17	člena	člen	NOUN	Ncmsg	Case=Gen|Gender=Masc|Number=Sing	15	nmod	_	NER=O
+18	in	in	CCONJ	Cc	_	20	cc	_	NER=O
+19	drugega	drug	ADJ	Mlpmsg	Case=Gen|Gender=Masc|Number=Sing	20	amod	_	NER=O
+20	odstavka	odstavek	NOUN	Ncmsg	Case=Gen|Gender=Masc|Number=Sing	15	conj	_	NER=O
+21	60.	60.	NUM	Mdo	NumForm=Digit|NumType=Ord	22	nummod	_	NER=O
+22	člena	člen	NOUN	Ncmsg	Case=Gen|Gender=Masc|Number=Sing	20	nmod	_	NER=O
+23	Poslovnika	poslovnik	NOUN	Ncmsg	Case=Gen|Gender=Masc|Number=Sing	22	nmod	_	NER=B-MISC
+24	Državnega	državen	ADJ	Agpmsg	Case=Gen|Degree=Pos|Gender=Masc|Number=Sing	25	amod	_	NER=I-MISC
+25	zbora	zbor	NOUN	Ncmsg	Case=Gen|Gender=Masc|Number=Sing	23	nmod	_	NER=I-MISC|SpaceAfter=No
+26	.	.	PUNCT	Z	_	1	punct	_	NER=O
+
+# newdoc id = ParlaMint-SI_2014-08-25-SDZ7-Izredna-01.u2
+# newpar id = ParlaMint-SI_2014-08-25-SDZ7-Izredna-01.seg6
+# sent_id = ParlaMint-SI_2014-08-25-SDZ7-Izredna-01.seg6.1
+# text = Prehajamo na določitev dnevnega reda 1. izredne seje Državnega zbora.
+1	Prehajamo	prehajati	VERB	Vmpr1p	Aspect=Imp|Mood=Ind|Number=Plur|Person=1|Tense=Pres|VerbForm=Fin	0	root	_	NER=O
+2	na	na	ADP	Sa	Case=Acc	3	case	_	NER=O
+3	določitev	določitev	NOUN	Ncfsa	Case=Acc|Gender=Fem|Number=Sing	1	obl	_	NER=O
+4	dnevnega	dneven	ADJ	Agpmsg	Case=Gen|Degree=Pos|Gender=Masc|Number=Sing	5	amod	_	NER=O
+5	reda	red	NOUN	Ncmsg	Case=Gen|Gender=Masc|Number=Sing	3	nmod	_	NER=O
+6	1.	1.	NUM	Mdo	NumForm=Digit|NumType=Ord	8	nummod	_	NER=O
+7	izredne	izreden	ADJ	Agpfsg	Case=Gen|Degree=Pos|Gender=Fem|Number=Sing	8	amod	_	NER=O
+8	seje	seja	NOUN	Ncfsg	Case=Gen|Gender=Fem|Number=Sing	5	nmod	_	NER=O
+9	Državnega	državen	ADJ	Agpmsg	Case=Gen|Degree=Pos|Gender=Masc|Number=Sing	10	amod	_	NER=B-ORG
+10	zbora	zbor	NOUN	Ncmsg	Case=Gen|Gender=Masc|Number=Sing	8	nmod	_	NER=I-ORG|SpaceAfter=No
+11	.	.	PUNCT	Z	_	1	punct	_	NER=O
+
+# newdoc id = ParlaMint-SI_2014-08-25-SDZ7-Izredna-01.u3
+# newpar id = ParlaMint-SI_2014-08-25-SDZ7-Izredna-01.seg15
+# sent_id = ParlaMint-SI_2014-08-25-SDZ7-Izredna-01.seg15.1
+# text = Spoštovani gospod predsednik, spoštovane poslanke in poslanci!
+1	Spoštovani	spoštovan	ADJ	Appmsny	Case=Nom|Definite=Def|Degree=Pos|Gender=Masc|Number=Sing|VerbForm=Part	2	amod	_	NER=O
+2	gospod	gospod	NOUN	Ncmsn	Case=Nom|Gender=Masc|Number=Sing	0	root	_	NER=O
+3	predsednik	predsednik	NOUN	Ncmsn	Case=Nom|Gender=Masc|Number=Sing	2	nmod	_	NER=O|SpaceAfter=No
+4	,	,	PUNCT	Z	_	6	punct	_	NER=O
+5	spoštovane	spoštovan	ADJ	Appfpn	Case=Nom|Degree=Pos|Gender=Fem|Number=Plur|VerbForm=Part	6	amod	_	NER=O
+6	poslanke	poslanka	NOUN	Ncfpn	Case=Nom|Gender=Fem|Number=Plur	2	conj	_	NER=O
+7	in	in	CCONJ	Cc	_	8	cc	_	NER=O
+8	poslanci	poslanec	NOUN	Ncmpn	Case=Nom|Gender=Masc|Number=Plur	3	conj	_	NER=O|SpaceAfter=No
+9	!	!	PUNCT	Z	_	2	punct	_	NER=O
+
+# newpar id = ParlaMint-SI_2014-08-25-SDZ7-Izredna-01.seg16
+# sent_id = ParlaMint-SI_2014-08-25-SDZ7-Izredna-01.seg16.1
+# text = Poslanke in poslanci Socialnih demokratov smo ponosni, da danes, ko so pred nami odločitve, ki bodo pomembno zaznamovale vodenje in delovanje Državnega zbora v tem mandatu, na mesto podpredsednika predlagamo Janka Vebra.
+1	Poslanke	poslanka	NOUN	Ncfpn	Case=Nom|Gender=Fem|Number=Plur	7	nsubj	_	NER=O
+2	in	in	CCONJ	Cc	_	3	cc	_	NER=O
+3	poslanci	poslanec	NOUN	Ncmpn	Case=Nom|Gender=Masc|Number=Plur	1	conj	_	NER=O
+4	Socialnih	socialen	ADJ	Agpmpg	Case=Gen|Degree=Pos|Gender=Masc|Number=Plur	5	amod	_	NER=O
+5	demokratov	demokrat	NOUN	Ncmpg	Case=Gen|Gender=Masc|Number=Plur	3	nmod	_	NER=O
+6	smo	biti	AUX	Va-r1p-n	Mood=Ind|Number=Plur|Person=1|Polarity=Pos|Tense=Pres|VerbForm=Fin	7	cop	_	NER=O
+7	ponosni	ponosen	ADJ	Agpmpn	Case=Nom|Degree=Pos|Gender=Masc|Number=Plur	0	root	_	NER=O|SpaceAfter=No
+8	,	,	PUNCT	Z	_	34	punct	_	NER=O
+9	da	da	SCONJ	Cs	_	34	mark	_	NER=O
+10	danes	danes	ADV	Rgp	Degree=Pos	34	advmod	_	NER=O|SpaceAfter=No
+11	,	,	PUNCT	Z	_	13	punct	_	NER=O
+12	ko	ko	SCONJ	Cs	_	13	mark	_	NER=O
+13	so	biti	VERB	Va-r3p-n	Mood=Ind|Number=Plur|Person=3|Polarity=Pos|Tense=Pres|VerbForm=Fin	34	aux	_	NER=O
+14	pred	pred	ADP	Si	Case=Ins	15	case	_	NER=O
+15	nami	jaz	PRON	Pp1-pi	Case=Ins|Number=Plur|Person=1|PronType=Prs	13	obl	_	NER=O
+16	odločitve	odločitev	NOUN	Ncfpn	Case=Nom|Gender=Fem|Number=Plur	13	nsubj	_	NER=O|SpaceAfter=No
+17	,	,	PUNCT	Z	_	21	punct	_	NER=O
+18	ki	ki	SCONJ	Cs	_	21	mark	_	NER=O
+19	bodo	biti	AUX	Va-f3p-n	Mood=Ind|Number=Plur|Person=3|Polarity=Pos|Tense=Fut|VerbForm=Fin	21	aux	_	NER=O
+20	pomembno	pomembno	ADV	Rgp	Degree=Pos	21	advmod	_	NER=O
+21	zaznamovale	zaznamovati	VERB	Vmbp-pf	Gender=Fem|Number=Plur|VerbForm=Part	16	acl	_	NER=O
+22	vodenje	vodenje	NOUN	Ncnsa	Case=Acc|Gender=Neut|Number=Sing	21	obj	_	NER=O
+23	in	in	CCONJ	Cc	_	24	cc	_	NER=O
+24	delovanje	delovanje	NOUN	Ncnsa	Case=Acc|Gender=Neut|Number=Sing	22	conj	_	NER=O
+25	Državnega	državen	ADJ	Agpmsg	Case=Gen|Degree=Pos|Gender=Masc|Number=Sing	26	amod	_	NER=B-ORG
+26	zbora	zbor	NOUN	Ncmsg	Case=Gen|Gender=Masc|Number=Sing	24	nmod	_	NER=I-ORG
+27	v	v	ADP	Sl	Case=Loc	29	case	_	NER=O
+28	tem	ta	DET	Pd-msl	Case=Loc|Gender=Masc|Number=Sing|PronType=Dem	29	det	_	NER=O
+29	mandatu	mandat	NOUN	Ncmsl	Case=Loc|Gender=Masc|Number=Sing	24	nmod	_	NER=O|SpaceAfter=No
+30	,	,	PUNCT	Z	_	21	punct	_	NER=O
+31	na	na	ADP	Sa	Case=Acc	32	case	_	NER=O
+32	mesto	mesto	NOUN	Ncnsa	Case=Acc|Gender=Neut|Number=Sing	34	obl	_	NER=O
+33	podpredsednika	podpredsednik	NOUN	Ncmsg	Case=Gen|Gender=Masc|Number=Sing	32	nmod	_	NER=O
+34	predlagamo	predlagati	VERB	Vmbr1p	Mood=Ind|Number=Plur|Person=1|Tense=Pres|VerbForm=Fin	7	parataxis	_	NER=O
+35	Janka	Janko	PROPN	Npmsay	Animacy=Anim|Case=Acc|Gender=Masc|Number=Sing	34	obj	_	NER=B-PER
+36	Vebra	Veber	PROPN	Npmsay	Animacy=Anim|Case=Acc|Gender=Masc|Number=Sing	35	flat:name	_	NER=I-PER|SpaceAfter=No
+37	.	.	PUNCT	Z	_	7	punct	_	NER=O

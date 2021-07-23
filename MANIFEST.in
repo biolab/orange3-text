@@ -5,7 +5,7 @@ recursive-include orangecontrib/text/tests *.txt *.json
 recursive-include orangecontrib/text/tutorials *.ows
 recursive-include orangecontrib/text/widgets/icons *.svg *.png *.ai
 recursive-include orangecontrib/text/widgets/resources *.js *.css *.html
-recursive-include orangecontrib/text/widgets/tests/data *.docx *.odt *.pdf *.txt
+recursive-include orangecontrib/text/widgets/tests/data *.docx *.odt *.pdf *.txt *.conllu
 include orangecontrib/text/widgets/tests/bow-test
 recursive-include scripts *.sh *.py
 
