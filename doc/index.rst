@@ -30,6 +30,7 @@ Widgets
    widgets/statistics
    widgets/corpustonetwork
    widgets/keywords
+   widgets/score-documents
 
 Scripting
 ---------
