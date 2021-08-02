@@ -4,7 +4,7 @@ import numpy as np
 from AnyQt.QtWidgets import QPushButton, QStyle, QLayout
 from AnyQt.QtCore import Qt, QSize
 
-from Orange.widgets.gui import widgetBox, comboBox, auto_commit, hBox
+from Orange.widgets.gui import widgetBox, comboBox, auto_commit, hBox, checkBox
 from Orange.widgets.settings import Setting
 from Orange.widgets.widget import OWWidget, Msg, Input, Output
 from Orange.widgets.utils.concurrent import ConcurrentWidgetMixin, TaskState
@@ -80,12 +80,16 @@ class OWDocumentEmbedding(OWWidget, ConcurrentWidgetMixin):
                             "Please establish a connection or " +
                             "use another vectorizer.")
         unexpected_error = Msg('Embedding error: {}')
+        no_language = Msg("Language feature missing. Please make sure language was detected.")
+        unsupported_language = Msg("The detected language is not supported.")
 
     class Warning(OWWidget.Warning):
         unsuccessful_embeddings = Msg('Some embeddings were unsuccessful.')
+        mixed_language = Msg("The corpus contains several languages. {} was chosen.")
 
     language = Setting(default=LANGUAGES.index("English"))
     aggregator = Setting(default=0)
+    use_detection = Setting(default=False)
 
     def __init__(self):
         OWWidget.__init__(self)
@@ -117,6 +121,12 @@ class OWDocumentEmbedding(OWWidget, ConcurrentWidgetMixin):
             searchable=True
          )
 
+        checkBox(
+            widget_box, self, "use_detection",
+            "Use automatically detected language",
+            callback=self._option_changed,
+        )
+
         self.aggregator_cb = comboBox(widget=widget_box,
                                       master=self,
                                       value='aggregator',
@@ -142,6 +152,7 @@ class OWDocumentEmbedding(OWWidget, ConcurrentWidgetMixin):
         hbox = hBox(self.controlArea)
         hbox.layout().addWidget(self.cancel_button)
         self.cancel_button.setDisabled(True)
+        self.language_cb.setDisabled(self.use_detection)
 
     @Inputs.corpus
     def set_data(self, data):
@@ -160,18 +171,48 @@ class OWDocumentEmbedding(OWWidget, ConcurrentWidgetMixin):
         self.commit()
 
     def commit(self):
+        self.Error.clear()
+        self.Warning.clear()
+        self.language_cb.setDisabled(self.use_detection)
+
         if self.corpus is None:
             self.clear_outputs()
             return
 
         self.cancel_button.setDisabled(False)
 
-        self.start(run_pretrained_embedder,
-                   self.corpus,
-                   LANGS_TO_ISO[LANGUAGES[self.language]],
-                   self.aggregators[self.aggregator])
+        if not self.use_detection:
+            self.start(run_pretrained_embedder,
+                       self.corpus,
+                       LANGS_TO_ISO[LANGUAGES[self.language]],
+                       self.aggregators[self.aggregator])
+            self.Error.clear()
+        else:
+            lang_feat_idx = None
+            for i, f in enumerate(self.corpus.domain.metas):
+                if ('language-feature' in f.attributes and
+                   f.attributes['language-feature']):
+                    lang_feat_idx = i
+                    break
+            if lang_feat_idx is None:
+                self.Error.no_language()
+                return
 
-        self.Error.clear()
+            unique, counts = np.unique(
+                self.corpus.metas[:, lang_feat_idx], return_counts=True,
+            )
+            most_frequent = unique[np.argmax(counts)]
+            iso2langs = {v: k for k, v in LANGS_TO_ISO.items()}
+            if most_frequent not in iso2langs:
+                self.Error.unsupported_language()
+                return
+            self.start(run_pretrained_embedder,
+                       self.corpus,
+                       most_frequent,
+                       self.aggregators[self.aggregator])
+            self.Error.clear()
+            if len(counts) > 1:
+                self.Warning.mixed_language(iso2langs[most_frequent])
 
     def on_done(self, embeddings: Tuple[Corpus, Corpus]) -> None:
         self.cancel_button.setDisabled(True)
