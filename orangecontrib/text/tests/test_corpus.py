@@ -667,6 +667,14 @@ class CorpusTests(unittest.TestCase):
             c = pp(c)
         pickle.dumps(c)
 
+    def test_languages(self):
+        corpus = Corpus.from_file('deerwester')
+
+        self.assertIsNone(corpus.languages)
+        corpus.detect_languages()
+        self.assertEqual(len(corpus.languages), len(corpus))
+        self.assertListEqual(corpus.languages, ['en' for _ in range(len(corpus))])
+
 
 @skipIf(summarize is None, "summarize is not available for orange3<=3.28")
 class TestCorpusSummaries(unittest.TestCase):

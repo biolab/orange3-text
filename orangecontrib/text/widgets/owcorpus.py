@@ -1,7 +1,10 @@
 import os
 import numpy as np
+from copy import copy
+from typing import Union, Tuple
 
-from Orange.data import Table, StringVariable, Variable
+from Orange.data import Table, StringVariable, Variable, DiscreteVariable, \
+    Domain
 from Orange.data.io import FileFormat
 from Orange.widgets import gui
 from Orange.widgets.utils.itemmodels import VariableListModel, DomainModel
@@ -12,6 +15,7 @@ from Orange.widgets.widget import OWWidget, Msg, Input, Output
 from Orange.widgets.utils.concurrent import TaskState, ConcurrentWidgetMixin
 from orangecontrib.text.corpus import Corpus, get_sample_corpora_dir
 from orangecontrib.text.widgets.utils import widgets, QSize
+from orangecontrib.text.vectorization.base import get_unique_names
 
 
 class OWCorpus(OWWidget, ConcurrentWidgetMixin):
@@ -48,6 +52,7 @@ class OWCorpus(OWWidget, ConcurrentWidgetMixin):
     ])
     used_attrs = ContextSetting([])
     title_variable = ContextSetting("")
+    detect_languages = Setting(False)
 
     class Error(OWWidget.Error):
         read_file = Msg("Can't read file ({})")
@@ -100,6 +105,12 @@ class OWCorpus(OWWidget, ConcurrentWidgetMixin):
         self.unused_attrs_view.setModel(self.unused_attrs_model)
         ibox.layout().addWidget(self.unused_attrs_view)
 
+        gui.checkBox(
+            self.controlArea, self, "detect_languages",
+            "Detect language automatically",
+            callback=self.handle_languages,
+        )
+
         # Documentation Data Sets & Report
         box = gui.hBox(self.controlArea)
         self.browse_documentation = gui.button(
@@ -129,7 +140,8 @@ class OWCorpus(OWWidget, ConcurrentWidgetMixin):
             self.file_widget.reload()
 
     @staticmethod
-    def _load_corpus(path: str, data: Table, state: TaskState) -> Corpus:
+    def _load_corpus(path: str, data: Table, detect: bool,
+                     state: TaskState) -> Corpus:
         state.set_status("Loading")
         corpus = None
         if data:
@@ -137,6 +149,16 @@ class OWCorpus(OWWidget, ConcurrentWidgetMixin):
         elif path:
             corpus = Corpus.from_file(path)
             corpus.name = os.path.splitext(os.path.basename(path))[0]
+        if detect:
+            state.set_status("Detecting languages")
+            ticks = iter(np.linspace(0., 100., len(corpus)))
+
+            def advance():
+                if state.is_interruption_requested():
+                    raise InterruptedError
+                state.set_progress_value(next(ticks))
+
+            corpus.detect_languages(on_advance=advance)
         return corpus
 
     def open_file(self, path=None, data=None):
@@ -145,26 +167,31 @@ class OWCorpus(OWWidget, ConcurrentWidgetMixin):
         self.cancel()
         self.unused_attrs_model[:] = []
         self.used_attrs_model[:] = []
-        self.start(self._load_corpus, path, data)
+        self.start(self._load_corpus, path, data, self.detect_languages)
 
-    def on_done(self, corpus: Corpus) -> None:
-        self.corpus = corpus
-        if corpus is None:
-            return
+    def on_done(self, result: Union[Corpus, Tuple[Corpus, None]]) -> None:
+        if isinstance(result, Corpus):
+            corpus = result
+            self.corpus = corpus
+            if corpus is None:
+                return
 
-        self._setup_title_dropdown()
-        self.used_attrs = list(self.corpus.text_features)
-        all_str_features = [f for f in self.corpus.domain.metas if f.is_string]
-        if not all_str_features:
-            self.Error.corpus_without_text_features()
-            self.Outputs.corpus.send(None)
-            return
-        self.openContext(self.corpus)
-        self.used_attrs_model.extend(self.used_attrs)
-        self.unused_attrs_model.extend(
-            [f for f in self.corpus.domain.metas
-             if f.is_string and f not in self.used_attrs_model]
-        )
+            self._setup_title_dropdown()
+            self.used_attrs = list(self.corpus.text_features)
+            all_str_features = [f for f in self.corpus.domain.metas if f.is_string]
+            if not all_str_features:
+                self.Error.corpus_without_text_features()
+                self.Outputs.corpus.send(None)
+                return
+            self.openContext(self.corpus)
+            self.used_attrs_model.extend(self.used_attrs)
+            self.unused_attrs_model.extend(
+                [f for f in self.corpus.domain.metas
+                 if f.is_string and f not in self.used_attrs_model]
+            )
+        else:
+            self.corpus = result[0]
+        self._handle_languages()
 
     def on_exception(self, ex: Exception) -> None:
         if isinstance(ex, BaseException):
@@ -266,6 +293,77 @@ class OWCorpus(OWWidget, ConcurrentWidgetMixin):
                 ('Other features', describe(domain.attributes)),
                 ('Target', describe(domain.class_vars)),
             ))
+
+    @staticmethod
+    def _detect_languages(corpus: Corpus, state: TaskState) -> Corpus:
+        state.set_status("Detecting languages")
+        ticks = iter(np.linspace(0., 100., len(corpus)))
+
+        def advance():
+            if state.is_interruption_requested():
+                raise InterruptedError
+            state.set_progress_value(next(ticks))
+
+        corpus.detect_languages(on_advance=advance)
+        return corpus, None
+
+    def handle_languages(self):
+        if self.detect_languages and self.corpus.languages is None:
+            self.start(self._detect_languages, self.corpus)
+        else:
+            self._handle_languages()
+
+    def _handle_languages(self):
+        if self.corpus is not None:
+            domain = self.corpus.domain
+            languages = self.corpus.languages
+            if self.detect_languages:
+                curr_attributes = list(domain.attributes)
+                curr_class_var = [domain.class_var] if domain.class_var else []
+                curr_metas = list(domain.metas)
+                curr_variables = curr_attributes + curr_class_var + curr_metas
+                curr_names = [var.name for var in curr_variables]
+                new_name = get_unique_names(curr_names, "Language")
+                variable_attrs = {'language-feature': True}
+                new_variable = StringVariable(new_name)
+                new_variable.attributes.update(variable_attrs)
+                new_domain = Domain(
+                    attributes=domain.attributes,
+                    class_vars=domain.class_var,
+                    metas=list(domain.metas) + [new_variable]
+                )
+                metas = np.hstack([self.corpus.metas,
+                                   np.array(self.corpus.languages).reshape(-1, 1)])
+                self.corpus = Corpus(new_domain,
+                                     self.corpus.X.copy(),
+                                     self.corpus.Y.copy(),
+                                     metas,
+                                     self.corpus.W.copy(),
+                                     copy(self.corpus.text_features))
+            else:
+                lang_feat_idx = None
+                for i, f in enumerate(domain.metas):
+                    if ('language-feature' in f.attributes and
+                       f.attributes['language-feature']):
+                        lang_feat_idx = i
+                        break
+                if lang_feat_idx is not None:
+                    new_domain = Domain(
+                        attributes=domain.attributes,
+                        class_vars=domain.class_var,
+                        metas=list(np.delete(list(domain.metas),
+                                             lang_feat_idx))
+                    )
+                    self.corpus = Corpus(
+                        new_domain,
+                        self.corpus.X.copy(),
+                        self.corpus.Y.copy(),
+                        np.delete(self.corpus.metas, lang_feat_idx, axis=1),
+                        self.corpus.W.copy(),
+                        copy(self.corpus.text_features)
+                    )
+            self.corpus.languages = languages
+        self.Outputs.corpus.send(self.corpus)
 
 
 if __name__ == '__main__':

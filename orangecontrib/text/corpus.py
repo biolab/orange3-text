@@ -11,6 +11,9 @@ import nltk
 import numpy as np
 import scipy.sparse as sp
 from gensim import corpora
+from langdetect import DetectorFactory, detect
+from langdetect.lang_detect_exception import LangDetectException
+DetectorFactory.seed = 0
 
 from Orange.data import (
     Variable,
@@ -92,6 +95,7 @@ class Corpus(Table):
         from orangecontrib.text.preprocess import PreprocessorList
         self.__used_preprocessor = PreprocessorList([])   # required for compute values
         self._titles: Optional[np.ndarray] = None
+        self.languages = None
         self._pp_documents = None  # preprocessed documents
 
         if domain is not None and text_features is None:
@@ -233,6 +237,18 @@ class Corpus(Table):
                 t += f" ({cur_appearances[t]})"
             new_titles.append(t)
         return new_titles
+
+    def detect_languages(self, on_advance=None):
+        texts = [' '.join(t.replace('\n', ' ').split(' ')[:2000])
+                 for t in self.documents]
+        self.languages = list()
+        for text in texts:
+            try:
+                self.languages.append(detect(text))
+                if callable(on_advance):
+                    on_advance()
+            except LangDetectException:
+                self.languages.append('unknown')
 
     def _infer_text_features(self):
         """
