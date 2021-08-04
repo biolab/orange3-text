@@ -142,6 +142,9 @@ class OWWordCloud(OWWidget, ConcurrentWidgetMixin):
         self.wordlist = None
         self.shown_words = None
         self.shown_weights = None
+        self.shown_docfreq = None
+        self.wpm = None
+        self.bow = False
         self.combined_size_length = None
         self._create_layout()
         self.on_corpus_change(None)
@@ -236,8 +239,8 @@ span.selected {color:red !important}
             def update_selection(self, words):
                 nonlocal model, proxymodel
                 selection = QItemSelection()
-                for i, (_, word) in enumerate(model):
-                    if word in words:
+                for i, content in enumerate(model):
+                    if content[1] in words:
                         index = proxymodel.mapFromSource(model.index(i, 1))
                         selection.select(index, index)
                 self.__nope = True
@@ -257,7 +260,7 @@ span.selected {color:red !important}
             sortRole=Qt.EditRole,
         )
         proxymodel.setSourceModel(model)
-        model.setHorizontalHeaderLabels(["Weight", "Word"])
+        model.setHorizontalHeaderLabels(["Weight", "Word", "Doc freq"])
         view.setModel(proxymodel)
         box.layout().addWidget(view)
 
@@ -317,7 +320,8 @@ span.selected {color:red !important}
         self.webview.update_selection(self.selected_words)
 
     def _repopulate_wordcloud(
-        self, words: List[str], weights: List[float]
+            self, words: List[str], weights: List[float],
+            doc_frequency: List[float]
     ) -> None:
         """
         This function prepare a word list and trigger a cloud replot.
@@ -328,6 +332,8 @@ span.selected {color:red !important}
             List of words to show.
         weights
             Words' weights
+        doc_frequency
+            Ratio of documents with the word.
         """
         if not len(words):
             self.clear()
@@ -341,12 +347,18 @@ span.selected {color:red !important}
             )
 
         words, weights = words[:N_BEST_PLOTTED], weights[:N_BEST_PLOTTED]
-        self.shown_words, self.shown_weights = words, weights
+        docfreq = doc_frequency[:N_BEST_PLOTTED]
+        self.shown_words = words
+        self.shown_weights = weights
+        self.shown_docfreq = docfreq
         # Repopulate table
         self.tablemodel.set_precision(
             0 if all(is_whole(w) for w in weights) else 2
         )
-        self.tablemodel.wrap(list(zip(weights, words)))
+        if docfreq and not self.bow:
+            self.tablemodel.wrap(list(zip(weights, words, docfreq)))
+        else:
+            self.tablemodel.wrap(list(zip(weights, words)))
         self.tableview.sortByColumn(0, Qt.DescendingOrder)
 
         # Reset wordcloud
@@ -388,28 +400,43 @@ span.selected {color:red !important}
         else:
             weights = np.ones(len(words))
 
-        self._repopulate_wordcloud(words, weights)
+        self._repopulate_wordcloud(words, weights, [])
 
     def _apply_corpus(self):
-        words, freq = self.word_frequencies()
-        self._repopulate_wordcloud(words, freq)
+        words, freq, _, docfreq = self.word_frequencies()
+        self._repopulate_wordcloud(words, freq, docfreq)
 
     def word_frequencies(self):
         counts = self.corpus_counter.most_common()
         words, freq = zip(*counts) if counts else ([], [])
-        return words, freq
+        docfreq = [f / len(self.corpus)
+                   for f in list(self.corpus.dictionary.dfs.values())] \
+            if counts else []
+        wpm = [f / len(words) * 1000000 for f in freq] if counts else []
+        return words, freq, wpm, docfreq
 
-    def create_weight_list(self):
+    def create_weight_list(self, bow):
         wc_table = None
         if self.corpus is not None:
-            words, freq = self.word_frequencies()
+            words, freq, wpm, docfreq = self.word_frequencies()
             words = np.array(words)[:, None]
             w_count = np.array(freq)[:, None]
             domain = Domain(
                 [ContinuousVariable("Word Count")],
                 metas=[StringVariable("Word")],
             )
-            wc_table = Table.from_numpy(domain, X=w_count, metas=words)
+            X = w_count
+            if not self.bow:
+                wpm = np.array(wpm)[:, None]
+                docfreq = np.array(docfreq)[:, None]
+                domain = Domain(
+                    domain.attributes +
+                    (ContinuousVariable("Words per million"),
+                     ContinuousVariable("Document frequency")),
+                    metas=domain.metas,
+                )
+                X = np.hstack([w_count, wpm, docfreq])
+            wc_table = Table.from_numpy(domain, X=X, metas=words)
             wc_table.name = "Word Counts"
         self.Outputs.word_counts.send(wc_table)
 
@@ -423,12 +450,13 @@ span.selected {color:red !important}
             self.start(count_words, data)
         else:
             self.handle_input()
-        self.create_weight_list()
+        self.create_weight_list(self.bow)
 
     def on_done(self, result: Tuple[Counter, bool]) -> None:
         self.corpus_counter = result[0]
-        self.create_weight_list()
-        if result[1]:
+        self.bow = result[1]
+        self.create_weight_list(self.bow)
+        if self.bow:
             self.Info.bow_weights()
         self.handle_input()
 
