@@ -111,7 +111,7 @@ class OWWordCloud(OWWidget, ConcurrentWidgetMixin):
         topic = Input("Topic", Topic)
 
     class Outputs:
-        corpus = Output("Corpus", Corpus)
+        corpus = Output("Corpus", Corpus, default=True)
         selected_words = Output("Selected Words", Topic, dynamic=False)
         word_counts = Output("Word Counts", Table)
 
