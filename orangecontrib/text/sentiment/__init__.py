@@ -36,15 +36,24 @@ def compute_from_dict(tokens, pos, neg):
     return scores
 
 
+def compute_from_dict_multilingual(tokens, languages, pos, neg):
+    scores = list()
+    for tok, lang in zip(tokens, languages):
+        pos_words = len(pos[lang].intersection(tok)) if pos[lang] else 0
+        neg_words = len(neg[lang].intersection(tok)) if neg[lang] else 0
+        scores.append([100 * (pos_words - neg_words) / max(len(tok), 1)])
+    return scores
+
+
 class Sentiment:
     sentiments = None
     name = None
 
-    def get_scores(self, corpus):
+    def get_scores(self, corpus, languages=None):
         return NotImplemented
 
-    def transform(self, corpus):
-        scores = self.get_scores(corpus)
+    def transform(self, corpus, languages=None):
+        scores = self.get_scores(corpus, languages=languages)
         X = np.array(scores).reshape((-1, len(self.sentiments)))
 
         # set compute values
@@ -81,11 +90,25 @@ class LiuHuSentiment(Sentiment):
     @wait_nltk_data
     def __init__(self, language):
         self.language = language
-        self.positive = set(self.methods[self.language].positive())
-        self.negative = set(self.methods[self.language].negative())
+        if isinstance(language, str):
+            self.positive = set(self.methods[self.language].positive())
+            self.negative = set(self.methods[self.language].negative())
+        else:
+            self.positive = {
+                'en': set(self.methods['English'].positive()),
+                'sl': set(self.methods['Slovenian'].positive()),
+            }
+            self.negative = {
+                'en': set(self.methods['English'].negative()),
+                'sl': set(self.methods['Slovenian'].negative()),
+            }
 
-    def get_scores(self, corpus):
-        return compute_from_dict(corpus.tokens, self.positive, self.negative)
+    def get_scores(self, corpus, languages=None):
+        if isinstance(self.language, str):
+            return compute_from_dict(corpus.tokens, self.positive, self.negative)
+        else:
+            return compute_from_dict_multilingual(
+                corpus.tokens, languages, self.positive, self.negative)
 
 
 class VaderSentiment(Sentiment):
@@ -96,7 +119,7 @@ class VaderSentiment(Sentiment):
     def __init__(self):
         self.vader = SentimentIntensityAnalyzer()
 
-    def get_scores(self, corpus):
+    def get_scores(self, corpus, languages=None):
         scores = []
         for text in corpus.documents:
             pol_sc = self.vader.polarity_scores(text)
@@ -187,11 +210,23 @@ class MultiSentiment(Sentiment):
 
     def __init__(self, language='English'):
         self.language = language
-        code = self.LANGS[self.language]
-        self.positive, self.negative = MultisentimentDictionaries()[code]
+        if isinstance(language, str):
+            code = self.LANGS[self.language]
+            self.positive, self.negative = MultisentimentDictionaries()[code]
+        else:
+            self.positive = dict()
+            self.negative = dict()
+            for lang in language:
+                pos, neg = MultisentimentDictionaries()[lang]
+                self.positive[lang] = pos
+                self.negative[lang] = neg
 
-    def get_scores(self, corpus):
-        return compute_from_dict(corpus.tokens, self.positive, self.negative)
+    def get_scores(self, corpus, languages=None):
+        if isinstance(self.language, str):
+            return compute_from_dict(corpus.tokens, self.positive, self.negative)
+        else:
+            return compute_from_dict_multilingual(
+                corpus.tokens, languages, self.positive, self.negative)
 
     def __getstate__(self):
         return {'language': self.language}
@@ -230,15 +265,32 @@ class SentiArt(Sentiment):
 
     def __init__(self, language='English'):
         self.language = language
-        self.dictionary = SentiArtDictionaries()[self.LANGS[self.language]]
+        if isinstance(language, str):
+            self.dictionary = SentiArtDictionaries()[self.LANGS[self.language]]
+        else:
+            self.dictionaries = {
+                'en': SentiArtDictionaries()['EN'],
+                'de': SentiArtDictionaries()['DE'],
+            }
 
-    def get_scores(self, corpus):
+    def get_scores(self, corpus, languages=None):
         scores = []
-        for doc in corpus.tokens:
-            score = np.array([list(self.dictionary[word].values()) for word in
-                              doc if word in self.dictionary])
-            scores.append(score.mean(axis=0) if score.shape[0] > 0
-                          else np.zeros(len(self.sentiments)))
+        if isinstance(self.language, str):
+            for doc in corpus.tokens:
+                score = np.array([list(self.dictionary[word].values()) for word in
+                                  doc if word in self.dictionary])
+                scores.append(
+                    score.mean(axis=0) if score.shape[0] > 0
+                    else np.zeros(len(self.sentiments))
+                )
+        else:
+            for tok, lang in zip(corpus.tokens, languages):
+                score = np.array([list(self.dictionaries[lang][word].values()) for word in
+                                  tok if word in self.dictionaries[lang]])
+                scores.append(
+                    score.mean(axis=0) if score.shape[0] > 0
+                    else np.zeros(len(self.sentiments))
+                )
         return scores
 
 
@@ -251,7 +303,7 @@ class CustomDictionaries(Sentiment):
         self.positive = set(read_file(pos)) if pos else None
         self.negative = set(read_file(neg)) if neg else None
 
-    def get_scores(self, corpus):
+    def get_scores(self, corpus, languages=None):
         return compute_from_dict(corpus.tokens, self.positive, self.negative)
 
 

@@ -1,5 +1,7 @@
 from typing import List
 
+import numpy as np
+
 from AnyQt.QtCore import Qt
 from AnyQt.QtWidgets import QApplication, QGridLayout, QLabel
 
@@ -33,6 +35,7 @@ class OWSentimentAnalysis(OWWidget):
     liu_language = settings.Setting('English')
     multi_language = settings.Setting('English')
     senti_language = settings.Setting('English')
+    use_detection = settings.Setting(False)
     want_main_area = False
     resizing_enabled = False
 
@@ -47,6 +50,10 @@ class OWSentimentAnalysis(OWWidget):
     MULTI_LANG = MultiSentiment.LANGS.keys()
     SENTI_LANG = SentiArt.LANGS.keys()
     DEFAULT_NONE = None
+
+    class Error(OWWidget.Error):
+        no_language = Msg("Language feature missing. Please make sure language was detected.")
+        unsupported_languages = Msg("One or more of detected languages are not supported.")
 
     class Warning(OWWidget.Warning):
         senti_offline = Msg('No internet connection! Sentiment now only works '
@@ -90,6 +97,11 @@ class OWSentimentAnalysis(OWWidget):
                                       callback=self._method_changed)
         self.custom_list = gui.appendRadioButton(box, "Custom dictionary",
                                                  addToLayout=False)
+        gui.checkBox(
+            self.controlArea, self, "use_detection",
+            "Use automatically detected language",
+            callback=self._method_changed,
+        )
 
         self.__posfile_loader = FileLoader()
         self.__posfile_loader.set_file_list()
@@ -133,6 +145,10 @@ class OWSentimentAnalysis(OWWidget):
         ac = gui.auto_commit(self.controlArea, self, 'autocommit', 'Commit',
                              'Autocommit is on')
         ac.layout().insertSpacing(1, 8)
+
+        self.liu_lang.setDisabled(self.use_detection)
+        self.multi_box.setDisabled(self.use_detection)
+        self.senti_box.setDisabled(self.use_detection)
 
     def __pos_loader_activated(self):
         cf = self.__posfile_loader.get_current_file()
@@ -199,32 +215,93 @@ class OWSentimentAnalysis(OWWidget):
     def _method_changed(self):
         self.commit()
 
+    def _check_languages(self, method):
+        lang_feat_idx = None
+        for i, f in enumerate(self.corpus.domain.metas):
+            if ('language-feature' in f.attributes and
+               f.attributes['language-feature']):
+                lang_feat_idx = i
+                break
+        if lang_feat_idx is None:
+            self.Error.no_language()
+            return None
+
+        unique = np.unique(self.corpus.metas[:, lang_feat_idx])
+        if method.name == 'Liu Hu':
+            for u in unique:
+                if u not in ['en', 'sl']:
+                    self.Error.unsupported_languages()
+                    return None
+        elif method.name == 'Multilingual Sentiment':
+            for u in unique:
+                if u not in MultiSentiment.LANGS.values():
+                    self.Error.unsupported_languages()
+                    return None
+        else:
+            for u in unique:
+                if u not in ['en', 'de']:
+                    self.Error.unsupported_languages()
+                    return None
+        return lang_feat_idx
+
     def commit(self):
+        self.liu_lang.setDisabled(self.use_detection)
+        self.multi_box.setDisabled(self.use_detection)
+        self.senti_box.setDisabled(self.use_detection)
+
         if self.corpus is not None:
+            self.Error.clear()
             self.Warning.senti_offline.clear()
             self.Warning.one_dict_only.clear()
             self.Warning.no_dicts_loaded.clear()
             method = self.METHODS[self.method_idx]
             corpus = self.pp_corpus
             if method.name == 'Liu Hu':
-                out = method(language=self.liu_language).transform(corpus)
+                if not self.use_detection:
+                    out = method(language=self.liu_language).transform(corpus)
+                else:
+                    lang_feat_idx = self._check_languages(method)
+                    if lang_feat_idx is None:
+                        return
+                    languages = self.corpus.metas[:, lang_feat_idx]
+                    out = method(language=np.unique(languages)).transform(
+                        corpus, languages,
+                    )
             elif method.name == 'Multilingual Sentiment':
                 if not self.senti_dict.online:
                     self.Warning.senti_offline()
                     self.update_box(self.multi_box, self.multi_dict, MultiSentiment)
                     return
                 else:
-                    out = method(language=self.multi_language).transform(corpus)
+                    if not self.use_detection:
+                        out = method(language=self.multi_language).transform(corpus)
+                    else:
+                        lang_feat_idx = self._check_languages(method)
+                        if lang_feat_idx is None:
+                            return
+                        languages = self.corpus.metas[:, lang_feat_idx]
+                        out = method(language=np.unique(languages)).transform(
+                            corpus, languages,
+                        )
             elif method.name == 'SentiArt':
                 if not self.senti_dict.online:
                     self.Warning.senti_offline()
                     self.update_box(self.senti_box, self.senti_dict, SentiArt)
                     return
-                out = method(language=self.senti_language).transform(corpus)
+                if not self.use_detection:
+                    out = method(language=self.senti_language).transform(corpus)
+                else:
+                    lang_feat_idx = self._check_languages(method)
+                    if lang_feat_idx is None:
+                        return
+                    languages = self.corpus.metas[:, lang_feat_idx]
+                    out = method(language=np.unique(languages)).transform(
+                        corpus, languages,
+                    )
             elif method.name == 'Custom Dictionaries':
                 out = method(self.pos_file, self.neg_file).transform(corpus)
                 if (self.pos_file and not self.neg_file) or \
-                    (self.neg_file and not self.pos_file):
+                   (self.neg_file and not self.pos_file):
                     self.Warning.one_dict_only()
                 if not self.pos_file and not self.neg_file:
                     self.Warning.no_dicts_loaded()
