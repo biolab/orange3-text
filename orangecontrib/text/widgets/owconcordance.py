@@ -253,9 +253,6 @@ class OWConcordance(OWWidget, ConcurrentWidgetMixin):
         gui.auto_commit(self.controlArea, self, 'autocommit', 'Commit',
                         'Auto commit is on')
 
-    def sizeHint(self): # pragma: no cover
-        return QSize(600, 400)
-
     def set_width(self):
         sel = self.conc_view.selectionModel().selection()
         self.model.set_width(self.context_width)
