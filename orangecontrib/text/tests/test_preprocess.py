@@ -115,6 +115,20 @@ class PreprocessTests(unittest.TestCase):
             corpus = pp(corpus)
         self.assertTrue((corpus.ids == self.corpus.ids).all())
 
+    def test_filter_pos_tags(self):
+        pp_list = [preprocess.LowercaseTransformer(),
+                   preprocess.WordPunctTokenizer(),
+                   tag.AveragedPerceptronTagger(),
+                   preprocess.StopwordsFilter()]
+        corpus = self.corpus
+        corpus.metas[0, 0] = "This is the most beautiful day in the world"
+        for pp in pp_list:
+            corpus = pp(corpus)
+        self.assertEqual(len(corpus.tokens), len(corpus.pos_tags))
+        self.assertEqual(len(corpus.tokens[0]), len(corpus.pos_tags[0]))
+        self.assertEqual(corpus.tokens[0], ["beautiful", "day", "world"])
+        self.assertEqual(corpus.pos_tags[0], ["JJ", "NN", "NN"])
+
 
 class TransformationTests(unittest.TestCase):
     def setUp(self):
@@ -331,8 +345,11 @@ class FilteringTests(unittest.TestCase):
                 return not token.isdigit()
 
         df = DigitsFilter()
-        self.assertEqual(df._preprocess([]), [])
-        self.assertEqual(df._preprocess(['a', '1']), ['a'])
+        filtered = list(itertools.compress([], df._preprocess([])))
+        self.assertEqual(filtered, [])
+        filtered = list(itertools.compress(['a', '1'],
+                                           df._preprocess(['a', '1'])))
+        self.assertEqual(filtered, ['a'])
 
     def test_stopwords(self):
         f = preprocess.StopwordsFilter('english')

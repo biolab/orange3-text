@@ -1,3 +1,4 @@
+from itertools import compress
 from typing import List, Callable
 import os
 import re
@@ -25,14 +26,27 @@ class BaseTokenFilter(TokenizedPreprocessor):
         corpus = super().__call__(corpus, wrap_callback(callback, end=0.2))
         return self._filter_tokens(corpus, wrap_callback(callback, start=0.2))
 
-    def _filter_tokens(self, corpus: Corpus, callback: Callable) -> Corpus:
+    def _filter_tokens(self, corpus: Corpus, callback: Callable,
+                       dictionary=None) -> Corpus:
         callback(0, "Filtering...")
-        tokens = [self._preprocess(tokens) for tokens in corpus.tokens]
-        corpus.store_tokens(tokens)
+        filtered_tokens = []
+        filtered_tags = []
+        for i, tokens in enumerate(corpus.tokens):
+            filter_map = self._preprocess(tokens)
+            filtered_tokens.append(list(compress(tokens, filter_map)))
+            if corpus.pos_tags is not None:
+                filtered_tags.append(list(compress(corpus.pos_tags[i],
+                                                   filter_map)))
+        if dictionary is None:
+            corpus.store_tokens(filtered_tokens)
+        else:
+            corpus.store_tokens(filtered_tokens, dictionary)
+        if filtered_tags:
+            corpus.pos_tags = np.array(filtered_tags, dtype=object)
         return corpus
 
     def _preprocess(self, tokens: List) -> List:
-        return list(filter(self._check, tokens))
+        return [self._check(token) for token in tokens]
 
     def _check(self, token: str) -> bool:
         raise NotImplementedError
@@ -141,10 +155,10 @@ class FitDictionaryFilter(BaseTokenFilter):
     def _fit(self, corpus: Corpus):
         raise NotImplemented
 
-    def _filter_tokens(self, corpus: Corpus, callback: Callable) -> Corpus:
-        callback(0, "Filtering...")
-        tokens = [self._preprocess(tokens) for tokens in corpus.tokens]
-        corpus.store_tokens(tokens, self._dictionary)
+    def _filter_tokens(self, corpus: Corpus, callback: Callable,
+                       dictionary=None) -> Corpus:
+        corpus = super()._filter_tokens(corpus, callback,
+                                        dictionary=self._dictionary)
         return corpus
 
     def _check(self, token):
