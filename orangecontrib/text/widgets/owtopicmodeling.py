@@ -1,4 +1,6 @@
 import functools
+from typing import Any
+
 import numpy as np
 
 from AnyQt import QtGui, QtCore
@@ -6,6 +8,7 @@ from AnyQt.QtCore import pyqtSignal, QSize
 from AnyQt.QtWidgets import (QVBoxLayout, QButtonGroup, QRadioButton,
                              QGroupBox, QTreeWidgetItem, QTreeWidget,
                              QStyleOptionViewItem, QStyledItemDelegate, QStyle)
+from Orange.widgets.utils.concurrent import TaskState, ConcurrentWidgetMixin
 
 from gensim.models import CoherenceModel
 
@@ -16,7 +19,7 @@ from Orange.widgets.widget import OWWidget, Input, Output, Msg
 from Orange.data import Table
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.topics import Topic, LdaWrapper, HdpWrapper, LsiWrapper
-from orangecontrib.text.widgets.utils.concurrent import asynchronous
+from orangecontrib.text.topics.topics import GensimWrapper
 
 
 class TopicWidget(gui.OWComponent, QGroupBox):
@@ -99,7 +102,16 @@ def require(attribute):
     return decorator
 
 
-class OWTopicModeling(OWWidget):
+def _run(corpus: Corpus, model: GensimWrapper, state: TaskState):
+    def callback(i: float):
+        state.set_progress_value(i * 100)
+        if state.is_interruption_requested():
+            raise Exception
+
+    return model.fit_transform(corpus.copy(), chunk_number=100, on_progress=callback)
+
+
+class OWTopicModeling(OWWidget, ConcurrentWidgetMixin):
     name = "Topic Modelling"
     description = "Uncover the hidden thematic structure in a corpus."
     icon = "icons/TopicModeling.svg"
@@ -140,8 +152,13 @@ class OWTopicModeling(OWWidget):
     class Warning(OWWidget.Warning):
         less_topics_found = Msg('Less topics found than requested.')
 
+    class Error(OWWidget.Error):
+        unexpected_error = Msg("{}")
+
     def __init__(self):
         super().__init__()
+        ConcurrentWidgetMixin.__init__(self)
+
         self.corpus = None
         self.learning_thread = None
         self.__pending_selection = self.selection
@@ -209,52 +226,42 @@ class OWTopicModeling(OWWidget):
             widget.setVisible(i == self.method_index)
 
     def apply(self):
-        self.learning_task.stop()
-        if self.corpus is not None:
-            self.learning_task()
-        else:
-            self.on_result(None)
-
-    @asynchronous
-    def learning_task(self):
-        return self.model.fit_transform(self.corpus.copy(), chunk_number=100,
-                                        on_progress=self.on_progress)
-
-    @learning_task.on_start
-    def on_start(self):
-        self.Warning.less_topics_found.clear()
-        self.progressBarInit()
         self.topic_desc.clear()
-
-    @learning_task.on_result
-    def on_result(self, corpus):
-        self.progressBarFinished()
-        self.Outputs.corpus.send(corpus)
-        if corpus is None:
+        if self.corpus is not None:
+            self.Warning.less_topics_found.clear()
+            self.start(_run, self.corpus, self.model)
+        else:
             self.topic_desc.clear()
+            self.Outputs.corpus.send(None)
             self.Outputs.selected_topic.send(None)
             self.Outputs.all_topics.send(None)
-        else:
-            self.topic_desc.show_model(self.model)
-            if self.__pending_selection:
-                self.topic_desc.select(self.__pending_selection)
-                self.__pending_selection = None
-            if self.model.actual_topics != self.model.num_topics:
-                self.Warning.less_topics_found()
-            if self.model.name == "Latent Dirichlet Allocation":
-                bound = self.model.model.log_perplexity(
-                    corpus.ngrams_corpus)
-                self.perplexity = "{:.5f}".format(np.exp2(-bound))
-            cm = CoherenceModel(model=self.model.model,
-                                texts=corpus.tokens, corpus=corpus,
-                                coherence='c_v')
-            coherence = cm.get_coherence()
-            self.coherence = "{:.5f}".format(coherence)
-            self.Outputs.all_topics.send(self.model.get_all_topics_table())
 
-    @learning_task.callback
-    def on_progress(self, p):
-        self.progressBarSet(100 * p)
+    def on_done(self, corpus):
+        self.Outputs.corpus.send(corpus)
+        self.topic_desc.show_model(self.model)
+        if self.__pending_selection:
+            self.topic_desc.select(self.__pending_selection)
+            self.__pending_selection = None
+
+        if self.model.actual_topics != self.model.num_topics:
+            self.Warning.less_topics_found()
+
+        if self.model.name == "Latent Dirichlet Allocation":
+            bound = self.model.model.log_perplexity(corpus.ngrams_corpus)
+            self.perplexity = "{:.5f}".format(np.exp2(-bound))
+        cm = CoherenceModel(
+            model=self.model.model, texts=corpus.tokens, corpus=corpus, coherence="c_v"
+        )
+        coherence = cm.get_coherence()
+        self.coherence = "{:.5f}".format(coherence)
+
+        self.Outputs.all_topics.send(self.model.get_all_topics_table())
+
+    def on_exception(self, ex: Exception):
+        self.Error.unexpected_error(str(ex))
+
+    def on_partial_result(self, result: Any) -> None:
+        pass
 
     def send_report(self):
         self.report_items(*self.widgets[self.method_index].report_model())
