@@ -428,6 +428,7 @@ class OWStatistics(OWWidget, ConcurrentWidgetMixin):
         )
 
     want_main_area = False
+    mainArea_width_height_ratio = None
     settingsHandler = AlmostPerfectContextHandler(0.9)
 
     # settings

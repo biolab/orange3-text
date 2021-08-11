@@ -7,7 +7,7 @@ from urllib.parse import urljoin
 from urllib.request import pathname2url
 
 import numpy as np
-from AnyQt.QtCore import Qt, QTimer, pyqtSlot, QUrl, QObject
+from AnyQt.QtCore import Qt, QTimer, pyqtSlot, QUrl, QObject, QSize
 from AnyQt.QtWidgets import QApplication, QSizePolicy
 
 from Orange.data import Table
@@ -100,13 +100,17 @@ class OWDocMap(widget.OWWidget):
             def region_selected(_, regions):
                 return self.region_selected(regions)
 
-        self.webview = gui.WebviewWidget(self.controlArea, Bridge(), url=QUrl(url), debug=False)
+        self.webview = gui.WebviewWidget(self.controlArea, Bridge(),
+                                         url=QUrl(url), debug=False)
         self.controlArea.layout().addWidget(self.webview)
 
         QTimer.singleShot(
             0, lambda: self.webview.evalJS('REGIONS = {};'.format({Map.WORLD: CC_WORLD,
                                                                    Map.EUROPE: CC_EUROPE,
                                                                    Map.USA: CC_USA})))
+
+    def sizeHint(self):
+        return QSize(600, 400)
 
     def _repopulate_attr_combo(self, data):
         vars = [a for a in chain(data.domain.metas,
