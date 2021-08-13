@@ -235,7 +235,8 @@ class ScoreDocumentsProxyModel(QSortFilterProxyModel):
         if left_ind.column() == 0 and right_ind.column() == 0:
             left = self.sourceModel().data(left_ind, role=Qt.DisplayRole)
             right = self.sourceModel().data(right_ind, role=Qt.DisplayRole)
-            return self._alphanum_key(left) < self._alphanum_key(right)
+            if left is not None and right is not None:
+                return self._alphanum_key(left) < self._alphanum_key(right)
         return super().lessThan(left_ind, right_ind)
 
 
@@ -255,12 +256,16 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
     icon = "icons/ScoreDocuments.svg"
     priority = 500
 
+    # default order - table sorted in input order
+    DEFAULT_SORTING = (-1, Qt.AscendingOrder)
+
     auto_commit: bool = Setting(True)
     aggregation: int = Setting(0)
 
     word_frequency: bool = Setting(True)
     word_appearance: bool = Setting(False)
     embedding_similarity: bool = Setting(False)
+    sort_column_order: Tuple[int, int] = Setting(DEFAULT_SORTING)
     embedding_language = Setting(0)
 
     class Inputs:
@@ -333,6 +338,9 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
 
         self.view = view = ScoreDocumentsTableView()
         self.mainArea.layout().addWidget(view)
+        # by default data are sorted in the Table order
+        header = self.view.horizontalHeader()
+        header.sectionClicked.connect(self.__on_horizontal_header_clicked)
 
         proxy_model = ScoreDocumentsProxyModel()
         proxy_model.setFilterKeyColumn(0)
@@ -344,6 +352,10 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
         model = self.view.model()
         model.setFilterFixedString(self._filter_line_edit.text().strip())
 
+    def __on_horizontal_header_clicked(self, index: int):
+        header = self.view.horizontalHeader()
+        self.sort_column_order = (index, header.sortIndicatorOrder())
+
     @Inputs.corpus
     def set_data(self, corpus: Corpus) -> None:
         self.Warning.corpus_not_normalized.clear()
@@ -352,7 +364,6 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
             if not self._is_corpus_normalized(corpus):
                 self.Warning.corpus_not_normalized()
         self.corpus = corpus
-        # todo: rename
         self._clear_and_run()
 
     @staticmethod
@@ -452,8 +463,7 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
         self.model.setHorizontalHeaderLabels(labels)
         self.view.update_column_widths()
 
-        # documents are not ordered by default by any column
-        self.view.horizontalHeader().setSortIndicator(-1, Qt.AscendingOrder)
+        self.view.horizontalHeader().setSortIndicator(*self.sort_column_order)
 
     def _fill_and_output(self) -> None:
         """ Fill the table in the widget and send the output """
