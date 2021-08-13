@@ -1,25 +1,19 @@
 import re
 from collections import Counter
 from inspect import signature
-from typing import List, Callable, Tuple, Union
+from typing import Callable, List, Tuple, Union
 
 import numpy as np
-from pandas import isnull
-from Orange.data import (
-    Table,
-    Domain,
-    StringVariable,
-    ContinuousVariable,
-    DiscreteVariable,
-)
+from AnyQt.QtCore import QSortFilterProxyModel, Qt
+from AnyQt.QtWidgets import QHeaderView, QLineEdit, QTableView
+from Orange.data import ContinuousVariable, Domain, StringVariable, Table
 from Orange.util import wrap_callback
 from Orange.widgets.utils.concurrent import ConcurrentWidgetMixin, TaskState
+from Orange.widgets.utils.itemmodels import PyTableModel, TableModel
 from Orange.widgets.widget import Input, Msg, Output, OWWidget
 from orangewidget import gui
 from orangewidget.settings import Setting
-from Orange.widgets.utils.itemmodels import PyTableModel, TableModel
-from AnyQt.QtWidgets import QTableView, QLineEdit, QHeaderView
-from AnyQt.QtCore import Qt, QSortFilterProxyModel
+from pandas import isnull
 from sklearn.metrics.pairwise import cosine_similarity
 
 from orangecontrib.text import Corpus
@@ -30,9 +24,7 @@ from orangecontrib.text.vectorization.document_embedder import (
 )
 
 
-def _word_frequency(
-    corpus: Corpus, words: List[str], callback: Callable
-) -> np.ndarray:
+def _word_frequency(corpus: Corpus, words: List[str], callback: Callable) -> np.ndarray:
     res = []
     tokens = corpus.tokens
     for i, t in enumerate(tokens):
@@ -116,6 +108,16 @@ def _preprocess_words(
     with words preprocessors that change words (e.g. normalization) must
     be applied to words too.
     """
+    # workaround to preprocess words
+    # TODO: currently preprocessors work only on corpus, when there will be more
+    #  cases like this think about implementation of preprocessors for a list
+    #  of strings
+    words_feature = StringVariable("words")
+    words_c = Corpus(
+        Domain([], metas=[words_feature]),
+        metas=np.array([[w] for w in words]),
+        text_features=[words_feature],
+    )
     # only transformers and normalizers preprocess on the word level
     pps = [
         pp
@@ -123,15 +125,14 @@ def _preprocess_words(
         if isinstance(pp, (BaseTransformer, BaseNormalizer))
     ]
     for i, pp in enumerate(pps):
-        # TODO: _preprocess is protected make it public
-        words = [pp._preprocess(w) for w in words]
+        words_c = pp(words_c)
         callback((i + 1) / len(pps))
-    return words
+    return [w[0] for w in words_c.tokens if len(w)]
 
 
 def _run(
     corpus: Corpus,
-    words: Table,
+    words: List[str],
     scoring_methods: List[str],
     aggregation: str,
     additional_params: dict,
@@ -163,21 +164,19 @@ def _run(
 
     cb_part = 1 / (len(scoring_methods) + 1)  # +1 for preprocessing
 
-    words = _preprocess_words(
-        corpus, words, wrap_callback(callback, end=cb_part)
-    )
+    words = _preprocess_words(corpus, words, wrap_callback(callback, end=cb_part))
+    if len(words) == 0:
+        raise Exception(
+            "Empty word list after preprocessing. Please provide a valid set of words."
+        )
     for i, sm in enumerate(scoring_methods):
         scoring_method = SCORING_METHODS[sm][1]
         sig = signature(scoring_method)
-        add_params = {
-            k: v for k, v in additional_params.items() if k in sig.parameters
-        }
+        add_params = {k: v for k, v in additional_params.items() if k in sig.parameters}
         scs = scoring_method(
             corpus,
             words,
-            wrap_callback(
-                callback, start=(i + 1) * cb_part, end=(i + 2) * cb_part
-            ),
+            wrap_callback(callback, start=(i + 1) * cb_part, end=(i + 2) * cb_part),
             **add_params
         )
         scs = AGGREGATIONS[aggregation](scs, axis=1)
@@ -202,7 +201,8 @@ class ScoreDocumentsTableView(QTableView):
         """
         header = self.horizontalHeader()
         col_width = max(
-            [0] + [
+            [0]
+            + [
                 max(self.sizeHintForColumn(i), header.sectionSizeHint(i))
                 for i in range(1, self.model().columnCount())
             ]
@@ -223,10 +223,7 @@ class ScoreDocumentsProxyModel(QSortFilterProxyModel):
 
     @staticmethod
     def _alphanum_key(key: str) -> List[Union[str, int]]:
-        return [
-            ScoreDocumentsProxyModel._convert(c)
-            for c in re.split("([0-9]+)", key)
-        ]
+        return [ScoreDocumentsProxyModel._convert(c) for c in re.split("([0-9]+)", key)]
 
     def lessThan(self, left_ind, right_ind):
         """
@@ -281,7 +278,7 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
         corpus_not_normalized = Msg("Use Preprocess Text to normalize corpus.")
 
     class Error(OWWidget.Error):
-        unknown_err = Msg("{}")
+        custom_err = Msg("{}")
 
     def __init__(self):
         OWWidget.__init__(self)
@@ -391,10 +388,7 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
 
     @Inputs.words
     def set_words(self, words: Table) -> None:
-        if (
-            words is None
-            or len(words.domain.variables + words.domain.metas) == 0
-        ):
+        if words is None or len(words.domain.variables + words.domain.metas) == 0:
             self.words = None
         else:
             self.Warning.missing_words.clear()
@@ -418,11 +412,7 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
         scorers = self._get_active_scorers()
         methods = [m for m in scorers if (m, aggregation) in self.scores]
         scores = [self.scores[(m, aggregation)] for m in methods]
-        scores = (
-            np.column_stack(scores)
-            if scores
-            else np.empty((len(self.corpus), 0))
-        )
+        scores = np.column_stack(scores) if scores else np.empty((len(self.corpus), 0))
         labels = [SCORING_METHODS[m][0] for m in methods]
         return scores, labels
 
@@ -466,13 +456,13 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
         self.view.horizontalHeader().setSortIndicator(*self.sort_column_order)
 
     def _fill_and_output(self) -> None:
-        """ Fill the table in the widget and send the output """
+        """Fill the table in the widget and send the output"""
         scores, labels = self._gather_scores()
         self._fill_table(scores, labels)
         self._send_output(scores, labels)
 
     def _clear_and_run(self) -> None:
-        """ Clear cached scores and commit """
+        """Clear cached scores and commit"""
         self.scores = {}
         self.cancel()
         self._fill_and_output()
@@ -482,7 +472,7 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
         self.commit()
 
     def commit(self) -> None:
-        self.Error.unknown_err.clear()
+        self.Error.custom_err.clear()
         self.cancel()
         if self.corpus is None and self.words is None:
             return
@@ -493,9 +483,7 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
         else:
             scorers = self._get_active_scorers()
             aggregation = self._get_active_aggregation()
-            new_scores = [
-                s for s in scorers if (s, aggregation) not in self.scores
-            ]
+            new_scores = [s for s in scorers if (s, aggregation) not in self.scores]
             if new_scores:
                 self.start(
                     _run,
@@ -522,7 +510,8 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
         self._fill_table(scores, labels)
 
     def on_exception(self, ex: Exception) -> None:
-        self.Error.unknown_err(ex)
+        self.Error.custom_err(ex)
+        self._fill_and_output()
 
     def _get_active_scorers(self) -> List[str]:
         """
