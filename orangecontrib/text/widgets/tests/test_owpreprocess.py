@@ -359,6 +359,10 @@ class TestNormalizationModule(WidgetTest):
         return self.editor._NormalizationModule__combo_udl
 
     @property
+    def combo_lemm(self):
+        return self.editor._NormalizationModule__combo_lemm
+
+    @property
     def check_use(self):
         return self.editor._NormalizationModule__check_use
 
@@ -374,6 +378,7 @@ class TestNormalizationModule(WidgetTest):
         params = {"method": NormalizationModule.Porter,
                   "snowball_language": "English",
                   "udpipe_language": "English",
+                  "lemmagen_language": "English",
                   "udpipe_tokenizer": False}
         self.assertDictEqual(self.editor.parameters(), params)
 
@@ -381,11 +386,13 @@ class TestNormalizationModule(WidgetTest):
         params = {"method": NormalizationModule.UDPipe,
                   "snowball_language": "Dutch",
                   "udpipe_language": "Finnish",
+                  "lemmagen_language": "Bulgarian",
                   "udpipe_tokenizer": True}
         self.editor.setParameters(params)
         self.assertDictEqual(self.editor.parameters(), params)
         self.assertEqual(self.combo_sbl.currentText(), "Dutch")
         self.assertEqual(self.combo_udl.currentText(), "Finnish")
+        self.assertEqual(self.combo_lemm.currentText(), "Bulgarian")
         self.assertTrue(self.check_use.isChecked())
 
     def test_createinstance(self):
