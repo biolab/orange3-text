@@ -384,11 +384,12 @@ class TokenizerModule(SingleMethodModule):
 
 
 class NormalizationModule(SingleMethodModule):
-    Porter, Snowball, WordNet, UDPipe = range(4)
+    Porter, Snowball, WordNet, UDPipe, Lemmagen = range(5)
     Methods = {Porter: PorterStemmer,
                Snowball: SnowballStemmer,
                WordNet: WordNetLemmatizer,
-               UDPipe: UDPipeLemmatizer}
+               UDPipe: UDPipeLemmatizer,
+               Lemmagen: LemmagenLemmatizer}
     DEFAULT_METHOD = Porter
     DEFAULT_LANGUAGE = "English"
     DEFAULT_USE_TOKE = False
@@ -397,6 +398,7 @@ class NormalizationModule(SingleMethodModule):
         super().__init__(parent, **kwargs)
         self.__snowball_lang = self.DEFAULT_LANGUAGE
         self.__udpipe_lang = self.DEFAULT_LANGUAGE
+        self.__lemmagen_lang = self.DEFAULT_LANGUAGE
         self.__use_tokenizer = self.DEFAULT_USE_TOKE
 
         self.__combo_sbl = ComboBox(
@@ -410,6 +412,10 @@ class NormalizationModule(SingleMethodModule):
         self.__check_use = QCheckBox("UDPipe tokenizer",
                                      checked=self.DEFAULT_USE_TOKE)
         self.__check_use.clicked.connect(self.__set_use_tokenizer)
+        self.__combo_lemm = ComboBox(
+            self, LemmagenLemmatizer.lemmagen_languages,
+            self.__lemmagen_lang, self.__set_lemmagen_lang
+        )
 
         label = QLabel("Language:")
         label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
@@ -424,6 +430,11 @@ class NormalizationModule(SingleMethodModule):
         self.layout().addWidget(self.__check_use, self.UDPipe, 3)
         self.layout().setColumnStretch(2, 1)
         self.__enable_udpipe()
+
+        label = QLabel("Language:")
+        label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.layout().addWidget(label, self.Lemmagen, 1)
+        self.layout().addWidget(self.__combo_lemm, self.Lemmagen, 2)
 
     def __enable_udpipe(self):
         enable = bool(self.__combo_udl.items)
@@ -441,6 +452,8 @@ class NormalizationModule(SingleMethodModule):
         self.__set_udpipe_lang(udpipe_lang)
         use_tokenizer = params.get("udpipe_tokenizer", self.DEFAULT_USE_TOKE)
         self.__set_use_tokenizer(use_tokenizer)
+        lemmagen_lang = params.get("lemmagen_language", self.DEFAULT_LANGUAGE)
+        self.__set_lemmagen_lang(lemmagen_lang)
 
     def _set_method(self, method: int):
         super()._set_method(method)
@@ -462,6 +475,14 @@ class NormalizationModule(SingleMethodModule):
             if self.method == self.UDPipe:
                 self.edited.emit()
 
+    def __set_lemmagen_lang(self, language: str):
+        if self.__lemmagen_lang != language:
+            self.__lemmagen_lang = language
+            self.__combo_lemm.setCurrentText(language)
+            self.changed.emit()
+            if self.method == self.Lemmagen:
+                self.edited.emit()
+
     def __set_use_tokenizer(self, use: bool):
         if self.__use_tokenizer != use:
             self.__use_tokenizer = use
@@ -474,7 +495,8 @@ class NormalizationModule(SingleMethodModule):
         params = super().parameters()
         params.update({"snowball_language": self.__snowball_lang,
                        "udpipe_language": self.__udpipe_lang,
-                       "udpipe_tokenizer": self.__use_tokenizer})
+                       "udpipe_tokenizer": self.__use_tokenizer,
+                       "lemmagen_language": self.__lemmagen_lang})
         return params
 
     @staticmethod
@@ -488,6 +510,8 @@ class NormalizationModule(SingleMethodModule):
             def_use = NormalizationModule.DEFAULT_USE_TOKE
             args = {"language": params.get("udpipe_language", def_lang),
                     "use_tokenizer": params.get("udpipe_tokenizer", def_use)}
+        elif method == NormalizationModule.Lemmagen:
+            args = {"language": params.get("lemmagen_language", def_lang)}
         return NormalizationModule.Methods[method](**args)
 
     def __repr__(self):
@@ -497,6 +521,8 @@ class NormalizationModule(SingleMethodModule):
         elif self.method == self.UDPipe:
             text = f"{text} ({self.__udpipe_lang}, " \
                    f"Tokenize: {['No', 'Yes'][self.__use_tokenizer]})"
+        elif self.method == self.Lemmagen:
+            text = f"{text} ({self.__lemmagen_lang})"
         return text
 
 
