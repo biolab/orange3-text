@@ -402,13 +402,13 @@ class TestNormalizationModule(WidgetTest):
         params = {"method": NormalizationModule.Snowball}
         pp = self.editor.createinstance(params)
         self.assertIsInstance(pp, SnowballStemmer)
-        self.assertEqual(str(pp.normalizer.stemmer), "<EnglishStemmer>")
+        self.assertIn("<EnglishStemmer>", str(pp.normalizer))
 
         params = {"method": NormalizationModule.Snowball,
                   "snowball_language": "Dutch"}
         pp = self.editor.createinstance(params)
         self.assertIsInstance(pp, SnowballStemmer)
-        self.assertEqual(str(pp.normalizer.stemmer), "<DutchStemmer>")
+        self.assertIn("<DutchStemmer>", str(pp.normalizer))
 
         params = {"method": NormalizationModule.UDPipe,
                   "udpipe_language": "Finnish",

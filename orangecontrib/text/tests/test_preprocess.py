@@ -308,6 +308,17 @@ class TokenNormalizerTests(unittest.TestCase):
             Lemmatizer("sl").lemmatize(token)
         )
 
+    def test_cache(self):
+        normalizer = preprocess.UDPipeLemmatizer('Slovenian')
+        self.corpus.metas[0, 0] = 'sem'
+        normalizer(self.corpus)
+        self.assertEqual(normalizer._normalization_cache['sem'], 'biti')
+        self.assertEqual(40, len(normalizer._normalization_cache))
+
+        # cache should not be pickled
+        loaded_normalizer = pickle.loads(pickle.dumps(normalizer))
+        self.assertEqual(0, len(loaded_normalizer._normalization_cache))
+
 
 class UDPipeModelsTests(unittest.TestCase):
     def test_label_transform(self):
