@@ -78,7 +78,8 @@ class PreprocessTests(unittest.TestCase):
                 return string.split()
 
         p = SpaceTokenizer()
-        array = np.array([sent.split() for sent in self.corpus.documents])
+        array = np.array([sent.split() for sent in self.corpus.documents],
+                         dtype=object)
         np.testing.assert_equal(p(self.corpus).tokens, array)
 
     def test_token_normalizer(self):
@@ -101,7 +102,7 @@ class PreprocessTests(unittest.TestCase):
 
         p = LengthFilter()
         tokens = np.array([[token for token in doc.split() if len(token) < 4]
-                           for doc in self.corpus.documents])
+                           for doc in self.corpus.documents], dtype=object)
         np.testing.assert_equal(p(self.corpus).tokens, tokens)
 
     def test_inplace(self):
