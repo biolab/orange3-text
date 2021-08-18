@@ -222,6 +222,37 @@ class TestWordEnrichment(WidgetTest):
             decimal=5,
         )
 
+    def test_output(self):
+        widget = self.widget
+
+        self.send_signal(widget.Inputs.data, self.corpus_vect)
+        self.send_signal(widget.Inputs.selected_data, self.subset_corpus)
+        self.wait_until_finished(timeout=100000)
+
+        # output should correspond to shown results
+        widget.filter_by_p = True
+        widget.filter_p_value = 1e-3
+        widget.filter_by_fdr = False
+        widget.filter_fdr_value = 0.01
+
+        widget.filter_and_display()
+        widget.commit()
+        output = self.get_output(self.widget.Outputs.words)
+        self.assertEqual(
+            len(output), int(widget.info_fil.text().split(": ")[1])
+        )
+
+        # test empty results
+        widget.filter_by_p = True
+        widget.filter_p_value = 1e-3
+        widget.filter_by_fdr = True
+        widget.filter_fdr_value = 0.01
+
+        widget.filter_and_display()
+        widget.commit()
+        output = self.get_output(self.widget.Outputs.words)
+        self.assertEqual(len(output), 0)
+
 
 if __name__ == "__main__":
     unittest.main()
