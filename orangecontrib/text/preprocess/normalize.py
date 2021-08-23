@@ -2,6 +2,7 @@ from typing import List, Callable
 import os
 import json
 import ufal.udpipe as udpipe
+from lemmagen3 import Lemmatizer
 import serverfiles
 from nltk import stem
 from requests.exceptions import ConnectionError
@@ -14,7 +15,7 @@ from orangecontrib.text.misc import wait_nltk_data
 from orangecontrib.text.preprocess import Preprocessor, TokenizedPreprocessor
 
 __all__ = ['BaseNormalizer', 'WordNetLemmatizer', 'PorterStemmer',
-           'SnowballStemmer', 'UDPipeLemmatizer']
+           'SnowballStemmer', 'UDPipeLemmatizer', 'LemmagenLemmatizer']
 
 
 class BaseNormalizer(TokenizedPreprocessor):
@@ -52,7 +53,8 @@ class PorterStemmer(BaseNormalizer):
 
 class SnowballStemmer(BaseNormalizer):
     name = 'Snowball Stemmer'
-    supported_languages = [l.capitalize() for l in stem.SnowballStemmer.languages]
+    supported_languages = [l.capitalize() for l in
+                           stem.SnowballStemmer.languages]
 
     def __init__(self, language='English'):
         self.normalizer = stem.SnowballStemmer(language.lower())
@@ -70,7 +72,7 @@ def file_to_name(file):
 
 
 def file_to_language(file):
-    return file[:file.find('ud')-1]\
+    return file[:file.find('ud') - 1] \
         .replace('-', ' ').replace('_', ' ').capitalize()
 
 
@@ -184,3 +186,37 @@ class UDPipeLemmatizer(BaseNormalizer):
         state['_UDPipeLemmatizer__model'] = None
         state['_UDPipeLemmatizer__output_format'] = None
         return state
+
+
+class LemmagenLemmatizer(BaseNormalizer):
+    name = 'Lemmagen Lemmatizer'
+    lemmagen_languages = {
+        "Bulgarian": "bg",
+        "Croatian": "hr",
+        "Czech": "cs",
+        "English": "en",
+        "Estonian": "et",
+        "Farsi/Persian": "fa",
+        "French": "fr",
+        "German": "de",
+        "Hungarian": "hu",
+        "Italian": "it",
+        "Macedonian": "mk",
+        "Polish": "pl",
+        "Romanian": "ro",
+        "Russian": "ru",
+        "Serbian": "sr",
+        "Slovak": "sk",
+        "Slovenian": "sl",
+        "Spanish": "es",
+        "Ukrainian": "uk"
+    }
+
+    def __init__(self, language='English'):
+        self.lemmatizer = Lemmatizer(self.lemmagen_languages[language])
+
+    def normalizer(self, token):
+        t = self.lemmatizer.lemmatize(token)
+        # sometimes Lemmagen returns an empty string, return original tokens
+        # in this case
+        return t if t else token

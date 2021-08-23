@@ -39,6 +39,7 @@ Preprocesses corpus with selected methods.
     - [Snowball Stemmer](http://snowballstem.org/) applies an improved version of Porter stemmer (Porter2). Set the language for normalization, default is English.
     - [WordNet Lemmatizer](http://wordnet.princeton.edu/) applies a networks of cognitive synonyms to tokens based on a large lexical database of English.
     - [UDPipe](http://ufal.mff.cuni.cz/udpipe/1) applies a [pre-trained model](https://lindat.mff.cuni.cz/repository/xmlui/handle/11234/1-2998?show=full) for normalizing data.
+    - [Lemmagen](https://github.com/vpodpecan/lemmagen3) applies a pre-trained model for normalizing data.
 5. **Filtering** removes or keeps a selection of words.
     - *Stopwords* removes stopwords from text (e.g. removes 'and', 'or', 'in'...). Select the language to filter by, English is set as default. You can also load your own list of stopwords provided in a simple \*.txt file with one stopword per line.
       ![](images/stopwords.png)

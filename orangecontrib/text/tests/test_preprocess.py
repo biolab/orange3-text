@@ -8,6 +8,7 @@ from unittest import mock
 
 import nltk
 from gensim import corpora
+from lemmagen3 import Lemmatizer
 from requests.exceptions import ConnectionError
 import numpy as np
 
@@ -78,7 +79,8 @@ class PreprocessTests(unittest.TestCase):
                 return string.split()
 
         p = SpaceTokenizer()
-        array = np.array([sent.split() for sent in self.corpus.documents])
+        array = np.array([sent.split() for sent in self.corpus.documents],
+                         dtype=object)
         np.testing.assert_equal(p(self.corpus).tokens, array)
 
     def test_token_normalizer(self):
@@ -101,7 +103,7 @@ class PreprocessTests(unittest.TestCase):
 
         p = LengthFilter()
         tokens = np.array([[token for token in doc.split() if len(token) < 4]
-                           for doc in self.corpus.documents])
+                           for doc in self.corpus.documents], dtype=object)
         np.testing.assert_equal(p(self.corpus).tokens, tokens)
 
     def test_inplace(self):
@@ -238,6 +240,13 @@ class TokenNormalizerTests(unittest.TestCase):
         self.assertTrue(corpus.has_tokens())
         self.assertEqual(len(corpus.used_preprocessor.preprocessors), 2)
 
+    def test_call_lemmagen(self):
+        pp = preprocess.LemmagenLemmatizer()
+        self.assertFalse(self.corpus.has_tokens())
+        corpus = pp(self.corpus)
+        self.assertTrue(corpus.has_tokens())
+        self.assertEqual(len(corpus.used_preprocessor.preprocessors), 2)
+
     def test_function(self):
         stemmer = preprocess.BaseNormalizer()
         stemmer.normalizer = lambda x: x[:-1]
@@ -290,6 +299,14 @@ class TokenNormalizerTests(unittest.TestCase):
         self.corpus.metas[0, 0] = 'Gori na gori hiša gori'
         self.assertEqual(list(copied(self.corpus).tokens[0]),
                          ['gora', 'na', 'gora', 'hiša', 'goreti'])
+
+    def test_lemmagen(self):
+        normalizer = preprocess.LemmagenLemmatizer('Slovenian')
+        token = 'veselja'
+        self.assertEqual(
+            normalizer._preprocess(token),
+            Lemmatizer("sl").lemmatize(token)
+        )
 
 
 class UDPipeModelsTests(unittest.TestCase):
