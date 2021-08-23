@@ -1,6 +1,5 @@
 from typing import List, Callable
 import os
-import json
 import ufal.udpipe as udpipe
 from lemmagen3 import Lemmatizer
 import serverfiles
@@ -25,6 +24,10 @@ class BaseNormalizer(TokenizedPreprocessor):
     """
     normalizer = NotImplemented
 
+    def __init__(self):
+        # cache already normalized string to speedup normalization
+        self._normalization_cache = {}
+
     def __call__(self, corpus: Corpus, callback: Callable = None) -> Corpus:
         if callback is None:
             callback = dummy_callback
@@ -34,7 +37,16 @@ class BaseNormalizer(TokenizedPreprocessor):
 
     def _preprocess(self, string: str) -> str:
         """ Normalizes token to canonical form. """
-        return self.normalizer(string)
+        if string in self._normalization_cache:
+            return self._normalization_cache[string]
+        self._normalization_cache[string] = norm_string = self.normalizer(string)
+        return norm_string
+
+    def __getstate__(self):
+        d = self.__dict__.copy()
+        # since cache can be quite big, empty cache before pickling
+        d["_normalization_cache"] = {}
+        return d
 
 
 class WordNetLemmatizer(BaseNormalizer):
@@ -57,10 +69,8 @@ class SnowballStemmer(BaseNormalizer):
                            stem.SnowballStemmer.languages]
 
     def __init__(self, language='English'):
-        self.normalizer = stem.SnowballStemmer(language.lower())
-
-    def _preprocess(self, token):
-        return self.normalizer.stem(token)
+        super().__init__()
+        self.normalizer = stem.SnowballStemmer(language.lower()).stem
 
 
 def language_to_name(language):
@@ -121,6 +131,7 @@ class UDPipeLemmatizer(BaseNormalizer):
     name = 'UDPipe Lemmatizer'
 
     def __init__(self, language='English', use_tokenizer=False):
+        super().__init__()
         self.__language = language
         self.__use_tokenizer = use_tokenizer
         self.models = UDPipeModels()
@@ -156,8 +167,7 @@ class UDPipeLemmatizer(BaseNormalizer):
         sentence = udpipe.Sentence()
         sentence.addWord(token)
         self.__model.tag(sentence, self.__model.DEFAULT)
-        output = self.__output_format.writeSentence(sentence)
-        return json.loads(output)['nodes'][0]['properties']['lemma']
+        return sentence.words[1].lemma
 
     def __normalize_document(self, document: str) -> List[str]:
         tokens = []
@@ -167,10 +177,9 @@ class UDPipeLemmatizer(BaseNormalizer):
         sentence = udpipe.Sentence()
         while tokenizer.nextSentence(sentence, error):
             self.__model.tag(sentence, self.__model.DEFAULT)
-            output = self.__output_format.writeSentence(sentence)
+            # 1: is used because words[0] is the root required by the dependency trees
+            tokens.extend([w.lemma for w in sentence.words[1:]])
             sentence = udpipe.Sentence()
-            tokens.extend([t['properties']['lemma']
-                           for t in json.loads(output)['nodes']])
         return tokens
 
     def __getstate__(self):
@@ -180,8 +189,7 @@ class UDPipeLemmatizer(BaseNormalizer):
         Note: __setstate__ is not required since we do not make any harm if
               model is not restored. It will be loaded on __call__
         """
-        # copy to avoid editing original dict
-        state = self.__dict__.copy()
+        state = super().__getstate__()
         # Remove the unpicklable Model and output format.
         state['_UDPipeLemmatizer__model'] = None
         state['_UDPipeLemmatizer__output_format'] = None
@@ -213,6 +221,7 @@ class LemmagenLemmatizer(BaseNormalizer):
     }
 
     def __init__(self, language='English'):
+        super().__init__()
         self.lemmatizer = Lemmatizer(self.lemmagen_languages[language])
 
     def normalizer(self, token):
