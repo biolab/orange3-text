@@ -191,7 +191,7 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
     auto_apply: bool = Setting(True)
 
     class Inputs:
-        corpus = Input("Corpus", Corpus)
+        corpus = Input("Corpus", Corpus, default=True)
         words = Input("Words", Table)
 
     class Outputs:
