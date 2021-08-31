@@ -302,11 +302,20 @@ class TokenNormalizerTests(unittest.TestCase):
 
     def test_lemmagen(self):
         normalizer = preprocess.LemmagenLemmatizer('Slovenian')
-        token = 'veselja'
+        sentence = 'Gori na gori hiša gori'
+        self.corpus.metas[0, 0] = sentence
         self.assertEqual(
-            normalizer._preprocess(token),
-            Lemmatizer("sl").lemmatize(token)
+            [Lemmatizer("sl").lemmatize(t) for t in sentence.split()],
+            normalizer(self.corpus).tokens[0],
         )
+
+    def test_normalizers_picklable(self):
+        """ Normalizers must be picklable, tests if it is true"""
+        for nm in set(preprocess.normalize.__all__) - {"BaseNormalizer"}:
+            normalizer = getattr(preprocess.normalize, nm)()
+            normalizer(self.corpus)
+            loaded = pickle.loads(pickle.dumps(normalizer))
+            loaded(self.corpus)
 
     def test_cache(self):
         normalizer = preprocess.UDPipeLemmatizer('Slovenian')

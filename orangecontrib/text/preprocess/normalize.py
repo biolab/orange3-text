@@ -222,9 +222,18 @@ class LemmagenLemmatizer(BaseNormalizer):
 
     def __init__(self, language='English'):
         super().__init__()
-        self.lemmatizer = Lemmatizer(self.lemmagen_languages[language])
+        self.language = language
+        self.lemmatizer = None
+
+    def __call__(self, corpus: Corpus, callback: Callable = None) -> Corpus:
+        # lemmagen3 lemmatizer is not picklable, define it on call and discard it afterward
+        self.lemmatizer = Lemmatizer(self.lemmagen_languages[self.language])
+        output_corpus = super().__call__(corpus, callback)
+        self.lemmatizer = None
+        return output_corpus
 
     def normalizer(self, token):
+        assert self.lemmatizer is not None
         t = self.lemmatizer.lemmatize(token)
         # sometimes Lemmagen returns an empty string, return original tokens
         # in this case
