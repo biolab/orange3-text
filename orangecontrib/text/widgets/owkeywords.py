@@ -176,6 +176,8 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
     priority = 1100
     keywords = ["characteristic", "term"]
 
+    buttons_area_orientation = Qt.Vertical
+
     DEFAULT_SORTING = (1, Qt.DescendingOrder)
 
     settingsHandler = DomainContextHandler()
@@ -247,7 +249,7 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
             callback=self.update_scores
         )
 
-        box = gui.vBox(self.controlArea, "Select Words")
+        box = gui.vBox(self.buttonsArea, "Select Words")
         grid = QGridLayout()
         grid.setContentsMargins(0, 0, 0, 0)
         box.layout().addLayout(grid)
