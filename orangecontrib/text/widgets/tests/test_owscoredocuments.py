@@ -4,7 +4,8 @@ from typing import List
 from unittest.mock import patch
 
 import numpy as np
-from AnyQt.QtCore import Qt
+from AnyQt.QtCore import QItemSelectionModel, Qt
+
 from Orange.data import ContinuousVariable, Domain, StringVariable, Table
 from Orange.misc.collections import natural_sorted
 from Orange.util import dummy_callback
@@ -15,6 +16,7 @@ from orangecontrib.text import Corpus, preprocess
 from orangecontrib.text.vectorization.document_embedder import DocumentEmbedder
 from orangecontrib.text.widgets.owscoredocuments import (
     OWScoreDocuments,
+    SelectionMethods,
     _preprocess_words,
 )
 
@@ -74,8 +76,9 @@ class TestOWScoreDocuments(WidgetTest):
 
         output = self.get_output(self.widget.Outputs.corpus)
         self.assertTupleEqual(output.domain.variables, self.corpus.domain.variables)
-        self.assertTupleEqual(output.domain.metas[:-1], self.corpus.domain.metas)
-        self.assertEqual(str(output.domain.metas[-1]), "Word count")
+        self.assertTupleEqual(output.domain.metas[:1], self.corpus.domain.metas)
+        self.assertEqual(str(output.domain.metas[1]), "Word count")
+        self.assertEqual(str(output.domain.metas[2]), "Selected")
         self.assertEqual(len(output), len(self.corpus))
 
     def test_corpus_not_normalized(self):
@@ -352,9 +355,12 @@ class TestOWScoreDocuments(WidgetTest):
         """
         view = self.widget.view
         model = view.model()
-        self.widget.sort_column_order = (1, Qt.DescendingOrder)
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
         self.send_signal(self.widget.Inputs.words, self.words)
+        self.wait_until_finished()
+
+        self.widget.sort_column_order = (1, Qt.DescendingOrder)
+        self.widget._fill_table()
         self.wait_until_finished()
 
         header = self.widget.view.horizontalHeader()
@@ -384,6 +390,49 @@ class TestOWScoreDocuments(WidgetTest):
         data = [model.data(model.index(i, 1)) for i in range(model.rowCount())]
         self.assertTupleEqual((1, Qt.DescendingOrder), current_sorting)
         self.assertListEqual(sorted(data, reverse=True), data)
+
+    def test_selection_none(self):
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.widget._sel_method_buttons.button(SelectionMethods.NONE).click()
+
+        output = self.get_output(self.widget.Outputs.selected_documents)
+        self.assertIsNone(output)
+
+    def tests_selection_all(self):
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.widget._sel_method_buttons.button(SelectionMethods.ALL).click()
+
+        output = self.get_output(self.widget.Outputs.selected_documents)
+        self.assertEqual(len(self.corpus), len(output))
+
+    def test_selection_manual(self):
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.widget._sel_method_buttons.button(SelectionMethods.MANUAL).click()
+
+        mode = QItemSelectionModel.Rows | QItemSelectionModel.Select
+        view = self.widget.view
+        view.clearSelection()
+        model = view.model()
+        view.selectionModel().select(model.index(2, 0), mode)
+        view.selectionModel().select(model.index(3, 0), mode)
+
+        output = self.get_output(self.widget.Outputs.selected_documents)
+        self.assertListEqual(["Document 3", "Document 4"], output.titles.tolist())
+
+    def test_selection_n_best(self):
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.widget._sel_method_buttons.button(SelectionMethods.N_BEST).click()
+
+        output = self.get_output(self.widget.Outputs.selected_documents)
+        self.assertListEqual(
+            [f"Document {i}" for i in range(1, 4)], output.titles.tolist()
+        )
+
+        self.widget.controls.n_selected.setValue(5)
+        output = self.get_output(self.widget.Outputs.selected_documents)
+        self.assertListEqual(
+            [f"Document {i}" for i in range(1, 6)], output.titles.tolist()
+        )
 
 
 if __name__ == "__main__":
