@@ -16,6 +16,9 @@ from orangecontrib.text.vectorization.document_embedder import LANGS_TO_ISO, AGG
 from orangecontrib.text.corpus import Corpus
 
 
+LANGUAGES = sorted(list(LANGS_TO_ISO.keys()))
+
+
 def run_pretrained_embedder(corpus: Corpus,
                             language: str,
                             aggregator: str,
@@ -40,7 +43,6 @@ def run_pretrained_embedder(corpus: Corpus,
     Corpus
         New corpus with additional features.
     """
-
     embedder = DocumentEmbedder(language=language,
                                 aggregator=aggregator)
 
@@ -82,14 +84,13 @@ class OWDocumentEmbedding(OWWidget, ConcurrentWidgetMixin):
     class Warning(OWWidget.Warning):
         unsuccessful_embeddings = Msg('Some embeddings were unsuccessful.')
 
-    language = Setting(default=0)
+    language = Setting(default=LANGUAGES.index("English"))
     aggregator = Setting(default=0)
 
     def __init__(self):
         OWWidget.__init__(self)
         ConcurrentWidgetMixin.__init__(self)
 
-        self.languages = sorted(list(LANGS_TO_ISO.keys()))
         self.aggregators = AGGREGATORS
         self.corpus = None
         self.new_corpus = None
@@ -111,11 +112,10 @@ class OWDocumentEmbedding(OWWidget, ConcurrentWidgetMixin):
             value='language',
             label='Language: ',
             orientation=Qt.Horizontal,
-            items=self.languages,
+            items=LANGUAGES,
             callback=self._option_changed,
             searchable=True
          )
-        self.language_cb.setCurrentText("English")
 
         self.aggregator_cb = comboBox(widget=widget_box,
                                       master=self,
@@ -168,7 +168,7 @@ class OWDocumentEmbedding(OWWidget, ConcurrentWidgetMixin):
 
         self.start(run_pretrained_embedder,
                    self.corpus,
-                   LANGS_TO_ISO[self.languages[self.language]],
+                   LANGS_TO_ISO[LANGUAGES[self.language]],
                    self.aggregators[self.aggregator])
 
         self.Error.clear()
