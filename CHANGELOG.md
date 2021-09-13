@@ -5,6 +5,29 @@ Change Log
 ------------
 * ...
 
+[1.5.0] - 2021-09-13
+
+##### Enhancements
+* Keywords: Add 'Embedding' scoring method ([#666](../../pull/666))
+* OW Corpus Viewer: Add annotated corpus output ([#672](../../pull/672))
+* Concordance - search in the separate thread ([#668](../../pull/668))
+* OWPreprocess Text: add option to filter on POS tags ([#679](../../pull/679))
+* Topic Modeling: Add topic evaluation scores ([#687](../../pull/687))
+* OWStatistics: Add new statistics method ([#676](../../pull/676))
+* Import Documents: Add conllu reader ([#675](../../pull/675))
+* OWPreprocess Text: Add Lemmagen normalizer ([#708](../../pull/708))
+* normalize: speedup preprocessing with caching ([#709](../../pull/709))
+* Score documents: Document selection and selection output ([#710](../../pull/710))
+
+##### Bugfixes
+* Import Documents: Read metas as the right type ([#677](../../pull/677))
+* LDA: Add random state ([#688](../../pull/688))
+* Preprocess: Filter POS tags along with tokens ([#692](../../pull/692))
+* Topic Modeling: Remove tags from display of topics ([#693](../../pull/693))
+* Score documents: fix word preprocessing ([#707](../../pull/707))
+* Make Lemmagen lemmatizer picklable ([#713](../../pull/713))
+* Document Embedder: fix default language setting ([#716](../../pull/716))
+
 [1.4.0] - 2021-05-27
 
 ##### Enhancements
