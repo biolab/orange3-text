@@ -1,19 +1,21 @@
-from typing import Optional
+from typing import Optional, Callable
 
 from itertools import chain
 import numpy as np
 
 from AnyQt.QtCore import Qt, QAbstractTableModel, QSize, QItemSelectionModel, \
     QItemSelection, QModelIndex
-from AnyQt.QtWidgets import QSizePolicy, QApplication, QTableView, \
-    QStyledItemDelegate
+from AnyQt.QtWidgets import QSizePolicy, QTableView, QStyledItemDelegate
 from AnyQt.QtGui import QColor
 from Orange.data import Domain, StringVariable, Table
 
 from Orange.widgets import gui
 from Orange.widgets.settings import Setting, ContextSetting, PerfectDomainContextHandler
 from Orange.widgets.widget import OWWidget, Msg, Input, Output
+from Orange.widgets.utils.concurrent import TaskState, ConcurrentWidgetMixin
+from Orange.util import dummy_callback
 from nltk import ConcordanceIndex
+
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.topics import Topic
 from orangecontrib.text.preprocess import WordPunctTokenizer
@@ -73,10 +75,15 @@ class ConcordanceModel(QAbstractTableModel):
         self.width = 8
         self.colored_rows = None
 
-    def set_word(self, word):
+    def set_word(self, word, state: TaskState):
+        def callback(i: float):
+            state.set_progress_value(i * 100)
+            if state.is_interruption_requested():
+                raise Exception
+
         self.modelAboutToBeReset.emit()
         self.word = word
-        self._compute_word_index()
+        self._compute_word_index(callback)
         self.modelReset.emit()
 
     def set_corpus(self, corpus):
@@ -138,13 +145,15 @@ class ConcordanceModel(QAbstractTableModel):
         self.indices = [ConcordanceIndex(doc, key=lambda x: x.lower())
                         for doc in self.tokens]
 
-    def _compute_word_index(self):
+    def _compute_word_index(self, callback: Callable = dummy_callback) -> None:
         if self.indices is None or self.word is None:
             self.word_index = self.colored_rows = None
         else:
-            self.word_index = [
-                (doc_idx, offset) for doc_idx, doc in enumerate(self.indices)
-                for offset in doc.offsets(self.word)]
+            self.word_index = []
+            for doc_idx, doc in enumerate(self.indices):
+                for offset in doc.offsets(self.word):
+                    self.word_index.append((doc_idx, offset))
+                callback(doc_idx / len(self.indices))
             self.colored_rows = set(sorted({d[0] for d in self.word_index})[::2])
 
     def matching_docs(self):
@@ -169,7 +178,7 @@ class ConcordanceModel(QAbstractTableModel):
         return Corpus(domain, metas=conc, text_features=[domain.metas[0]])
 
 
-class OWConcordance(OWWidget):
+class OWConcordance(OWWidget, ConcurrentWidgetMixin):
     name = "Concordance"
     description = "Display the context of the word."
     icon = "icons/Concordance.svg"
@@ -180,7 +189,7 @@ class OWConcordance(OWWidget):
         query_word = Input("Query Word", Topic)
 
     class Outputs:
-        selected_documents = Output("Selected Documents", Corpus)
+        selected_documents = Output("Selected Documents", Corpus, default=True)
         concordances = Output("Concordances", Corpus)
 
     settingsHandler = PerfectDomainContextHandler(
@@ -197,6 +206,7 @@ class OWConcordance(OWWidget):
 
     def __init__(self):
         super().__init__()
+        ConcurrentWidgetMixin.__init__(self)
 
         self.corpus = None      # Corpus
         self.n_matching = ''    # Info on docs matching the word
@@ -217,7 +227,7 @@ class OWConcordance(OWWidget):
         gui.rubber(self.controlArea)
 
         # Search
-        c_box = gui.widgetBox(self.mainArea, orientation="vertical")
+        c_box = gui.widgetBox(self.mainArea, orientation=Qt.Horizontal)
         self.input = gui.lineEdit(
             c_box, self, 'word', orientation=Qt.Horizontal,
             sizePolicy=QSizePolicy(QSizePolicy.MinimumExpanding,
@@ -242,9 +252,6 @@ class OWConcordance(OWWidget):
         # Auto-commit box
         gui.auto_commit(self.controlArea, self, 'autocommit', 'Commit',
                         'Auto commit is on')
-
-    def sizeHint(self): # pragma: no cover
-        return QSize(600, 400)
 
     def set_width(self):
         sel = self.conc_view.selectionModel().selection()
@@ -296,7 +303,9 @@ class OWConcordance(OWWidget):
 
     def set_word(self):
         self.selected_rows = []
-        self.model.set_word(self.word)
+        self.start(self.model.set_word, self.word)
+
+    def on_done(self, _):
         self.update_widget()
         self.commit()
 
@@ -304,8 +313,7 @@ class OWConcordance(OWWidget):
         self.set_selection(self.selected_rows)
 
     def resize_columns(self):
-        col_width = (self.conc_view.width() -
-                     self.conc_view.columnWidth(1)) / 2 - 12
+        col_width = (self.conc_view.width() - self.conc_view.columnWidth(1)) // 2 - 12
         self.conc_view.setColumnWidth(0, col_width)
         self.conc_view.setColumnWidth(2, col_width)
 
@@ -352,12 +360,8 @@ class OWConcordance(OWWidget):
         self.report_table(view)
 
 
-if __name__ == '__main__': # pragma: no cover
-    app = QApplication([])
-    widget = OWConcordance()
-    corpus = Corpus.from_file('book-excerpts')
-    corpus = corpus[:3]
-    widget.set_corpus(corpus)
-    widget.show()
-    app.exec()
+if __name__ == "__main__":  # pragma: no cover
+    from orangewidget.utils.widgetpreview import WidgetPreview
 
+    corpus = Corpus.from_file("book-excerpts")[:3]
+    WidgetPreview(OWConcordance).run(corpus)

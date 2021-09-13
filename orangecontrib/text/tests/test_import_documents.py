@@ -1,11 +1,12 @@
+import os
 import unittest
-from unittest.mock import patch
 
 import numpy as np
 import pandas as pd
 
 from orangecontrib.text.import_documents import ImportDocuments, UrlReader, \
     TxtReader, TextData
+from pkg_resources import get_distribution
 
 
 class TestUrlReader(unittest.TestCase):
@@ -51,6 +52,18 @@ class TestUrlReader(unittest.TestCase):
         self.assertEqual(text_data.category, "data")
         self.assertEqual(text_data.content, "text")
 
+    def test_remove_quoting(self):
+        """
+        Since URL quoting is implemented in Orange it can be removed from text
+        addon when minimal version of Orange is increased to 3.29.1. When this
+        test start to fail remove the test itself and lines 191 - 194 in
+        import_documents.py
+        """
+        distribution = get_distribution('orange3-text')
+        orange_spec = next(x for x in distribution.requires() if x.name == "Orange3")
+        orange_min_version = tuple(map(int, orange_spec.specs[0][1].split(".")))
+        self.assertLess(orange_min_version, (3, 29, 1))
+
 
 class TestImportDocuments(unittest.TestCase):
     def test_scan_url(self):
@@ -83,7 +96,7 @@ class TestImportDocuments(unittest.TestCase):
     def test_merge_metadata_url(self):
         path = "http://file.biolab.si/text-semantics/data/semeval/"
         importer = ImportDocuments(path, True)
-        text_data, _ = importer._read_text_data()
+        text_data, _, _, _, _, _ = importer._read_text_data()
         meta_data, _ = importer._read_meta_data()
 
         importer._text_data = text_data[:4]  # 'C-1', 'C-14', 'C-17', 'C-18'
@@ -107,7 +120,7 @@ class TestImportDocuments(unittest.TestCase):
         path = "http://file.biolab.si/text-semantics/data" \
                "/predlogi-vladi-sample/"
         importer = ImportDocuments(path, True)
-        corpus1, _ = importer.run()
+        corpus1, _, _, _, _, _ = importer.run()
         self.assertGreater(len(corpus1), 0)
 
         mask = np.ones_like(corpus1.metas, dtype=bool)
@@ -116,25 +129,35 @@ class TestImportDocuments(unittest.TestCase):
         path = "http://file.biolab.si/text-semantics/data" \
                "/predlogi-vladi-sample////"
         importer = ImportDocuments(path, True)
-        corpus2, _ = importer.run()
+        corpus2, _, _, _, _, _ = importer.run()
         self.assertGreater(len(corpus1), 0)
-        self.assertEqual(corpus1.metas[mask].tolist(),
-                         corpus2.metas[mask].tolist())
+        np.testing.assert_array_equal(corpus1.metas[mask].tolist(),
+                                      corpus2.metas[mask].tolist())
 
         path = "http://file.biolab.si/text-semantics/data" \
                "/predlogi-vladi-sample"
         importer = ImportDocuments(path, True)
-        corpus3, _ = importer.run()
+        corpus3, _, _, _, _, _ = importer.run()
         self.assertGreater(len(corpus2), 0)
-        self.assertEqual(corpus1.metas[mask].tolist(),
-                         corpus3.metas[mask].tolist())
+        np.testing.assert_array_equal(corpus1.metas[mask].tolist(),
+                                      corpus3.metas[mask].tolist())
 
     def test_run_url_special_characters(self):
         path = "http://file.biolab.si/text-semantics/data/" \
                "elektrotehniski-vestnik-clanki/"
         importer = ImportDocuments(path, True)
-        corpus, errors = importer.run()
+        corpus, errors, _, _, _, _ = importer.run()
         self.assertGreater(len(corpus), 0)
+
+    def test_conllu_reader(self):
+        path = os.path.join(os.path.dirname(__file__),
+                            "../widgets/tests/data/conllu")
+        importer = ImportDocuments(path)
+        corpus, errors, lemma, pos, ner, _ = importer.run()
+        self.assertEqual(len(corpus), 5)
+        self.assertEqual(len(corpus), len(lemma))
+        self.assertEqual(len(corpus), len(pos))
+        self.assertEqual(len(corpus), len(ner))
 
 
 if __name__ == "__main__":

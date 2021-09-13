@@ -1,26 +1,38 @@
 import re
 from collections import Counter
+from contextlib import contextmanager
 from inspect import signature
-from typing import List, Callable, Tuple, Union
+from typing import Callable, List, Tuple, Union
 
 import numpy as np
-from pandas import isnull
-from Orange.data import (
-    Table,
-    Domain,
-    StringVariable,
-    ContinuousVariable,
-    DiscreteVariable,
+from AnyQt.QtCore import (
+    QItemSelection,
+    QItemSelectionModel,
+    QSortFilterProxyModel,
+    Qt,
+    Signal,
 )
-from Orange.util import wrap_callback
-from Orange.widgets.utils.concurrent import ConcurrentWidgetMixin, TaskState
-from Orange.widgets.widget import Input, Msg, Output, OWWidget
-from orangewidget import gui
-from orangewidget.settings import Setting
-from Orange.widgets.utils.itemmodels import PyTableModel, TableModel
-from AnyQt.QtWidgets import QTableView, QLineEdit, QHeaderView
-from AnyQt.QtCore import Qt, QSortFilterProxyModel
+from AnyQt.QtWidgets import (
+    QButtonGroup,
+    QGridLayout,
+    QHeaderView,
+    QLineEdit,
+    QRadioButton,
+    QTableView,
+)
+from pandas import isnull
 from sklearn.metrics.pairwise import cosine_similarity
+
+# todo: uncomment when minimum version of Orange is 3.29.2
+# from orangecanvas.gui.utils import disconnected
+from orangewidget import gui
+from Orange.data import ContinuousVariable, Domain, StringVariable, Table
+from Orange.util import wrap_callback
+from Orange.widgets.settings import ContextSetting, PerfectDomainContextHandler, Setting
+from Orange.widgets.utils.annotated_data import create_annotated_table
+from Orange.widgets.utils.concurrent import ConcurrentWidgetMixin, TaskState
+from Orange.widgets.utils.itemmodels import PyTableModel, TableModel
+from Orange.widgets.widget import Input, Msg, Output, OWWidget
 
 from orangecontrib.text import Corpus
 from orangecontrib.text.preprocess import BaseNormalizer, BaseTransformer
@@ -30,14 +42,23 @@ from orangecontrib.text.vectorization.document_embedder import (
 )
 
 
-def _word_frequency(
-    corpus: Corpus, words: List[str], callback: Callable
-) -> np.ndarray:
+# todo: remove when minimum version of Orange is 3.29.2
+@contextmanager
+def disconnected(signal, slot, type=Qt.UniqueConnection):
+    signal.disconnect(slot)
+    try:
+        yield
+    finally:
+        signal.connect(slot, type)
+
+
+def _word_frequency(corpus: Corpus, words: List[str], callback: Callable) -> np.ndarray:
     res = []
-    for i, t in enumerate(corpus.tokens):
+    tokens = corpus.tokens
+    for i, t in enumerate(tokens):
         counts = Counter(t)
         res.append([counts.get(w, 0) for w in words])
-        callback((i + 1) / len(corpus.tokens))
+        callback((i + 1) / len(tokens))
     return np.array(res)
 
 
@@ -45,10 +66,11 @@ def _word_appearance(
     corpus: Corpus, words: List[str], callback: Callable
 ) -> np.ndarray:
     res = []
-    for i, t in enumerate(corpus.tokens):
+    tokens = corpus.tokens
+    for i, t in enumerate(tokens):
         t = set(t)
         res.append([w in t for w in words])
-        callback((i + 1) / len(corpus.tokens))
+        callback((i + 1) / len(tokens))
     return np.array(res)
 
 
@@ -114,6 +136,16 @@ def _preprocess_words(
     with words preprocessors that change words (e.g. normalization) must
     be applied to words too.
     """
+    # workaround to preprocess words
+    # TODO: currently preprocessors work only on corpus, when there will be more
+    #  cases like this think about implementation of preprocessors for a list
+    #  of strings
+    words_feature = StringVariable("words")
+    words_c = Corpus(
+        Domain([], metas=[words_feature]),
+        metas=np.array([[w] for w in words]),
+        text_features=[words_feature],
+    )
     # only transformers and normalizers preprocess on the word level
     pps = [
         pp
@@ -121,15 +153,14 @@ def _preprocess_words(
         if isinstance(pp, (BaseTransformer, BaseNormalizer))
     ]
     for i, pp in enumerate(pps):
-        # TODO: _preprocess is protected make it public
-        words = [pp._preprocess(w) for w in words]
+        words_c = pp(words_c)
         callback((i + 1) / len(pps))
-    return words
+    return [w[0] for w in words_c.tokens if len(w)]
 
 
 def _run(
     corpus: Corpus,
-    words: Table,
+    words: List[str],
     scoring_methods: List[str],
     aggregation: str,
     additional_params: dict,
@@ -161,33 +192,39 @@ def _run(
 
     cb_part = 1 / (len(scoring_methods) + 1)  # +1 for preprocessing
 
-    words = _preprocess_words(
-        corpus, words, wrap_callback(callback, end=cb_part)
-    )
+    words = _preprocess_words(corpus, words, wrap_callback(callback, end=cb_part))
+    if len(words) == 0:
+        raise Exception(
+            "Empty word list after preprocessing. Please provide a valid set of words."
+        )
     for i, sm in enumerate(scoring_methods):
         scoring_method = SCORING_METHODS[sm][1]
         sig = signature(scoring_method)
-        add_params = {
-            k: v for k, v in additional_params.items() if k in sig.parameters
-        }
+        add_params = {k: v for k, v in additional_params.items() if k in sig.parameters}
         scs = scoring_method(
             corpus,
             words,
-            wrap_callback(
-                callback, start=(i + 1) * cb_part, end=(i + 2) * cb_part
-            ),
+            wrap_callback(callback, start=(i + 1) * cb_part, end=(i + 2) * cb_part),
             **add_params
         )
         scs = AGGREGATIONS[aggregation](scs, axis=1)
         state.set_partial_result((sm, aggregation, scs))
 
 
+class SelectionMethods:
+    NONE, ALL, MANUAL, N_BEST = range(4)
+    ITEMS = "None", "All", "Manual", "Top documents"
+
+
 class ScoreDocumentsTableView(QTableView):
+    pressedAny = Signal()
+
     def __init__(self):
         super().__init__(
             sortingEnabled=True,
             editTriggers=QTableView.NoEditTriggers,
-            selectionMode=QTableView.NoSelection,
+            selectionMode=QTableView.ExtendedSelection,
+            selectionBehavior=QTableView.SelectRows,
             cornerButtonEnabled=False,
         )
         self.setItemDelegate(gui.ColoredBarItemDelegate(self))
@@ -200,7 +237,8 @@ class ScoreDocumentsTableView(QTableView):
         """
         header = self.horizontalHeader()
         col_width = max(
-            [0] + [
+            [0]
+            + [
                 max(self.sizeHintForColumn(i), header.sectionSizeHint(i))
                 for i in range(1, self.model().columnCount())
             ]
@@ -213,6 +251,10 @@ class ScoreDocumentsTableView(QTableView):
         # document title column is one that stretch
         header.setSectionResizeMode(0, QHeaderView.Stretch)
 
+    def mousePressEvent(self, event):
+        super().mousePressEvent(event)
+        self.pressedAny.emit()
+
 
 class ScoreDocumentsProxyModel(QSortFilterProxyModel):
     @staticmethod
@@ -221,10 +263,7 @@ class ScoreDocumentsProxyModel(QSortFilterProxyModel):
 
     @staticmethod
     def _alphanum_key(key: str) -> List[Union[str, int]]:
-        return [
-            ScoreDocumentsProxyModel._convert(c)
-            for c in re.split("([0-9]+)", key)
-        ]
+        return [ScoreDocumentsProxyModel._convert(c) for c in re.split("([0-9]+)", key)]
 
     def lessThan(self, left_ind, right_ind):
         """
@@ -233,7 +272,8 @@ class ScoreDocumentsProxyModel(QSortFilterProxyModel):
         if left_ind.column() == 0 and right_ind.column() == 0:
             left = self.sourceModel().data(left_ind, role=Qt.DisplayRole)
             right = self.sourceModel().data(right_ind, role=Qt.DisplayRole)
-            return self._alphanum_key(left) < self._alphanum_key(right)
+            if left is not None and right is not None:
+                return self._alphanum_key(left) < self._alphanum_key(right)
         return super().lessThan(left_ind, right_ind)
 
 
@@ -253,19 +293,31 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
     icon = "icons/ScoreDocuments.svg"
     priority = 500
 
+    buttons_area_orientation = Qt.Vertical
+
+    # default order - table sorted in input order
+    DEFAULT_SORTING = (-1, Qt.AscendingOrder)
+
+    settingsHandler = PerfectDomainContextHandler()
     auto_commit: bool = Setting(True)
     aggregation: int = Setting(0)
 
     word_frequency: bool = Setting(True)
     word_appearance: bool = Setting(False)
     embedding_similarity: bool = Setting(False)
-    embedding_language = Setting(0)
+    embedding_language: int = Setting(0)
+
+    sort_column_order: Tuple[int, int] = Setting(DEFAULT_SORTING)
+    selected_rows: List[int] = ContextSetting([], schema_only=True)
+    sel_method: int = ContextSetting(SelectionMethods.N_BEST)
+    n_selected: int = ContextSetting(3)
 
     class Inputs:
         corpus = Input("Corpus", Corpus)
         words = Input("Words", Table)
 
     class Outputs:
+        selected_documents = Output("Selected documents", Corpus, default=True)
         corpus = Output("Corpus", Corpus)
 
     class Warning(OWWidget.Warning):
@@ -274,7 +326,7 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
         corpus_not_normalized = Msg("Use Preprocess Text to normalize corpus.")
 
     class Error(OWWidget.Error):
-        unknown_err = Msg("{}")
+        custom_err = Msg("{}")
 
     def __init__(self):
         OWWidget.__init__(self)
@@ -318,6 +370,33 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
         )
 
         gui.rubber(self.controlArea)
+
+        # select words box
+        box = gui.vBox(self.buttonsArea, "Select Documents")
+        grid = QGridLayout()
+        grid.setContentsMargins(0, 0, 0, 0)
+
+        self._sel_method_buttons = QButtonGroup()
+        for method, label in enumerate(SelectionMethods.ITEMS):
+            button = QRadioButton(label)
+            button.setChecked(method == self.sel_method)
+            grid.addWidget(button, method, 0)
+            self._sel_method_buttons.addButton(button, method)
+        self._sel_method_buttons.buttonClicked[int].connect(self.__set_selection_method)
+
+        spin = gui.spin(
+            box,
+            self,
+            "n_selected",
+            1,
+            999,
+            addToLayout=False,
+            callback=lambda: self.__set_selection_method(SelectionMethods.N_BEST),
+        )
+        grid.addWidget(spin, 3, 1)
+        box.layout().addLayout(grid)
+
+        # autocommit
         gui.auto_send(self.buttonsArea, self, "auto_commit")
 
     def _setup_main_area(self) -> None:
@@ -329,28 +408,63 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
         self.model = model = ScoreDocumentsTableModel(parent=self)
         model.setHorizontalHeaderLabels(["Document"])
 
+        def select_manual():
+            self.__set_selection_method(SelectionMethods.MANUAL)
+
         self.view = view = ScoreDocumentsTableView()
+        view.pressedAny.connect(select_manual)
         self.mainArea.layout().addWidget(view)
+        # by default data are sorted in the Table order
+        header = self.view.horizontalHeader()
+        header.sectionClicked.connect(self.__on_horizontal_header_clicked)
 
         proxy_model = ScoreDocumentsProxyModel()
         proxy_model.setFilterKeyColumn(0)
         proxy_model.setFilterCaseSensitivity(False)
         view.setModel(proxy_model)
         view.model().setSourceModel(self.model)
+        self.view.selectionModel().selectionChanged.connect(self.__on_selection_change)
 
     def __on_filter_changed(self) -> None:
         model = self.view.model()
         model.setFilterFixedString(self._filter_line_edit.text().strip())
 
+    def __on_horizontal_header_clicked(self, index: int):
+        header = self.view.horizontalHeader()
+        self.sort_column_order = (index, header.sortIndicatorOrder())
+        self._select_rows()
+        # when sorting change output table must consider the new order
+        # call explicitly since selection in table is not changed
+        if (
+            self.sel_method == SelectionMethods.MANUAL
+            and self.selected_rows
+            or self.sel_method == SelectionMethods.ALL
+        ):
+            # retrieve selection in new order
+            self.selected_rows = self.get_selected_indices()
+            self._send_output()
+
+    def __on_selection_change(self):
+        self.selected_rows = self.get_selected_indices()
+        self._send_output()
+
+    def __set_selection_method(self, method: int):
+        self.sel_method = method
+        self._sel_method_buttons.button(method).setChecked(True)
+        self._select_rows()
+
     @Inputs.corpus
     def set_data(self, corpus: Corpus) -> None:
+        self.closeContext()
         self.Warning.corpus_not_normalized.clear()
         if corpus is not None:
             self.Warning.missing_corpus.clear()
             if not self._is_corpus_normalized(corpus):
                 self.Warning.corpus_not_normalized()
         self.corpus = corpus
-        # todo: rename
+        self.selected_rows = []
+        self.openContext(corpus)
+        self._sel_method_buttons.button(self.sel_method).setChecked(True)
         self._clear_and_run()
 
     @staticmethod
@@ -358,7 +472,7 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
         attrs = [
             a
             for a in words.domain.metas + words.domain.variables
-            if isinstance(a, (StringVariable, DiscreteVariable))
+            if isinstance(a, StringVariable)
         ]
         words_attr = next(
             (a for a in attrs if a.attributes.get("type", "") == "words"), None
@@ -378,10 +492,7 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
 
     @Inputs.words
     def set_words(self, words: Table) -> None:
-        if (
-            words is None
-            or len(words.domain.variables + words.domain.metas) == 0
-        ):
+        if words is None or len(words.domain.variables + words.domain.metas) == 0:
             self.words = None
         else:
             self.Warning.missing_words.clear()
@@ -405,18 +516,20 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
         scorers = self._get_active_scorers()
         methods = [m for m in scorers if (m, aggregation) in self.scores]
         scores = [self.scores[(m, aggregation)] for m in methods]
-        scores = (
-            np.column_stack(scores)
-            if scores
-            else np.empty((len(self.corpus), 0))
-        )
+        scores = np.column_stack(scores) if scores else np.empty((len(self.corpus), 0))
         labels = [SCORING_METHODS[m][0] for m in methods]
         return scores, labels
 
-    def _send_output(self, scores: np.ndarray, labels: List[str]) -> None:
+    def _send_output(self) -> None:
         """
         Create corpus with scores and output it
         """
+        if self.corpus is None:
+            self.Outputs.corpus.send(None)
+            self.Outputs.selected_documents.send(None)
+            return
+
+        scores, labels = self._gather_scores()
         if labels:
             d = self.corpus.domain
             domain = Domain(
@@ -424,43 +537,57 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
                 d.class_var,
                 metas=d.metas + tuple(ContinuousVariable(l) for l in labels),
             )
-            corpus = Corpus(
+            out_corpus = Corpus(
                 domain,
                 self.corpus.X,
                 self.corpus.Y,
                 np.hstack([self.corpus.metas, scores]),
             )
-            Corpus.retain_preprocessing(self.corpus, corpus)
-            self.Outputs.corpus.send(corpus)
-        elif self.corpus is not None:
-            self.Outputs.corpus.send(self.corpus)
+            Corpus.retain_preprocessing(self.corpus, out_corpus)
         else:
-            self.Outputs.corpus.send(None)
+            out_corpus = self.corpus
 
-    def _fill_table(self, scores: np.ndarray, labels: List[str]) -> None:
+        self.Outputs.corpus.send(create_annotated_table(out_corpus, self.selected_rows))
+        self.Outputs.selected_documents.send(
+            out_corpus[self.selected_rows] if self.selected_rows else None
+        )
+
+    def _fill_table(self) -> None:
         """
         Fill the table in the widget with scores and document names
         """
         if self.corpus is None:
             self.model.clear()
             return
+        scores, labels = self._gather_scores()
         labels = ["Document"] + labels
         titles = self.corpus.titles.tolist()
+
+        # clearing selection and sorting to prevent SEGFAULT on model.wrap
+        self.view.horizontalHeader().setSortIndicator(-1, Qt.AscendingOrder)
+        with disconnected(
+            self.view.selectionModel().selectionChanged, self.__on_selection_change
+        ):
+            self.view.clearSelection()
+
         self.model.wrap([[c] + s for c, s in zip(titles, scores.tolist())])
         self.model.setHorizontalHeaderLabels(labels)
         self.view.update_column_widths()
+        if self.model.columnCount() > self.sort_column_order[0]:
+            # if not enough columns do not apply sorting from settings since
+            # sorting can besaved for score column while scores are still computing
+            # tables is filled before scores are computed with document names
+            self.view.horizontalHeader().setSortIndicator(*self.sort_column_order)
 
-        # documents are not ordered by default by any column
-        self.view.horizontalHeader().setSortIndicator(-1, Qt.AscendingOrder)
+        self._select_rows()
 
     def _fill_and_output(self) -> None:
-        """ Fill the table in the widget and send the output """
-        scores, labels = self._gather_scores()
-        self._fill_table(scores, labels)
-        self._send_output(scores, labels)
+        """Fill the table in the widget and send the output"""
+        self._fill_table()
+        self._send_output()
 
     def _clear_and_run(self) -> None:
-        """ Clear cached scores and commit """
+        """Clear cached scores and commit"""
         self.scores = {}
         self.cancel()
         self._fill_and_output()
@@ -470,7 +597,7 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
         self.commit()
 
     def commit(self) -> None:
-        self.Error.unknown_err.clear()
+        self.Error.custom_err.clear()
         self.cancel()
         if self.corpus is None and self.words is None:
             return
@@ -481,9 +608,7 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
         else:
             scorers = self._get_active_scorers()
             aggregation = self._get_active_aggregation()
-            new_scores = [
-                s for s in scorers if (s, aggregation) not in self.scores
-            ]
+            new_scores = [s for s in scorers if (s, aggregation) not in self.scores]
             if new_scores:
                 self.start(
                     _run,
@@ -500,17 +625,16 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
                 self._fill_and_output()
 
     def on_done(self, _: None) -> None:
-        scores, labels = self._gather_scores()
-        self._send_output(scores, labels)
+        self._send_output()
 
     def on_partial_result(self, result: Tuple[str, str, np.ndarray]) -> None:
         sc_method, aggregation, scores = result
         self.scores[(sc_method, aggregation)] = scores
-        scores, labels = self._gather_scores()
-        self._fill_table(scores, labels)
+        self._fill_table()
 
     def on_exception(self, ex: Exception) -> None:
-        self.Error.unknown_err(ex)
+        self.Error.custom_err(ex)
+        self._fill_and_output()
 
     def _get_active_scorers(self) -> List[str]:
         """
@@ -541,6 +665,49 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
             isinstance(pp, BaseNormalizer)
             for pp in corpus.used_preprocessor.preprocessors
         )
+
+    def get_selected_indices(self) -> List[int]:
+        # get indices in table's order - that the selected output table have same order
+        selected_rows = sorted(
+            self.view.selectionModel().selectedRows(), key=lambda idx: idx.row()
+        )
+        return [self.view.model().mapToSource(r).row() for r in selected_rows]
+
+    def _select_rows(self):
+        proxy_model = self.view.model()
+        n_rows, n_columns = proxy_model.rowCount(), proxy_model.columnCount()
+        if self.sel_method == SelectionMethods.NONE:
+            selection = QItemSelection()
+        elif self.sel_method == SelectionMethods.ALL:
+            selection = QItemSelection(
+                proxy_model.index(0, 0), proxy_model.index(n_rows - 1, n_columns - 1)
+            )
+        elif self.sel_method == SelectionMethods.MANUAL:
+            selection = QItemSelection()
+            new_sel = []
+            for row in self.selected_rows:
+                if row < n_rows:
+                    new_sel.append(row)
+                    _selection = QItemSelection(
+                        self.model.index(row, 0), self.model.index(row, n_columns - 1)
+                    )
+                    selection.merge(
+                        proxy_model.mapSelectionFromSource(_selection),
+                        QItemSelectionModel.Select,
+                    )
+            # selected rows must be updated when the same dataset with less rows
+            # appear at the input - it is not handled by selectionChanged
+            # in cases when all selected rows missing in new table
+            self.selected_rows = new_sel
+        elif self.sel_method == SelectionMethods.N_BEST:
+            n_sel = min(self.n_selected, n_rows)
+            selection = QItemSelection(
+                proxy_model.index(0, 0), proxy_model.index(n_sel - 1, n_columns - 1)
+            )
+        else:
+            raise NotImplementedError
+
+        self.view.selectionModel().select(selection, QItemSelectionModel.ClearAndSelect)
 
 
 if __name__ == "__main__":

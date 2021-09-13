@@ -1,14 +1,15 @@
 from types import SimpleNamespace
-from typing import List, Optional, Any
+from typing import List, Optional
 
 import numpy as np
+
 from AnyQt.QtWidgets import QTreeWidget, QTreeView, QTreeWidgetItem
 
-from Orange.data import Table, Domain
+from Orange.data import Table, Domain, ContinuousVariable, StringVariable
 from Orange.widgets import gui
 from Orange.widgets.settings import Setting
 from Orange.widgets.utils.concurrent import ConcurrentWidgetMixin, TaskState
-from Orange.widgets.widget import OWWidget, Msg, Input
+from Orange.widgets.widget import OWWidget, Msg, Input, Output
 from Orange.statistics.util import FDR
 from PyQt5.QtCore import QSize
 from orangecontrib.text import Corpus
@@ -55,6 +56,9 @@ class OWWordEnrichment(OWWidget, ConcurrentWidgetMixin):
         selected_data = Input("Selected Data", Table)
         data = Input("Data", Table)
 
+    class Outputs:
+        words = Output("Words", Table)
+
     want_main_area = True
 
     class Error(OWWidget.Error):
@@ -68,6 +72,8 @@ class OWWordEnrichment(OWWidget, ConcurrentWidgetMixin):
     filter_p_value: float = Setting(0.01)
     filter_by_fdr: bool = Setting(True)
     filter_fdr_value: float = Setting(0.2)
+
+    auto_apply: bool = Setting(True)
 
     def __init__(self):
         OWWidget.__init__(self)
@@ -109,6 +115,8 @@ class OWWordEnrichment(OWWidget, ConcurrentWidgetMixin):
         self.spin_fdr.setEnabled(self.filter_by_fdr)
         gui.rubber(self.controlArea)
 
+        gui.auto_send(self.buttonsArea, self, "auto_apply")
+
         # Word's list view
         self.cols = ['Word', 'p-value', 'FDR']
         self.sig_words = QTreeWidget()
@@ -129,6 +137,7 @@ class OWWordEnrichment(OWWidget, ConcurrentWidgetMixin):
         self.data = data
         # selected data transformed depends on data domain
         self.selected_data_transformed = None
+
 
     @Inputs.selected_data
     def set_data_selected(self, data=None):
@@ -172,15 +181,14 @@ class OWWordEnrichment(OWWidget, ConcurrentWidgetMixin):
                 self.Error.all_selected()
                 self.clear()
             else:
-                self.set_input_info()
                 self.apply()
         else:
             self.clear()
 
     def clear(self):
         self.sig_words.clear()
-        self.info.set_input_summary(self.info.NoInput)
         self.set_displayed_info(0)
+        self.Outputs.words.send(None)
 
     def filter_enabled(self, b):
         self.chb_p.setEnabled(b)
@@ -204,6 +212,7 @@ class OWWordEnrichment(OWWidget, ConcurrentWidgetMixin):
         for i in range(len(self.cols)):
             self.sig_words.resizeColumnToContents(i)
         self.set_displayed_info(count)
+        self.commit()
 
     def build_tree(self) -> int:
         count = 0
@@ -218,16 +227,6 @@ class OWWordEnrichment(OWWidget, ConcurrentWidgetMixin):
                 self.sig_words.addTopLevelItem(it)
                 count += 1
         return count
-
-    def set_input_info(self) -> None:
-        cluster_words = len(self.selected_data_transformed.domain.attributes)
-        selected_words = np.count_nonzero(np_sp_sum(
-            self.selected_data_transformed.X, axis=0))
-
-        self.info.set_input_summary(
-            f"{cluster_words}|{selected_words}",
-            f"Total words: {cluster_words}\n"
-            f"Words in subset: {selected_words}")
 
     def set_displayed_info(self, count: int) -> None:
         self.info_fil.setText(f"Words displayed: {count}")
@@ -258,6 +257,24 @@ class OWWordEnrichment(OWWidget, ConcurrentWidgetMixin):
                 line.append(self.sig_words.topLevelItem(i).text(j))
             view.append(line)
         return view
+
+    def commit(self):
+        if not self.sig_words:
+            self.Outputs.words.send(None)
+        # retrieve the data except the header
+        tree = np.array(self.tree_to_table(), dtype=object)[1:]
+        words_var = StringVariable("Words")
+        words_var.attributes = {"type": "words"}
+        attrs = [ContinuousVariable("p-values"),
+                 ContinuousVariable("FDR values")]
+        domain = Domain(attrs, metas=[words_var])
+
+        X = tree.take([1, 2], axis=1).astype(float)
+        metas = tree.take([0], axis=1)
+        words = Table.from_numpy(domain, X=X, metas=metas)
+        words.name = "Words"
+
+        self.Outputs.words.send(words)
 
     def send_report(self):
         if self.results.words:

@@ -96,6 +96,11 @@ class LDATests(unittest.TestCase, BaseTests):
         self.assertEqual(corpus.X.shape, (len(self.corpus), 5))
         self.assertEqual(corpus.X.dtype, np.float64)
 
+    def test_random_seed(self):
+        corpus1 = self.model.fit_transform(self.corpus)
+        corpus2 = self.model.fit_transform(self.corpus)
+        np.testing.assert_array_equal(corpus1.X, corpus2.X)
+
 
 class HdpTest(unittest.TestCase, BaseTests):
     def setUp(self):

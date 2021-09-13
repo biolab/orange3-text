@@ -26,6 +26,13 @@ from Orange.preprocess.transformation import Identity
 from orangecontrib.text.vectorization.base import get_unique_names
 from orangecontrib.text.vectorization import BowVectorizer
 
+try:
+    from orangewidget.utils.signals import summarize, PartialSummary
+    # import to check if Table summary is available
+    from Orange.widgets.utils import state_summary
+except ImportError:
+    summarize, PartialSummary = None, None
+
 
 def get_sample_corpora_dir():
     path = os.path.dirname(__file__)
@@ -78,7 +85,7 @@ class Corpus(Table):
         self._ngrams_corpus = None
         self.ngram_range = (1, 1)
         self.attributes = {}
-        self.pos_tags = None
+        self._pos_tags = None
         from orangecontrib.text.preprocess import PreprocessorList
         self.__used_preprocessor = PreprocessorList([])   # required for compute values
         self._titles: Optional[np.ndarray] = None
@@ -441,6 +448,20 @@ class Corpus(Table):
             return self._base_tokens()[1]
         return self._dictionary
 
+    @property
+    def pos_tags(self):
+        """
+            np.ndarray: A list of lists containing POS tags. If there are no
+            POS tags available, return None.
+        """
+        if self._pos_tags is None:
+            return None
+        return np.array(self._pos_tags, dtype=object)
+
+    @pos_tags.setter
+    def pos_tags(self, pos_tags):
+        self._pos_tags = pos_tags
+
     def ngrams_iterator(self, join_with=' ', include_postags=False):
         if self.pos_tags is None:
             include_postags = False
@@ -657,3 +678,23 @@ class Corpus(Table):
                 np.array_equal(self.pos_tags, other.pos_tags) and
                 self.domain == other.domain and
                 self.ngram_range == other.ngram_range)
+
+
+if summarize:
+    # summarize is not available in older versions of orange-widget-base
+    # skip if not available
+    @summarize.register(Corpus)
+    def summarize_(corpus: Corpus) -> PartialSummary:
+        """
+        Provides automated input and output summaries for Corpus
+        """
+        table_summary = summarize.dispatch(Table)(corpus)
+        extras = (
+            (
+                f"<br/><nobr>Tokens: {sum(map(len, corpus.tokens))}, "
+                f"Types: {len(corpus.dictionary)}</nobr>"
+            )
+            if corpus.has_tokens()
+            else "<br/><nobr>Corpus is not preprocessed</nobr>"
+        )
+        return PartialSummary(table_summary.summary, table_summary.details + extras)

@@ -384,11 +384,12 @@ class TokenizerModule(SingleMethodModule):
 
 
 class NormalizationModule(SingleMethodModule):
-    Porter, Snowball, WordNet, UDPipe = range(4)
+    Porter, Snowball, WordNet, UDPipe, Lemmagen = range(5)
     Methods = {Porter: PorterStemmer,
                Snowball: SnowballStemmer,
                WordNet: WordNetLemmatizer,
-               UDPipe: UDPipeLemmatizer}
+               UDPipe: UDPipeLemmatizer,
+               Lemmagen: LemmagenLemmatizer}
     DEFAULT_METHOD = Porter
     DEFAULT_LANGUAGE = "English"
     DEFAULT_USE_TOKE = False
@@ -397,6 +398,7 @@ class NormalizationModule(SingleMethodModule):
         super().__init__(parent, **kwargs)
         self.__snowball_lang = self.DEFAULT_LANGUAGE
         self.__udpipe_lang = self.DEFAULT_LANGUAGE
+        self.__lemmagen_lang = self.DEFAULT_LANGUAGE
         self.__use_tokenizer = self.DEFAULT_USE_TOKE
 
         self.__combo_sbl = ComboBox(
@@ -410,6 +412,10 @@ class NormalizationModule(SingleMethodModule):
         self.__check_use = QCheckBox("UDPipe tokenizer",
                                      checked=self.DEFAULT_USE_TOKE)
         self.__check_use.clicked.connect(self.__set_use_tokenizer)
+        self.__combo_lemm = ComboBox(
+            self, LemmagenLemmatizer.lemmagen_languages,
+            self.__lemmagen_lang, self.__set_lemmagen_lang
+        )
 
         label = QLabel("Language:")
         label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
@@ -424,6 +430,11 @@ class NormalizationModule(SingleMethodModule):
         self.layout().addWidget(self.__check_use, self.UDPipe, 3)
         self.layout().setColumnStretch(2, 1)
         self.__enable_udpipe()
+
+        label = QLabel("Language:")
+        label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.layout().addWidget(label, self.Lemmagen, 1)
+        self.layout().addWidget(self.__combo_lemm, self.Lemmagen, 2)
 
     def __enable_udpipe(self):
         enable = bool(self.__combo_udl.items)
@@ -441,6 +452,8 @@ class NormalizationModule(SingleMethodModule):
         self.__set_udpipe_lang(udpipe_lang)
         use_tokenizer = params.get("udpipe_tokenizer", self.DEFAULT_USE_TOKE)
         self.__set_use_tokenizer(use_tokenizer)
+        lemmagen_lang = params.get("lemmagen_language", self.DEFAULT_LANGUAGE)
+        self.__set_lemmagen_lang(lemmagen_lang)
 
     def _set_method(self, method: int):
         super()._set_method(method)
@@ -462,6 +475,14 @@ class NormalizationModule(SingleMethodModule):
             if self.method == self.UDPipe:
                 self.edited.emit()
 
+    def __set_lemmagen_lang(self, language: str):
+        if self.__lemmagen_lang != language:
+            self.__lemmagen_lang = language
+            self.__combo_lemm.setCurrentText(language)
+            self.changed.emit()
+            if self.method == self.Lemmagen:
+                self.edited.emit()
+
     def __set_use_tokenizer(self, use: bool):
         if self.__use_tokenizer != use:
             self.__use_tokenizer = use
@@ -474,7 +495,8 @@ class NormalizationModule(SingleMethodModule):
         params = super().parameters()
         params.update({"snowball_language": self.__snowball_lang,
                        "udpipe_language": self.__udpipe_lang,
-                       "udpipe_tokenizer": self.__use_tokenizer})
+                       "udpipe_tokenizer": self.__use_tokenizer,
+                       "lemmagen_language": self.__lemmagen_lang})
         return params
 
     @staticmethod
@@ -488,6 +510,8 @@ class NormalizationModule(SingleMethodModule):
             def_use = NormalizationModule.DEFAULT_USE_TOKE
             args = {"language": params.get("udpipe_language", def_lang),
                     "use_tokenizer": params.get("udpipe_tokenizer", def_use)}
+        elif method == NormalizationModule.Lemmagen:
+            args = {"language": params.get("lemmagen_language", def_lang)}
         return NormalizationModule.Methods[method](**args)
 
     def __repr__(self):
@@ -497,17 +521,21 @@ class NormalizationModule(SingleMethodModule):
         elif self.method == self.UDPipe:
             text = f"{text} ({self.__udpipe_lang}, " \
                    f"Tokenize: {['No', 'Yes'][self.__use_tokenizer]})"
+        elif self.method == self.Lemmagen:
+            text = f"{text} ({self.__lemmagen_lang})"
         return text
 
 
 class FilteringModule(MultipleMethodModule):
-    Stopwords, Lexicon, Regexp, DocFreq, DummyDocFreq, MostFreq = range(6)
+    Stopwords, Lexicon, Regexp, DocFreq, DummyDocFreq, MostFreq, PosTag = \
+        range(7)
     Methods = {Stopwords: StopwordsFilter,
                Lexicon: LexiconFilter,
                Regexp: RegexpFilter,
                DocFreq: FrequencyFilter,
                DummyDocFreq: FrequencyFilter,
-               MostFreq: MostFrequentTokensFilter}
+               MostFreq: MostFrequentTokensFilter,
+               PosTag: PosTagFilter}
     DEFAULT_METHODS = [Stopwords]
     DEFAULT_LANG = "English"
     DEFAULT_NONE = None
@@ -517,6 +545,7 @@ class FilteringModule(MultipleMethodModule):
     DEFAULT_REL_START, DEFAULT_REL_END, REL_MIN, REL_MAX = 0.1, 0.9, 0, 1
     DEFAULT_ABS_START, DEFAULT_ABS_END, ABS_MIN, ABS_MAX = 1, 10, 0, 10000
     DEFAULT_N_TOKEN = 100
+    DEFAULT_POS_TAGS = "NOUN,VERB"
 
     def __init__(self, parent=None, **kwargs):
         super().__init__(parent, **kwargs)
@@ -530,6 +559,7 @@ class FilteringModule(MultipleMethodModule):
         self.__abs_freq_st = self.DEFAULT_ABS_START
         self.__abs_freq_en = self.DEFAULT_ABS_END
         self.__n_token = self.DEFAULT_N_TOKEN
+        self.__pos_tag = self.DEFAULT_POS_TAGS
         self.__invalidated = False
 
         self.__combo = ComboBox(
@@ -574,6 +604,10 @@ class FilteringModule(MultipleMethodModule):
         self.__spin_n.editingFinished.connect(self.__spin_n_edited)
         self.__spin_n.valueChanged.connect(self.changed)
 
+        validator = PosTagFilter.validate_tags
+        self.__pos_edit = ValidatedLineEdit(self.__pos_tag, validator)
+        self.__pos_edit.editingFinished.connect(self.__pos_edit_finished)
+
         self.layout().addWidget(self.__combo, self.Stopwords, 1)
         self.layout().addWidget(self.__sw_loader.file_combo,
                                 self.Stopwords, 2, 1, 2)
@@ -595,6 +629,7 @@ class FilteringModule(MultipleMethodModule):
         title = self.layout().itemAtPosition(self.DummyDocFreq, 0).widget()
         title.hide()
         self.layout().addWidget(self.__spin_n, self.MostFreq, 1)
+        self.layout().addWidget(self.__pos_edit, self.PosTag, 1, 1, 5)
         self.layout().setColumnStretch(3, 1)
 
     def __sw_loader_activated(self):
@@ -624,6 +659,13 @@ class FilteringModule(MultipleMethodModule):
         if self.__pattern != pattern:
             self.__set_pattern(pattern)
             if self.Regexp in self.methods:
+                self.edited.emit()
+
+    def __pos_edit_finished(self):
+        tags = self.__pos_edit.text()
+        if self.__pos_tag != tags:
+            self.__set_tags(tags)
+            if self.PosTag in self.methods:
                 self.edited.emit()
 
     def __freq_group_clicked(self):
@@ -666,6 +708,7 @@ class FilteringModule(MultipleMethodModule):
             params.get("abs_end", self.DEFAULT_ABS_END)
         )
         self.__set_n_tokens(params.get("n_tokens", self.DEFAULT_N_TOKEN))
+        self.__set_tags(params.get("pos_tags", self.DEFAULT_POS_TAGS))
         self.__invalidated = False
 
     def __set_language(self, language: str):
@@ -692,6 +735,12 @@ class FilteringModule(MultipleMethodModule):
         if self.__pattern != pattern:
             self.__pattern = pattern
             self.__edit.setText(pattern)
+            self.changed.emit()
+
+    def __set_tags(self, tags: str):
+        if self.__pos_tag != tags:
+            self.__pos_tag = tags
+            self.__pos_edit.setText(tags)
             self.changed.emit()
 
     def __set_freq_type(self, freq_type: int):
@@ -750,6 +799,7 @@ class FilteringModule(MultipleMethodModule):
                        "abs_start": self.__abs_freq_st,
                        "abs_end": self.__abs_freq_en,
                        "n_tokens": self.__n_token,
+                       "pos_tags": self.__pos_tag,
                        "invalidated": self.__invalidated})
         return params
 
@@ -782,6 +832,9 @@ class FilteringModule(MultipleMethodModule):
         if FilteringModule.MostFreq in methods:
             n = params.get("n_tokens", FilteringModule.DEFAULT_N_TOKEN)
             filters.append(MostFrequentTokensFilter(keep_n=n))
+        if FilteringModule.PosTag in methods:
+            tags = params.get("pos_tags", FilteringModule.DEFAULT_POS_TAGS)
+            filters.append(PosTagFilter(tags=tags))
         return filters
 
     def __repr__(self):
@@ -801,6 +854,8 @@ class FilteringModule(MultipleMethodModule):
                     append = f"[{self.__abs_freq_st}, {self.__abs_freq_en}]"
             elif method == self.MostFreq:
                 append = f"{self.__n_token}"
+            elif method == self.PosTag:
+                append = f"{self.__pos_tag}"
             texts.append(f"{self.Methods[method].name} ({append})")
         return ", ".join(texts)
 
@@ -952,15 +1007,20 @@ class OWPreprocess(Orange.widgets.data.owpreprocess.OWPreprocess,
                                     ("preprocess.filter", {})]
                   }  # type: Dict[str, List[Tuple[str, Dict]]]
     storedsettings = Setting(DEFAULT_PP)
+    buttons_area_orientation = Qt.Vertical
 
     def __init__(self):
         ConcurrentWidgetMixin.__init__(self)
         Orange.widgets.data.owpreprocess.OWPreprocess.__init__(self)
+
         box = gui.vBox(self.controlArea, "Preview")
         self.preview = ""
         gui.label(box, self, "%(preview)s", wordWrap=True)
         self.controlArea.layout().insertWidget(1, box)
-        self.controlArea.setFixedWidth(220)
+        box = gui.vBox(self.buttonsArea, "Output")
+        self.output_info = ""
+        gui.label(box, self, "%(output_info)s", wordWrap=True)
+        self.buttonsArea.layout().insertWidget(0, box)
 
     def load(self, saved: Dict) -> StandardItemModel:
         for i, (name, params) in enumerate(saved.get("preprocessors", [])):
@@ -1076,9 +1136,6 @@ class OWPreprocess(Orange.widgets.data.owpreprocess.OWPreprocess,
         data, msgs = result.corpus, result.msgs
         for msg in msgs:
             msg()
-        summary = len(data) if data else self.info.NoOutput
-        detail = self.get_corpus_info(data) if data else ""
-        self.info.set_output_summary(summary, detail)
         self.Outputs.corpus.send(data)
         self.update_preview(data)
 
@@ -1093,11 +1150,17 @@ class OWPreprocess(Orange.widgets.data.owpreprocess.OWPreprocess,
             try:
                 tokens = next(data.ngrams_iterator(include_postags=True))
                 self.preview = ", ".join(tokens[:5])
+                n_tokens = sum(
+                    map(len, data.tokens)) if data.has_tokens() else ''
+                n_types = len(data.dictionary) if data.has_tokens() else ''
+                self.output_info = f"Tokens: {n_tokens}\nTypes: {n_types}"
             except StopIteration:
                 self.preview = ""
+                self.output_info = ""
 
         else:
             self.preview = ""
+            self.output_info = ""
 
     def workflowEnvChanged(self, key: str, *_):
         if key == "basedir":
@@ -1113,12 +1176,6 @@ class OWPreprocess(Orange.widgets.data.owpreprocess.OWPreprocess,
     def onDeleteWidget(self):
         self.shutdown()
         super().onDeleteWidget()
-
-    @staticmethod
-    def get_corpus_info(corpus: Corpus) -> str:
-        return f"Document count: {len(corpus)}\n" \
-               f"Total tokens: {sum(map(len, corpus.tokens))}\n" \
-               f"Total types: {len(corpus.dictionary)}"
 
     @classmethod
     def migrate_settings(cls, settings: Dict, version: int):

@@ -1,19 +1,24 @@
 import unittest
 from math import isclose
-from typing import List, Union
+from typing import List
 from unittest.mock import patch
 
 import numpy as np
-from AnyQt.QtCore import Qt
-from Orange.widgets.tests.base import WidgetTest
-from Orange.data import Table, StringVariable, Domain, ContinuousVariable
-from Orange.widgets.tests.utils import simulate
-from Orange.misc.collections import natural_sorted
+from AnyQt.QtCore import QItemSelectionModel, Qt
 
-from orangecontrib.text import Corpus
-from orangecontrib.text import preprocess
+from Orange.data import ContinuousVariable, Domain, StringVariable, Table
+from Orange.misc.collections import natural_sorted
+from Orange.util import dummy_callback
+from Orange.widgets.tests.base import WidgetTest
+from Orange.widgets.tests.utils import simulate
+
+from orangecontrib.text import Corpus, preprocess
 from orangecontrib.text.vectorization.document_embedder import DocumentEmbedder
-from orangecontrib.text.widgets.owscoredocuments import OWScoreDocuments
+from orangecontrib.text.widgets.owscoredocuments import (
+    OWScoreDocuments,
+    SelectionMethods,
+    _preprocess_words,
+)
 
 
 def embedding_mock(_, corpus, __):
@@ -48,6 +53,7 @@ class TestOWScoreDocuments(WidgetTest):
         pp_list = [
             preprocess.LowercaseTransformer(),
             preprocess.StripAccentsTransformer(),
+            preprocess.UrlRemover(),
             preprocess.SnowballStemmer(),
         ]
         for p in pp_list:
@@ -59,9 +65,7 @@ class TestOWScoreDocuments(WidgetTest):
 
     def test_set_data(self):
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
-        self.assertEqual(
-            [x[0] for x in self.widget.model], self.corpus.titles.tolist()
-        )
+        self.assertEqual([x[0] for x in self.widget.model], self.corpus.titles.tolist())
         self.assertTrue(self.widget.Warning.missing_words.is_shown())
 
         self.send_signal(self.widget.Inputs.words, self.words)
@@ -71,13 +75,10 @@ class TestOWScoreDocuments(WidgetTest):
         self.assertTrue(all(len(x) == 2 for x in self.widget.model))
 
         output = self.get_output(self.widget.Outputs.corpus)
-        self.assertTupleEqual(
-            output.domain.variables, self.corpus.domain.variables
-        )
-        self.assertTupleEqual(
-            output.domain.metas[:-1], self.corpus.domain.metas
-        )
-        self.assertEqual(str(output.domain.metas[-1]), "Word count")
+        self.assertTupleEqual(output.domain.variables, self.corpus.domain.variables)
+        self.assertTupleEqual(output.domain.metas[:1], self.corpus.domain.metas)
+        self.assertEqual(str(output.domain.metas[1]), "Word count")
+        self.assertEqual(str(output.domain.metas[2]), "Selected")
         self.assertEqual(len(output), len(self.corpus))
 
     def test_corpus_not_normalized(self):
@@ -101,12 +102,8 @@ class TestOWScoreDocuments(WidgetTest):
         w = StringVariable("Words")
         w.attributes["type"] = "words"
         w1 = StringVariable("Words 1")
-        words = np.array(["house", "doctor", "boy", "way", "Rum"]).reshape(
-            (-1, 1)
-        )
-        words1 = np.array(["house", "doctor1", "boy", "way", "Rum"]).reshape(
-            (-1, 1)
-        )
+        words = np.array(["house", "doctor", "boy", "way", "Rum"]).reshape((-1, 1))
+        words1 = np.array(["house", "doctor1", "boy", "way", "Rum"]).reshape((-1, 1))
 
         # guess by attribute type
         self.words = Table(
@@ -128,9 +125,7 @@ class TestOWScoreDocuments(WidgetTest):
 
         # guess by length
         w2 = StringVariable("Words 2")
-        words2 = np.array(["house 1", "doctor 1", "boy", "way", "Rum"]).reshape(
-            (-1, 1)
-        )
+        words2 = np.array(["house 1", "doctor 1", "boy", "way", "Rum"]).reshape((-1, 1))
         self.words = Table(
             Domain([], metas=[w2, w1]),
             np.empty((len(words), 0)),
@@ -183,7 +178,7 @@ class TestOWScoreDocuments(WidgetTest):
 
     @staticmethod
     def create_corpus(texts: List[str]) -> Corpus:
-        """ Create sample corpus with texts passed """
+        """Create sample corpus with texts passed"""
         text_var = StringVariable("Text")
         domain = Domain([], metas=[text_var])
         c = Corpus(
@@ -235,9 +230,7 @@ class TestOWScoreDocuments(WidgetTest):
         self.widget.controls.word_frequency.click()
         self.widget.controls.word_appearance.click()
         self.wait_until_finished()
-        self.assertListEqual(
-            [x[1] for x in self.widget.model], [2 / 3, 2 / 3, 1]
-        )
+        self.assertListEqual([x[1] for x in self.widget.model], [2 / 3, 2 / 3, 1])
 
         cb_aggregation = self.widget.controls.aggregation
         simulate.combobox_activate_item(cb_aggregation, "Max")
@@ -296,6 +289,150 @@ class TestOWScoreDocuments(WidgetTest):
         view.horizontalHeader().setSortIndicator(0, Qt.DescendingOrder)
         data = [model.data(model.index(i, 0)) for i in range(model.rowCount())]
         self.assertListEqual(data, natural_sorted(self.corpus.titles)[::-1])
+
+    def test_preprocess_words(self):
+        corpus = Corpus.from_file("book-excerpts")
+        words = [
+            "House",
+            "dóctor",
+            "boy",
+            "way",
+            "Rum https://google.com",
+            "https://google.com",
+            "<p>abra<b>cadabra</b><p>",
+        ]
+
+        pp_list = [
+            preprocess.LowercaseTransformer(),
+            preprocess.StripAccentsTransformer(),
+            preprocess.UrlRemover(),
+            preprocess.HtmlTransformer(),
+        ]
+        for p in pp_list:
+            corpus = p(corpus)
+
+        self.assertListEqual(
+            ["house", "doctor", "boy", "way", "rum", "abracadabra"],
+            _preprocess_words(corpus, words, dummy_callback),
+        )
+
+        words = ["House", "dóctor", "boys", "way", "Rum"]
+
+        pp_list = [preprocess.SnowballStemmer()]
+        for p in pp_list:
+            corpus = p(corpus)
+
+        self.assertListEqual(
+            ["hous", "doctor", "boy", "way", "rum"],
+            _preprocess_words(corpus, words, dummy_callback),
+        )
+
+    def test_no_words_after_preprocess(self):
+        w = StringVariable("Words")
+        words = np.array(["https://google.com"]).reshape((-1, 1))
+        words = Table(Domain([], metas=[w]), np.empty((len(words), 0)), metas=words)
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.send_signal(self.widget.Inputs.words, words)
+        self.wait_until_finished()
+
+        self.assertTrue(self.widget.Error.custom_err.is_shown())
+        self.assertEqual(
+            "Empty word list after preprocessing. Please provide a valid set of words.",
+            str(self.widget.Error.custom_err),
+        )
+
+        w = StringVariable("Words")
+        words = np.array(["https://google.com", "house"]).reshape((-1, 1))
+        words = Table(Domain([], metas=[w]), np.empty((len(words), 0)), metas=words)
+        self.send_signal(self.widget.Inputs.words, words)
+        self.wait_until_finished()
+
+        self.assertFalse(self.widget.Error.custom_err.is_shown())
+
+    def test_sort_setting(self):
+        """
+        Test if sorting is correctly memorized in setting and restored
+        """
+        view = self.widget.view
+        model = view.model()
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.send_signal(self.widget.Inputs.words, self.words)
+        self.wait_until_finished()
+
+        self.widget.sort_column_order = (1, Qt.DescendingOrder)
+        self.widget._fill_table()
+        self.wait_until_finished()
+
+        header = self.widget.view.horizontalHeader()
+        current_sorting = (header.sortIndicatorSection(), header.sortIndicatorOrder())
+        data = [model.data(model.index(i, 1)) for i in range(model.rowCount())]
+        self.assertTupleEqual((1, Qt.DescendingOrder), current_sorting)
+        self.assertListEqual(sorted(data, reverse=True), data)
+
+        self.send_signal(self.widget.Inputs.words, None)
+        self.send_signal(self.widget.Inputs.words, self.words)
+        self.wait_until_finished()
+
+        header = self.widget.view.horizontalHeader()
+        current_sorting = (header.sortIndicatorSection(), header.sortIndicatorOrder())
+        data = [model.data(model.index(i, 1)) for i in range(model.rowCount())]
+        self.assertTupleEqual((1, Qt.DescendingOrder), current_sorting)
+        self.assertListEqual(sorted(data, reverse=True), data)
+
+        self.send_signal(self.widget.Inputs.corpus, None)
+        self.send_signal(self.widget.Inputs.words, None)
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.send_signal(self.widget.Inputs.words, self.words)
+        self.wait_until_finished()
+
+        header = self.widget.view.horizontalHeader()
+        current_sorting = (header.sortIndicatorSection(), header.sortIndicatorOrder())
+        data = [model.data(model.index(i, 1)) for i in range(model.rowCount())]
+        self.assertTupleEqual((1, Qt.DescendingOrder), current_sorting)
+        self.assertListEqual(sorted(data, reverse=True), data)
+
+    def test_selection_none(self):
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.widget._sel_method_buttons.button(SelectionMethods.NONE).click()
+
+        output = self.get_output(self.widget.Outputs.selected_documents)
+        self.assertIsNone(output)
+
+    def tests_selection_all(self):
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.widget._sel_method_buttons.button(SelectionMethods.ALL).click()
+
+        output = self.get_output(self.widget.Outputs.selected_documents)
+        self.assertEqual(len(self.corpus), len(output))
+
+    def test_selection_manual(self):
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.widget._sel_method_buttons.button(SelectionMethods.MANUAL).click()
+
+        mode = QItemSelectionModel.Rows | QItemSelectionModel.Select
+        view = self.widget.view
+        view.clearSelection()
+        model = view.model()
+        view.selectionModel().select(model.index(2, 0), mode)
+        view.selectionModel().select(model.index(3, 0), mode)
+
+        output = self.get_output(self.widget.Outputs.selected_documents)
+        self.assertListEqual(["Document 3", "Document 4"], output.titles.tolist())
+
+    def test_selection_n_best(self):
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.widget._sel_method_buttons.button(SelectionMethods.N_BEST).click()
+
+        output = self.get_output(self.widget.Outputs.selected_documents)
+        self.assertListEqual(
+            [f"Document {i}" for i in range(1, 4)], output.titles.tolist()
+        )
+
+        self.widget.controls.n_selected.setValue(5)
+        output = self.get_output(self.widget.Outputs.selected_documents)
+        self.assertListEqual(
+            [f"Document {i}" for i in range(1, 6)], output.titles.tolist()
+        )
 
 
 if __name__ == "__main__":

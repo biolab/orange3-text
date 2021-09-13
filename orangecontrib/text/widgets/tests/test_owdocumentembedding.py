@@ -42,24 +42,6 @@ class TestOWDocumentEmbedding(WidgetTest):
         self.assertIsInstance(result, Corpus)
         self.assertEqual(len(self.corpus), len(result))
 
-    def test_input_summary(self):
-        input_summary = self.widget.info.set_input_summary = Mock()
-        self.send_signal("Corpus", None)
-        input_summary.assert_called_with(self.widget.info.NoInput)
-
-        self.send_signal("Corpus", self.corpus)
-        input_summary.assert_called_with(str(len(self.corpus)), "9 documents.")
-
-    @patch(PATCH_METHOD, make_dummy_post(b'{"embedding": [1.3, 1]}'))
-    def test_output_summary(self):
-        output_summary = self.widget.info.set_output_summary = Mock()
-        self.send_signal("Corpus", self.corpus)
-        self.wait_until_finished()
-        output_summary.assert_called_with(
-            f"{str(int(len(self.corpus)))}|0",
-            "Successful: {}, Unsuccessful: {}".format(
-                int(len(self.corpus)), int(0)))
-
     @patch(PATCH_METHOD, make_dummy_post(b''))
     def test_some_failed(self):
         simulate.combobox_activate_index(self.widget.controls.aggregator, 1)

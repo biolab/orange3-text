@@ -13,6 +13,8 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from Orange.util import dummy_callback
 
 from orangecontrib.text.keywords.rake import Rake
+from orangecontrib.text.keywords.embedding import embedding_keywords, \
+    EMBEDDING_LANGUAGE_MAPPING
 from orangecontrib.text.preprocess import StopwordsFilter
 
 # all available languages for RAKE
@@ -174,8 +176,10 @@ class ScoringMethods:
     Scoring methods enum.
     """
     TF_IDF, RAKE, YAKE, EMBEDDING = "TF-IDF", "Rake", "YAKE!", "Embedding"
-    ITEMS = list(zip((TF_IDF, YAKE, RAKE),
-                     (tfidf_keywords, yake_keywords, rake_keywords)))
+    ITEMS = list(zip(
+        (TF_IDF, YAKE, RAKE, EMBEDDING),
+        (tfidf_keywords, yake_keywords, rake_keywords, embedding_keywords)
+    ))
 
     TOKEN_METHODS = TF_IDF, EMBEDDING
     DOCUMENT_METHODS = RAKE, YAKE

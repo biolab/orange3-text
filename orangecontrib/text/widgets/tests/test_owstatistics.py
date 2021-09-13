@@ -252,6 +252,48 @@ class TestStatisticsWidget(WidgetTest):
         np.testing.assert_array_almost_equal(res.X.flatten(), [6, 5, 4, 5])
         self.assertFalse(self.widget.Warning.not_computed.is_shown())
 
+    def test_yule(self):
+        """
+        Test Yule's I - complexity index.
+        - test with corpus that has no pos tags - warning raised
+        - test with corpus that has pos tags
+        """
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self._set_feature("Yule's I")
+        self.widget.apply()
+        self.wait_until_finished()
+        res = self.get_output(self.widget.Outputs.corpus)
+        self.assertEqual(0, res.X.shape[1])
+        self.assertTrue(self.widget.Warning.not_computed.is_shown())
+
+        self.corpus[1][-1] = "simple"
+        tagger = AveragedPerceptronTagger()
+        result = tagger(self.corpus)
+
+        self.send_signal(self.widget.Inputs.corpus, result)
+        self._set_feature("Yule's I")
+        self.widget.apply()
+        self.wait_until_finished()
+        res = self.get_output(self.widget.Outputs.corpus)
+        self.assertTupleEqual((len(self.corpus), 1), res.X.shape)
+        # the second document will have lower complexity than the first one
+        self.assertLess(res[1][0], res[0][0])
+        self.assertFalse(self.widget.Warning.not_computed.is_shown())
+
+    def test_lix(self):
+        """
+        Test LIX readability score.
+        """
+        self.corpus[1][-1] = "simple. simple."
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self._set_feature("LIX index")
+        self.widget.apply()
+        self.wait_until_finished()
+        res = self.get_output(self.widget.Outputs.corpus)
+        self.assertTupleEqual((len(self.corpus), 1), res.X.shape)
+        # the second document will have lower complexity than the first one
+        self.assertLess(res[1][0], res[0][0])
+
     def test_statistics_combination(self):
         """
         Testing three statistics at same time and see if column concatenated
@@ -376,55 +418,6 @@ class TestStatisticsWidget(WidgetTest):
         ][0]
         remove_button.click()
         self.assertListEqual([], self.widget.active_rules)
-
-    def test_input_summary(self):
-        """ Test correctness of the input summary """
-        self.widget.info.set_input_summary = in_sum = Mock()
-
-        self.send_signal(self.widget.Inputs.corpus, self.corpus)
-        in_sum.assert_called_with(
-            len(self.corpus),
-            "4 instances, 1 variable\nFeatures: — (No missing values)"
-            "\nTarget: —\nMetas: string",
-        )
-        in_sum.reset_mock()
-
-        self.send_signal(self.widget.Inputs.corpus, self.book_data)
-        in_sum.assert_called_with(
-            len(self.book_data),
-            "140 instances, 2 variables\nFeatures: — (No missing values)"
-            "\nTarget: categorical\nMetas: string",
-        )
-        in_sum.reset_mock()
-
-        self.send_signal(self.widget.Inputs.corpus, None)
-        in_sum.assert_called_with(self.widget.info.NoInput)
-
-    def test_output_summary(self):
-        """ Test correctness of the output summary"""
-        self.widget.info.set_output_summary = out_sum = Mock()
-
-        self.send_signal(self.widget.Inputs.corpus, self.corpus)
-        self.wait_until_finished()
-        out_sum.assert_called_with(
-            len(self.corpus),
-            "4 instances, 3 variables\nFeatures: 2 numeric (No missing values)"
-            "\nTarget: —\nMetas: string",
-        )
-        out_sum.reset_mock()
-
-        self.send_signal(self.widget.Inputs.corpus, self.book_data)
-        self.wait_until_finished()
-        out_sum.assert_called_with(
-            len(self.book_data),
-            "140 instances, 4 variables\nFeatures: 2 numeric (No missing values)"
-            "\nTarget: categorical\nMetas: string",
-        )
-        out_sum.reset_mock()
-
-        self.send_signal(self.widget.Inputs.corpus, None)
-        self.wait_until_finished()
-        out_sum.assert_called_with(self.widget.info.NoOutput)
 
 
 if __name__ == "__main__":

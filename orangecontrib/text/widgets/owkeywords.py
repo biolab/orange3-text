@@ -21,11 +21,12 @@ from Orange.widgets.widget import Input, Output, OWWidget, Msg
 
 from orangecontrib.text import Corpus
 from orangecontrib.text.keywords import ScoringMethods, AggregationMethods, \
-    YAKE_LANGUAGE_MAPPING, RAKE_LANGUAGES
+    YAKE_LANGUAGE_MAPPING, RAKE_LANGUAGES, EMBEDDING_LANGUAGE_MAPPING
 from orangecontrib.text.preprocess import BaseNormalizer
 
 WORDS_COLUMN_NAME = "Words"
 YAKE_LANGUAGES = list(YAKE_LANGUAGE_MAPPING.keys())
+EMBEDDING_LANGUAGES = list(EMBEDDING_LANGUAGE_MAPPING.keys())
 
 
 class Results(SimpleNamespace):
@@ -175,12 +176,15 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
     priority = 1100
     keywords = ["characteristic", "term"]
 
+    buttons_area_orientation = Qt.Vertical
+
     DEFAULT_SORTING = (1, Qt.DescendingOrder)
 
     settingsHandler = DomainContextHandler()
     selected_scoring_methods: Set[str] = Setting({ScoringMethods.TF_IDF})
     yake_lang_index: int = Setting(YAKE_LANGUAGES.index("English"))
     rake_lang_index: int = Setting(RAKE_LANGUAGES.index("English"))
+    embedding_lang_index: int = Setting(EMBEDDING_LANGUAGES.index("English"))
     agg_method: int = Setting(AggregationMethods.MEAN)
     sel_method: int = ContextSetting(SelectionMethods.N_BEST)
     n_selected: int = ContextSetting(3)
@@ -189,7 +193,7 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
     auto_apply: bool = Setting(True)
 
     class Inputs:
-        corpus = Input("Corpus", Corpus)
+        corpus = Input("Corpus", Corpus, default=True)
         words = Input("Words", Table)
 
     class Outputs:
@@ -219,6 +223,10 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
             self.controlArea, self, "rake_lang_index", items=RAKE_LANGUAGES,
             callback=self.__on_rake_lang_changed
         )
+        embedding_cb = gui.comboBox(
+            self.controlArea, self, "embedding_lang_index",
+            items=EMBEDDING_LANGUAGES, callback=self.__on_emb_lang_changed
+        )
 
         for i, (method_name, _) in enumerate(ScoringMethods.ITEMS):
             check_box = QCheckBox(method_name, self)
@@ -232,6 +240,8 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
                 box.layout().addWidget(yake_cb, i, 1)
             if method_name == ScoringMethods.RAKE:
                 box.layout().addWidget(rake_cb, i, 1)
+            if method_name == ScoringMethods.EMBEDDING:
+                box.layout().addWidget(embedding_cb, i, 1)
 
         box = gui.vBox(self.controlArea, "Aggregation")
         gui.comboBox(
@@ -239,7 +249,7 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
             callback=self.update_scores
         )
 
-        box = gui.vBox(self.controlArea, "Select Words")
+        box = gui.vBox(self.buttonsArea, "Select Words")
         grid = QGridLayout()
         grid.setContentsMargins(0, 0, 0, 0)
         box.layout().addLayout(grid)
@@ -308,6 +318,12 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
                 del self.__cached_keywords[ScoringMethods.RAKE]
             self.update_scores()
 
+    def __on_emb_lang_changed(self):
+        if ScoringMethods.EMBEDDING in self.selected_scoring_methods:
+            if ScoringMethods.EMBEDDING in self.__cached_keywords:
+                del self.__cached_keywords[ScoringMethods.EMBEDDING]
+            self.update_scores()
+
     def __on_filter_changed(self):
         model = self.view.model()
         model.setFilterFixedString(self.__filter_line_edit.text().strip())
@@ -368,6 +384,9 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
             ScoringMethods.RAKE: {
                 "language": RAKE_LANGUAGES[self.rake_lang_index],
                 "max_len": self.corpus.ngram_range[1] if self.corpus else 1
+            },
+            ScoringMethods.EMBEDDING: {
+                "language": EMBEDDING_LANGUAGES[self.embedding_lang_index],
             },
         }
         self.start(run, self.corpus, self.words, self.__cached_keywords,

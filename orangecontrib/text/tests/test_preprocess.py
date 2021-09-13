@@ -8,6 +8,7 @@ from unittest import mock
 
 import nltk
 from gensim import corpora
+from lemmagen3 import Lemmatizer
 from requests.exceptions import ConnectionError
 import numpy as np
 
@@ -78,7 +79,8 @@ class PreprocessTests(unittest.TestCase):
                 return string.split()
 
         p = SpaceTokenizer()
-        array = np.array([sent.split() for sent in self.corpus.documents])
+        array = np.array([sent.split() for sent in self.corpus.documents],
+                         dtype=object)
         np.testing.assert_equal(p(self.corpus).tokens, array)
 
     def test_token_normalizer(self):
@@ -101,7 +103,7 @@ class PreprocessTests(unittest.TestCase):
 
         p = LengthFilter()
         tokens = np.array([[token for token in doc.split() if len(token) < 4]
-                           for doc in self.corpus.documents])
+                           for doc in self.corpus.documents], dtype=object)
         np.testing.assert_equal(p(self.corpus).tokens, tokens)
 
     def test_inplace(self):
@@ -114,6 +116,20 @@ class PreprocessTests(unittest.TestCase):
         for pp in self.pp_list:
             corpus = pp(corpus)
         self.assertTrue((corpus.ids == self.corpus.ids).all())
+
+    def test_filter_pos_tags(self):
+        pp_list = [preprocess.LowercaseTransformer(),
+                   preprocess.WordPunctTokenizer(),
+                   tag.AveragedPerceptronTagger(),
+                   preprocess.StopwordsFilter()]
+        corpus = self.corpus
+        corpus.metas[0, 0] = "This is the most beautiful day in the world"
+        for pp in pp_list:
+            corpus = pp(corpus)
+        self.assertEqual(len(corpus.tokens), len(corpus.pos_tags))
+        self.assertEqual(len(corpus.tokens[0]), len(corpus.pos_tags[0]))
+        self.assertEqual(corpus.tokens[0], ["beautiful", "day", "world"])
+        self.assertEqual(corpus.pos_tags[0], ["JJ", "NN", "NN"])
 
 
 class TransformationTests(unittest.TestCase):
@@ -224,6 +240,13 @@ class TokenNormalizerTests(unittest.TestCase):
         self.assertTrue(corpus.has_tokens())
         self.assertEqual(len(corpus.used_preprocessor.preprocessors), 2)
 
+    def test_call_lemmagen(self):
+        pp = preprocess.LemmagenLemmatizer()
+        self.assertFalse(self.corpus.has_tokens())
+        corpus = pp(self.corpus)
+        self.assertTrue(corpus.has_tokens())
+        self.assertEqual(len(corpus.used_preprocessor.preprocessors), 2)
+
     def test_function(self):
         stemmer = preprocess.BaseNormalizer()
         stemmer.normalizer = lambda x: x[:-1]
@@ -255,6 +278,8 @@ class TokenNormalizerTests(unittest.TestCase):
 
     def test_udpipe_pickle(self):
         normalizer = preprocess.UDPipeLemmatizer('Slovenian', True)
+        # udpipe store model after first call - model is not picklable
+        normalizer(self.corpus)
         loaded = pickle.loads(pickle.dumps(normalizer))
         self.assertEqual(normalizer._UDPipeLemmatizer__language,
                          loaded._UDPipeLemmatizer__language)
@@ -274,6 +299,34 @@ class TokenNormalizerTests(unittest.TestCase):
         self.corpus.metas[0, 0] = 'Gori na gori hiša gori'
         self.assertEqual(list(copied(self.corpus).tokens[0]),
                          ['gora', 'na', 'gora', 'hiša', 'goreti'])
+
+    def test_lemmagen(self):
+        normalizer = preprocess.LemmagenLemmatizer('Slovenian')
+        sentence = 'Gori na gori hiša gori'
+        self.corpus.metas[0, 0] = sentence
+        self.assertEqual(
+            [Lemmatizer("sl").lemmatize(t) for t in sentence.split()],
+            normalizer(self.corpus).tokens[0],
+        )
+
+    def test_normalizers_picklable(self):
+        """ Normalizers must be picklable, tests if it is true"""
+        for nm in set(preprocess.normalize.__all__) - {"BaseNormalizer"}:
+            normalizer = getattr(preprocess.normalize, nm)()
+            normalizer(self.corpus)
+            loaded = pickle.loads(pickle.dumps(normalizer))
+            loaded(self.corpus)
+
+    def test_cache(self):
+        normalizer = preprocess.UDPipeLemmatizer('Slovenian')
+        self.corpus.metas[0, 0] = 'sem'
+        normalizer(self.corpus)
+        self.assertEqual(normalizer._normalization_cache['sem'], 'biti')
+        self.assertEqual(40, len(normalizer._normalization_cache))
+
+        # cache should not be pickled
+        loaded_normalizer = pickle.loads(pickle.dumps(normalizer))
+        self.assertEqual(0, len(loaded_normalizer._normalization_cache))
 
 
 class UDPipeModelsTests(unittest.TestCase):
@@ -329,8 +382,11 @@ class FilteringTests(unittest.TestCase):
                 return not token.isdigit()
 
         df = DigitsFilter()
-        self.assertEqual(df._preprocess([]), [])
-        self.assertEqual(df._preprocess(['a', '1']), ['a'])
+        filtered = list(itertools.compress([], df._preprocess([])))
+        self.assertEqual(filtered, [])
+        filtered = list(itertools.compress(['a', '1'],
+                                           df._preprocess(['a', '1'])))
+        self.assertEqual(filtered, ['a'])
 
     def test_stopwords(self):
         f = preprocess.StopwordsFilter('english')
@@ -433,6 +489,18 @@ class FilteringTests(unittest.TestCase):
         self.assertEqual(filtered.tokens[0], [' http'])
         self.assertEqual(len(filtered.used_preprocessor.preprocessors), 2)
 
+    def test_pos_filter(self):
+        pos_filter = preprocess.PosTagFilter("NN")
+        pp_list = [preprocess.WordPunctTokenizer(),
+                   tag.AveragedPerceptronTagger()]
+        corpus = self.corpus
+        for pp in pp_list:
+            corpus = pp(corpus)
+        filtered = pos_filter(corpus)
+        self.assertTrue(len(filtered.pos_tags))
+        self.assertEqual(len(filtered.pos_tags[0]), 5)
+        self.assertEqual(len(filtered.tokens[0]), 5)
+
     def test_can_deepcopy(self):
         copied = copy.deepcopy(self.regexp)
         self.corpus.metas[0, 0] = 'foo bar'
@@ -500,6 +568,15 @@ class TokenizerTests(unittest.TestCase):
     def test_can_pickle(self):
         tokenizer = preprocess.RegexpTokenizer(pattern=r'\w')
         pickle.loads(pickle.dumps(tokenizer))
+
+    def test_reset_pos_tags(self):
+        corpus = Corpus.from_file('deerwester')
+        tagger = tag.AveragedPerceptronTagger()
+        tagged_corpus = tagger(corpus)
+        self.assertTrue(len(tagged_corpus.pos_tags))
+        tokenizer = preprocess.RegexpTokenizer(pattern=r'\w')
+        tokenized_corpus = tokenizer(corpus)
+        self.assertFalse(tokenized_corpus.pos_tags)
 
 
 class NGramsTests(unittest.TestCase):

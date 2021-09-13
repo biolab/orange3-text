@@ -27,6 +27,16 @@ class TestOWPreprocess(WidgetTest):
         self.assertIsNot(pp_data, self.corpus)
         self.assertNotEqual(pp_data, self.corpus)
 
+    def test_previews(self):
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.wait_until_finished()
+        self.assertTrue(self.widget.preview)
+        self.assertTrue(self.widget.output_info)
+        self.send_signal(self.widget.Inputs.corpus, None)
+        self.wait_until_finished()
+        self.assertFalse(self.widget.preview)
+        self.assertFalse(self.widget.output_info)
+
     def test_available_preprocessors(self):
         self.assertEqual(self.widget.preprocessors.rowCount(), 6)
 
@@ -349,6 +359,10 @@ class TestNormalizationModule(WidgetTest):
         return self.editor._NormalizationModule__combo_udl
 
     @property
+    def combo_lemm(self):
+        return self.editor._NormalizationModule__combo_lemm
+
+    @property
     def check_use(self):
         return self.editor._NormalizationModule__check_use
 
@@ -364,6 +378,7 @@ class TestNormalizationModule(WidgetTest):
         params = {"method": NormalizationModule.Porter,
                   "snowball_language": "English",
                   "udpipe_language": "English",
+                  "lemmagen_language": "English",
                   "udpipe_tokenizer": False}
         self.assertDictEqual(self.editor.parameters(), params)
 
@@ -371,11 +386,13 @@ class TestNormalizationModule(WidgetTest):
         params = {"method": NormalizationModule.UDPipe,
                   "snowball_language": "Dutch",
                   "udpipe_language": "Finnish",
+                  "lemmagen_language": "Bulgarian",
                   "udpipe_tokenizer": True}
         self.editor.setParameters(params)
         self.assertDictEqual(self.editor.parameters(), params)
         self.assertEqual(self.combo_sbl.currentText(), "Dutch")
         self.assertEqual(self.combo_udl.currentText(), "Finnish")
+        self.assertEqual(self.combo_lemm.currentText(), "Bulgarian")
         self.assertTrue(self.check_use.isChecked())
 
     def test_createinstance(self):
@@ -385,13 +402,13 @@ class TestNormalizationModule(WidgetTest):
         params = {"method": NormalizationModule.Snowball}
         pp = self.editor.createinstance(params)
         self.assertIsInstance(pp, SnowballStemmer)
-        self.assertEqual(str(pp.normalizer.stemmer), "<EnglishStemmer>")
+        self.assertIn("<EnglishStemmer>", str(pp.normalizer))
 
         params = {"method": NormalizationModule.Snowball,
                   "snowball_language": "Dutch"}
         pp = self.editor.createinstance(params)
         self.assertIsInstance(pp, SnowballStemmer)
-        self.assertEqual(str(pp.normalizer.stemmer), "<DutchStemmer>")
+        self.assertIn("<DutchStemmer>", str(pp.normalizer))
 
         params = {"method": NormalizationModule.UDPipe,
                   "udpipe_language": "Finnish",
@@ -485,7 +502,8 @@ class TestFilterModule(WidgetTest):
                   "freq_type": 0,
                   "rel_start": 0.1, "rel_end": 0.9,
                   "abs_start": 1, "abs_end": 10,
-                  "n_tokens": 100, "invalidated": False}
+                  "n_tokens": 100, "pos_tags": "NOUN,VERB",
+                  "invalidated": False}
         self.assertDictEqual(self.editor.parameters(), params)
 
     def test_set_parameters(self):
@@ -499,7 +517,8 @@ class TestFilterModule(WidgetTest):
                   "freq_type": 1,
                   "rel_start": 0.2, "rel_end": 0.7,
                   "abs_start": 2, "abs_end": 15,
-                  "n_tokens": 10, "invalidated": False}
+                  "n_tokens": 10,  "pos_tags": "JJ",
+                  "invalidated": False}
         self.editor.setParameters(params)
         self.assertDictEqual(self.editor.parameters(), params)
 
