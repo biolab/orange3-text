@@ -2,6 +2,6 @@
 Wikipedia
 =========
 
-.. autoclass:: orangecontrib.text.wikipedia.WikipediaAPI
+.. autoclass:: orangecontrib.text.wikipedia_api.WikipediaAPI
    :members:
    :special-members: __init__
