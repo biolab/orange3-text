@@ -493,8 +493,7 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
                 array_ = words.get_column_view(attr)[0]
                 array_ = array_[~isnull(array_)]
                 return sum(len(a.split()) for a in array_) / len(array_)
-
-            _, attr = sorted((avg_len(a), a) for a in attrs)[0]
+            _, _, attr = sorted((avg_len(a), a.name, a) for a in attrs)[0]
             return words.get_column_view(attr)[0].tolist()
 
     @Inputs.words
