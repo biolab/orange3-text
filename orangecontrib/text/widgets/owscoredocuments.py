@@ -460,7 +460,7 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
         self.closeContext()
         self.Warning.corpus_not_normalized.clear()
         self.Warning.not_corpus.clear()
-        if not isinstance(corpus, Corpus):
+        if not isinstance(corpus, Table):
             self.corpus = None
             self.Warning.not_corpus()
             return
@@ -481,6 +481,8 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
             for a in words.domain.metas + words.domain.variables
             if isinstance(a, StringVariable)
         ]
+        if not attrs:
+            return None
         words_attr = next(
             (a for a in attrs if a.attributes.get("type", "") == "words"), None
         )
@@ -493,7 +495,7 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
                 array_ = words.get_column_view(attr)[0]
                 array_ = array_[~isnull(array_)]
                 return sum(len(a.split()) for a in array_) / len(array_)
-            _, _, attr = sorted((avg_len(a), a.name, a) for a in attrs)[0]
+            attr = sorted(attrs, key=avg_len)[0]
             return words.get_column_view(attr)[0].tolist()
 
     @Inputs.words
