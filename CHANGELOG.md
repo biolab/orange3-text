@@ -5,7 +5,14 @@ Change Log
 ------------
 * ...
 
+[1.5.1] - 2021-09-16
+--------------------
+##### Bugfixes
+* Fixing bug with non-working Gensim library
+
+
 [1.5.0] - 2021-09-13
+--------------------
 
 ##### Enhancements
 * Keywords: Add 'Embedding' scoring method ([#666](../../pull/666))
@@ -29,6 +36,7 @@ Change Log
 * Document Embedder: fix default language setting ([#716](../../pull/716))
 
 [1.4.0] - 2021-05-27
+--------------------
 
 ##### Enhancements
 * Score documents widget ([#632](../../pull/632))
@@ -282,8 +290,10 @@ Change Log
 --------------------
 
 
-[next]: https://github.com/biolab/orange3-text/compare/1.4.0...HEAD
-[1.3.1]: https://github.com/biolab/orange3-text/compare/1.3.1...1.4.0
+[next]: https://github.com/biolab/orange3-text/compare/1.4.1...HEAD
+[1.5.1]: https://github.com/biolab/orange3-text/compare/1.5.0...1.5.1
+[1.5.0]: https://github.com/biolab/orange3-text/compare/1.4.0...1.5.0
+[1.4.0]: https://github.com/biolab/orange3-text/compare/1.3.1...1.4.0
 [1.3.1]: https://github.com/biolab/orange3-text/compare/1.3.0...1.3.1
 [1.3.0]: https://github.com/biolab/orange3-text/compare/1.2.0...1.3.0
 [1.2.0]: https://github.com/biolab/orange3-text/compare/1.1.0...1.2.0
