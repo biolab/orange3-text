@@ -324,6 +324,8 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
         missing_words = Msg("Provide words on the input")
         missing_corpus = Msg("Provide corpus on the input")
         corpus_not_normalized = Msg("Use Preprocess Text to normalize corpus.")
+        not_corpus = Msg("Provide corpus on the input. Use Corpus to "
+                         "transform Table to Corpus.")
 
     class Error(OWWidget.Error):
         custom_err = Msg("{}")
@@ -457,6 +459,11 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
     def set_data(self, corpus: Corpus) -> None:
         self.closeContext()
         self.Warning.corpus_not_normalized.clear()
+        self.Warning.not_corpus.clear()
+        if not isinstance(corpus, Corpus):
+            self.corpus = None
+            self.Warning.not_corpus()
+            return
         if corpus is not None:
             self.Warning.missing_corpus.clear()
             if not self._is_corpus_normalized(corpus):
