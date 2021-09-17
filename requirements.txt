@@ -3,10 +3,7 @@ nltk>=3.0.5     # TweetTokenizer introduced in 3.0.5
 scikit-learn
 numpy
 python-dateutil<3.0.0  # denpendency for botocore
-# gensim 4.0 and 4.0.1 require numpy>=1.17 but do not have that in requirements - text addon do not work in envs with numpy<1.17
-# 4.1 have some build problems
-# TODO: change <4 probably to >4.1.1 when https://github.com/RaRe-Technologies/gensim/issues/3226 resolved
-gensim>=0.12.3,<4
+gensim>=4.1.2  # https://github.com/RaRe-Technologies/gensim/issues/3226
 setuptools-git
 Orange3 >=3.28.0
 tweepy
