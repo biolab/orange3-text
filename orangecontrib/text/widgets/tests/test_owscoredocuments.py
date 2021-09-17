@@ -66,10 +66,8 @@ class TestOWScoreDocuments(WidgetTest):
     def test_set_data(self):
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
         self.assertEqual([x[0] for x in self.widget.model], self.corpus.titles.tolist())
-        self.assertTrue(self.widget.Warning.missing_words.is_shown())
 
         self.send_signal(self.widget.Inputs.words, self.words)
-        self.assertFalse(self.widget.Warning.missing_words.is_shown())
         self.wait_until_finished()
         self.assertEqual(len(self.widget.model), len(self.corpus))
         self.assertTrue(all(len(x) == 2 for x in self.widget.model))
@@ -138,14 +136,13 @@ class TestOWScoreDocuments(WidgetTest):
         self.assertIsNone(self.widget.words)
 
     def test_missing_corpus(self):
-        self.assertFalse(self.widget.Warning.missing_corpus.is_shown())
+        self.assertFalse(self.widget.Warning.not_corpus.is_shown())
         self.send_signal(self.widget.Inputs.words, self.words)
-        self.assertTrue(self.widget.Warning.missing_corpus.is_shown())
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
-        self.assertFalse(self.widget.Warning.missing_corpus.is_shown())
+        self.assertFalse(self.widget.Warning.not_corpus.is_shown())
         self.assertIsNotNone(self.get_output(self.widget.Outputs.corpus))
         self.send_signal(self.widget.Inputs.corpus, None)
-        self.assertTrue(self.widget.Warning.missing_corpus.is_shown())
+        self.assertFalse(self.widget.Warning.not_corpus.is_shown())
         self.assertIsNone(self.get_output(self.widget.Outputs.corpus))
 
     @patch.object(DocumentEmbedder, "__call__", new=embedding_mock)
