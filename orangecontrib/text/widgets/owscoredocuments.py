@@ -322,8 +322,6 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
 
     class Warning(OWWidget.Warning):
         corpus_not_normalized = Msg("Use Preprocess Text to normalize corpus.")
-        not_corpus = Msg("Provide corpus on the input. Use Corpus to "
-                         "transform Table to Corpus.")
 
     class Error(OWWidget.Error):
         custom_err = Msg("{}")
@@ -457,14 +455,8 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
     def set_data(self, corpus: Corpus) -> None:
         self.closeContext()
         self.Warning.corpus_not_normalized.clear()
-        self.Warning.not_corpus.clear()
         if corpus is None:
             self.corpus = None
-            self._clear_and_run()
-            return
-        if not isinstance(corpus, Corpus):
-            self.corpus = None
-            self.Warning.not_corpus()
             self._clear_and_run()
             return
         if not self._is_corpus_normalized(corpus):
@@ -607,9 +599,7 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
     def commit(self) -> None:
         self.Error.custom_err.clear()
         self.cancel()
-        if self.corpus is None or self.words is None:
-            return
-        else:
+        if self.corpus is not None and self.words is not None:
             scorers = self._get_active_scorers()
             aggregation = self._get_active_aggregation()
             new_scores = [s for s in scorers if (s, aggregation) not in self.scores]

@@ -135,16 +135,6 @@ class TestOWScoreDocuments(WidgetTest):
         self.send_signal(self.widget.Inputs.words, None)
         self.assertIsNone(self.widget.words)
 
-    def test_missing_corpus(self):
-        self.assertFalse(self.widget.Warning.not_corpus.is_shown())
-        self.send_signal(self.widget.Inputs.words, self.words)
-        self.send_signal(self.widget.Inputs.corpus, self.corpus)
-        self.assertFalse(self.widget.Warning.not_corpus.is_shown())
-        self.assertIsNotNone(self.get_output(self.widget.Outputs.corpus))
-        self.send_signal(self.widget.Inputs.corpus, None)
-        self.assertFalse(self.widget.Warning.not_corpus.is_shown())
-        self.assertIsNone(self.get_output(self.widget.Outputs.corpus))
-
     @patch.object(DocumentEmbedder, "__call__", new=embedding_mock)
     def test_change_scorer(self):
         model = self.widget.model
