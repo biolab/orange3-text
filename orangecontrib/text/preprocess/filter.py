@@ -220,12 +220,6 @@ class PosTagFilter(BaseTokenFilter):
     def __init__(self, tags=None):
         self._tags = set(i.strip().upper() for i in tags.split(","))
 
-    def __call__(self, corpus: Corpus, callback: Callable = None) -> Corpus:
-        if callback is None:
-            callback = dummy_callback
-        corpus = super().__call__(corpus, wrap_callback(callback, end=0.2))
-        return self._filter_tokens(corpus, wrap_callback(callback, start=0.2))
-
     @staticmethod
     def validate_tags(tags):
         # should we keep a dict of existing POS tags and compare them with
