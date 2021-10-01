@@ -9,7 +9,7 @@ import tweepy
 
 from orangecontrib.text import twitter
 from orangecontrib.text.corpus import Corpus
-from tweepy import TweepError
+from tweepy import TweepyException
 
 
 def get_credentials():
@@ -54,7 +54,7 @@ class TestCredentials(unittest.TestCase):
 class MyCursor:
     def __init__(self, *args, **kwargs):
         time.sleep(0.05)
-        self.statuses = tweepy.Status.parse_list(
+        self.statuses = tweepy.models.Status.parse_list(
             None,
             json.load(
                 open(os.path.join(os.path.dirname(__file__), "tweets.json"))
@@ -158,16 +158,16 @@ class TestTwitterAPIErrorRaising(unittest.TestCase):
 
     def test_error_reporting(self):
         with unittest.mock.patch("tweepy.Cursor.items") as mock:
-            mock.side_effect = tweepy.TweepError("", Response(500))
+            mock.side_effect = tweepy.TweepyException("", Response(500))
             api = twitter.TwitterAPI(self.credentials)
-            with self.assertRaises(TweepError):
+            with self.assertRaises(TweepyException):
                 api.search_authors("hello", max_tweets=5)
 
     def test_rate_limit_reporting(self):
         with unittest.mock.patch("tweepy.Cursor.items") as mock:
-            mock.side_effect = tweepy.TweepError("", Response(429))
+            mock.side_effect = tweepy.TweepyException("", Response(429))
             api = twitter.TwitterAPI(self.credentials)
-            with self.assertRaises(TweepError):
+            with self.assertRaises(TweepyException):
                 api.search_authors("hello", max_tweets=5)
 
 
