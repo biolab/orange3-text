@@ -11,7 +11,7 @@ from Orange.widgets.settings import Setting
 from Orange.widgets.utils.concurrent import ConcurrentWidgetMixin, TaskState
 from Orange.widgets.widget import OWWidget, Msg, Input, Output
 from Orange.statistics.util import FDR
-from PyQt5.QtCore import QSize
+from AnyQt.QtCore import QSize
 from orangecontrib.text import Corpus
 from orangecontrib.text.util import np_sp_sum
 from orangecontrib.text.stats import hypergeom_p_values
