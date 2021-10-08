@@ -5,7 +5,7 @@ Change Log
 ------------
 * ...
 
-[1.5.2] - 2021-10-08
+[1.5.3] - 2021-10-08
 --------------------
 ##### Bugfixes
 *  UDPipe Lemmatizer: remove self.model from pickle ([#722](../../pull/722))
