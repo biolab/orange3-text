@@ -321,8 +321,6 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
         corpus = Output("Corpus", Corpus)
 
     class Warning(OWWidget.Warning):
-        missing_words = Msg("Provide words on the input")
-        missing_corpus = Msg("Provide corpus on the input")
         corpus_not_normalized = Msg("Use Preprocess Text to normalize corpus.")
 
     class Error(OWWidget.Error):
@@ -457,10 +455,12 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
     def set_data(self, corpus: Corpus) -> None:
         self.closeContext()
         self.Warning.corpus_not_normalized.clear()
-        if corpus is not None:
-            self.Warning.missing_corpus.clear()
-            if not self._is_corpus_normalized(corpus):
-                self.Warning.corpus_not_normalized()
+        if corpus is None:
+            self.corpus = None
+            self._clear_and_run()
+            return
+        if not self._is_corpus_normalized(corpus):
+            self.Warning.corpus_not_normalized()
         self.corpus = corpus
         self.selected_rows = []
         self.openContext(corpus)
@@ -474,6 +474,8 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
             for a in words.domain.metas + words.domain.variables
             if isinstance(a, StringVariable)
         ]
+        if not attrs:
+            return None
         words_attr = next(
             (a for a in attrs if a.attributes.get("type", "") == "words"), None
         )
@@ -486,8 +488,7 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
                 array_ = words.get_column_view(attr)[0]
                 array_ = array_[~isnull(array_)]
                 return sum(len(a.split()) for a in array_) / len(array_)
-
-            _, attr = sorted((avg_len(a), a) for a in attrs)[0]
+            attr = sorted(attrs, key=avg_len)[0]
             return words.get_column_view(attr)[0].tolist()
 
     @Inputs.words
@@ -495,7 +496,6 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
         if words is None or len(words.domain.variables + words.domain.metas) == 0:
             self.words = None
         else:
-            self.Warning.missing_words.clear()
             self.words = self._get_word_attribute(words)
         self._clear_and_run()
 
@@ -599,13 +599,7 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
     def commit(self) -> None:
         self.Error.custom_err.clear()
         self.cancel()
-        if self.corpus is None and self.words is None:
-            return
-        elif self.corpus is None:
-            self.Warning.missing_corpus()
-        elif self.words is None:
-            self.Warning.missing_words()
-        else:
+        if self.corpus is not None and self.words is not None:
             scorers = self._get_active_scorers()
             aggregation = self._get_active_aggregation()
             new_scores = [s for s in scorers if (s, aggregation) not in self.scores]

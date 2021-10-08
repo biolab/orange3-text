@@ -17,7 +17,7 @@ NAME = 'Orange3-Text'
 
 MAJOR = 1
 MINOR = 5
-MICRO = 1
+MICRO = 2
 IS_RELEASED = True
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 FULL_VERSION = VERSION
@@ -189,6 +189,8 @@ if __name__ == "__main__":
         test_suite="setup.temp_test_suite",
         extras_require={
             'test': ['coverage'],
-            'doc': ['sphinx', 'recommonmark', 'sphinx_rtd_theme'],
+            # docutils changed html template in version 0.17; fixing to 0.16 until parser is not fixed 
+            # todo: remove docutils requirement when parser fixed in widget-base and released
+            'doc': ['sphinx', 'recommonmark', 'sphinx_rtd_theme', 'docutils<0.17'],  
         },
     )

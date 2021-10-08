@@ -5,6 +5,13 @@ Change Log
 ------------
 * ...
 
+[1.5.2] - 2021-10-08
+--------------------
+##### Bugfixes
+*  UDPipe Lemmatizer: remove self.model from pickle ([#722](../../pull/722))
+* Fixes for Tweepy 4.0.0 ([#725](../../pull/725))
+
+
 [1.5.1] - 2021-09-16
 --------------------
 ##### Bugfixes

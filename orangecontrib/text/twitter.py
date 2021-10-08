@@ -39,7 +39,7 @@ class Credentials:
         try:
             self.auth.get_authorization_url()
             self._valid = True
-        except tweepy.TweepError:
+        except tweepy.TweepyException:
             self._valid = False
         return self._valid
 
@@ -83,7 +83,10 @@ class TwitterAPI:
             StringVariable("Content"),
             lambda doc: doc.full_text if not doc.retweeted else doc.text,
         ),
-        (tv, lambda doc: TwitterAPI.tv.parse(doc.created_at.isoformat())),
+        # temporary fix until Orange>3.30.1 then change back to
+        # (tv, lambda doc: TwitterAPI.tv.parse(doc.created_at.isoformat())),
+        (tv, lambda doc: TwitterAPI.tv.parse(
+                    TwitterAPI.tv._tzre_sub(doc.created_at.isoformat()))),
         (DiscreteVariable("Language"), lambda doc: doc.lang),
         (
             DiscreteVariable("Location"),
@@ -200,8 +203,9 @@ class TwitterAPI:
 
         query = build_query()
         cursor = tweepy.Cursor(
-            self.api.search, q=query, lang=lang, tweet_mode="extended"
+            self.api.search_tweets, q=query, lang=lang, tweet_mode="extended"
         )
+
         corpus, count = self.fetch(
             cursor, max_tweets, search_author=False, callback=callback
         )

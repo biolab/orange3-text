@@ -136,7 +136,6 @@ class UDPipeLemmatizer(BaseNormalizer):
         self.__use_tokenizer = use_tokenizer
         self.models = UDPipeModels()
         self.__model = None
-        self.__output_format = None
 
     @property
     def use_tokenizer(self):
@@ -153,7 +152,6 @@ class UDPipeLemmatizer(BaseNormalizer):
         except StopIteration:
             raise UDPipeStopIteration
 
-        self.__output_format = udpipe.OutputFormat.newOutputFormat('epe')
         if self.__use_tokenizer:
             corpus = Preprocessor.__call__(self, corpus)
             if callback is None:
@@ -184,16 +182,27 @@ class UDPipeLemmatizer(BaseNormalizer):
 
     def __getstate__(self):
         """
-        This function remove udpipe.Model that cannot be pickled
-
-        Note: __setstate__ is not required since we do not make any harm if
-              model is not restored. It will be loaded on __call__
+        This function remove udpipe.Model that cannot be pickled and models that
+        include absolute paths on computer -- so it is not transferable between
+        computers.
         """
         state = super().__getstate__()
-        # Remove the unpicklable Model and output format.
+        # Remove the nonpicklable Model.
         state['_UDPipeLemmatizer__model'] = None
-        state['_UDPipeLemmatizer__output_format'] = None
+        # models object together with serverfiles store absolute paths to models
+        # on computers -- we will init it on when unpickling -- setstate
+        state.pop('models')
         return state
+
+    def __setstate__(self, state):
+        """
+        Called on unpickling the object. It init new models object which was
+        deleted from the dictionary in __getstate__.
+
+        Note: __model will be loaded on __call__
+        """
+        self.__dict__.update(state)
+        self.models = UDPipeModels()
 
 
 class LemmagenLemmatizer(BaseNormalizer):
