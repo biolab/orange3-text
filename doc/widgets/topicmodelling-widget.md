@@ -19,7 +19,7 @@ The widget wraps gensim's topic models ([LSI](https://radimrehurek.com/gensim/mo
 
 The first, LSI, can return both positive and negative words (words that are in a topic and those that aren't) and concurrently topic weights, that can be positive or negative. As stated by the main gensim's developer, Radim Řehůřek: *"LSI topics are not supposed to make sense; since LSI allows negative numbers, it boils down to delicate cancellations between topics and there's no straightforward way to interpret a topic."*
 
-LDA can be more easily interpreted, but is slower than LSI. HDP has many parameters - the parameter that corresponds to the number of topics is *Top level truncation level (T)*. The smallest number of topics that one can retrieve is 10.
+LDA can be more easily interpreted, while HDP has many parameters - the parameter that corresponds to the number of topics is *Top level truncation level (T)*. The smallest number of topics that one can retrieve is 10.
 
 ![](images/Topic-Modelling-stamped.png)
 
@@ -37,6 +37,8 @@ LDA can be more easily interpreted, but is slower than LSI. HDP has many paramet
    - Slow down parameter (τ)
 3. Produce a report.
 4. If *Commit Automatically* is on, changes are communicated automatically. Alternatively press *Commit*.
+
+The widget has three outputs. The first is a corpus, with added topic probabilities per each document. This can be used in a [Heat Map](https://orangedatamining.com/widget-catalog/visualize/heatmap/) to observe the distribution of topics across a corpus. The second output is the selected topic, which can be used in combination with a [Word Cloud](wordcloud.md) to observe significant words in a topic. The third output is a topic-term matrix, which shows probability distributions of words in topics. It can be used in combination with [MDS](https://orangedatamining.com/widget-catalog/unsupervised/mds/) to observe topic similarities.
 
 Examples
 --------
