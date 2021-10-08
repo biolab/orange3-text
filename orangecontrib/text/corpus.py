@@ -511,6 +511,7 @@ class Corpus(Table):
         c.used_preprocessor = self.used_preprocessor
         c._titles = self._titles
         c._pp_documents = self._pp_documents
+        c._ngrams_corpus = self._ngrams_corpus
         return c
 
     @staticmethod
@@ -659,6 +660,7 @@ class Corpus(Table):
             new.ngram_range = orig.ngram_range
             new.attributes = orig.attributes
             new.used_preprocessor = orig.used_preprocessor
+            new.ngrams_corpus = orig._ngrams_corpus
 
     def __eq__(self, other):
         def arrays_equal(a, b):
