@@ -9,7 +9,7 @@ from Orange.widgets.credentials import CredentialManager
 from Orange.widgets.settings import Setting
 from Orange.widgets.widget import OWWidget, Msg, Output
 from Orange.widgets.utils.concurrent import TaskState, ConcurrentWidgetMixin
-from tweepy import TweepyException
+from tweepy import TooManyRequests
 
 from orangecontrib.text import twitter
 from orangecontrib.text.corpus import Corpus
@@ -336,7 +336,7 @@ class OWTwitter(OWWidget, ConcurrentWidgetMixin):
 
     def on_exception(self, ex):
         self.search_button.setText("Search")
-        if isinstance(ex, TweepyException) and ex.response.status_code == 429:
+        if isinstance(ex, TooManyRequests):
             self.Error.rate_limit()
         else:
             self.Error.api_error(str(ex))

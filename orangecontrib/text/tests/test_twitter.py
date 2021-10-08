@@ -150,6 +150,10 @@ class TestTwitterAPI(unittest.TestCase):
 class Response:
     def __init__(self, code):
         self.status_code = code
+        self.reason = "dummy reason"
+
+    def json(self):
+        return {}
 
 
 class TestTwitterAPIErrorRaising(unittest.TestCase):
@@ -165,7 +169,7 @@ class TestTwitterAPIErrorRaising(unittest.TestCase):
 
     def test_rate_limit_reporting(self):
         with unittest.mock.patch("tweepy.Cursor.items") as mock:
-            mock.side_effect = tweepy.TweepyException("", Response(429))
+            mock.side_effect = tweepy.TooManyRequests(Response(429))
             api = twitter.TwitterAPI(self.credentials)
             with self.assertRaises(TweepyException):
                 api.search_authors("hello", max_tweets=5)
