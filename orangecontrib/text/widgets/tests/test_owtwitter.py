@@ -7,7 +7,7 @@ from Orange.widgets.tests.base import WidgetTest
 from orangecontrib.text import twitter, Corpus
 from orangecontrib.text.tests.test_twitter import Response
 from orangecontrib.text.widgets.owtwitter import OWTwitter
-from tweepy import TweepError
+from tweepy import TweepyException, TooManyRequests
 
 
 # it is not possible to test real API because API key cannot be shared for
@@ -61,7 +61,7 @@ class TestTwitterWidget(WidgetTest):
 
     @patch("tweepy.Cursor.items")
     def test_rate_limit(self, mock_items):
-        mock_items.side_effect = TweepError("Rate limit error", Response(429))
+        mock_items.side_effect = TooManyRequests(Response(492))
         self.widget.word_list = ["orange"]
         self.widget.search_button.click()
         self.wait_until_finished()
@@ -70,7 +70,7 @@ class TestTwitterWidget(WidgetTest):
 
     @patch("tweepy.Cursor.items")
     def test_error(self, mock_items):
-        mock_items.side_effect = TweepError("Other errors", Response(400))
+        mock_items.side_effect = TweepyException("Other errors", Response(400))
         self.widget.word_list = ["orange"]
         self.widget.search_button.click()
         self.wait_until_finished()
