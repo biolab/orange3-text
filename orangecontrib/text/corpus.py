@@ -660,7 +660,8 @@ class Corpus(Table):
             new.ngram_range = orig.ngram_range
             new.attributes = orig.attributes
             new.used_preprocessor = orig.used_preprocessor
-            new.ngrams_corpus = orig._ngrams_corpus
+            if orig._ngrams_corpus is not None:
+                new.ngrams_corpus = orig._ngrams_corpus[key]
 
     def __eq__(self, other):
         def arrays_equal(a, b):
