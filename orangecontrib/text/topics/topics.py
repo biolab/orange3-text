@@ -1,3 +1,5 @@
+from collections import Counter
+
 from gensim import matutils
 import numpy as np
 from gensim.corpora import Dictionary
@@ -18,6 +20,11 @@ class Topic(Table):
     def __new__(cls, *args, **kwargs):
         """ Bypass Table.__new__. """
         return object.__new__(Topic)
+
+
+class Topics(Table):
+    """ Dummy wrapper for Table so signals can distinguish All Topics from Data.
+    """
 
 
 class GensimWrapper:
@@ -149,6 +156,10 @@ class GensimWrapper:
         names = np.array(self.topic_names[:n_topics], dtype=object)[:, None]
 
         attrs = [ContinuousVariable(w) for w in sorted_words]
+        corpus_counter = Counter(w for doc in self.tokens for w in doc)
+        n_tokens = sum(corpus_counter.values())
+        for attr in attrs:
+            attr.attributes = {'word-frequency': corpus_counter[attr.name]/n_tokens}
         metas = [StringVariable('Topics'),
                  ContinuousVariable('Marginal Topic Probability')]
 
@@ -156,8 +167,8 @@ class GensimWrapper:
                                                           self.doc_topic),
                                dtype=object)
 
-        t = Table.from_numpy(Domain(attrs, metas=metas), X=X,
-                             metas=np.hstack((names, topic_proba)))
+        t = Topics.from_numpy(Domain(attrs, metas=metas), X=X,
+                              metas=np.hstack((names, topic_proba)))
         t.name = 'All topics'
         return t
 

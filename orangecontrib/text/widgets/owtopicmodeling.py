@@ -18,7 +18,8 @@ from Orange.widgets.settings import DomainContextHandler
 from Orange.widgets.widget import OWWidget, Input, Output, Msg
 from Orange.data import Table
 from orangecontrib.text.corpus import Corpus
-from orangecontrib.text.topics import Topic, LdaWrapper, HdpWrapper, LsiWrapper
+from orangecontrib.text.topics import Topic, Topics, LdaWrapper, HdpWrapper, \
+    LsiWrapper
 from orangecontrib.text.topics.topics import GensimWrapper
 
 
@@ -127,7 +128,7 @@ class OWTopicModeling(OWWidget, ConcurrentWidgetMixin):
     class Outputs:
         corpus = Output("Corpus", Table, default=True)
         selected_topic = Output("Selected Topic", Topic)
-        all_topics = Output("All Topics", Table)
+        all_topics = Output("All Topics", Topics)
 
     want_main_area = True
 
