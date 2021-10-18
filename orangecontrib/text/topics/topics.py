@@ -1,5 +1,3 @@
-from collections import Counter
-
 from gensim import matutils
 import numpy as np
 from gensim.corpora import Dictionary
@@ -156,10 +154,6 @@ class GensimWrapper:
         names = np.array(self.topic_names[:n_topics], dtype=object)[:, None]
 
         attrs = [ContinuousVariable(w) for w in sorted_words]
-        corpus_counter = Counter(w for doc in self.tokens for w in doc)
-        n_tokens = sum(corpus_counter.values())
-        for attr in attrs:
-            attr.attributes = {'word-frequency': corpus_counter[attr.name]/n_tokens}
         metas = [StringVariable('Topics'),
                  ContinuousVariable('Marginal Topic Probability')]
 
@@ -170,6 +164,8 @@ class GensimWrapper:
         t = Topics.from_numpy(Domain(attrs, metas=metas), X=X,
                               metas=np.hstack((names, topic_proba)))
         t.name = 'All topics'
+        # required for distinguishing between models in OWRelevantTerms
+        t.attributes.update([('Model', f'{self.name}')])
         return t
 
     def get_top_words_by_id(self, topic_id, num_of_words=10):
