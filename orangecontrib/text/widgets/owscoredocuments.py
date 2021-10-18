@@ -279,13 +279,34 @@ class ScoreDocumentsProxyModel(QSortFilterProxyModel):
 
 
 class ScoreDocumentsTableModel(PyTableModel):
+    def __init__(self, parent=None):
+        super().__init__(parent=parent)
+        self._extremes = {}
+
     def data(self, index, role=Qt.DisplayRole):
+        if index.column() > 0 and role == gui.BarRatioRole and index.isValid():
+            # for all except first columns return ratio for distribution bar
+            value = super().data(index, Qt.EditRole)
+            vmin, vmax = self._extremes.get(index.column() - 1, (-np.inf, np.inf))
+            return (value - vmin) / ((vmax - vmin) or 1)
         if role in (gui.BarRatioRole, Qt.DisplayRole):
             dat = super().data(index, Qt.EditRole)
             return dat
         if role == Qt.BackgroundColorRole and index.column() == 0:
             return TableModel.ColorForRole[TableModel.Meta]
         return super().data(index, role)
+
+    def fill_table(self, titles, scores):
+        """ Handle filling the table with titles and scores """
+        for column, values in enumerate(scores.T):
+            self.set_extremes(column, values)
+        self.wrap([[c] + s for c, s in zip(titles, scores.tolist())])
+
+    def set_extremes(self, column, values):
+        """Set extremes for column's ratio bars from values"""
+        vmin = np.nanmin(values)
+        vmax = np.nanmax(values)
+        self._extremes[column] = (vmin, vmax)
 
 
 class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
@@ -572,7 +593,7 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
         ):
             self.view.clearSelection()
 
-        self.model.wrap([[c] + s for c, s in zip(titles, scores.tolist())])
+        self.model.fill_table(titles, scores)
         self.model.setHorizontalHeaderLabels(labels)
         self.view.update_column_widths()
         if self.model.columnCount() > self.sort_column_order[0]:
