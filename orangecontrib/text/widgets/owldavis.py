@@ -65,10 +65,11 @@ class TableModel(PyTableModel):
         self.precision = precision
 
 
-class OWRelevantTerms(OWWidget):
-    name = "Relevant Terms"
+class OWLDAvis(OWWidget):
+    name = "LDAvis"
+    description = "Interactive exploration of LDA topics."
     priority = 410
-    icon = "icons/RelevantTerms.svg"
+    icon = "icons/LDAvis.svg"
 
     selected_topic = Setting(0, schema_only=True)
     relevance = Setting(0.5)
@@ -90,6 +91,8 @@ class OWRelevantTerms(OWWidget):
         self.term_frequency = None
         self.shown_words = None
         self.shown_weights = None
+        self.shown_term_topic_freq = None
+        self.shown_marg_prob = None
         # should be used later for bar chart
         self.shown_ratio = None
         self._create_layout()
@@ -147,13 +150,13 @@ class OWRelevantTerms(OWWidget):
         words = self.data.metas[:, 0]
         adj_prob = self.compute_weights(topic)
         idx = np.argsort(adj_prob, axis=None)[::-1]
-        self.shown_weights = adj_prob[idx][:N_BEST_PLOTTED]
+        self.shown_weights = np.around(adj_prob[idx][:N_BEST_PLOTTED], 5)
         self.shown_words = words[idx][:N_BEST_PLOTTED]
-        term_topic_freq = self.term_topic_matrix[self.selected_topic].T[idx][
-                          :N_BEST_PLOTTED]
-        marg_prob = self.term_frequency[idx][:N_BEST_PLOTTED]
-        self.shown_ratio = [f"{a:.2f}/{b:.2f}" for a, b in zip(
-            term_topic_freq, marg_prob)]
+        self.shown_term_topic_freq = self.term_topic_matrix[
+                                       self.selected_topic].T[idx][:N_BEST_PLOTTED]
+        self.shown_marg_prob = self.term_frequency[idx][:N_BEST_PLOTTED]
+        self.shown_ratio = [f"{a}/{b}" for a, b in zip(
+            self.shown_term_topic_freq, self.shown_marg_prob)]
         self.repopulate_table()
 
     def repopulate_table(self):
@@ -191,6 +194,10 @@ class OWRelevantTerms(OWWidget):
         self.topic_frequency = None
         self.term_topic_matrix = None
         self.term_frequency = None
+        self.shown_words, self.shown_weights = None, None
+        self.shown_ratio = None
+        self.shown_term_topic_freq = None
+        self.shown_marg_prob = None
 
 
 if __name__ == "__main__":
@@ -198,4 +205,4 @@ if __name__ == "__main__":
     lda = LdaWrapper(num_topics=5)
     lda.fit_transform(corpus)
     topics = lda.get_all_topics_table()
-    WidgetPreview(OWRelevantTerms).run(topics)
+    WidgetPreview(OWLDAvis).run(topics)
