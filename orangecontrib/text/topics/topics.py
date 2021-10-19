@@ -29,7 +29,8 @@ class GensimWrapper:
     name = NotImplemented
     Model = NotImplemented
     num_topics = NotImplemented
-    has_negative_weights = False    # whether words can negatively contibute to a topic
+    has_negative_weights = False    # whether words can negatively contribute
+    # to a topic
 
     def __init__(self, **kwargs):
         for k, v in kwargs.items():
@@ -66,7 +67,8 @@ class GensimWrapper:
         # prevent model from updating
         _update = self.Model.update
         self.Model.update = self.dummy_method
-        self.id2word = Dictionary(corpus.ngrams_iterator(include_postags=True), prune_at=None)
+        self.id2word = Dictionary(corpus.ngrams_iterator(include_postags=True),
+                                  prune_at=None)
         self.model = self.Model(corpus=corpus,
                                 id2word=self.id2word, **self.kwargs)
         self.Model.update = _update
@@ -147,7 +149,6 @@ class GensimWrapper:
             weights = [we for wo, we in sorted(zip(words, weights))]
             X.append(weights)
         X = np.array(X)
-
 
         # take only first n_topics; e.g. when user requested 10, but gensim
         # returns only 9 — when the rank is lower than num_topics requested
