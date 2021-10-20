@@ -1,68 +1,121 @@
 # coding: utf-8
+from typing import Optional, Union, List
 import numpy as np
 
-from AnyQt.QtCore import Qt
+from AnyQt.QtCore import Qt, QRectF, QPointF
+import pyqtgraph as pg
+
+from PyQt5.QtGui import QColor
+from PyQt5.QtWidgets import QGraphicsSceneHelpEvent, QToolTip
 
 from Orange.data import Table
 from Orange.widgets import gui
-from Orange.widgets.utils.itemmodels import PyTableModel
 from Orange.widgets.widget import Input, OWWidget
-from PyQt5.QtGui import QColor
-from PyQt5.QtWidgets import QGraphicsScene, QGraphicsLinearLayout
+from Orange.widgets.visualize.utils.plotutils import HelpEventDelegate
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.topics import LdaWrapper
 from orangecontrib.text.topics.topics import Topics
-from orangewidget.gui import TableView
-from orangewidget.settings import Setting
+from orangewidget.settings import Setting, SettingProvider
 from orangewidget.utils.widgetpreview import WidgetPreview
-
-from Orange.widgets.data.utils.histogram import ProportionalBarItem
 from orangewidget.widget import Msg
 
 N_BEST_PLOTTED = 20
 
 
-class TableModel(PyTableModel):
-    def __init__(self, precision, **kwargs):
-        super().__init__(**kwargs)
-        self.precision = precision
+class BarPlotGraph(pg.PlotWidget):
+    bar_width = 0.7
 
-    def data(self, index, role=Qt.DisplayRole):
-        """
-        Format numbers of the first column with the number of decimal
-        spaces defined by self.precision which can be changed based on
-        weights type - row counts does not have decimal spaces
-        """
-        row, column = self.mapToSourceRows(index.row()), index.column()
-        if role == Qt.DisplayRole and column == 0:
-            value = float(self[row][column])
-            return f"{value:.{self.precision}f}"
-        if role == Qt.DisplayRole and column == 2:
-            # value = float(self[row][column])
-            # bar_layout = QGraphicsLinearLayout(Qt.Horizontal)
-            # bar_layout.setSpacing(0)
-            # bar_layout.addStretch()
-            # bar = ProportionalBarItem(  # pylint: disable=blacklisted-name
-            #     distribution=np.array([value, 1]),
-            #     colors=[QColor(Qt.blue), QColor(Qt.red)],
-            #     height=1
-            # )
-            # bar_layout.addItem(bar)
-            # return bar_layout
-            return f"{self[row][column]}"
+    def __init__(self, master, parent=None):
+        self.master: OWLDAvis = master
+        self.bar_item: pg.BarGraphItem = None
+        super().__init__(
+            parent=parent,
+            viewBox=pg.ViewBox(),
+            background="w", enableMenu=False,
+            axisItems={"left": pg.AxisItem(orientation="left",
+                                           rotate_ticks=False),
+                       "top": pg.AxisItem(orientation="top")}
+        )
+        self.hideAxis("left")
+        self.hideAxis("top")
+        self.getPlotItem().buttonsHidden = True
+        self.getPlotItem().setContentsMargins(10, 0, 0, 10)
 
-        return super().data(index, role)
+        self.tooltip_delegate = HelpEventDelegate(self.help_event)
+        self.scene().installEventFilter(self.tooltip_delegate)
 
-    def set_precision(self, precision: int):
-        """
-        Setter for precision.
+    def reset_graph(self):
+        self.clear()
+        self.update_bars()
+        self.update_axes()
+        self.reset_view()
 
-        Parameters
-        ----------
-        precision
-            Number of decimal spaces to format the weights.
-        """
-        self.precision = precision
+    def update_bars(self):
+        if self.bar_item is not None:
+            self.removeItem(self.bar_item)
+            self.bar_item = None
+
+        values = self.master.get_values()
+        if values is None:
+            return
+
+        self.bar_item = pg.BarGraphItem(
+            x=np.arange(len(values)),
+            height=values,
+            width=self.bar_width,
+            pen=pg.mkPen(QColor(Qt.white)),
+            labels=self.master.get_labels(),
+            brushes=[QColor(Qt.red) for _ in range(len(
+                self.master.shown_words))],
+        )
+        self.addItem(self.bar_item)
+
+    def update_axes(self):
+        if self.bar_item is not None:
+            self.showAxis("left")
+            self.showAxis("top")
+
+            self.setLabel(axis="left", text="words")
+            self.setLabel(axis="top", text="weights")
+
+            ticks = [list(enumerate(self.master.get_labels()))]
+            self.getAxis("left").setTicks(ticks)
+        else:
+            self.hideAxis("left")
+            self.hideAxis("top")
+
+    def reset_view(self):
+        if self.bar_item is None:
+            return
+        values = np.append(self.bar_item.opts["height"], 0)
+        min_ = np.nanmin(values)
+        max_ = -min_ + np.nanmax(values)
+        rect = QRectF(-0.5, min_, len(values) - 1, max_)
+        self.getViewBox().setRange(rect)
+
+    def __get_index_at(self, p: QPointF):
+        x = p.x()
+        index = round(x)
+        heights = self.bar_item.opts["height"]
+        if 0 <= index < len(heights) and abs(x - index) <= self.bar_width / 2:
+            height = heights[index]  # pylint: disable=unsubscriptable-object
+            if 0 <= p.y() <= height or height <= p.y() <= 0:
+                return index
+        return None
+
+    def help_event(self, ev: QGraphicsSceneHelpEvent):
+        if self.bar_item is None:
+            return False
+
+        index = self.__get_index_at(self.bar_item.mapFromScene(ev.scenePos()))
+        text = ""
+        if index is not None:
+            text = self.master.get_tooltip(index)
+        if text:
+            QToolTip.showText(ev.screenPos(), text, widget=self)
+            return True
+        else:
+            return False
 
 
 class OWLDAvis(OWWidget):
@@ -73,6 +126,9 @@ class OWLDAvis(OWWidget):
 
     selected_topic = Setting(0, schema_only=True)
     relevance = Setting(0.5)
+
+    graph = SettingProvider(BarPlotGraph)
+    graph_name = "graph.plotItem"
 
     class Inputs:
         topics = Input("Topics", Topics)
@@ -95,9 +151,11 @@ class OWLDAvis(OWWidget):
         self.shown_marg_prob = None
         # should be used later for bar chart
         self.shown_ratio = None
+        self.graph: Optional[BarPlotGraph] = None
         self._create_layout()
 
     def _create_layout(self):
+        self._add_graph()
         box = gui.widgetBox(self.controlArea, "Relevance")
         self.rel_slider = gui.hSlider(
             box, self, "relevance", minValue=0, maxValue=1, step=0.1,
@@ -111,13 +169,13 @@ class OWLDAvis(OWWidget):
             callback=self.on_params_change
         )
 
-        box = gui.widgetBox(self.mainArea, "Words && weights")
-        # insert list of words into mainArea
-        view = self.tableview = TableView(self)
-        model = self.tablemodel = TableModel(precision=5, parent=self)
-        model.setHorizontalHeaderLabels(["Weight", "Word", "Distribution"])
-        view.setModel(model)
-        box.layout().addWidget(view)
+    def _add_graph(self):
+        box = gui.vBox(self.mainArea, True, margin=0)
+        self.graph = BarPlotGraph(self)
+        box.layout().addWidget(self.graph)
+
+    def __parameter_changed(self):
+        self.graph.reset_graph()
 
     def compute_relevance(self, tp, mp):
         """
@@ -157,12 +215,6 @@ class OWLDAvis(OWWidget):
         self.shown_marg_prob = self.term_frequency[idx][:N_BEST_PLOTTED]
         self.shown_ratio = [f"{a}/{b}" for a, b in zip(
             self.shown_term_topic_freq, self.shown_marg_prob)]
-        self.repopulate_table()
-
-    def repopulate_table(self):
-        self.tablemodel.wrap(list(zip(self.shown_weights, self.shown_words,
-                                      self.shown_ratio)))
-        self.tableview.sortByColumn(0, Qt.DescendingOrder)
 
     @Inputs.topics
     def set_data(self, data):
@@ -184,11 +236,31 @@ class OWLDAvis(OWWidget):
         self.selected_topic = 0
         self.on_params_change()
 
-    # TODO: check behaviour when None on input
+    def handleNewSignals(self):
+        self.setup_plot()
+
+    def get_values(self) -> Optional[np.ndarray]:
+        if not self.data:
+            return None
+        return self.shown_weights
+
+    def get_labels(self) -> Optional[Union[List, np.ndarray]]:
+        if not self.data:
+            return None
+        else:
+            return self.shown_words
+
+    def get_tooltip(self, index: int) -> str:
+        if not self.data:
+            return ""
+        else:
+            return self.shown_ratio[index]
+
+    def setup_plot(self):
+        self.graph.reset_graph()
+
     def clear(self):
         self.Error.clear()
-        self.tablemodel.clear()
-        self.tableview.update()
         self.data = None
         self.topic_list = []
         self.topic_frequency = None
