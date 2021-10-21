@@ -32,14 +32,13 @@ class BarPlotGraph(pg.PlotWidget):
             parent=parent,
             viewBox=pg.ViewBox(),
             background="w", enableMenu=False,
-            axisItems={"left": pg.AxisItem(orientation="left",
-                                           rotate_ticks=False),
+            axisItems={"left": pg.AxisItem(orientation="left", rotate_ticks=False),
                        "top": pg.AxisItem(orientation="top")}
         )
         self.hideAxis("left")
         self.hideAxis("top")
         self.getPlotItem().buttonsHidden = True
-        self.getPlotItem().setContentsMargins(10, 0, 0, 10)
+        self.getPlotItem().setContentsMargins(10, 10, 10, 10)
 
         self.tooltip_delegate = HelpEventDelegate(self.help_event)
         self.scene().installEventFilter(self.tooltip_delegate)
@@ -48,7 +47,6 @@ class BarPlotGraph(pg.PlotWidget):
         self.clear()
         self.update_bars()
         self.update_axes()
-        self.reset_view()
 
     def update_bars(self):
         if self.bar_item is not None:
@@ -60,13 +58,11 @@ class BarPlotGraph(pg.PlotWidget):
             return
 
         self.bar_item = pg.BarGraphItem(
-            x=np.arange(len(values)),
-            height=values,
-            width=self.bar_width,
-            pen=pg.mkPen(QColor(Qt.white)),
-            labels=self.master.get_labels(),
-            brushes=[QColor(Qt.red) for _ in range(len(
-                self.master.shown_words))],
+            x0=0,
+            y=np.arange(len(values)),
+            height=self.bar_width,
+            width=[abs(v) for v in values],
+            brushes=[QColor(Qt.red) for _ in range(len(self.master.shown_words))]
         )
         self.addItem(self.bar_item)
 
@@ -83,15 +79,6 @@ class BarPlotGraph(pg.PlotWidget):
         else:
             self.hideAxis("left")
             self.hideAxis("top")
-
-    def reset_view(self):
-        if self.bar_item is None:
-            return
-        values = np.append(self.bar_item.opts["height"], 0)
-        min_ = np.nanmin(values)
-        max_ = -min_ + np.nanmax(values)
-        rect = QRectF(-0.5, min_, len(values) - 1, max_)
-        self.getViewBox().setRange(rect)
 
     def __get_index_at(self, p: QPointF):
         x = p.x()
@@ -209,12 +196,14 @@ class OWLDAvis(OWWidget):
         adj_prob = self.compute_weights(topic)
         idx = np.argsort(adj_prob, axis=None)[::-1]
         self.shown_weights = np.around(adj_prob[idx][:N_BEST_PLOTTED], 5)
+        print(self.shown_weights)
         self.shown_words = words[idx][:N_BEST_PLOTTED]
         self.shown_term_topic_freq = self.term_topic_matrix[
                                        self.selected_topic].T[idx][:N_BEST_PLOTTED]
         self.shown_marg_prob = self.term_frequency[idx][:N_BEST_PLOTTED]
         self.shown_ratio = [f"{a}/{b}" for a, b in zip(
             self.shown_term_topic_freq, self.shown_marg_prob)]
+        self.setup_plot()
 
     @Inputs.topics
     def set_data(self, data):
@@ -235,9 +224,6 @@ class OWLDAvis(OWWidget):
         # should probably consider settings?
         self.selected_topic = 0
         self.on_params_change()
-
-    def handleNewSignals(self):
-        self.setup_plot()
 
     def get_values(self) -> Optional[np.ndarray]:
         if not self.data:
