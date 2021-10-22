@@ -2,10 +2,10 @@
 from typing import Optional, Union, List
 import numpy as np
 
-from AnyQt.QtCore import Qt, QRectF, QPointF
+from AnyQt.QtCore import Qt, QPointF
 import pyqtgraph as pg
 
-from PyQt5.QtGui import QColor
+from PyQt5.QtGui import QColor, QPen
 from PyQt5.QtWidgets import QGraphicsSceneHelpEvent, QToolTip
 
 from Orange.data import Table
@@ -27,47 +27,54 @@ class BarPlotGraph(pg.PlotWidget):
 
     def __init__(self, master, parent=None):
         self.master: OWLDAvis = master
-        self.bar_item: pg.BarGraphItem = None
+        self.marg_prob_item: pg.BarGraphItem = None
         super().__init__(
             parent=parent,
             viewBox=pg.ViewBox(),
             background="w", enableMenu=False,
-            axisItems={"left": pg.AxisItem(orientation="left", rotate_ticks=False),
-                       "top": pg.AxisItem(orientation="top")}
+            axisItems={"left": pg.AxisItem(orientation="left", rotate_ticks=False, pen=QPen(Qt.NoPen)),
+                       "top": pg.AxisItem(orientation="top", maxTickLength=0)}
         )
         self.hideAxis("left")
         self.hideAxis("top")
+        self.hideAxis("bottom")
+
         self.getPlotItem().buttonsHidden = True
         self.getPlotItem().setContentsMargins(10, 10, 10, 10)
+        self.getPlotItem().setMouseEnabled(x=False, y=False)
 
         self.tooltip_delegate = HelpEventDelegate(self.help_event)
         self.scene().installEventFilter(self.tooltip_delegate)
 
-    def reset_graph(self):
+    def update_graph(self):
         self.clear()
-        self.update_bars()
+
+        term_topic_freq = self.master.shown_term_topic_freq
+        marg_prob = self.master.shown_marg_prob
+        self.marg_prob_item = pg.BarGraphItem(
+            x0=0,
+            y=np.arange(len(marg_prob)),
+            height=self.bar_width,
+            width=marg_prob[::-1],
+            brushes=[QColor(Qt.gray) for _ in marg_prob]
+        )
+        self.term_topic_freq = pg.BarGraphItem(
+            x0=0,
+            y=np.arange(len(term_topic_freq)),
+            height=self.bar_width,
+            width=term_topic_freq[::-1],
+            brushes=[QColor(Qt.red) for _ in term_topic_freq],
+            pen=QColor(Qt.red)
+        )
+        self.addItem(self.marg_prob_item)
+        self.addItem(self.term_topic_freq)
+        self.setXRange(0, marg_prob.max(), padding=0)
+        self.setYRange(0, len(marg_prob)-1)
+
         self.update_axes()
 
-    def update_bars(self):
-        if self.bar_item is not None:
-            self.removeItem(self.bar_item)
-            self.bar_item = None
-
-        values = self.master.get_values()
-        if values is None:
-            return
-
-        self.bar_item = pg.BarGraphItem(
-            x0=0,
-            y=np.arange(len(values)),
-            height=self.bar_width,
-            width=[abs(v) for v in values],
-            brushes=[QColor(Qt.red) for _ in range(len(self.master.shown_words))]
-        )
-        self.addItem(self.bar_item)
-
     def update_axes(self):
-        if self.bar_item is not None:
+        if self.marg_prob_item is not None:
             self.showAxis("left")
             self.showAxis("top")
 
@@ -81,20 +88,20 @@ class BarPlotGraph(pg.PlotWidget):
             self.hideAxis("top")
 
     def __get_index_at(self, p: QPointF):
-        x = p.x()
-        index = round(x)
-        heights = self.bar_item.opts["height"]
-        if 0 <= index < len(heights) and abs(x - index) <= self.bar_width / 2:
-            height = heights[index]  # pylint: disable=unsubscriptable-object
-            if 0 <= p.y() <= height or height <= p.y() <= 0:
+        y = p.y()
+        index = round(y)
+        widths = self.marg_prob_item.opts["width"]
+        if 0 <= index < len(widths) and abs(y - index) <= self.bar_width / 2:
+            width = widths[index]
+            if 0 <= p.x() <= width:
                 return index
         return None
 
     def help_event(self, ev: QGraphicsSceneHelpEvent):
-        if self.bar_item is None:
+        if self.marg_prob_item is None:
             return False
 
-        index = self.__get_index_at(self.bar_item.mapFromScene(ev.scenePos()))
+        index = self.__get_index_at(self.marg_prob_item.mapFromScene(ev.scenePos()))
         text = ""
         if index is not None:
             text = self.master.get_tooltip(index)
@@ -137,7 +144,6 @@ class OWLDAvis(OWWidget):
         self.shown_term_topic_freq = None
         self.shown_marg_prob = None
         # should be used later for bar chart
-        self.shown_ratio = None
         self.graph: Optional[BarPlotGraph] = None
         self._create_layout()
 
@@ -196,13 +202,10 @@ class OWLDAvis(OWWidget):
         adj_prob = self.compute_weights(topic)
         idx = np.argsort(adj_prob, axis=None)[::-1]
         self.shown_weights = np.around(adj_prob[idx][:N_BEST_PLOTTED], 5)
-        print(self.shown_weights)
         self.shown_words = words[idx][:N_BEST_PLOTTED]
         self.shown_term_topic_freq = self.term_topic_matrix[
                                        self.selected_topic].T[idx][:N_BEST_PLOTTED]
         self.shown_marg_prob = self.term_frequency[idx][:N_BEST_PLOTTED]
-        self.shown_ratio = [f"{a}/{b}" for a, b in zip(
-            self.shown_term_topic_freq, self.shown_marg_prob)]
         self.setup_plot()
 
     @Inputs.topics
@@ -225,11 +228,6 @@ class OWLDAvis(OWWidget):
         self.selected_topic = 0
         self.on_params_change()
 
-    def get_values(self) -> Optional[np.ndarray]:
-        if not self.data:
-            return None
-        return self.shown_weights
-
     def get_labels(self) -> Optional[Union[List, np.ndarray]]:
         if not self.data:
             return None
@@ -240,10 +238,10 @@ class OWLDAvis(OWWidget):
         if not self.data:
             return ""
         else:
-            return self.shown_ratio[index]
+            return f"{self.shown_words[index]} - Term frequency: {self.shown_term_topic_freq[index]}, Overall term frequency: {self.shown_marg_prob[index]}"
 
     def setup_plot(self):
-        self.graph.reset_graph()
+        self.graph.update_graph()
 
     def clear(self):
         self.Error.clear()
@@ -253,7 +251,6 @@ class OWLDAvis(OWWidget):
         self.term_topic_matrix = None
         self.term_frequency = None
         self.shown_words, self.shown_weights = None, None
-        self.shown_ratio = None
         self.shown_term_topic_freq = None
         self.shown_marg_prob = None
 
