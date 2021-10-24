@@ -32,7 +32,7 @@ class BarPlotGraph(pg.PlotWidget):
             parent=parent,
             viewBox=pg.ViewBox(),
             background="w", enableMenu=False,
-            axisItems={"left": pg.AxisItem(orientation="left", rotate_ticks=False, pen=QPen(Qt.NoPen)),
+            axisItems={"left": pg.AxisItem(orientation="left", rotate_ticks=False, pen=QPen(Qt.NoPen), ),
                        "top": pg.AxisItem(orientation="top", maxTickLength=0)}
         )
         self.hideAxis("left")
@@ -46,17 +46,15 @@ class BarPlotGraph(pg.PlotWidget):
         self.tooltip_delegate = HelpEventDelegate(self.help_event)
         self.scene().installEventFilter(self.tooltip_delegate)
 
-    def update_graph(self):
+    def update_graph(self, words, term_topic_freq, marginal_probability):
         self.clear()
 
-        term_topic_freq = self.master.shown_term_topic_freq
-        marg_prob = self.master.shown_marg_prob
         self.marg_prob_item = pg.BarGraphItem(
             x0=0,
-            y=np.arange(len(marg_prob)),
+            y=np.arange(len(marginal_probability)),
             height=self.bar_width,
-            width=marg_prob[::-1],
-            brushes=[QColor(Qt.gray) for _ in marg_prob]
+            width=marginal_probability[::-1],
+            brushes=[QColor(Qt.gray) for _ in marginal_probability]
         )
         self.term_topic_freq = pg.BarGraphItem(
             x0=0,
@@ -68,12 +66,12 @@ class BarPlotGraph(pg.PlotWidget):
         )
         self.addItem(self.marg_prob_item)
         self.addItem(self.term_topic_freq)
-        self.setXRange(0, marg_prob.max(), padding=0)
-        self.setYRange(0, len(marg_prob)-1)
+        self.setXRange(0, marginal_probability.max(), padding=0)
+        self.setYRange(0, len(marginal_probability)-1)
 
-        self.update_axes()
+        self.update_axes(words)
 
-    def update_axes(self):
+    def update_axes(self, words):
         if self.marg_prob_item is not None:
             self.showAxis("left")
             self.showAxis("top")
@@ -81,7 +79,7 @@ class BarPlotGraph(pg.PlotWidget):
             self.setLabel(axis="left", text="words")
             self.setLabel(axis="top", text="weights")
 
-            ticks = [list(enumerate(self.master.get_labels()))]
+            ticks = [list(enumerate(words[::-1]))]
             self.getAxis("left").setTicks(ticks)
         else:
             self.hideAxis("left")
@@ -102,14 +100,11 @@ class BarPlotGraph(pg.PlotWidget):
             return False
 
         index = self.__get_index_at(self.marg_prob_item.mapFromScene(ev.scenePos()))
-        text = ""
         if index is not None:
             text = self.master.get_tooltip(index)
-        if text:
             QToolTip.showText(ev.screenPos(), text, widget=self)
             return True
-        else:
-            return False
+        return False
 
 
 class OWLDAvis(OWWidget):
@@ -136,13 +131,8 @@ class OWLDAvis(OWWidget):
         OWWidget.__init__(self)
         self.data = None
         self.topic_list = []
-        self.topic_frequency = None
         self.term_topic_matrix = None
         self.term_frequency = None
-        self.shown_words = None
-        self.shown_weights = None
-        self.shown_term_topic_freq = None
-        self.shown_marg_prob = None
         # should be used later for bar chart
         self.graph: Optional[BarPlotGraph] = None
         self._create_layout()
@@ -189,10 +179,11 @@ class OWLDAvis(OWWidget):
                          for weight, probability in zip(topic,
                                                         self.term_frequency)])
 
-    def compute_distributions(self, topics):
+    def compute_distributions(self, data):
         # term-topic column is multiplied by marginal topic probability
         # how likely is the term in a topic * how likely is the topic
-        return topics * self.topic_frequency[:, None]
+        topic_frequency = data.get_column_view("Marginal Topic Probability")[0]
+        return data.X * topic_frequency[:, None]
 
     def on_params_change(self):
         if self.data is None:
@@ -200,13 +191,13 @@ class OWLDAvis(OWWidget):
         topic = self.data.X[:, self.selected_topic]
         words = self.data.metas[:, 0]
         adj_prob = self.compute_weights(topic)
-        idx = np.argsort(adj_prob, axis=None)[::-1]
-        self.shown_weights = np.around(adj_prob[idx][:N_BEST_PLOTTED], 5)
-        self.shown_words = words[idx][:N_BEST_PLOTTED]
-        self.shown_term_topic_freq = self.term_topic_matrix[
-                                       self.selected_topic].T[idx][:N_BEST_PLOTTED]
-        self.shown_marg_prob = self.term_frequency[idx][:N_BEST_PLOTTED]
-        self.setup_plot()
+
+        idx = np.argsort(adj_prob, axis=None)[::-1][:N_BEST_PLOTTED]
+        shown_words = words[idx]
+        shown_term_topic_freq = self.term_topic_matrix[self.selected_topic].T[idx]
+        shown_marg_prob = self.term_frequency[idx]
+
+        self.graph.update_graph(shown_words, shown_term_topic_freq, shown_marg_prob)
 
     @Inputs.topics
     def set_data(self, data):
@@ -218,21 +209,12 @@ class OWLDAvis(OWWidget):
             return
 
         # test if the same as Marginal Topic Probability
-        self.topic_frequency = data.get_column_view("Marginal Topic Probability")[0]
         self.data = Table.transpose(data, "Topics", "Words")
         self.topic_list = [var.name for var in self.data.domain.attributes]
-        self.term_topic_matrix = self.compute_distributions(data.X)
+        self.term_topic_matrix = self.compute_distributions(data)
         self.term_frequency = np.sum(self.term_topic_matrix, axis=0)
-        # is this even a correct way to select the first row in the list? It
-        # should probably consider settings?
-        self.selected_topic = 0
-        self.on_params_change()
 
-    def get_labels(self) -> Optional[Union[List, np.ndarray]]:
-        if not self.data:
-            return None
-        else:
-            return self.shown_words
+        self.on_params_change()
 
     def get_tooltip(self, index: int) -> str:
         if not self.data:
@@ -240,19 +222,12 @@ class OWLDAvis(OWWidget):
         else:
             return f"{self.shown_words[index]} - Term frequency: {self.shown_term_topic_freq[index]}, Overall term frequency: {self.shown_marg_prob[index]}"
 
-    def setup_plot(self):
-        self.graph.update_graph()
-
     def clear(self):
         self.Error.clear()
         self.data = None
         self.topic_list = []
-        self.topic_frequency = None
         self.term_topic_matrix = None
         self.term_frequency = None
-        self.shown_words, self.shown_weights = None, None
-        self.shown_term_topic_freq = None
-        self.shown_marg_prob = None
 
 
 if __name__ == "__main__":
@@ -260,4 +235,17 @@ if __name__ == "__main__":
     lda = LdaWrapper(num_topics=5)
     lda.fit_transform(corpus)
     topics = lda.get_all_topics_table()
+
+    terms = [a.name for a in topics.domain.attributes]
+    topics_terms = topics.X
+    doc_topics = lda.doc_topic
+    doc_lengths = [len(i) for i in lda.tokens]
+    with open("topics.pkl", "wb") as f:
+        pickle.dump({
+            'topic_term_dists': topics_terms,
+            'doc_topic_dists': doc_topics,
+            'doc_lengths': doc_lengths,
+            'vocab': terms,
+            'term_frequency': [0 for _ in terms]}, f)
+
     WidgetPreview(OWLDAvis).run(topics)
