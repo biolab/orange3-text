@@ -50,6 +50,7 @@ class BarPlotGraph(pg.PlotWidget):
         self.clear()
         self.hideAxis("left")
         self.hideAxis("top")
+        self.marg_prob_item = None
 
     def update_graph(self, words, term_topic_freq, marginal_probability):
         self.clear()
@@ -92,13 +93,14 @@ class BarPlotGraph(pg.PlotWidget):
         self.setLabel(axis="top", text="weights")
 
         ticks = [list(enumerate(words))]
+        # todo: ticks lengths - labels can be long truncate them
+        #  it can be done together with implementing plot settings
         self.getAxis("left").setTicks(ticks)
 
     def __get_index_at(self, p: QPointF):
-        y = p.y()
-        index = round(y)
+        index = round(p.y())
         widths = self.marg_prob_item.opts["width"]
-        if 0 <= index < len(widths) and abs(y - index) <= self.bar_width / 2:
+        if 0 <= index < len(widths) and abs(p.y() - index) <= self.bar_width / 2:
             width = widths[index]
             if 0 <= p.x() <= width:
                 return index
@@ -178,8 +180,10 @@ class OWLDAvis(OWWidget):
 
     @staticmethod
     def compute_distributions(data):
-        # term-topic column is multiplied by marginal topic probability
-        # how likely is the term in a topic * how likely is the topic
+        """
+        term-topic column is multiplied by marginal topic probability
+        how likely is the term in a topic * how likely is the topic
+        """
         topic_frequency = data.get_column_view("Marginal Topic Probability")[0].astype(float)
         return data.X * topic_frequency[:, None]
 
@@ -225,12 +229,13 @@ class OWLDAvis(OWWidget):
         self.term_topic_matrix = None
         self.term_frequency = None
 
+    # todo: report
+
 
 if __name__ == "__main__":
     corpus = Corpus.from_file('deerwester')
     lda = LdaWrapper(num_topics=5)
     lda.fit_transform(corpus, chunk_number=100)
     topics = lda.get_all_topics_table()
-    print(topics.metas)
 
     WidgetPreview(OWLDAvis).run(topics)
