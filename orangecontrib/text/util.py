@@ -74,7 +74,7 @@ class Sparse2CorpusSliceable(Sparse2Corpus):
     """
 
     def __getitem__(
-        self, key: Union[int, List[int], type(...), slice]
+        self, key: Union[int, List[int], np.ndarray, type(...), slice]
     ) -> Sparse2Corpus:
         """Retrieve a document vector from the corpus by its index.
 
@@ -87,7 +87,7 @@ class Sparse2CorpusSliceable(Sparse2Corpus):
         -------
         Selected subset of sparse data from self.
         """
-        if not isinstance(key, (int, list, type(...), slice)):
+        if not isinstance(key, (int, list, type(...), slice, np.ndarray)):
             raise TypeError(f"Indexing by type {type(key)} not supported.")
         sparse = self.sparse.__getitem__((slice(None, None, None), key))
         return Sparse2CorpusSliceable(sparse)
