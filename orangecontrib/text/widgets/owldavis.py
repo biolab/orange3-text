@@ -76,8 +76,8 @@ class BarPlotGraph(pg.PlotWidget):
         )
         self.addItem(self.marg_prob_item)
         self.addItem(term_topic_freq_item)
-        self.setXRange(0, marginal_probability.max(), padding=0)
-        self.setYRange(0, len(marginal_probability)-1)
+        self.setXRange(1, marginal_probability.max(), padding=0)
+        self.setYRange(0, len(marginal_probability) - 1)
         self.labels = [
             f"{w} - Term frequency: {tf:.3f}, Marginal probability{mp:.3f}"
             for w, tf, mp in zip(words, term_topic_freq, marginal_probability)
@@ -143,6 +143,7 @@ class OWLDAvis(OWWidget):
         self.topic_list = []
         self.term_topic_matrix = None
         self.term_frequency = None
+        self.num_tokens = None
         # should be used later for bar chart
         self.graph: Optional[BarPlotGraph] = None
         self._create_layout()
@@ -199,6 +200,10 @@ class OWLDAvis(OWWidget):
         term_topic_freq = self.term_topic_matrix[self.selected_topic].T[idx]
         marg_prob = self.term_frequency[idx]
 
+        # convert to absolute frequencies
+        term_topic_freq = term_topic_freq * self.num_tokens
+        marg_prob = marg_prob * self.num_tokens
+
         self.graph.update_graph(words, term_topic_freq, marg_prob)
 
     @Inputs.topics
@@ -212,6 +217,7 @@ class OWLDAvis(OWWidget):
 
         self.data = Table.transpose(data, "Topics", "Words")
         self.topic_list = [var.name for var in self.data.domain.attributes]
+        self.num_tokens = data.attributes.get("Number of tokens", "")
         self.term_topic_matrix = self.compute_distributions(data)
         self.term_frequency = np.sum(self.term_topic_matrix, axis=0)
 
@@ -228,6 +234,7 @@ class OWLDAvis(OWWidget):
         self.topic_list = []
         self.term_topic_matrix = None
         self.term_frequency = None
+        self.num_tokens = None
 
     # todo: report
 

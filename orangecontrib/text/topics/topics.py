@@ -132,10 +132,13 @@ class GensimWrapper:
         topic across all documents.
 
         :return: np.array of marginal topic probabilities
+        :return: number of tokens
         """
         doc_length = [len(i) for i in tokens]
-        doc_length[:] = [x / sum(doc_length) for x in doc_length]
-        return np.reshape(np.sum(doc_topic.T * doc_length, axis=1), (-1, 1))
+        num_tokens = sum(doc_length)
+        doc_length[:] = [x / num_tokens for x in doc_length]
+        return np.reshape(np.sum(doc_topic.T * doc_length, axis=1), (-1, 1)),\
+            num_tokens
 
     def get_all_topics_table(self):
         """ Transform all topics from gensim model to table. """
@@ -158,15 +161,16 @@ class GensimWrapper:
         metas = [StringVariable('Topics'),
                  ContinuousVariable('Marginal Topic Probability')]
 
-        topic_proba = np.array(self._marginal_probability(self.tokens,
-                                                          self.doc_topic),
-                               dtype=object)
+        marg_proba, num_tokens = self._marginal_probability(self.tokens,
+                                                            self.doc_topic)
+        topic_proba = np.array(marg_proba, dtype=object)
 
         t = Topics.from_numpy(Domain(attrs, metas=metas), X=X,
                               metas=np.hstack((names, topic_proba)))
         t.name = 'All topics'
         # required for distinguishing between models in OWRelevantTerms
-        t.attributes.update([('Model', f'{self.name}')])
+        t.attributes.update([('Model', f'{self.name}'),
+                             ('Number of tokens', num_tokens)])
         return t
 
     def get_top_words_by_id(self, topic_id, num_of_words=10):
