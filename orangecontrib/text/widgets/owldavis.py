@@ -236,7 +236,12 @@ class OWLDAvis(OWWidget):
         self.term_frequency = None
         self.num_tokens = None
 
-    # todo: report
+    def send_report(self):
+        self.report_items((
+            ("Relevance", self.relevance),
+            ("Shown topic", self.topic_list[self.selected_topic])
+        ))
+        self.report_plot()
 
 
 if __name__ == "__main__":
