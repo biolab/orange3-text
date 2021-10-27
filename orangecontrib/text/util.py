@@ -87,7 +87,5 @@ class Sparse2CorpusSliceable(Sparse2Corpus):
         -------
         Selected subset of sparse data from self.
         """
-        if not isinstance(key, (int, list, type(...), slice, np.ndarray)):
-            raise TypeError(f"Indexing by type {type(key)} not supported.")
         sparse = self.sparse.__getitem__((slice(None, None, None), key))
         return Sparse2CorpusSliceable(sparse)

@@ -58,6 +58,14 @@ class TestSparse2CorpusSliceable(unittest.TestCase):
             self.s2c[np.array([1])].sparse.toarray(), self.orig_array[:, [1]]
         )
 
+    def test_range(self):
+        assert_array_equal(
+            self.s2c[range(1, 3)].sparse.toarray(), self.orig_array[:, [1, 2]]
+        )
+        assert_array_equal(
+            self.s2c[range(1, 2)].sparse.toarray(), self.orig_array[:, [1]]
+        )
+
     def test_elipsis(self):
         assert_array_equal(self.s2c[...].sparse.toarray(), self.orig_array)
 
