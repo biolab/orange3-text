@@ -1,28 +1,34 @@
-from typing import Optional, List, Dict
+from typing import Dict, List, Optional, Tuple
+
 import numpy as np
-
-from AnyQt.QtCore import Qt, QPointF
 import pyqtgraph as pg
-
+from AnyQt.QtCore import QPointF, Qt
 from PyQt5.QtGui import QColor, QPen
 from PyQt5.QtWidgets import QGraphicsSceneHelpEvent, QToolTip
 
 from Orange.data import Table
 from Orange.widgets import gui
-from Orange.widgets.widget import Input, OWWidget
-from Orange.widgets.visualize.utils.plotutils import HelpEventDelegate
 from Orange.widgets.visualize.owscatterplotgraph import LegendItem
-from Orange.widgets.visualize.utils.customizableplot import Updater, \
-    CommonParameterSetter
-from orangewidget.utils.visual_settings_dlg import KeyType, ValueType, \
-    VisualSettingsDialog
+from Orange.widgets.visualize.utils.customizableplot import (
+    CommonParameterSetter,
+    Updater,
+)
+from Orange.widgets.visualize.utils.plotutils import HelpEventDelegate
+from Orange.widgets.widget import Input, OWWidget
+from orangewidget.settings import Setting, SettingProvider
+from orangewidget.utils.visual_settings_dlg import (
+    KeyType,
+    ValueType,
+    VisualSettingsDialog,
+)
+from orangewidget.utils.widgetpreview import WidgetPreview
+from orangewidget.widget import Msg
+from pyqtgraph import LabelItem, ItemSample, AxisItem
 
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.topics import LdaWrapper
 from orangecontrib.text.topics.topics import Topics
-from orangewidget.settings import Setting, SettingProvider
-from orangewidget.utils.widgetpreview import WidgetPreview
-from orangewidget.widget import Msg
+
 
 N_BEST_PLOTTED = 20
 
@@ -36,7 +42,7 @@ class ParameterSetter(CommonParameterSetter):
         self.master: BarPlotGraph = master
         super().__init__()
 
-    def update_setters(self):
+    def update_setters(self) -> None:
         self.grid_settings = {
             Updater.ALPHA_LABEL: self.DEFAULT_ALPHA_GRID,
             self.SHOW_GRID_LABEL: self.DEFAULT_SHOW_GRID,
@@ -59,25 +65,28 @@ class ParameterSetter(CommonParameterSetter):
 
         def update_grid(**settings):
             self.grid_settings.update(**settings)
-            self.master.showGrid(x=self.grid_settings[self.SHOW_GRID_LABEL],
-                          alpha=self.grid_settings[Updater.ALPHA_LABEL] / 255)
+            self.master.showGrid(
+                x=self.grid_settings[self.SHOW_GRID_LABEL],
+                alpha=self.grid_settings[Updater.ALPHA_LABEL] / 255,
+            )
 
         self._setters[self.PLOT_BOX] = {self.GRID_LABEL: update_grid}
 
     @property
-    def axis_items(self):
-        return [value["item"] for value in
-                self.master.getPlotItem().axes.values()]
+    def axis_items(self) -> List[AxisItem]:
+        return [value["item"] for value in self.master.getPlotItem().axes.values()]
 
     @property
-    def legend_items(self):
+    def legend_items(self) -> List[Tuple[ItemSample, LabelItem]]:
         return self.master.legend.items
 
 
 class BarPlotGraph(pg.PlotWidget):
     bar_width = 0.7
-    colors = {"Overall term frequency": QColor(Qt.gray),
-              "Term frequency within topic": QColor(Qt.red)}
+    colors = {
+        "Overall term frequency": QColor(Qt.gray),
+        "Term frequency within topic": QColor(Qt.red),
+    }
 
     def __init__(self, master, parent=None):
         self.master: OWLDAvis = master
@@ -88,9 +97,14 @@ class BarPlotGraph(pg.PlotWidget):
         super().__init__(
             parent=parent,
             viewBox=pg.ViewBox(),
-            background="w", enableMenu=False,
-            axisItems={"left": pg.AxisItem(orientation="left", rotate_ticks=False, pen=QPen(Qt.NoPen)),
-                       "top": pg.AxisItem(orientation="top")}
+            background="w",
+            enableMenu=False,
+            axisItems={
+                "left": pg.AxisItem(
+                    orientation="left", rotate_ticks=False, pen=QPen(Qt.NoPen)
+                ),
+                "top": pg.AxisItem(orientation="top"),
+            },
         )
         self.hideAxis("left")
         self.hideAxis("top")
@@ -99,21 +113,28 @@ class BarPlotGraph(pg.PlotWidget):
         self.getPlotItem().buttonsHidden = True
         self.getPlotItem().setContentsMargins(10, 10, 10, 10)
         self.getPlotItem().setMouseEnabled(x=False, y=False)
-        self.showGrid(x=self.parameter_setter.DEFAULT_SHOW_GRID,
-                      alpha=self.parameter_setter.DEFAULT_ALPHA_GRID / 255)
+        self.showGrid(
+            x=self.parameter_setter.DEFAULT_SHOW_GRID,
+            alpha=self.parameter_setter.DEFAULT_ALPHA_GRID / 255,
+        )
 
         self.tooltip_delegate = HelpEventDelegate(self.help_event)
         self.scene().installEventFilter(self.tooltip_delegate)
         self.legend = self._create_legend()
 
-    def clear_all(self):
+    def clear_all(self) -> None:
         self.clear()
         self.hideAxis("left")
         self.hideAxis("top")
         self.marg_prob_item = None
         self.legend.hide()
 
-    def update_graph(self, words, term_topic_freq, marginal_probability):
+    def update_graph(
+        self,
+        words: List[str],
+        term_topic_freq: np.ndarray,
+        marginal_probability: np.ndarray,
+    ) -> None:
         self.clear()
         marginal_probability = marginal_probability[::-1]
         term_topic_freq = term_topic_freq[::-1]
@@ -124,16 +145,20 @@ class BarPlotGraph(pg.PlotWidget):
             y=np.arange(len(marginal_probability)),
             height=self.bar_width,
             width=marginal_probability,
-            brushes=[self.colors["Overall term frequency"] for _ in marginal_probability],
-            pen=self.colors["Overall term frequency"]
+            brushes=[
+                self.colors["Overall term frequency"] for _ in marginal_probability
+            ],
+            pen=self.colors["Overall term frequency"],
         )
         term_topic_freq_item = pg.BarGraphItem(
             x0=0,
             y=np.arange(len(term_topic_freq)),
             height=self.bar_width,
             width=term_topic_freq,
-            brushes=[self.colors["Term frequency within topic"] for _ in term_topic_freq],
-            pen=self.colors["Term frequency within topic"]
+            brushes=[
+                self.colors["Term frequency within topic"] for _ in term_topic_freq
+            ],
+            pen=self.colors["Term frequency within topic"],
         )
         self.addItem(self.marg_prob_item)
         self.addItem(term_topic_freq_item)
@@ -147,7 +172,7 @@ class BarPlotGraph(pg.PlotWidget):
         self.update_axes(words)
         self.update_legend()
 
-    def update_axes(self, words):
+    def update_axes(self, words: List[str]) -> None:
         self.showAxis("left")
         self.showAxis("top")
 
@@ -160,22 +185,24 @@ class BarPlotGraph(pg.PlotWidget):
         ticks = [list(enumerate(words))]
         self.getAxis("left").setTicks(ticks)
 
-    def _create_legend(self):
+    def _create_legend(self) -> LegendItem:
         legend = LegendItem()
         legend.setParentItem(self.getViewBox())
         legend.anchor((1, 1), (1, 1), offset=(-1, -1))
         legend.hide()
         return legend
 
-    def update_legend(self):
+    def update_legend(self) -> None:
         self.legend.clear()
         for text, c in self.colors.items():
             dot = pg.ScatterPlotItem(pen=pg.mkPen(color=c), brush=pg.mkBrush(color=c))
             self.legend.addItem(dot, text)
             self.legend.show()
-        Updater.update_legend_font(self.legend.items, **self.parameter_setter.legend_settings)
+        Updater.update_legend_font(
+            self.legend.items, **self.parameter_setter.legend_settings
+        )
 
-    def __get_index_at(self, p: QPointF):
+    def __get_index_at(self, p: QPointF) -> Optional[int]:
         index = round(p.y())
         widths = self.marg_prob_item.opts["width"]
         if 0 <= index < len(widths) and abs(p.y() - index) <= self.bar_width / 2:
@@ -184,7 +211,7 @@ class BarPlotGraph(pg.PlotWidget):
                 return index
         return None
 
-    def help_event(self, ev: QGraphicsSceneHelpEvent):
+    def help_event(self, ev: QGraphicsSceneHelpEvent) -> bool:
         if self.marg_prob_item is None:
             return False
 
@@ -233,22 +260,32 @@ class OWLDAvis(OWWidget):
         self._add_graph()
         box = gui.widgetBox(self.controlArea, "Relevance")
         self.rel_slider = gui.hSlider(
-            box, self, "relevance", minValue=0, maxValue=1, step=0.1,
-            intOnly=False, labelFormat="%.1f",
+            box,
+            self,
+            "relevance",
+            minValue=0,
+            maxValue=1,
+            step=0.1,
+            intOnly=False,
+            labelFormat="%.1f",
             callback_finished=self.on_params_change,
-            createLabel=True)
+            createLabel=True,
+        )
 
         self.topic_box = gui.listBox(
-            self.controlArea, self, "selected_topic", "topic_list",
+            self.controlArea,
+            self,
+            "selected_topic",
+            "topic_list",
             box="Topics",
-            callback=self.on_params_change
+            callback=self.on_params_change,
         )
 
     def _add_graph(self):
         self.graph = BarPlotGraph(self)
         self.mainArea.layout().addWidget(self.graph)
 
-    def compute_relevance(self, topic):
+    def compute_relevance(self, topic: np.ndarray) -> np.ndarray:
         """
         Relevance is defined as lambda*log(topic_probability) + (
         1-lambda)*log(topic_probability/marginal_probability).
@@ -257,17 +294,18 @@ class OWLDAvis(OWWidget):
         nonzero = (topic > 0) & (self.term_frequency > 0)
         tp, mp = topic[nonzero], self.term_frequency[nonzero]
         adj_prob = np.zeros(topic.shape)
-        adj_prob[nonzero] = self.relevance * np.log(tp) + (1 - self.relevance) * np.log(tp / mp)
+        rel = self.relevance
+        adj_prob[nonzero] = rel * np.log(tp) + (1 - rel) * np.log(tp / mp)
         return adj_prob
 
     @staticmethod
-    def compute_distributions(data):
+    def compute_distributions(data: Topics) -> np.ndarray:
         """
-        term-topic column is multiplied by marginal topic probability
-        how likely is the term in a topic * how likely is the topic
+        Compute how likely is the term in each topic
+        Term-topic column is multiplied by marginal topic probability
         """
-        topic_frequency = data.get_column_view("Marginal Topic Probability")[0].astype(float)
-        return data.X * topic_frequency[:, None]
+        topic_frequency = data.get_column_view("Marginal Topic Probability")[0]
+        return data.X * topic_frequency[:, None].astype(float)
 
     def on_params_change(self):
         if self.data is None:
@@ -288,7 +326,7 @@ class OWLDAvis(OWWidget):
         self.graph.update_graph(words, term_topic_freq, marg_prob)
 
     @Inputs.topics
-    def set_data(self, data):
+    def set_data(self, data: Optional[Topics]):
         prev_topic = self.selected_topic
         self.clear()
         if data is None:
@@ -320,15 +358,17 @@ class OWLDAvis(OWWidget):
         self.num_tokens = None
 
     def send_report(self):
-        self.report_items((
-            ("Relevance", self.relevance),
-            ("Shown topic", self.topic_list[self.selected_topic])
-        ))
+        self.report_items(
+            (
+                ("Relevance", self.relevance),
+                ("Shown topic", self.topic_list[self.selected_topic]),
+            )
+        )
         self.report_plot()
 
 
 if __name__ == "__main__":
-    corpus = Corpus.from_file('deerwester')
+    corpus = Corpus.from_file("deerwester")
     lda = LdaWrapper(num_topics=5)
     lda.fit_transform(corpus, chunk_number=100)
     topics = lda.get_all_topics_table()
