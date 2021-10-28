@@ -11,10 +11,12 @@ from Orange.data import Table
 from Orange.widgets import gui
 from Orange.widgets.widget import Input, OWWidget
 from Orange.widgets.visualize.utils.plotutils import HelpEventDelegate
+from Orange.widgets.visualize.owscatterplotgraph import LegendItem
+
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.topics import LdaWrapper
 from orangecontrib.text.topics.topics import Topics
-from orangewidget.settings import Setting, SettingProvider
+from orangewidget.settings import Setting
 from orangewidget.utils.widgetpreview import WidgetPreview
 from orangewidget.widget import Msg
 
@@ -23,6 +25,8 @@ N_BEST_PLOTTED = 20
 
 class BarPlotGraph(pg.PlotWidget):
     bar_width = 0.7
+    colors = {"Overall term frequency": QColor(Qt.gray),
+              "Estimated term frequency within the selected topic": QColor(Qt.red)}
 
     def __init__(self, master, parent=None):
         self.master: OWLDAvis = master
@@ -45,12 +49,14 @@ class BarPlotGraph(pg.PlotWidget):
 
         self.tooltip_delegate = HelpEventDelegate(self.help_event)
         self.scene().installEventFilter(self.tooltip_delegate)
+        self.legend = self._create_legend()
 
     def clear_all(self):
         self.clear()
         self.hideAxis("left")
         self.hideAxis("top")
         self.marg_prob_item = None
+        self.legend.hide()
 
     def update_graph(self, words, term_topic_freq, marginal_probability):
         self.clear()
@@ -63,16 +69,16 @@ class BarPlotGraph(pg.PlotWidget):
             y=np.arange(len(marginal_probability)),
             height=self.bar_width,
             width=marginal_probability,
-            brushes=[QColor(Qt.gray) for _ in marginal_probability],
-            pen = QColor(Qt.gray)
+            brushes=[self.colors["Overall term frequency"] for _ in marginal_probability],
+            pen = self.colors["Overall term frequency"]
         )
         term_topic_freq_item = pg.BarGraphItem(
             x0=0,
             y=np.arange(len(term_topic_freq)),
             height=self.bar_width,
             width=term_topic_freq,
-            brushes=[QColor(Qt.red) for _ in term_topic_freq],
-            pen=QColor(Qt.red)
+            brushes=[self.colors["Estimated term frequency within the selected topic"] for _ in term_topic_freq],
+            pen=self.colors["Estimated term frequency within the selected topic"]
         )
         self.addItem(self.marg_prob_item)
         self.addItem(term_topic_freq_item)
@@ -84,6 +90,7 @@ class BarPlotGraph(pg.PlotWidget):
         ]
 
         self.update_axes(words)
+        self.update_legend()
 
     def update_axes(self, words):
         self.showAxis("left")
@@ -96,6 +103,20 @@ class BarPlotGraph(pg.PlotWidget):
         # todo: ticks lengths - labels can be long truncate them
         #  it can be done together with implementing plot settings
         self.getAxis("left").setTicks(ticks)
+
+    def _create_legend(self):
+        legend = LegendItem()
+        legend.setParentItem(self.getViewBox())
+        legend.anchor((1, 1), (1, 1), offset=(-1, -1))
+        legend.hide()
+        return legend
+
+    def update_legend(self):
+        self.legend.clear()
+        for text, c in self.colors.items():
+            dot = pg.ScatterPlotItem(pen=pg.mkPen(color=c), brush=pg.mkBrush(color=c))
+            self.legend.addItem(dot, text)
+            self.legend.show()
 
     def __get_index_at(self, p: QPointF):
         index = round(p.y())
