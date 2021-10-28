@@ -126,7 +126,6 @@ class OWLDAvis(OWWidget):
     selected_topic = Setting(0, schema_only=True)
     relevance = Setting(0.5)
 
-    graph = SettingProvider(BarPlotGraph)
     graph_name = "graph.plotItem"
 
     class Inputs:
@@ -208,6 +207,7 @@ class OWLDAvis(OWWidget):
 
     @Inputs.topics
     def set_data(self, data):
+        prev_topic = self.selected_topic
         self.clear()
         if data is None:
             return
@@ -221,10 +221,7 @@ class OWLDAvis(OWWidget):
         self.term_topic_matrix = self.compute_distributions(data)
         self.term_frequency = np.sum(self.term_topic_matrix, axis=0)
 
-        # workaround: selected_topic is not marked after topic list is redefined
-        # todo: find and fix the bug on the listview
-        self.selected_topic = self.selected_topic
-
+        self.selected_topic = prev_topic if prev_topic < len(self.topic_list) else 0
         self.on_params_change()
 
     def clear(self):
