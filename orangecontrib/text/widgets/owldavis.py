@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Optional, List, Dict
 import numpy as np
 
 from AnyQt.QtCore import Qt, QPointF
@@ -12,15 +12,68 @@ from Orange.widgets import gui
 from Orange.widgets.widget import Input, OWWidget
 from Orange.widgets.visualize.utils.plotutils import HelpEventDelegate
 from Orange.widgets.visualize.owscatterplotgraph import LegendItem
+from Orange.widgets.visualize.utils.customizableplot import Updater, \
+    CommonParameterSetter
+from orangewidget.utils.visual_settings_dlg import KeyType, ValueType, \
+    VisualSettingsDialog
 
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.topics import LdaWrapper
 from orangecontrib.text.topics.topics import Topics
-from orangewidget.settings import Setting
+from orangewidget.settings import Setting, SettingProvider
 from orangewidget.utils.widgetpreview import WidgetPreview
 from orangewidget.widget import Msg
 
 N_BEST_PLOTTED = 20
+
+
+class ParameterSetter(CommonParameterSetter):
+    GRID_LABEL, SHOW_GRID_LABEL = "Gridlines", "Show"
+    DEFAULT_ALPHA_GRID, DEFAULT_SHOW_GRID = 80, True
+    BOTTOM_AXIS_LABEL, GROUP_AXIS_LABEL = "Bottom axis", "Group axis"
+    IS_VERTICAL_LABEL = "Vertical ticks"
+
+    def __init__(self, master):
+        self.grid_settings: Optional[Dict] = None
+        self.master: BarPlotGraph = master
+        super().__init__()
+
+    def update_setters(self):
+        self.grid_settings = {
+            Updater.ALPHA_LABEL: self.DEFAULT_ALPHA_GRID,
+            self.SHOW_GRID_LABEL: self.DEFAULT_SHOW_GRID,
+        }
+
+        self.initial_settings = {
+            self.LABELS_BOX: {
+                self.FONT_FAMILY_LABEL: self.FONT_FAMILY_SETTING,
+                self.AXIS_TITLE_LABEL: self.FONT_SETTING,
+                self.AXIS_TICKS_LABEL: self.FONT_SETTING,
+                self.LEGEND_LABEL: self.FONT_SETTING,
+            },
+            self.PLOT_BOX: {
+                self.GRID_LABEL: {
+                    self.SHOW_GRID_LABEL: (None, self.DEFAULT_SHOW_GRID),
+                    Updater.ALPHA_LABEL: (range(0, 255, 5), self.DEFAULT_ALPHA_GRID),
+                },
+            },
+        }
+
+        def update_grid(**settings):
+            self.grid_settings.update(**settings)
+            self.master.showGrid(x=self.grid_settings[self.SHOW_GRID_LABEL],
+                          alpha=self.grid_settings[Updater.ALPHA_LABEL] / 255)
+
+        self._setters[self.PLOT_BOX] = {self.GRID_LABEL: update_grid}
+
+    @property
+    def axis_items(self):
+        return [value["item"] for value in
+                self.master.getPlotItem().axes.values()]
+
+    @property
+    def legend_items(self):
+        return self.master.legend.items
 
 
 class BarPlotGraph(pg.PlotWidget):
@@ -30,7 +83,9 @@ class BarPlotGraph(pg.PlotWidget):
 
     def __init__(self, master, parent=None):
         self.master: OWLDAvis = master
+        self.parameter_setter = ParameterSetter(self)
         self.marg_prob_item: Optional[pg.BarGraphItem] = None
+
         self.labels: List[str] = []
         super().__init__(
             parent=parent,
@@ -46,6 +101,8 @@ class BarPlotGraph(pg.PlotWidget):
         self.getPlotItem().buttonsHidden = True
         self.getPlotItem().setContentsMargins(10, 10, 10, 10)
         self.getPlotItem().setMouseEnabled(x=False, y=False)
+        self.showGrid(x=self.parameter_setter.DEFAULT_SHOW_GRID,
+                      alpha=self.parameter_setter.DEFAULT_ALPHA_GRID / 255)
 
         self.tooltip_delegate = HelpEventDelegate(self.help_event)
         self.scene().installEventFilter(self.tooltip_delegate)
@@ -117,6 +174,7 @@ class BarPlotGraph(pg.PlotWidget):
             dot = pg.ScatterPlotItem(pen=pg.mkPen(color=c), brush=pg.mkBrush(color=c))
             self.legend.addItem(dot, text)
             self.legend.show()
+        Updater.update_legend_font(self.legend.items, **self.parameter_setter.legend_settings)
 
     def __get_index_at(self, p: QPointF):
         index = round(p.y())
@@ -146,7 +204,9 @@ class OWLDAvis(OWWidget):
 
     selected_topic = Setting(0, schema_only=True)
     relevance = Setting(0.5)
+    visual_settings = Setting({}, schema_only=True)
 
+    graph = SettingProvider(BarPlotGraph)
     graph_name = "graph.plotItem"
 
     class Inputs:
@@ -167,6 +227,8 @@ class OWLDAvis(OWWidget):
         # should be used later for bar chart
         self.graph: Optional[BarPlotGraph] = None
         self._create_layout()
+
+        VisualSettingsDialog(self, self.graph.parameter_setter.initial_settings)
 
     def _create_layout(self):
         self._add_graph()
@@ -244,6 +306,10 @@ class OWLDAvis(OWWidget):
 
         self.selected_topic = prev_topic if prev_topic < len(self.topic_list) else 0
         self.on_params_change()
+
+    def set_visual_settings(self, key: KeyType, value: ValueType):
+        self.graph.parameter_setter.set_parameter(key, value)
+        self.visual_settings[key] = value
 
     def clear(self):
         self.Error.clear()
