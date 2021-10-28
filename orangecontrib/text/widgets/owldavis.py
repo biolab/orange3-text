@@ -30,8 +30,6 @@ N_BEST_PLOTTED = 20
 class ParameterSetter(CommonParameterSetter):
     GRID_LABEL, SHOW_GRID_LABEL = "Gridlines", "Show"
     DEFAULT_ALPHA_GRID, DEFAULT_SHOW_GRID = 80, True
-    BOTTOM_AXIS_LABEL, GROUP_AXIS_LABEL = "Bottom axis", "Group axis"
-    IS_VERTICAL_LABEL = "Vertical ticks"
 
     def __init__(self, master):
         self.grid_settings: Optional[Dict] = None
