@@ -29,7 +29,7 @@ N_BEST_PLOTTED = 20
 
 class ParameterSetter(CommonParameterSetter):
     GRID_LABEL, SHOW_GRID_LABEL = "Gridlines", "Show"
-    DEFAULT_ALPHA_GRID, DEFAULT_SHOW_GRID = 80, True
+    DEFAULT_ALPHA_GRID, DEFAULT_SHOW_GRID = 80, False
 
     def __init__(self, master):
         self.grid_settings: Optional[Dict] = None
@@ -77,7 +77,7 @@ class ParameterSetter(CommonParameterSetter):
 class BarPlotGraph(pg.PlotWidget):
     bar_width = 0.7
     colors = {"Overall term frequency": QColor(Qt.gray),
-              "Estimated term frequency within the selected topic": QColor(Qt.red)}
+              "Term frequency within topic": QColor(Qt.red)}
 
     def __init__(self, master, parent=None):
         self.master: OWLDAvis = master
@@ -89,8 +89,8 @@ class BarPlotGraph(pg.PlotWidget):
             parent=parent,
             viewBox=pg.ViewBox(),
             background="w", enableMenu=False,
-            axisItems={"left": pg.AxisItem(orientation="left", rotate_ticks=False, pen=QPen(Qt.NoPen), ),
-                       "top": pg.AxisItem(orientation="top", maxTickLength=0)}
+            axisItems={"left": pg.AxisItem(orientation="left", rotate_ticks=False, pen=QPen(Qt.NoPen)),
+                       "top": pg.AxisItem(orientation="top")}
         )
         self.hideAxis("left")
         self.hideAxis("top")
@@ -125,22 +125,22 @@ class BarPlotGraph(pg.PlotWidget):
             height=self.bar_width,
             width=marginal_probability,
             brushes=[self.colors["Overall term frequency"] for _ in marginal_probability],
-            pen = self.colors["Overall term frequency"]
+            pen=self.colors["Overall term frequency"]
         )
         term_topic_freq_item = pg.BarGraphItem(
             x0=0,
             y=np.arange(len(term_topic_freq)),
             height=self.bar_width,
             width=term_topic_freq,
-            brushes=[self.colors["Estimated term frequency within the selected topic"] for _ in term_topic_freq],
-            pen=self.colors["Estimated term frequency within the selected topic"]
+            brushes=[self.colors["Term frequency within topic"] for _ in term_topic_freq],
+            pen=self.colors["Term frequency within topic"]
         )
         self.addItem(self.marg_prob_item)
         self.addItem(term_topic_freq_item)
         self.setXRange(1, marginal_probability.max(), padding=0)
         self.setYRange(0, len(marginal_probability) - 1)
         self.labels = [
-            f"{w} - Term frequency: {tf:.3f}, Marginal probability{mp:.3f}"
+            f"{w} - Frequency withing topic: {tf:.3f}, Overall frequency {mp:.3f}"
             for w, tf, mp in zip(words, term_topic_freq, marginal_probability)
         ]
 
@@ -153,10 +153,11 @@ class BarPlotGraph(pg.PlotWidget):
 
         self.setLabel(axis="left", text="words")
         self.setLabel(axis="top", text="weights")
+        self.getAxis("left").setTextPen(QPen(Qt.black))
+        self.getAxis("top").setTextPen(QPen(Qt.black))
+        self.getAxis("top").setPen(QPen(Qt.black))
 
         ticks = [list(enumerate(words))]
-        # todo: ticks lengths - labels can be long truncate them
-        #  it can be done together with implementing plot settings
         self.getAxis("left").setTicks(ticks)
 
     def _create_legend(self):
