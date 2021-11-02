@@ -92,6 +92,7 @@ class BarPlotGraph(pg.PlotWidget):
         self.master: OWLDAvis = master
         self.parameter_setter = ParameterSetter(self)
         self.marg_prob_item: Optional[pg.BarGraphItem] = None
+        self.term_topic_freq_item: Optional[pg.BarGraphItem] = None
 
         self.labels: List[str] = []
         super().__init__(
@@ -150,7 +151,7 @@ class BarPlotGraph(pg.PlotWidget):
             ],
             pen=self.colors["Overall term frequency"],
         )
-        term_topic_freq_item = pg.BarGraphItem(
+        self.term_topic_freq_item = pg.BarGraphItem(
             x0=0,
             y=np.arange(len(term_topic_freq)),
             height=self.bar_width,
@@ -161,7 +162,7 @@ class BarPlotGraph(pg.PlotWidget):
             pen=self.colors["Term frequency within topic"],
         )
         self.addItem(self.marg_prob_item)
-        self.addItem(term_topic_freq_item)
+        self.addItem(self.term_topic_freq_item)
         self.setXRange(1, marginal_probability.max(), padding=0)
         self.setYRange(0, len(marginal_probability) - 1)
         self.labels = [
