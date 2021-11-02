@@ -270,8 +270,13 @@ class Corpus(Table):
         for val in set(filter(None, Y)):
             if val not in cv.values:
                 cv.add_value(val)
-        new_Y = np.array([cv.to_val(i) for i in Y])[:, None]
-        self._Y = np.vstack((self._Y, new_Y))
+
+        if len(self._Y.shape) == 1:
+            new_Y = np.array([cv.to_val(i) for i in Y])
+            self._Y = np.hstack((self._Y, new_Y))
+        else:
+            new_Y = np.array([cv.to_val(i) for i in Y])[:, None]
+            self._Y = np.vstack((self._Y, new_Y))
 
         self.X = self.W = np.zeros((self.metas.shape[0], 0))
         Table._init_ids(self)
