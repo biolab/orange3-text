@@ -1,3 +1,4 @@
+import os
 import unittest
 
 import pandas as pd
@@ -10,14 +11,19 @@ from orangewidget.tests.base import WidgetTest
 class TestStatisticsWidget(WidgetTest):
     def setUp(self) -> None:
         self.widget = self.create_widget(OWLDAvis)
-        self.topics = Topics.from_file("data/LDAvis/LDAtopics.tab")
+        self.topics = Topics.from_file(
+            os.path.join(os.path.dirname(__file__), "data/LDAvis/LDAtopics.tab")
+        )
         self._load_comparable_data()
 
     def _load_comparable_data(self) -> None:
         """
         Load results for Topic1 from pyLDAvis. Save it to `self.topic1`
         """
-        self.topic1 = pd.read_csv("data/LDAvis/topic1.csv", index_col="Term")
+        self.topic1 = pd.read_csv(
+            os.path.join(os.path.dirname(__file__),  "data/LDAvis/topic1.csv"),
+            index_col="Term"
+        )
 
     def test_send_data(self):
         """Test with basic data, and empty data"""
