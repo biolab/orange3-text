@@ -54,12 +54,6 @@ class TestTopicModeling(WidgetTest):
         self.assertEqual(output.metas.shape[1],
                          self.widget.corpus.metas.shape[1] + 1)
 
-        # ensure all_topics is of type Topics and that the output has
-        # marginal probabilities
-        self.assertEqual(type(output), Topics)
-        self.assertTrue(all(attr.attributes["word-frequency"] for attr in
-                            output.domain.attributes))
-
     def test_topic_evaluation(self):
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
         self.wait_until_finished()
