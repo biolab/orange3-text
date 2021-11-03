@@ -421,6 +421,18 @@ class TestOWScoreDocuments(WidgetTest):
             [f"Document {i}" for i in range(1, 6)], output.titles.tolist()
         )
 
+    def test_output_unique(self):
+        corpus = Corpus.from_file("book-excerpts")
+        var = ContinuousVariable("Word count")
+        corpus = corpus.add_column(var, np.array([1 for _ in range(len(
+            corpus))]))
+        words = self.create_words_table(["doctor", "rum", "house"])
+        self.send_signal(self.widget.Inputs.corpus, corpus)
+        self.send_signal(self.widget.Inputs.words, words)
+        self.wait_until_finished()
+        output = self.get_output(self.widget.Outputs.selected_documents)
+        self.assertTrue("Word count (1)" in output.domain)
+
 
 if __name__ == "__main__":
     unittest.main()
