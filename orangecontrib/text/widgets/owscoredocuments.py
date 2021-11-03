@@ -20,6 +20,7 @@ from AnyQt.QtWidgets import (
     QRadioButton,
     QTableView,
 )
+from Orange.data.util import get_unique_names
 from pandas import isnull
 from sklearn.metrics.pairwise import cosine_similarity
 
@@ -535,7 +536,8 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
             domain = Domain(
                 d.attributes,
                 d.class_var,
-                metas=d.metas + tuple(ContinuousVariable(l) for l in labels),
+                metas=d.metas + tuple(ContinuousVariable(get_unique_names(d, l))
+                                      for l in labels),
             )
             out_corpus = Corpus(
                 domain,
