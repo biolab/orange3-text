@@ -15,7 +15,7 @@ from Orange.widgets.widget import OWWidget, Msg, Input, Output
 from Orange.widgets.utils.concurrent import TaskState, ConcurrentWidgetMixin
 from orangecontrib.text.corpus import Corpus, get_sample_corpora_dir
 from orangecontrib.text.widgets.utils import widgets, QSize
-from orangecontrib.text.vectorization.base import get_unique_names
+from Orange.data.util import get_unique_names
 
 
 class OWCorpus(OWWidget, ConcurrentWidgetMixin):
@@ -334,12 +334,14 @@ class OWCorpus(OWWidget, ConcurrentWidgetMixin):
                 )
                 metas = np.hstack([self.corpus.metas,
                                    np.array(self.corpus.languages).reshape(-1, 1)])
-                self.corpus = Corpus(new_domain,
+                new_corpus_ = Corpus(new_domain,
                                      self.corpus.X.copy(),
                                      self.corpus.Y.copy(),
                                      metas,
                                      self.corpus.W.copy(),
                                      copy(self.corpus.text_features))
+                Corpus.retain_preprocessing(self.corpus, new_corpus_)
+                self.corpus = new_corpus_
             else:
                 lang_feat_idx = None
                 for i, f in enumerate(domain.metas):
@@ -354,7 +356,7 @@ class OWCorpus(OWWidget, ConcurrentWidgetMixin):
                         metas=list(np.delete(list(domain.metas),
                                              lang_feat_idx))
                     )
-                    self.corpus = Corpus(
+                    new_corpus_ = Corpus(
                         new_domain,
                         self.corpus.X.copy(),
                         self.corpus.Y.copy(),
@@ -362,6 +364,8 @@ class OWCorpus(OWWidget, ConcurrentWidgetMixin):
                         self.corpus.W.copy(),
                         copy(self.corpus.text_features)
                     )
+                    Corpus.retain_preprocessing(self.corpus, new_corpus_)
+                    self.corpus = new_corpus_
             self.corpus.languages = languages
         self.Outputs.corpus.send(self.corpus)
 
