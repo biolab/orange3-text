@@ -189,11 +189,12 @@ class OWSentimentAnalysis(OWWidget):
     @Inputs.corpus
     def set_corpus(self, data=None):
         self.corpus = data
-        # create preprocessed corpus upon setting data to avoid preprocessing
-        # at each method run
-        pp_list = [preprocess.LowercaseTransformer(),
-                   preprocess.WordPunctTokenizer()]
-        self.pp_corpus = PreprocessorList(pp_list)(self.corpus)
+        if self.corpus is not None:
+            # create preprocessed corpus upon setting data to avoid preprocessing
+            # at each method run
+            pp_list = [preprocess.LowercaseTransformer(),
+                       preprocess.WordPunctTokenizer()]
+            self.pp_corpus = PreprocessorList(pp_list)(self.corpus)
         self.commit()
 
     def _method_changed(self):
