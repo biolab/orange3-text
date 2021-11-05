@@ -235,9 +235,10 @@ class SentiArt(Sentiment):
     def get_scores(self, corpus):
         scores = []
         for doc in corpus.tokens:
-            score = np.array([list(self.dictionary[word].values()) for word in\
-                                   doc if word in self.dictionary]).mean(axis=0)
-            scores.append(score)
+            score = np.array([list(self.dictionary[word].values()) for word in
+                              doc if word in self.dictionary])
+            scores.append(score.mean(axis=0) if score.shape[0] > 0
+                          else np.zeros(len(self.sentiments)))
         return scores
 
 

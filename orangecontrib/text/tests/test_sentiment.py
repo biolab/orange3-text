@@ -1,5 +1,7 @@
 import unittest
 
+from numpy.testing import assert_allclose
+
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.sentiment import LiuHuSentiment, VaderSentiment, \
     MultiSentiment, SentiArt
@@ -96,8 +98,14 @@ class MultiSentimentTest(LiuHuTest):
 class SentiArtTest(LiuHuTest):
     def setUp(self):
         self.corpus = Corpus.from_file('deerwester')
+        self.slo_corpus = Corpus.from_file('slo-opinion-corpus')[83:85]
         self.method = SentiArt()
         self.new_cols = 7
+
+    def test_empty_slice_mean(self):
+        # this should execute without raising an exception
+        result = self.method.transform(self.slo_corpus)
+        assert_allclose(result.X[0, -self.new_cols:], 0)
 
 
 if __name__ == "__main__":

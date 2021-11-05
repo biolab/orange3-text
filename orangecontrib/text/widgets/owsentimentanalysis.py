@@ -185,7 +185,6 @@ class OWSentimentAnalysis(OWWidget):
             else:
                 self.Warning.senti_offline_no_lang()
 
-
     @Inputs.corpus
     def set_corpus(self, data=None):
         self.corpus = data
