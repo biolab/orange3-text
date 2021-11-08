@@ -32,6 +32,7 @@ Widgets
    widgets/corpustonetwork
    widgets/keywords
    widgets/score-documents
+   widgets/semanticviewer
 
 Scripting
 ---------

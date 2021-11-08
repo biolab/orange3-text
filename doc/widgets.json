@@ -192,6 +192,15 @@
     ]
    },
    {
+    "text": "Semantic Viewer",
+    "doc": "widgets/semanticviewer.md",
+    "icon": "../orangecontrib/text/widgets/icons/SemanticViewer.svg",
+    "background": "light-blue",
+    "keywords": [
+     "search"
+    ]
+   },
+   {
     "text": "Statistics",
     "doc": "widgets/statistics.md",
     "icon": "../orangecontrib/text/widgets/icons/Statistics.svg",
