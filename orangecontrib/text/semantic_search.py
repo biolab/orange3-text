@@ -2,22 +2,18 @@ import json
 import base64
 import zlib
 import sys
-import re
-from typing import Any, Optional, List, Optional, Tuple, Callable
+from typing import Any, List, Optional, Tuple, Callable, Union
 
 import numpy as np
 
 from Orange.misc.server_embedder import ServerEmbedderCommunicator
-from orangecontrib.text import Corpus
-from orangecontrib.text.misc import wait_nltk_data
-
+from Orange.util import dummy_callback
 
 MAX_PACKAGE_SIZE = 50000
 MIN_CHUNKS = 20
 
 
 class SemanticSearch:
-
     def __init__(self) -> None:
         self._server_communicator = _ServerCommunicator(
             model_name='semantic-search',
@@ -27,33 +23,29 @@ class SemanticSearch:
         )
 
     def __call__(
-        self, texts: List[str], queries: List[str],
-        progress_callback: Optional[Callable] = None
-    ) -> List[Optional[List[Tuple[Tuple[int, int], float]]]]:
+        self, texts: List[str], queries: List[str], callback: Callable = dummy_callback
+    ) -> List[Optional[List[List[Union[List[int], float]]]]]:
         """Computes matches for given documents and queries.
 
         Parameters
         ----------
-        texts: List[str]
+        texts
             A list of raw texts to be matched.
-        queries: List[str]
+        queries
             A list of query words/phrases.
 
         Returns
         -------
-        List[Optional[List[Tuple[Tuple[int, int], float]]]]
-            The elements of the outer list represent each document. The entries
-            are either None or lists of matches. Entries of each list of matches
-            are matches for each sentence. Each match is of the form
-            ((start_idx, end_idx), score). Note that tuples are actually
-            converted to lists before the result is returned.
+        The elements of the outer list represent each document. The entries
+        are either None or lists of matches. Entries of each list of matches
+        are matches for each sentence. Each match is of the form
+        ((start_idx, end_idx), score). Note that tuples are actually
+        lists since JSON (that the server returns) does not support tuples.
         """
 
         if len(texts) == 0 or len(queries) == 0:
             return [None] * len(texts)
 
-        chunks = list()
-        chunk = list()
         skipped = list()
         queries_enc = base64.b64encode(
             zlib.compress(
@@ -80,9 +72,15 @@ class SemanticSearch:
         for chunk in chunks_:
             chunks.append([chunk, queries_enc])
 
-        result_ = self._server_communicator.embedd_data(
-            chunks, processed_callback=progress_callback,
-        )
+        # temporary callback - will be changed when ServerEmbedderCommunicator
+        # change callback - return proportion instead bool
+        ticks = iter(np.linspace(0.0, 1.0, len(chunks)))
+
+        def cb(success=True):
+            if success:
+                callback(next(ticks))
+
+        result_ = self._server_communicator.embedd_data(chunks, processed_callback=cb)
         if result_ is None:
             return [None] * len(texts)
 
@@ -138,3 +136,12 @@ class _ServerCommunicator(ServerEmbedderCommunicator):
 
     async def _encode_data_instance(self, data_instance: Any) -> Optional[bytes]:
         return json.dumps(data_instance).encode('utf-8', 'replace')
+
+
+if __name__ == "__main__":
+    from orangecontrib.text import Corpus
+
+    corpus = Corpus.from_file("grimm-tales-selected")
+    results = SemanticSearch()(corpus.documents, ["book", "is", "rum", "are"])
+    for r in results:
+        print(r)

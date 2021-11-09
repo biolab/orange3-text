@@ -2,7 +2,6 @@ import unittest
 from unittest.mock import patch
 from collections.abc import Iterator
 import asyncio
-import numpy as np
 
 from orangecontrib.text.semantic_search import (
     SemanticSearch,
@@ -115,3 +114,7 @@ class SemanticSearchTest(unittest.TestCase):
             documents = [documents[0]] * MIN_CHUNKS
         result = self.semantic_search(documents, QUERIES)
         self.assertEqual(len(result), MIN_CHUNKS)
+
+
+if __name__ == "__main__":
+    unittest.main()
