@@ -24,10 +24,7 @@ import docx2txt
 from odf.opendocument import load
 from odf import text, teletype
 
-from pdfminer.pdfparser import PDFParser, PDFDocument
-from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
-from pdfminer.converter import PDFPageAggregator
-from pdfminer.layout import LAParams, LTTextBox, LTTextLine
+import pdftotext
 from bs4 import BeautifulSoup
 
 import serverfiles
@@ -128,37 +125,11 @@ class OdtReader(Reader):
 
 
 class PdfReader(Reader):
-    """
-    char_margin — two text chunks whose distance is closer than this value are considered
-    contiguous and get grouped into one.
-    word_margin — it may be required to insert blank characters (spaces) as necessary if
-    the distance between two words is greater than this value, as a blank between words might
-    not be represented as a space, but indicated by the positioning of each word.
-    """
     ext = [".pdf"]
 
     def read_file(self):
         with open(self.path, 'rb') as f:
             parser = PDFParser(f)
-        doc = PDFDocument()
-        parser.set_document(doc)
-        doc.set_parser(parser)
-        doc.initialize('')
-        rsrcmgr = PDFResourceManager()
-        laparams = LAParams()
-        laparams.char_margin = 0.1
-        laparams.word_margin = 1.0
-        device = PDFPageAggregator(rsrcmgr, laparams=laparams)
-        interpreter = PDFPageInterpreter(rsrcmgr, device)
-        extracted_text = []
-
-        for page in doc.get_pages():
-            interpreter.process_page(page)
-            layout = device.get_result()
-            for lt_obj in layout:
-                if isinstance(lt_obj, LTTextBox) or isinstance(lt_obj,
-                                                               LTTextLine):
-                    extracted_text.append(lt_obj.get_text())
         self.content = ' '.join(extracted_text).replace('\x00', '')
 
 
@@ -166,10 +137,9 @@ class XmlReader(Reader):
     ext = [".xml"]
 
     def read_file(self):
-        encoding = detect_encoding(self.path)
-        with open(self.path, encoding=encoding, errors='ignore') as markup:
-            soup = BeautifulSoup(markup.read(), "lxml")
-        self.content = soup.get_text()
+        with open(self.path, 'rb') as f:
+            pdf = pdftotext.PDF(f)
+        self.content = ' '.join(pdf).replace('\x00', '')
 
 
 class CsvMetaReader(Reader):
