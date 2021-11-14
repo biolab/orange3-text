@@ -1,12 +1,18 @@
+import inspect
+from collections import Counter
+from warnings import warn
+
 from gensim import matutils
 import numpy as np
 from gensim.corpora import Dictionary
+from gensim.models.callbacks import Metric
 
 from Orange.data import StringVariable, ContinuousVariable, Domain
 from Orange.data.table import Table
+from Orange.util import dummy_callback
+
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.util import chunkable
-
 
 MAX_WORDS = 1000
 
@@ -25,6 +31,26 @@ class Topics(Table):
     """
 
 
+class GensimProgressCallback(Metric):
+    """
+    Callback to report the progress
+    This callback is a hack since Metric class is made to measure metrics.
+    Metric is used since it is the only sort of callback accepted by topic models.
+    """
+    def __init__(self, callback_fun):
+        self.callback_fun = callback_fun
+        self.epochs = 0
+        # parameters required by Gensim Metric
+        self.logger = "shell"
+        self.title = "Progress"
+
+    def get_value(self, model, *args, **kwargs):
+        """ get_value is called on every epoch - pass """
+        self.epochs += 1
+        self.callback_fun(self.epochs / model.passes)
+        return self.epochs / model.passes
+
+
 class GensimWrapper:
     name = NotImplemented
     Model = NotImplemented
@@ -39,31 +65,46 @@ class GensimWrapper:
         self.model = None
         self.topic_names = []
         self.n_words = 0
-        self.running = False
         self.doc_topic = None
         self.tokens = None
         self.actual_topics = None
 
-    def fit(self, corpus, **kwargs):
+    def fit(self, corpus, on_progress=dummy_callback, **kwargs):
         """ Train the model with the corpus.
 
         Args:
             corpus (Corpus): A corpus to learn topics from.
         """
+        if "chunk_number" in kwargs:
+            warn(
+                "chunk_number is deprecated and will be removed in orange3-text 1.7",
+                FutureWarning
+            )
         if not len(corpus.dictionary):
             return None
-        self.reset_model(corpus)
-        self.running = True
-        self.update(corpus.ngrams_corpus, **kwargs)
+        model_kwars = self.kwargs
+        if "callbacks" in inspect.getfullargspec(self.Model).args:
+            # if method support callbacks use progress callback to report progress
+            # at time of writing this code only LDA support callbacks
+            model_kwars = dict(
+                model_kwars, callbacks=[GensimProgressCallback(on_progress)]
+            )
+
+        id2word = Dictionary(corpus.ngrams_iterator(include_postags=True), prune_at=None)
+        self.model = self.Model(
+            corpus=corpus.ngrams_corpus, id2word=id2word, **model_kwars
+        )
         self.n_words = len(corpus.dictionary)
-        self.topic_names = ['Topic {}'.format(i+1)
-                            for i in range(self.num_topics)]
-        self.running = False
+        self.topic_names = ['Topic {}'.format(i+1) for i in range(self.num_topics)]
 
     def dummy_method(self, *args, **kwargs):
         pass
 
     def reset_model(self, corpus):
+        warn(
+            "reset_model is deprecated and will be removed in orange3-text 1.7. "
+            "Model resets with calling fit.",
+            FutureWarning)
         # prevent model from updating
         _update = self.Model.update
         self.Model.update = self.dummy_method
@@ -75,6 +116,9 @@ class GensimWrapper:
 
     @chunkable
     def update(self, documents):
+        warn(
+            "update is deprecated and will be removed in orange3-text 1.7.",
+            FutureWarning)
         self.model.update(documents)
 
     def transform(self, corpus):
