@@ -92,8 +92,8 @@ class OWCorpusViewer(OWWidget):
                                          orientation=Qt.Horizontal,
                                          sizePolicy=QSizePolicy(QSizePolicy.MinimumExpanding,
                                                                 QSizePolicy.Fixed),
-                                         label='RegExp Filter:')
-        self.filter_input.textChanged.connect(self.refresh_search)
+                                         label='RegExp Filter:',
+                                         callback=self.refresh_search)
 
         # Main area
         self.splitter = QSplitter(
