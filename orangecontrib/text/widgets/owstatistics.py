@@ -7,7 +7,8 @@ from typing import Callable, List, Optional, Tuple
 
 import numpy as np
 from AnyQt.QtCore import QSize
-from AnyQt.QtWidgets import QComboBox, QGridLayout, QLabel, QLineEdit
+from AnyQt.QtWidgets import QComboBox, QGridLayout, QLabel, QLineEdit, \
+    QSizePolicy
 
 from Orange.widgets import gui
 from Orange.widgets.settings import ContextSetting
@@ -519,14 +520,12 @@ class OWStatistics(OWWidget, ConcurrentWidgetMixin):
         self._init_statistics_box()
         box = gui.hBox(self.controlArea)
         gui.rubber(box)
-        gui.button(
-            box,
-            self,
-            "Apply",
-            autoDefault=False,
-            width=180,
-            callback=self.apply,
-        )
+
+        gui.button(self.buttonsArea, self, "Apply",
+                   callback=self.apply)
+
+    def get_button(self, label, callback):
+        return
 
     def _init_statistics_box(self) -> None:
         """
@@ -538,14 +537,9 @@ class OWStatistics(OWWidget, ConcurrentWidgetMixin):
         patternbox.layout().addLayout(self.rules_box)
         box = gui.hBox(patternbox)
         gui.button(
-            box,
-            self,
-            "+",
-            callback=self._add_row,
-            autoDefault=False,
-            flat=True,
-            minimumSize=(QSize(20, 20)),
-        )
+            box, self, "+", callback=self._add_row,
+            addToLayout=False, autoDefault=False, width=34,
+            sizePolicy=(QSizePolicy.Maximum, QSizePolicy.Maximum))
         gui.rubber(box)
         self.rules_box.setColumnMinimumWidth(1, 70)
         self.rules_box.setColumnMinimumWidth(0, 10)
@@ -566,17 +560,9 @@ class OWStatistics(OWWidget, ConcurrentWidgetMixin):
 
             # add delete symbol
             button = gui.button(
-                None,
-                self,
-                label="×",
-                flat=True,
-                height=20,
-                styleSheet="* {font-size: 16pt; color: silver}"
-                "*:hover {color: black}",
-                autoDefault=False,
-                callback=self._remove_row,
-            )
-            button.setMinimumSize(QSize(12, 20))
+                None, self, "×", callback=self._remove_row,
+                addToLayout=False, autoDefault=False, width=34,
+                sizePolicy=(QSizePolicy.Maximum, QSizePolicy.Maximum))
             self.rules_box.addWidget(button, n_lines, 0)
             self.remove_buttons.append(button)
 
