@@ -9,6 +9,7 @@ from AnyQt.QtWidgets import (QVBoxLayout, QButtonGroup, QRadioButton,
                              QGroupBox, QTreeWidgetItem, QTreeWidget,
                              QStyleOptionViewItem, QStyledItemDelegate, QStyle)
 from Orange.widgets.utils.concurrent import TaskState, ConcurrentWidgetMixin
+from orangewidget.utils.itemdelegates import text_color_for_state
 
 from gensim.models import CoherenceModel
 
@@ -368,7 +369,7 @@ class HTMLDelegate(QStyledItemDelegate):
     Adopted from https://stackoverflow.com/a/5443112/892987 """
     def paint(self, painter, option, index):
         options = QStyleOptionViewItem(option)
-        self.initStyleOption(options,index)
+        self.initStyleOption(options, index)
 
         style = QApplication.style() if options.widget is None else options.widget.style()
 
@@ -379,11 +380,8 @@ class HTMLDelegate(QStyledItemDelegate):
         style.drawControl(QStyle.CE_ItemViewItem, options, painter)
 
         ctx = QtGui.QAbstractTextDocumentLayout.PaintContext()
-
-        if options.state & QStyle.State_Selected:
-            ctx.palette.setColor(QtGui.QPalette.Text,
-                                 options.palette.color(QtGui.QPalette.Active,
-                                                       QtGui.QPalette.HighlightedText))
+        ctx.palette.setColor(QtGui.QPalette.Text,
+                             text_color_for_state(option.palette, option.state))
 
         textRect = style.subElementRect(QStyle.SE_ItemViewItemText, options)
         painter.save()
@@ -395,7 +393,7 @@ class HTMLDelegate(QStyledItemDelegate):
 
     def sizeHint(self, option, index):
         options = QStyleOptionViewItem(option)
-        self.initStyleOption(options,index)
+        self.initStyleOption(options, index)
 
         doc = QtGui.QTextDocument()
         doc.setHtml(options.text)
