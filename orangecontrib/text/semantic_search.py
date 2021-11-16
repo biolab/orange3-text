@@ -2,14 +2,18 @@ import json
 import base64
 import zlib
 import sys
-from typing import Any, List, Optional, Tuple, Callable, Union
+from typing import Any, List, Optional, Callable, Union
 
 import numpy as np
 
 from Orange.misc.server_embedder import ServerEmbedderCommunicator
 from Orange.util import dummy_callback
 
-MAX_PACKAGE_SIZE = 50000
+# maximum document size that we still send to the server
+MAX_PACKAGE_SIZE = 3000000
+# maximum size of a chunk - when one document is longer send is as a chunk with
+# a single document
+MAX_CHUNK_SIZE = 50000
 MIN_CHUNKS = 20
 
 
@@ -85,8 +89,13 @@ class SemanticSearch:
             return [None] * len(texts)
 
         result = list()
-        for chunk in result_:
-            result.extend(chunk)
+        assert len(result_) == len(chunks)
+        for res_chunk, orig_chunk in zip(result_, chunks):
+            if res_chunk is None:
+                # when embedder fails (Timeout or other error) result will be None
+                result.extend([None] * len(orig_chunk))
+            else:
+                result.extend(res_chunk)
 
         results = list()
         idx = 0
@@ -104,7 +113,9 @@ class SemanticSearch:
         chunk_sizes = np.array_split(sizes, MIN_CHUNKS if depth == 0 else 2)
         result = list()
         for i in range(len(chunks)):
-            if np.sum(chunk_sizes[i]) > MAX_PACKAGE_SIZE:
+            # checking that more than one text in chunk prevent recursion to infinity
+            # when one text is bigger than MAX_CHUNK_SIZE
+            if len(chunks[i]) > 1 and np.sum(chunk_sizes[i]) > MAX_CHUNK_SIZE:
                 result.extend(self._make_chunks(chunks[i], chunk_sizes[i], depth + 1))
             else:
                 result.append(chunks[i])

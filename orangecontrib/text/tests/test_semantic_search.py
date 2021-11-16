@@ -106,6 +106,18 @@ class SemanticSearchTest(unittest.TestCase):
         result = self.semantic_search(self.corpus.documents, QUERIES)
         self.assertEqual(result, IDEAL_RESPONSE)
 
+    # added None three times since server will repeate request on None response
+    # three times
+    @patch(PATCH_METHOD, make_dummy_post(iter(RESPONSE[:-1] + [None] * 3)))
+    def test_none_result(self):
+        """
+        It can happen that the result of an embedding for a chunk is None (server
+        fail to respond three times because Timeout or other error).
+        Make sure that semantic search module can handle None responses.
+        """
+        result = self.semantic_search(self.corpus.documents, QUERIES)
+        self.assertEqual(result, IDEAL_RESPONSE[:-1] + [None])
+
     @patch(PATCH_METHOD, make_dummy_post(RESPONSE[0]))
     def test_success_chunks(self):
         num_docs = len(self.corpus.documents)
