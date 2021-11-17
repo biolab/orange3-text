@@ -109,7 +109,7 @@ def _run(corpus: Corpus, model: GensimWrapper, state: TaskState):
         if state.is_interruption_requested():
             raise Exception
 
-    return model.fit_transform(corpus.copy(), chunk_number=100, on_progress=callback)
+    return model.fit_transform(corpus.copy(), on_progress=callback)
 
 
 class OWTopicModeling(OWWidget, ConcurrentWidgetMixin):
@@ -227,6 +227,7 @@ class OWTopicModeling(OWWidget, ConcurrentWidgetMixin):
             widget.setVisible(i == self.method_index)
 
     def apply(self):
+        self.cancel()
         self.topic_desc.clear()
         if self.corpus is not None:
             self.Warning.less_topics_found.clear()

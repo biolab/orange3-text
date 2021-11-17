@@ -76,7 +76,7 @@ class BowVectorizer(BaseVectorizer):
                                   wlocal=self.wlocals[self.wlocal],
                                   wglobal=self.wglobals[self.wglobal])
 
-        X = matutils.corpus2csc(model[temp_corpus], dtype=np.float, num_terms=len(dic)).T
+        X = matutils.corpus2csc(model[temp_corpus], dtype=float, num_terms=len(dic)).T
         norm = self.norms[self.norm]
         if norm:
             X = norm(X)
