@@ -16,6 +16,9 @@ from orangecontrib.text.tag import AveragedPerceptronTagger
 
 try:
     from orangewidget.utils.signals import summarize
+    # import to check if Table summary is available - if summarize_by_name does
+    # not exist Orange (3.28) does not support automated summaries
+    from Orange.widgets.utils.state_summary import summarize_by_name
 except ImportError:
     summarize = None
 
@@ -656,7 +659,7 @@ class CorpusTests(unittest.TestCase):
         pickle.dumps(c)
 
 
-@skipIf(summarize is None, "summarize is not available for orange-widget-base<4.13")
+@skipIf(summarize is None, "summarize is not available for orange3<=3.28")
 class TestCorpusSummaries(unittest.TestCase):
     def test_corpus_not_preprocessed(self):
         """Check if details part of the summary is formatted correctly"""

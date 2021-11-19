@@ -28,8 +28,9 @@ from orangecontrib.text.vectorization import BowVectorizer
 
 try:
     from orangewidget.utils.signals import summarize, PartialSummary
-    # import to check if Table summary is available
-    from Orange.widgets.utils import state_summary
+    # import to check if Table summary is available - if summarize_by_name does
+    # not exist Orange (3.28) does not support automated summaries
+    from Orange.widgets.utils.state_summary import summarize_by_name
 except ImportError:
     summarize, PartialSummary = None, None
 
