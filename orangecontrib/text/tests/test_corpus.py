@@ -16,6 +16,9 @@ from orangecontrib.text.tag import AveragedPerceptronTagger
 
 try:
     from orangewidget.utils.signals import summarize
+    # import to check if Table summary is available - if summarize_by_name does
+    # not exist Orange (3.28) does not support automated summaries
+    from Orange.widgets.utils.state_summary import summarize_by_name
 except ImportError:
     summarize = None
 
@@ -439,6 +442,26 @@ class CorpusTests(unittest.TestCase):
         self.assertEqual(sel.ngram_range, c.ngram_range)
         self.assertEqual(sel.attributes, c.attributes)
 
+        ind = np.array([3, 4, 5, 6])
+        sel = c[ind]
+        self.assertEqual(len(sel), len(ind))
+        self.assertEqual(len(sel._tokens), len(ind))
+        np.testing.assert_equal(sel._tokens, c._tokens[ind])
+        self.assertEqual(sel._dictionary, c._dictionary)
+        self.assertEqual(sel.text_features, c.text_features)
+        self.assertEqual(sel.ngram_range, c.ngram_range)
+        self.assertEqual(sel.attributes, c.attributes)
+
+        ind = range(3, 7)
+        sel = c[ind]
+        self.assertEqual(len(sel), len(ind))
+        self.assertEqual(len(sel._tokens), len(ind))
+        np.testing.assert_equal(sel._tokens, c._tokens[list(ind)])
+        self.assertEqual(sel._dictionary, c._dictionary)
+        self.assertEqual(sel.text_features, c.text_features)
+        self.assertEqual(sel.ngram_range, c.ngram_range)
+        self.assertEqual(sel.attributes, c.attributes)
+
         sel = c[...]
         self.assertEqual(sel, c)
 
@@ -636,7 +659,7 @@ class CorpusTests(unittest.TestCase):
         pickle.dumps(c)
 
 
-@skipIf(summarize is None, "summarize is not available for orange-widget-base<4.13")
+@skipIf(summarize is None, "summarize is not available for orange3<=3.28")
 class TestCorpusSummaries(unittest.TestCase):
     def test_corpus_not_preprocessed(self):
         """Check if details part of the summary is formatted correctly"""

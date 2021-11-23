@@ -1,12 +1,18 @@
+import inspect
+from collections import Counter
+from warnings import warn
+
 from gensim import matutils
 import numpy as np
 from gensim.corpora import Dictionary
+from gensim.models.callbacks import Metric
 
 from Orange.data import StringVariable, ContinuousVariable, Domain
 from Orange.data.table import Table
+from Orange.util import dummy_callback
+
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.util import chunkable
-
 
 MAX_WORDS = 1000
 
@@ -20,11 +26,37 @@ class Topic(Table):
         return object.__new__(Topic)
 
 
+class Topics(Table):
+    """ Dummy wrapper for Table so signals can distinguish All Topics from Data.
+    """
+
+
+class GensimProgressCallback(Metric):
+    """
+    Callback to report the progress
+    This callback is a hack since Metric class is made to measure metrics.
+    Metric is used since it is the only sort of callback accepted by topic models.
+    """
+    def __init__(self, callback_fun):
+        self.callback_fun = callback_fun
+        self.epochs = 0
+        # parameters required by Gensim Metric
+        self.logger = "shell"
+        self.title = "Progress"
+
+    def get_value(self, model, *args, **kwargs):
+        """ get_value is called on every epoch - pass """
+        self.epochs += 1
+        self.callback_fun(self.epochs / model.passes)
+        return self.epochs / model.passes
+
+
 class GensimWrapper:
     name = NotImplemented
     Model = NotImplemented
     num_topics = NotImplemented
-    has_negative_weights = False    # whether words can negatively contibute to a topic
+    has_negative_weights = False    # whether words can negatively contribute
+    # to a topic
 
     def __init__(self, **kwargs):
         for k, v in kwargs.items():
@@ -33,41 +65,60 @@ class GensimWrapper:
         self.model = None
         self.topic_names = []
         self.n_words = 0
-        self.running = False
         self.doc_topic = None
         self.tokens = None
         self.actual_topics = None
 
-    def fit(self, corpus, **kwargs):
+    def fit(self, corpus, on_progress=dummy_callback, **kwargs):
         """ Train the model with the corpus.
 
         Args:
             corpus (Corpus): A corpus to learn topics from.
         """
+        if "chunk_number" in kwargs:
+            warn(
+                "chunk_number is deprecated and will be removed in orange3-text 1.7",
+                FutureWarning
+            )
         if not len(corpus.dictionary):
             return None
-        self.reset_model(corpus)
-        self.running = True
-        self.update(corpus.ngrams_corpus, **kwargs)
+        model_kwars = self.kwargs
+        if "callbacks" in inspect.getfullargspec(self.Model).args:
+            # if method support callbacks use progress callback to report progress
+            # at time of writing this code only LDA support callbacks
+            model_kwars = dict(
+                model_kwars, callbacks=[GensimProgressCallback(on_progress)]
+            )
+
+        id2word = Dictionary(corpus.ngrams_iterator(include_postags=True), prune_at=None)
+        self.model = self.Model(
+            corpus=corpus.ngrams_corpus, id2word=id2word, **model_kwars
+        )
         self.n_words = len(corpus.dictionary)
-        self.topic_names = ['Topic {}'.format(i+1)
-                            for i in range(self.num_topics)]
-        self.running = False
+        self.topic_names = ['Topic {}'.format(i+1) for i in range(self.num_topics)]
 
     def dummy_method(self, *args, **kwargs):
         pass
 
     def reset_model(self, corpus):
+        warn(
+            "reset_model is deprecated and will be removed in orange3-text 1.7. "
+            "Model resets with calling fit.",
+            FutureWarning)
         # prevent model from updating
         _update = self.Model.update
         self.Model.update = self.dummy_method
-        self.id2word = Dictionary(corpus.ngrams_iterator(include_postags=True), prune_at=None)
+        self.id2word = Dictionary(corpus.ngrams_iterator(include_postags=True),
+                                  prune_at=None)
         self.model = self.Model(corpus=corpus,
                                 id2word=self.id2word, **self.kwargs)
         self.Model.update = _update
 
     @chunkable
     def update(self, documents):
+        warn(
+            "update is deprecated and will be removed in orange3-text 1.7.",
+            FutureWarning)
         self.model.update(documents)
 
     def transform(self, corpus):
@@ -125,10 +176,13 @@ class GensimWrapper:
         topic across all documents.
 
         :return: np.array of marginal topic probabilities
+        :return: number of tokens
         """
         doc_length = [len(i) for i in tokens]
-        doc_length[:] = [x / sum(doc_length) for x in doc_length]
-        return np.reshape(np.sum(doc_topic.T * doc_length, axis=1), (-1, 1))
+        num_tokens = sum(doc_length)
+        doc_length[:] = [x / num_tokens for x in doc_length]
+        return np.reshape(np.sum(doc_topic.T * doc_length, axis=1), (-1, 1)),\
+            num_tokens
 
     def get_all_topics_table(self):
         """ Transform all topics from gensim model to table. """
@@ -143,7 +197,6 @@ class GensimWrapper:
             X.append(weights)
         X = np.array(X)
 
-
         # take only first n_topics; e.g. when user requested 10, but gensim
         # returns only 9 — when the rank is lower than num_topics requested
         names = np.array(self.topic_names[:n_topics], dtype=object)[:, None]
@@ -152,13 +205,16 @@ class GensimWrapper:
         metas = [StringVariable('Topics'),
                  ContinuousVariable('Marginal Topic Probability')]
 
-        topic_proba = np.array(self._marginal_probability(self.tokens,
-                                                          self.doc_topic),
-                               dtype=object)
+        marg_proba, num_tokens = self._marginal_probability(self.tokens,
+                                                            self.doc_topic)
+        topic_proba = np.array(marg_proba, dtype=object)
 
-        t = Table.from_numpy(Domain(attrs, metas=metas), X=X,
-                             metas=np.hstack((names, topic_proba)))
+        t = Topics.from_numpy(Domain(attrs, metas=metas), X=X,
+                              metas=np.hstack((names, topic_proba)))
         t.name = 'All topics'
+        # required for distinguishing between models in OWRelevantTerms
+        t.attributes.update([('Model', f'{self.name}'),
+                             ('Number of tokens', num_tokens)])
         return t
 
     def get_top_words_by_id(self, topic_id, num_of_words=10):

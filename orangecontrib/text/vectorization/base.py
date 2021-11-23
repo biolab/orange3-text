@@ -1,7 +1,6 @@
 from itertools import chain
 
 import numpy as np
-from gensim import matutils
 
 from Orange.data.util import SharedComputeValue
 from Orange.data import Domain
@@ -12,6 +11,8 @@ from Orange.data import Domain
 
 # remove following section when orange3=3.27 is available
 import re
+
+from orangecontrib.text.util import Sparse2CorpusSliceable
 
 RE_FIND_INDEX = r"(^{})( \((\d{{1,}})\))?$"
 
@@ -81,7 +82,7 @@ class BaseVectorizer:
             sparse=True,
             rename_existing=True
         )
-        corpus.ngrams_corpus = matutils.Sparse2Corpus(X.T)
+        corpus.ngrams_corpus = Sparse2CorpusSliceable(X.T)
         return corpus
 
 

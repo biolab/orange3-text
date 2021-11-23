@@ -72,11 +72,11 @@ class BowVectorizer(BaseVectorizer):
         temp_corpus = list(corpus.ngrams_iterator(' ', include_postags=True))
         dic = corpora.Dictionary(temp_corpus, prune_at=None) if not source_dict else source_dict
         temp_corpus = [dic.doc2bow(doc) for doc in temp_corpus]
-        model = models.TfidfModel(temp_corpus, normalize=False,
+        model = models.TfidfModel(dictionary=dic, normalize=False,
                                   wlocal=self.wlocals[self.wlocal],
                                   wglobal=self.wglobals[self.wglobal])
 
-        X = matutils.corpus2csc(model[temp_corpus], dtype=np.float, num_terms=len(dic)).T
+        X = matutils.corpus2csc(model[temp_corpus], dtype=float, num_terms=len(dic)).T
         norm = self.norms[self.norm]
         if norm:
             X = norm(X)

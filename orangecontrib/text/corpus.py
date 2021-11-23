@@ -28,8 +28,9 @@ from orangecontrib.text.vectorization import BowVectorizer
 
 try:
     from orangewidget.utils.signals import summarize, PartialSummary
-    # import to check if Table summary is available
-    from Orange.widgets.utils import state_summary
+    # import to check if Table summary is available - if summarize_by_name does
+    # not exist Orange (3.28) does not support automated summaries
+    from Orange.widgets.utils.state_summary import summarize_by_name
 except ImportError:
     summarize, PartialSummary = None, None
 
@@ -270,8 +271,13 @@ class Corpus(Table):
         for val in set(filter(None, Y)):
             if val not in cv.values:
                 cv.add_value(val)
-        new_Y = np.array([cv.to_val(i) for i in Y])[:, None]
-        self._Y = np.vstack((self._Y, new_Y))
+
+        if len(self._Y.shape) == 1:
+            new_Y = np.array([cv.to_val(i) for i in Y])
+            self._Y = np.hstack((self._Y, new_Y))
+        else:
+            new_Y = np.array([cv.to_val(i) for i in Y])[:, None]
+            self._Y = np.vstack((self._Y, new_Y))
 
         self.X = self.W = np.zeros((self.metas.shape[0], 0))
         Table._init_ids(self)
@@ -511,6 +517,7 @@ class Corpus(Table):
         c.used_preprocessor = self.used_preprocessor
         c._titles = self._titles
         c._pp_documents = self._pp_documents
+        c._ngrams_corpus = self._ngrams_corpus
         return c
 
     @staticmethod
@@ -659,6 +666,8 @@ class Corpus(Table):
             new.ngram_range = orig.ngram_range
             new.attributes = orig.attributes
             new.used_preprocessor = orig.used_preprocessor
+            if orig._ngrams_corpus is not None:
+                new.ngrams_corpus = orig._ngrams_corpus[key]
 
     def __eq__(self, other):
         def arrays_equal(a, b):

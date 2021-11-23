@@ -9,6 +9,7 @@ from AnyQt.QtWidgets import (QVBoxLayout, QButtonGroup, QRadioButton,
                              QGroupBox, QTreeWidgetItem, QTreeWidget,
                              QStyleOptionViewItem, QStyledItemDelegate, QStyle)
 from Orange.widgets.utils.concurrent import TaskState, ConcurrentWidgetMixin
+from orangewidget.utils.itemdelegates import text_color_for_state
 
 from gensim.models import CoherenceModel
 
@@ -18,7 +19,8 @@ from Orange.widgets.settings import DomainContextHandler
 from Orange.widgets.widget import OWWidget, Input, Output, Msg
 from Orange.data import Table
 from orangecontrib.text.corpus import Corpus
-from orangecontrib.text.topics import Topic, LdaWrapper, HdpWrapper, LsiWrapper
+from orangecontrib.text.topics import Topic, Topics, LdaWrapper, HdpWrapper, \
+    LsiWrapper
 from orangecontrib.text.topics.topics import GensimWrapper
 
 
@@ -108,7 +110,7 @@ def _run(corpus: Corpus, model: GensimWrapper, state: TaskState):
         if state.is_interruption_requested():
             raise Exception
 
-    return model.fit_transform(corpus.copy(), chunk_number=100, on_progress=callback)
+    return model.fit_transform(corpus.copy(), on_progress=callback)
 
 
 class OWTopicModeling(OWWidget, ConcurrentWidgetMixin):
@@ -127,7 +129,7 @@ class OWTopicModeling(OWWidget, ConcurrentWidgetMixin):
     class Outputs:
         corpus = Output("Corpus", Table, default=True)
         selected_topic = Output("Selected Topic", Topic)
-        all_topics = Output("All Topics", Table)
+        all_topics = Output("All Topics", Topics)
 
     want_main_area = True
 
@@ -226,6 +228,7 @@ class OWTopicModeling(OWWidget, ConcurrentWidgetMixin):
             widget.setVisible(i == self.method_index)
 
     def apply(self):
+        self.cancel()
         self.topic_desc.clear()
         if self.corpus is not None:
             self.Warning.less_topics_found.clear()
@@ -367,7 +370,7 @@ class HTMLDelegate(QStyledItemDelegate):
     Adopted from https://stackoverflow.com/a/5443112/892987 """
     def paint(self, painter, option, index):
         options = QStyleOptionViewItem(option)
-        self.initStyleOption(options,index)
+        self.initStyleOption(options, index)
 
         style = QApplication.style() if options.widget is None else options.widget.style()
 
@@ -378,11 +381,8 @@ class HTMLDelegate(QStyledItemDelegate):
         style.drawControl(QStyle.CE_ItemViewItem, options, painter)
 
         ctx = QtGui.QAbstractTextDocumentLayout.PaintContext()
-
-        if options.state & QStyle.State_Selected:
-            ctx.palette.setColor(QtGui.QPalette.Text,
-                                 options.palette.color(QtGui.QPalette.Active,
-                                                       QtGui.QPalette.HighlightedText))
+        ctx.palette.setColor(QtGui.QPalette.Text,
+                             text_color_for_state(option.palette, option.state))
 
         textRect = style.subElementRect(QStyle.SE_ItemViewItemText, options)
         painter.save()
@@ -394,7 +394,7 @@ class HTMLDelegate(QStyledItemDelegate):
 
     def sizeHint(self, option, index):
         options = QStyleOptionViewItem(option)
-        self.initStyleOption(options,index)
+        self.initStyleOption(options, index)
 
         doc = QtGui.QTextDocument()
         doc.setHtml(options.text)

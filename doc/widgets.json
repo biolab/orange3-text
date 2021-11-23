@@ -45,13 +45,6 @@
     "keywords": []
    },
    {
-    "text": "Wikipedia",
-    "doc": "widgets/wikipedia-widget.md",
-    "icon": "../orangecontrib/text/widgets/icons/Wikipedia.svg",
-    "background": "light-blue",
-    "keywords": []
-   },
-   {
     "text": "Preprocess Text",
     "doc": "widgets/preprocesstext.md",
     "icon": "../orangecontrib/text/widgets/icons/TextPreprocess.svg",
@@ -124,9 +117,23 @@
     ]
    },
    {
+    "text": "LDAvis",
+    "doc": "widgets/LDAvis.md",
+    "icon": "../orangecontrib/text/widgets/icons/LDAvis.svg",
+    "background": "light-blue",
+    "keywords": []
+   },
+   {
     "text": "Corpus Viewer",
     "doc": "widgets/corpusviewer.md",
     "icon": "../orangecontrib/text/widgets/icons/CorpusViewer.svg",
+    "background": "light-blue",
+    "keywords": []
+   },
+   {
+    "text": "Score Documents",
+    "doc": "widgets/score-documents.md",
+    "icon": "../orangecontrib/text/widgets/icons/ScoreDocuments.svg",
     "background": "light-blue",
     "keywords": []
    },
@@ -166,6 +173,23 @@
     "icon": "../orangecontrib/text/widgets/icons/Duplicates.svg",
     "background": "light-blue",
     "keywords": []
+   },
+   {
+    "text": "Word List",
+    "doc": null,
+    "icon": "../orangecontrib/text/widgets/icons/WordList.svg",
+    "background": "light-blue",
+    "keywords": []
+   },
+   {
+    "text": "Extract Keywords",
+    "doc": "widgets/keywords.md",
+    "icon": "../orangecontrib/text/widgets/icons/Keywords.svg",
+    "background": "light-blue",
+    "keywords": [
+     "characteristic",
+     "term"
+    ]
    },
    {
     "text": "Statistics",

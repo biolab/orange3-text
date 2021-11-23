@@ -5,6 +5,22 @@ Change Log
 ------------
 * ...
 
+[1.6.0] - 2021-11-23
+--------------------
+##### Enhancements
+* OWLDAvis ([#731](../../pull/731))
+* Corpus Viewer: Run search when finished typing the query ([#740](../../pull/740))
+
+##### Bugfixes
+* Semantic Search: increase maximal allowed chunk size, fix error when timeout ([#752](../../pull/752))
+* Topic Modeling: Base selection style on itemdelegates ([#751](../../pull/751))
+* Topic - remove topic computations in chunk which results in poor topics ([#750](../../pull/750))
+* Semantic Search - fix callback to return proportions ([#747](../../pull/747))
+* BoW: use training weights on test data ([#745](../../pull/745))
+* OWScoreDocuments: Ensure unique names on output ([#744](../../pull/744))
+* Sparse2CorpusSliceable: add support for np.ndarray as key ([#737](../../pull/737))
+* Store ngrams_corpus correctly ([#729](../../pull/729))
+
 [1.5.3] - 2021-10-08
 --------------------
 ##### Bugfixes
@@ -297,7 +313,9 @@ Change Log
 --------------------
 
 
-[next]: https://github.com/biolab/orange3-text/compare/1.4.1...HEAD
+[next]: https://github.com/biolab/orange3-text/compare/1.6.0...HEAD
+[1.6.0]: https://github.com/biolab/orange3-text/compare/1.5.3...1.6.0
+[1.5.3]: https://github.com/biolab/orange3-text/compare/1.5.1...1.5.3
 [1.5.1]: https://github.com/biolab/orange3-text/compare/1.5.0...1.5.1
 [1.5.0]: https://github.com/biolab/orange3-text/compare/1.4.0...1.5.0
 [1.4.0]: https://github.com/biolab/orange3-text/compare/1.3.1...1.4.0

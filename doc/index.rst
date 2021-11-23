@@ -21,6 +21,7 @@ Widgets
    widgets/sentimentanalysis
    widgets/tweetprofiler
    widgets/topicmodelling-widget
+   widgets/LDAvis
    widgets/corpusviewer
    widgets/wordcloud
    widgets/concordance
