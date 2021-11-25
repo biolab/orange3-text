@@ -283,6 +283,13 @@ class ScoreDocumentsTableModel(PyTableModel):
         super().__init__(parent=parent)
         self._extremes = {}
 
+    @staticmethod
+    def simplify(s):
+        """Remove tab and newline characters from the string"""
+        for ch in "\n\t\r":
+            s = s.replace(ch, " ")
+        return s
+
     def data(self, index, role=Qt.DisplayRole):
         if index.column() > 0 and role == gui.BarRatioRole and index.isValid():
             # for all except first columns return ratio for distribution bar
@@ -291,6 +298,9 @@ class ScoreDocumentsTableModel(PyTableModel):
             return (value - vmin) / ((vmax - vmin) or 1)
         if role in (gui.BarRatioRole, Qt.DisplayRole):
             dat = super().data(index, Qt.EditRole)
+            if role == Qt.DisplayRole and index.column() == 0:
+                # in document title column remove newline characters from titles
+                dat = self.simplify(dat)
             return dat
         if role == Qt.BackgroundColorRole and index.column() == 0:
             return TableModel.ColorForRole[TableModel.Meta]
