@@ -5,6 +5,8 @@ import pyqtgraph as pg
 from AnyQt.QtCore import QPointF, Qt
 from PyQt5.QtGui import QColor, QPen
 from PyQt5.QtWidgets import QGraphicsSceneHelpEvent, QToolTip
+from pyqtgraph import LabelItem, AxisItem
+from pyqtgraph.graphicsItems.LegendItem import ItemSample
 
 from Orange.data import Table
 from Orange.widgets import gui
@@ -23,7 +25,6 @@ from orangewidget.utils.visual_settings_dlg import (
 )
 from orangewidget.utils.widgetpreview import WidgetPreview
 from orangewidget.widget import Msg
-from pyqtgraph import LabelItem, ItemSample, AxisItem
 
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.topics import LdaWrapper
@@ -371,7 +372,7 @@ class OWLDAvis(OWWidget):
 if __name__ == "__main__":
     corpus = Corpus.from_file("deerwester")
     lda = LdaWrapper(num_topics=5)
-    lda.fit_transform(corpus, chunk_number=100)
+    lda.fit_transform(corpus)
     topics = lda.get_all_topics_table()
 
     WidgetPreview(OWLDAvis).run(topics)

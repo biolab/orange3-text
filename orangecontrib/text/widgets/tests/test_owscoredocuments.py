@@ -433,6 +433,15 @@ class TestOWScoreDocuments(WidgetTest):
         output = self.get_output(self.widget.Outputs.selected_documents)
         self.assertTrue("Word count (1)" in output.domain)
 
+    def test_titles_no_newline(self):
+        corpus = Corpus.from_file("andersen")
+        corpus.metas[0, 0] = corpus.metas[0, 0] + "\ntest"
+        corpus.set_title_variable("Title")
+        self.send_signal(self.widget.Inputs.corpus, corpus)
+        self.assertEqual(
+            "The Little Match-Seller test", self.widget.view.model().index(0, 0).data()
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
