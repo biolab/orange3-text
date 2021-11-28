@@ -5,6 +5,14 @@ Change Log
 ------------
 * ...
 
+[1.6.1] - 2021-11-28
+--------------------
+##### Enhancements
+* Semantic Viewer: New widget ([#748](../../pull/748))
+
+##### Bugfixes
+* score-documents: handle document titles with newlines ([#754](../../pull/754))
+
 [1.6.0] - 2021-11-23
 --------------------
 ##### Enhancements
@@ -313,7 +321,8 @@ Change Log
 --------------------
 
 
-[next]: https://github.com/biolab/orange3-text/compare/1.6.0...HEAD
+[next]: https://github.com/biolab/orange3-text/compare/1.6.1...HEAD
+[1.6.1]: https://github.com/biolab/orange3-text/compare/1.6.0...1.6.1
 [1.6.0]: https://github.com/biolab/orange3-text/compare/1.5.3...1.6.0
 [1.5.3]: https://github.com/biolab/orange3-text/compare/1.5.1...1.5.3
 [1.5.1]: https://github.com/biolab/orange3-text/compare/1.5.0...1.5.1
