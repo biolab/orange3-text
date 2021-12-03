@@ -1,4 +1,5 @@
 import os
+import time
 import numpy as np
 
 from unittest import mock, skip
@@ -109,3 +110,7 @@ class TestSentimentWidget(WidgetTest):
         widget.vader.click()
         self.assertFalse(widget.Warning.one_dict_only.is_shown())
         self.assertFalse(widget.Warning.no_dicts_loaded.is_shown())
+
+    def test_none_type_input(self):
+        # this should not raise an exception
+        self.send_signal("Corpus", None)
