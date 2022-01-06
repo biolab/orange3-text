@@ -1,6 +1,5 @@
 import os
 from collections import Counter, defaultdict
-from contextlib import contextmanager
 from copy import copy
 from numbers import Integral
 from itertools import chain
@@ -20,7 +19,6 @@ from Orange.data import (
     RowInstance,
     Table,
     StringVariable,
-    dataset_dirs,
 )
 from Orange.preprocess.transformation import Identity
 from Orange.data.util import get_unique_names
@@ -57,31 +55,34 @@ class Corpus(Table):
     """Internal class for storing a corpus."""
 
     def __new__(cls, *args, **kwargs):
-        """Bypass Table.__new__."""
-        return object.__new__(cls)
+        if args and isinstance(args[0], Domain) or "domain" in kwargs:
+            warn(
+                "Signature of Corpus constructor when called with numpy "
+                "arrays will change in the future to be equal to Corpus.from_numpy. "
+                "To avoid issues use Corpus.from_numpy instead.",
+                FutureWarning,
+            )
+            # __init__ had a different signature than from_numpy
+            params = ["domain", "X", "Y", "metas", "W", "text_features", "ids"]
+            kwargs.update({param: arg for param, arg in zip(params, args)})
 
-    def __init__(self, domain=None, X=None, Y=None, metas=None, W=None,
-                 text_features=None, ids=None):
-        """
-        Args:
-            domain (Orange.data.Domain): the domain for this Corpus
-            X (numpy.ndarray): attributes
-            Y (numpy.ndarray): class variables
-            metas (numpy.ndarray): meta attributes; e.g. text
-            W (numpy.ndarray): instance weights
-            text_features (list): meta attributes that are used for
-                text mining. Infer them if None.
-            ids (numpy.ndarray): Indices
-        """
-        super().__init__()
-        n_doc = _check_arrays(X, Y, metas)
+            # in old signature it can happen that X is missing
+            n_doc = _check_arrays(
+                kwargs.get("X", None), kwargs.get("Y", None), kwargs.get("metas", None)
+            )
+            if "X" not in kwargs:
+                kwargs["X"] = np.empty((n_doc, 0))
 
-        with self.unlocked_reference():
-            self.X = X if X is not None else np.zeros((n_doc, 0))
-            self.Y = Y if Y is not None else np.zeros((n_doc, 0))
-            self.metas = metas if metas is not None else np.zeros((n_doc, 0))
-            self.W = W if W is not None else np.zeros((n_doc, 0))
-        self.domain = domain
+            return cls.from_numpy(**kwargs)
+        return super().__new__(cls, *args, **kwargs)
+
+    def _setup_corpus(self, text_features: List[Variable] = None) -> None:
+        """
+        Parameters
+        ----------
+        text_features
+            meta attributes that are used for text mining. Infer them if None.
+        """
         self.text_features = []    # list of text features for mining
         self._tokens = None
         self._dictionary = None
@@ -94,15 +95,11 @@ class Corpus(Table):
         self._titles: Optional[np.ndarray] = None
         self._pp_documents = None  # preprocessed documents
 
-        if domain is not None and text_features is None:
+        if text_features is None:
             self._infer_text_features()
-        elif domain is not None:
+        else:
             self.set_text_features(text_features)
 
-        if ids is not None:
-            self.ids = ids
-        else:
-            Table._init_ids(self)
         self._set_unique_titles()
 
     @property
@@ -332,13 +329,13 @@ class Corpus(Table):
                 class_vars=curr_class_var,
                 metas=curr_metas
         )
-        c = Corpus(
+        c = Corpus.from_numpy(
             new_domain,
             X,
             self.Y.copy(),
             self.metas.copy(),
             self.W.copy(),
-            copy(self.text_features)
+            text_features=copy(self.text_features),
         )
         Corpus.retain_preprocessing(self, c)
         return c
@@ -476,9 +473,9 @@ class Corpus(Table):
 
     def copy(self):
         """Return a copy of the table."""
-        c = self.__class__(self.domain, self.X.copy(), self.Y.copy(), self.metas.copy(),
-                           self.W.copy(), copy(self.text_features))
+        c = super().copy()
         # since tokens and dictionary are considered immutable copies are not needed
+        c._setup_corpus(copy(self.text_features))
         c._tokens = self._tokens
         c._dictionary = self._dictionary
         c.ngram_range = self.ngram_range
@@ -537,7 +534,9 @@ class Corpus(Table):
             Y = np.empty((0, len(class_vars)))
             metas = np.empty((0, len(metas)))
 
-        corpus = Corpus(X=X, Y=Y, metas=metas, domain=domain, text_features=[])
+        corpus = Corpus.from_numpy(
+            domain=domain, X=X, Y=Y, metas=metas, text_features=[]
+        )
         corpus.name = name
         return corpus
 
@@ -550,30 +549,41 @@ class Corpus(Table):
     @classmethod
     def from_table(cls, domain, source, row_indices=...):
         c = super().from_table(domain, source, row_indices)
+        c._setup_corpus()
         Corpus.retain_preprocessing(source, c, row_indices)
         return c
 
     @classmethod
-    def from_numpy(cls, *args, **kwargs):
-        t = super().from_numpy(*args, **kwargs)
-        # t is corpus but its constructor was not called since from_numpy
-        # calls just class method __new__, call it here to set default values
-        # for attributes such as _titles, _tokens, preprocessors, text_features
-        c = Corpus(t.domain, t.X, t.Y, t.metas, t.W, ids=t.ids)
-        return c
+    def from_numpy(
+        cls,
+        domain,
+        X,
+        Y=None,
+        metas=None,
+        W=None,
+        attributes=None,
+        ids=None,
+        text_features=None,
+    ):
+        t = super().from_numpy(
+            domain, X, Y=Y, metas=metas, W=W, attributes=attributes, ids=ids
+        )
+        # t is corpus but corpus specific attributes were not set yet
+        t._setup_corpus(text_features=text_features)
+        return t
 
     @classmethod
     def from_list(cls, domain, rows, weights=None):
         t = super().from_list(domain, rows, weights)
-        # t is corpus but its constructor was not called since from_numpy
-        # calls just class method __new__, call it here to set default values
-        # for attributes such as _titles, _tokens, preprocessors, text_features
-        c = Corpus(t.domain, t.X, t.Y, t.metas, t.W, ids=t.ids)
-        return c
+        # t is corpus but corpus specific attributes were not set yet
+        t._setup_corpus()
+        return t
 
     @classmethod
     def from_table_rows(cls, source, row_indices):
         c = super().from_table_rows(source, row_indices)
+        # t is corpus but corpus specific attributes were not set yet
+        c._setup_corpus()
         if hasattr(source, "_titles"):
             # covering case when from_table_rows called by from_table
             c._titles = source._titles[row_indices]
@@ -588,9 +598,14 @@ class Corpus(Table):
             if os.path.exists(abs_path):
                 filename = abs_path
 
-        table = Table.from_file(filename)
-        corpus = cls(table.domain, table.X, table.Y, table.metas, table.W)
-        return corpus
+        table = super().from_file(filename)
+        if not isinstance(table, Corpus):
+            # when loading regular file result of super().from_file is Table - need
+            # to be transformed to Corpus, when loading pickle it is Corpus already
+            name = table.name
+            table = cls.from_numpy(table.domain, table.X, table.Y, table.metas, table.W, attributes=table.attributes)
+            table.name = name
+        return table
 
     @staticmethod
     def retain_preprocessing(orig, new, key=...):

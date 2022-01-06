@@ -174,7 +174,7 @@ class ConcordanceModel(QAbstractTableModel):
                 txt.append(str(self.data(index)))
             data.append([" ".join(txt)])
             docs.append([self.corpus.titles[self.word_index[row][0]]])
-        conc = np.array(np.hstack((data, docs)), dtype=object)
+        conc = np.array(np.hstack((data, docs)), dtype=object) if data else np.empty((0,2))
         return Corpus(domain, metas=conc, text_features=[domain.metas[0]])
 
 
