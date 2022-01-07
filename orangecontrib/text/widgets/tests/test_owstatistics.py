@@ -1,8 +1,6 @@
 import unittest
-from unittest.mock import Mock
 
 import numpy as np
-import pkg_resources
 from AnyQt.QtWidgets import QPushButton
 
 from Orange.data import Domain, StringVariable
@@ -27,12 +25,12 @@ class TestStatisticsWidget(WidgetTest):
         """
         metas = np.array(
             [
-                "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
-                "Duis viverra elit eu mi blandit, {et} sollicitudin nisi ",
-                " a porta\tleo. Duis vitae ultrices massa. Mauris ut pulvinar a",
-                "tortor. Class (aptent) taciti\nsociosqu ad lit1ora torquent per",
+                ["Lorem ipsum dolor sit amet, consectetur adipiscing elit."],
+                ["Duis viverra elit eu mi blandit, {et} sollicitudin nisi "],
+                [" a porta\tleo. Duis vitae ultrices massa. Mauris ut pulvinar a"],
+                ["tortor. Class (aptent) taciti\nsociosqu ad lit1ora torquent per"],
             ]
-        ).reshape(-1, 1)
+        )
         text_var = StringVariable("text")
         domain = Domain([], metas=[text_var])
         self.corpus = Corpus(
@@ -168,7 +166,8 @@ class TestStatisticsWidget(WidgetTest):
             data.X.flatten(), [1, 1, 0.909091, 1]
         )
 
-        self.corpus[1][-1] = ""
+        with self.corpus.unlocked():
+            self.corpus[1][-1] = ""
         data = self._compute_features("Per cent unique words")
         np.testing.assert_array_almost_equal(
             data.X.flatten(), [1, np.nan, 0.909091, 1]
@@ -266,7 +265,8 @@ class TestStatisticsWidget(WidgetTest):
         self.assertEqual(0, res.X.shape[1])
         self.assertTrue(self.widget.Warning.not_computed.is_shown())
 
-        self.corpus[1][-1] = "simple"
+        with self.corpus.unlocked():
+            self.corpus[1][-1] = "simple"
         tagger = AveragedPerceptronTagger()
         result = tagger(self.corpus)
 
@@ -284,7 +284,8 @@ class TestStatisticsWidget(WidgetTest):
         """
         Test LIX readability score.
         """
-        self.corpus[1][-1] = "simple. simple."
+        with self.corpus.unlocked():
+            self.corpus[1][-1] = "simple. simple."
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
         self._set_feature("LIX index")
         self.widget.apply()

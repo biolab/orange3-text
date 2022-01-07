@@ -12,10 +12,6 @@ from orangecontrib.text.topics import Topic
 from orangecontrib.text.widgets.owwordcloud import OWWordCloud
 
 
-@unittest.skipIf(
-    pkg_resources.get_distribution("orange3").version < "3.24.0",
-    "Wait until finished not implemented in lower version"
-)
 class TestWordCloudWidget(WidgetTest):
     def setUp(self):
         self.widget = self.create_widget(OWWordCloud)
@@ -154,7 +150,8 @@ class TestWordCloudWidget(WidgetTest):
         In some very rare cases (when all text strings empty) word cloud all
         token lists empty. Widget must work in those cases.
         """
-        self.corpus.metas = np.array([[" "]] * len(self.corpus))
+        with self.corpus.unlocked():
+            self.corpus.metas = np.array([[" "]] * len(self.corpus))
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
         self.wait_until_finished()
 
