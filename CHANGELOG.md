@@ -5,6 +5,11 @@ Change Log
 ------------
 * ...
 
+[1.6.2] - 2022-01-10
+--------------------
+##### Bugfixes
+* Solved numpy 1.22 incompatibility
+
 [1.6.1] - 2021-11-28
 --------------------
 ##### Enhancements
@@ -321,7 +326,8 @@ Change Log
 --------------------
 
 
-[next]: https://github.com/biolab/orange3-text/compare/1.6.1...HEAD
+[next]: https://github.com/biolab/orange3-text/compare/1.6.2...HEAD
+[1.6.2]: https://github.com/biolab/orange3-text/compare/1.6.1...1.6.2
 [1.6.1]: https://github.com/biolab/orange3-text/compare/1.6.0...1.6.1
 [1.6.0]: https://github.com/biolab/orange3-text/compare/1.5.3...1.6.0
 [1.5.3]: https://github.com/biolab/orange3-text/compare/1.5.1...1.5.3
