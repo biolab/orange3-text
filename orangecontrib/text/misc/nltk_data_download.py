@@ -17,6 +17,7 @@ NLTK_DATA = [
     'vader_lexicon',
     'averaged_perceptron_tagger',
     'maxent_treebank_pos_tagger',
+    'omw-1.4',
 ]
 
 
