@@ -205,10 +205,6 @@ class UrlReader(Reader, CoreUrlReader):
         Reader.__init__(self, path, *args)
 
     def read_file(self):
-        # unquote prevent double quoting when filename is already quoted
-        # when not quoted it doesn't change url - it is required since Orange's
-        # UrlReader quote urls in version 3.29 but not in older versions
-        self.filename = quote(unquote(self.filename), safe="/:")
         self.filename = self._trim(self._resolve_redirects(self.filename))
         with contextlib.closing(self.urlopen(self.filename)) as response:
             name = self._suggest_filename(

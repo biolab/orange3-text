@@ -52,18 +52,6 @@ class TestUrlReader(unittest.TestCase):
         self.assertEqual(text_data.category, "data")
         self.assertEqual(text_data.content, "text")
 
-    def test_remove_quoting(self):
-        """
-        Since URL quoting is implemented in Orange it can be removed from text
-        addon when minimal version of Orange is increased to 3.29.1. When this
-        test start to fail remove the test itself and lines 191 - 194 in
-        import_documents.py
-        """
-        distribution = get_distribution('orange3-text')
-        orange_spec = next(x for x in distribution.requires() if x.name == "Orange3")
-        orange_min_version = tuple(map(int, orange_spec.specs[0][1].split(".")))
-        self.assertLess(orange_min_version, (3, 29, 1))
-
 
 class TestImportDocuments(unittest.TestCase):
     def test_scan_url(self):
