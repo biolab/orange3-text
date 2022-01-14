@@ -961,6 +961,7 @@ class OWPreprocess(Orange.widgets.data.owpreprocess.OWPreprocess,
                    ConcurrentWidgetMixin):
     name = "Preprocess Text"
     description = "Construct a text pre-processing pipeline."
+    category=None
     icon = "icons/TextPreprocess.svg"
     priority = 200
     keywords = []
