@@ -159,11 +159,10 @@ class GensimWrapper:
         metas[-1]._out_format = '%.2e'
 
         domain = Domain([], metas=metas)
-        t = Topic.from_numpy(domain,
-                             X=np.zeros((num_words, 0)),
-                             metas=data)
-        t.W = data[:, 1]
-        t.name = 'Topic {}'.format(topic_id + 1)
+        t = Topic.from_numpy(
+            domain, X=np.zeros((num_words, 0)), metas=data, W=data[:, 1]
+        )
+        t.name = "Topic {}".format(topic_id + 1)
 
         # needed for coloring in word cloud
         t.attributes["topic-method-name"] = self.model.__class__.__name__

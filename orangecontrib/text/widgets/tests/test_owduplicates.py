@@ -31,5 +31,11 @@ class TestDuplicatesWidget(WidgetTest):
         out_corpus = self.get_output(self.widget.Outputs.duplicates)
         self.assertIsNone(out_corpus)
 
+    def test_output_corpus(self):
+        self.send_signal(self.widget.Inputs.distances, self.distances)
+        out_corpus = self.get_output(self.widget.Outputs.corpus)
+        self.assertIn(out_corpus.domain["Duplicates Cluster"], out_corpus.domain.metas)
+
+
 if __name__ == "__main__":
     unittest.main()

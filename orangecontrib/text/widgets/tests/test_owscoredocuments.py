@@ -435,7 +435,8 @@ class TestOWScoreDocuments(WidgetTest):
 
     def test_titles_no_newline(self):
         corpus = Corpus.from_file("andersen")
-        corpus.metas[0, 0] = corpus.metas[0, 0] + "\ntest"
+        with corpus.unlocked():
+            corpus.metas[0, 0] = corpus.metas[0, 0] + "\ntest"
         corpus.set_title_variable("Title")
         self.send_signal(self.widget.Inputs.corpus, corpus)
         self.assertEqual(

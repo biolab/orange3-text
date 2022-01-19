@@ -1,9 +1,11 @@
 import os
 from collections import Counter, defaultdict
+from contextlib import contextmanager
 from copy import copy
 from numbers import Integral
 from itertools import chain
 from typing import Union, Optional, List, Tuple
+from warnings import warn
 
 import nltk
 import numpy as np
@@ -18,12 +20,10 @@ from Orange.data import (
     RowInstance,
     Table,
     StringVariable,
+    dataset_dirs,
 )
 from Orange.preprocess.transformation import Identity
-# uncomment when Orange3==3.27 is available
-# from Orange.data.util import get_unique_names
-# remove when Orange3==3.27 is available
-from orangecontrib.text.vectorization.base import get_unique_names
+from Orange.data.util import get_unique_names
 from orangecontrib.text.vectorization import BowVectorizer
 
 try:
@@ -73,12 +73,14 @@ class Corpus(Table):
                 text mining. Infer them if None.
             ids (numpy.ndarray): Indices
         """
+        super().__init__()
         n_doc = _check_arrays(X, Y, metas)
 
-        self.X = X if X is not None else np.zeros((n_doc, 0))
-        self.Y = Y if Y is not None else np.zeros((n_doc, 0))
-        self.metas = metas if metas is not None else np.zeros((n_doc, 0))
-        self.W = W if W is not None else np.zeros((n_doc, 0))
+        with self.unlocked_reference():
+            self.X = X if X is not None else np.zeros((n_doc, 0))
+            self.Y = Y if Y is not None else np.zeros((n_doc, 0))
+            self.metas = metas if metas is not None else np.zeros((n_doc, 0))
+            self.W = W if W is not None else np.zeros((n_doc, 0))
         self.domain = domain
         self.text_features = []    # list of text features for mining
         self._tokens = None
@@ -261,6 +263,10 @@ class Corpus(Table):
             metadata (numpy.ndarray): Meta data
             Y (numpy.ndarray): Class variables
         """
+        warn(
+            "extend_corpus is deprecated and will be removed in orange3-text 1.8",
+            FutureWarning
+        )
         if np.prod(self.X.shape) != 0:
             raise ValueError("Extending corpus only works when X is empty"
                              "while the shape of X is {}".format(self.X.shape))
@@ -579,8 +585,7 @@ class Corpus(Table):
 
     @classmethod
     def from_table(cls, domain, source, row_indices=...):
-        t = super().from_table(domain, source, row_indices)
-        c = Corpus(t.domain, t.X, t.Y, t.metas, t.W, ids=t.ids)
+        c = super().from_table(domain, source, row_indices)
         Corpus.retain_preprocessing(source, c, row_indices)
         return c
 
@@ -616,9 +621,7 @@ class Corpus(Table):
             abs_path = os.path.join(get_sample_corpora_dir(), filename)
             if not abs_path.endswith('.tab'):
                 abs_path += '.tab'
-            if not os.path.exists(abs_path):
-                raise FileNotFoundError('File "{}" not found.'.format(filename))
-            else:
+            if os.path.exists(abs_path):
                 filename = abs_path
 
         table = Table.from_file(filename)
@@ -668,6 +671,9 @@ class Corpus(Table):
             new.used_preprocessor = orig.used_preprocessor
             if orig._ngrams_corpus is not None:
                 new.ngrams_corpus = orig._ngrams_corpus[key]
+        else:  # orig is not Corpus
+            new._set_unique_titles()
+            new._infer_text_features()
 
     def __eq__(self, other):
         def arrays_equal(a, b):
