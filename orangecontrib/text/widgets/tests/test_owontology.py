@@ -5,7 +5,8 @@ from unittest.mock import Mock
 
 from Orange.data import StringVariable, Table, Domain
 from Orange.widgets.tests.base import WidgetTest
-from orangecontrib.text.widgets.owontology import OWOntology, _run
+from orangecontrib.text.widgets.owontology import OWOntology, _run, \
+    EditableTreeView
 
 
 def create_words_table(words: List) -> Table:
@@ -40,6 +41,30 @@ class TestRunner(unittest.TestCase):
         state = Mock()
         state.is_interruption_requested = Mock(return_value=True)
         self.assertRaises(Exception, _run, self.words, state)
+
+
+class TestEditableTreeView(WidgetTest):
+    def setUp(self):
+        self.data = {"foo": {"bar": {}, "baz": {}}}
+        self.view = EditableTreeView()
+
+    def test_set_data(self):
+        model = self.view._EditableTreeView__model
+
+        self.view.set_data(self.data)
+        self.assertEqual(model.rowCount(), 1)
+
+        self.view.set_data(self.data)
+        self.assertEqual(model.rowCount(), 1)
+
+    def test_clear(self):
+        model = self.view._EditableTreeView__model
+
+        self.view.set_data(self.data)
+        self.assertEqual(model.rowCount(), 1)
+
+        self.view.clear()
+        self.assertEqual(model.rowCount(), 0)
 
 
 class TestOWKeywords(WidgetTest):
