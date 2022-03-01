@@ -1,20 +1,19 @@
-import contextlib
-import datetime
+import asyncio
 import fnmatch
 import logging
 import os
 import pathlib
 import re
+
+import httpx
 import yaml
-from urllib.parse import quote, unquote
 
 from conllu import parse_incr
 from requests.exceptions import ConnectionError
-
 from collections import namedtuple
 from tempfile import NamedTemporaryFile
 from types import SimpleNamespace as namespace
-from typing import List, Tuple, Callable
+from typing import List, Tuple, Callable, Optional
 from unicodedata import normalize
 
 import numpy as np
@@ -34,10 +33,9 @@ import serverfiles
 
 from Orange.data import DiscreteVariable, Domain, StringVariable, \
     guess_data_type
-from Orange.data.io import detect_encoding, sanitize_variable,\
-    UrlReader as CoreUrlReader
+from Orange.data.io import detect_encoding, sanitize_variable
 from Orange.data.util import get_unique_names
-from Orange.util import Registry
+from Orange.util import Registry, dummy_callback
 
 from orangecontrib.text.corpus import Corpus
 
@@ -83,7 +81,7 @@ class Reader(metaclass=Registry):
             self.read_file()
         except Exception as ex:
             textdata = None
-            error = "{}".format(pathlib.Path(self.path).name)
+            error = pathlib.Path(self.path).name
             log.exception('Error reading failed', exc_info=ex)
         else:
             textdata = self.make_text_data()
@@ -197,31 +195,85 @@ class TsvMetaReader(Reader):
         self.content = pd.read_csv(self.path, delimiter="\t")
 
 
-class UrlReader(Reader, CoreUrlReader):
-    ext = [".url"]
+ResponseType = Tuple[Optional[Reader], Optional[TextData], Optional[str]]
 
-    def __init__(self, path, *args):
-        CoreUrlReader.__init__(self, path)
-        Reader.__init__(self, path, *args)
 
-    def read_file(self):
-        self.filename = self._trim(self._resolve_redirects(self.filename))
-        with contextlib.closing(self.urlopen(self.filename)) as response:
-            name = self._suggest_filename(
-                response.headers["content-disposition"])
-            extension = "".join(pathlib.Path(name).suffixes)
-            with NamedTemporaryFile(suffix=extension, delete=False) as f:
-                f.write(response.read())
-            reader = Reader.get_reader(f.name)
-            reader.read_file()
-            self.content = reader.content
-            os.remove(f.name)
+class UrlProxyReader:
+    """
+    A collection of functions to handle async downloading of a list of documents
+    and opening the with the appropriate reader
+    """
 
-    def make_text_data(self):
-        text_data = super().make_text_data()
-        ext = pathlib.Path(self.path).suffix
-        return TextData(text_data.name, text_data.path, [ext],
-                        text_data.category, text_data.content)
+    @staticmethod
+    def read_files(
+        urls: List[str], callback: Callable = dummy_callback
+    ) -> List[ResponseType]:
+        """
+        Download a list of document asynchronously
+
+        Parameters
+        ----------
+        urls
+            The list of documents' URLs
+        callback
+            Callback that is called on every successul donwload
+
+        Returns
+        -------
+        List of tuples for each URL. Tuple contain the reader instance; TextData
+        instance with text and other information; a document name if downloading
+        was not successful
+        """
+        return asyncio.run(UrlProxyReader._read_files(urls, callback))
+
+    @staticmethod
+    async def _read_files(urls: List[str], callback: Callable) -> List[ResponseType]:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            req = [UrlProxyReader._read_file(url, client, callback) for url in urls]
+            return await asyncio.gather(*req)
+
+    @staticmethod
+    async def _read_file(
+        url: str, client: httpx.AsyncClient, callback: Callable
+    ) -> ResponseType:
+        def quote_url(u):
+            u = u.strip()
+            # Support URL with query or fragment like http://filename.txt?a=1&b=2#c=3
+
+            def quote_byte(b):
+                return chr(b) if b < 0x80 else "%{:02X}".format(b)
+
+            return "".join(map(quote_byte, u.encode("utf-8")))
+
+        # repeat if unsuccessful (can be due to network error)
+        for _ in range(3):
+            try:
+                response = await client.get(quote_url(url))
+                response.raise_for_status()
+                callback(response.url.path)
+                return UrlProxyReader._parse_response(response)
+            except httpx.HTTPError:
+                pass
+        return None, None, url
+
+    @staticmethod
+    def _parse_response(response) -> ResponseType:
+        path = pathlib.Path(response.url.path)
+        extension = "".join(path.suffixes)
+
+        with NamedTemporaryFile(suffix=extension, delete=False) as f:
+            f.write(response.content)
+        reader = Reader.get_reader(f.name)
+        text_data, error = reader.read()
+        text_data = TextData(
+            path.stem,
+            str(response.url),
+            text_data.ext,
+            path.parent.parts[-1],
+            text_data.content,
+        )
+        os.remove(f.name)
+        return reader, text_data, error
 
 
 class ConlluReader(Reader):
@@ -314,10 +366,13 @@ class ImportDocuments:
     # this is what we will merge meta data on, change to user-set variable
     CONLLU_META_DATA = "ID"
 
-    def __init__(self, startdir: str,
-                 is_url: bool = False,
-                 formats: Tuple[str] = DefaultFormats,
-                 report_progress: Callable = None):
+    def __init__(
+        self,
+        startdir: str,
+        is_url: bool = False,
+        formats: Tuple[str] = DefaultFormats,
+        report_progress: Callable = dummy_callback,
+    ):
         if is_url and not startdir.endswith("/"):
             startdir += "/"
         elif not is_url:
@@ -335,41 +390,62 @@ class ImportDocuments:
         self.ner = None
 
     def run(self) -> Tuple[Corpus, List, List, List, List, bool]:
-        self._text_data, errors_text, tokens, pos, ner, conllu \
-            = self._read_text_data()
-        self._meta_data, errors_meta = self._read_meta_data()
+        file_paths, meta_paths = self._retrieve_paths()
+        callback = self._shared_callback(len(file_paths) + len(meta_paths))
+        self._text_data, errors_text, tokens, pos, ner, conllu = self._read_text_data(
+            file_paths, callback
+        )
+        self._meta_data, errors_meta = self._read_meta_data(meta_paths, callback)
         self.is_conllu = conllu
         corpus = self._create_corpus()
         corpus = self._add_metadata(corpus)
         return corpus, errors_text + errors_meta, tokens, pos, ner, conllu
 
-    def _read_text_data(self):
-        text_data = []
-        errors = []
+    def _shared_callback(self, num_all_files):
+        items = iter(np.linspace(0, 1, num_all_files))
+
+        def callback(path):
+            if self.cancelled:
+                raise Exception
+            self._report_progress(namespace(progress=next(items), lastpath=path))
+
+        return callback
+
+    def _retrieve_paths(self):
+        # retrieve file paths
         patterns = ["*.{}".format(fmt.lower()) for fmt in self.formats]
         scan = self.scan_url if self._is_url else self.scan
-        paths = scan(self.startdir, include_patterns=patterns)
-        n_paths = len(paths)
-        batch = []
+        file_paths = scan(self.startdir, include_patterns=patterns)
+
+        # retrieve meta paths
+        scan = self.scan_url if self._is_url else self.scan
+        patterns = ["*.csv", "*.yaml", "*.yml", "*.tsv"]
+        meta_paths = scan(self.startdir, include_patterns=patterns)
+
+        return file_paths, meta_paths
+
+    def _read_text_data(self, paths, callback):
+        text_data = []
+        errors = []
         tokens = []
         pos = []
         ner = []
         conllu = False
 
-        if n_paths == 0:
+        if len(paths) == 0:
             raise NoDocumentsException()
 
-        for path in paths:
-            if len(batch) == 1 and self._report_progress is not None:
-                self._report_progress(
-                    namespace(progress=len(text_data) / n_paths,
-                              lastpath=path,
-                              batch=batch))
-                batch = []
+        if self._is_url:
+            results = UrlProxyReader().read_files(paths, callback)
+        else:
+            results = []
+            for path in paths:
+                reader = Reader.get_reader(path)
+                text, error = reader.read()
+                results.append((reader, text, error))
+                callback(path)
 
-            reader = Reader.get_reader(path) if not self._is_url \
-                else UrlReader(path)
-            text, error = reader.read()
+        for reader, text, error in results:
             if text is not None:
                 if type(reader) == ConlluReader:
                     conllu = True
@@ -381,7 +457,6 @@ class ImportDocuments:
                 else:
                     conllu = False
                     text_data.append(text)
-                batch.append(text_data)
             else:
                 errors.append(error)
 
@@ -390,15 +465,19 @@ class ImportDocuments:
 
         return text_data, errors, tokens, pos, ner, conllu
 
-    def _read_meta_data(self):
-        scan = self.scan_url if self._is_url else self.scan
-        patterns = ["*.csv", "*.yaml", "*.yml", "*.tsv"]
-        paths = scan(self.startdir, include_patterns=patterns)
+    def _read_meta_data(self, paths, callback):
         meta_dfs, errors = [], []
-        for path in paths:
-            reader = Reader.get_reader(path) if not self._is_url \
-                else UrlReader(path)
-            data, error = reader.read()
+        if self._is_url:
+            results = UrlProxyReader().read_files(paths, callback)
+        else:
+            results = []
+            for path in paths:
+                reader = Reader.get_reader(path)
+                data, error = reader.read()
+                results.append((reader, data, error))
+                callback(path)
+
+        for reader, data, error in results:
             if data is not None:
                 content = data.content
                 if isinstance(content, dict):
@@ -454,9 +533,15 @@ class ImportDocuments:
         return corpus
 
     def _add_metadata(self, corpus: Corpus) -> Corpus:
-        if "path" not in corpus.domain or self._meta_data is None \
-                or (self.META_DATA_FILE_KEY not in self._meta_data.columns
-                    and self.CONLLU_META_DATA not in self._meta_data.columns):
+        if (
+            corpus is None
+            or "path" not in corpus.domain
+            or self._meta_data is None
+            or (
+                self.META_DATA_FILE_KEY not in self._meta_data.columns
+                and self.CONLLU_META_DATA not in self._meta_data.columns
+            )
+        ):
             return corpus
 
         if self.is_conllu:
