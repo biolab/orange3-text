@@ -106,7 +106,7 @@ class TestImportDocuments(unittest.TestCase):
 
     def test_run_url(self):
         path = "http://file.biolab.si/text-semantics/data" \
-               "/predlogi-vladi-sample/"
+               "/predlogi-vladi-20/"
         importer = ImportDocuments(path, True)
         corpus1, _, _, _, _, _ = importer.run()
         self.assertGreater(len(corpus1), 0)
@@ -115,7 +115,7 @@ class TestImportDocuments(unittest.TestCase):
         mask[:, 1] = False
 
         path = "http://file.biolab.si/text-semantics/data" \
-               "/predlogi-vladi-sample////"
+               "/predlogi-vladi-20////"
         importer = ImportDocuments(path, True)
         corpus2, _, _, _, _, _ = importer.run()
         self.assertGreater(len(corpus1), 0)
@@ -123,7 +123,7 @@ class TestImportDocuments(unittest.TestCase):
                                       corpus2.metas[mask].tolist())
 
         path = "http://file.biolab.si/text-semantics/data" \
-               "/predlogi-vladi-sample"
+               "/predlogi-vladi-20"
         importer = ImportDocuments(path, True)
         corpus3, _, _, _, _, _ = importer.run()
         self.assertGreater(len(corpus2), 0)
