@@ -6,13 +6,13 @@ import unittest
 from typing import List
 from unittest.mock import Mock, patch
 
-from AnyQt.QtWidgets import QFileDialog
 from AnyQt.QtCore import Qt
+from AnyQt.QtWidgets import QFileDialog
 
 from Orange.data import StringVariable, Table, Domain
 from Orange.widgets.tests.base import WidgetTest
 from orangecontrib.text.widgets.owontology import OWOntology, _run, \
-    EditableTreeView
+    EditableTreeView, _tree_to_html
 
 
 def create_words_table(words: List) -> Table:
@@ -23,6 +23,15 @@ def create_words_table(words: List) -> Table:
     words = Table.from_list(domain, data)
     words.name = "Words"
     return words
+
+
+class TestUtils(unittest.TestCase):
+    def test_tree_to_html(self):
+        tree = {"foo": {"bar": {},
+                        "bar1": {"bar2": {}, "bar3": {}}}, "baz": {}}
+        html = "<ul><li>foo<ul><li>bar</li><li>bar1<ul><li>bar2</li>" \
+               "<li>bar3</li></ul></li></ul></li><li>baz</li></ul>"
+        self.assertEqual(html, _tree_to_html(tree))
 
 
 class TestRunner(unittest.TestCase):
@@ -182,6 +191,9 @@ class TestOWOntology(WidgetTest):
 
         with open(f.name, "rb") as dummy_f:
             self.assertEqual(pickle.load(dummy_f), self._ontology_1)
+
+    def test_send_report(self):
+        self.widget.send_report()
 
 
 if __name__ == "__main__":

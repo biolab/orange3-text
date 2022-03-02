@@ -8,9 +8,8 @@ from AnyQt.QtCore import Qt, QModelIndex, QItemSelection, Signal, \
 from AnyQt.QtGui import QDropEvent, QStandardItemModel, QStandardItem, \
     QPainter, QColor, QPalette
 from AnyQt.QtWidgets import QWidget, QAction, QVBoxLayout, QTreeView, QMenu, \
-    QToolButton, QGroupBox, QGridLayout, QListView, QSizePolicy, \
-    QStyledItemDelegate, QStyleOptionViewItem, QLineEdit, QFileDialog, \
-    QApplication
+    QToolButton, QGroupBox, QListView, QSizePolicy, QStyledItemDelegate, \
+    QStyleOptionViewItem, QLineEdit, QFileDialog, QApplication
 from networkx import Graph, minimum_spanning_tree
 from networkx.algorithms.centrality import voterank
 from networkx.convert_matrix import from_numpy_array
@@ -80,13 +79,24 @@ def _model_to_tree(item: QStandardItem) -> Dict:
     return tree
 
 
-def _tree_to_model(words: Dict, root: QStandardItem):
-    if isinstance(words, dict):
-        for word, words in words.items():
-            item = QStandardItem(word)
-            root.appendRow(item)
-            if len(words):
-                _tree_to_model(words, item)
+def _tree_to_model(tree: Dict, root: QStandardItem):
+    for word, words in tree.items():
+        item = QStandardItem(word)
+        root.appendRow(item)
+        if len(words):
+            _tree_to_model(words, item)
+
+
+def _tree_to_html(tree: Dict) -> str:
+    if not tree:
+        return ""
+
+    html = "<ul>"
+    for k, v in tree.items():
+        html += f"<li>{k}{_tree_to_html(v)}</li>"
+    html += "</ul>"
+
+    return html
 
 
 class TreeView(QTreeView):
@@ -312,7 +322,8 @@ def save_ontology(parent: OWWidget, filename: str, data: Dict):
 
 
 class LibraryItemDelegate(QStyledItemDelegate):
-    def displayText(self, ontology: Ontology, _) -> str:
+    @staticmethod
+    def displayText(ontology: Ontology, _) -> str:
         return "*" + ontology.name if ontology.flags & Ontology.Modified \
             else ontology.name
 
@@ -327,34 +338,31 @@ class LibraryItemDelegate(QStyledItemDelegate):
             option = QStyleOptionViewItem(option)
             option.palette.setColor(QPalette.Text, QColor(Qt.red))
             option.palette.setColor(QPalette.Highlight, QColor(Qt.darkRed))
-            option.palette.setColor(QPalette.HighlightedText,
-                                    QColor(Qt.white))
+            option.palette.setColor(QPalette.HighlightedText, QColor(Qt.white))
         super().paint(painter, option, index)
 
-    def createEditor(self, parent: QWidget, _, __) -> QLineEdit:
+    @staticmethod
+    def createEditor(parent: QWidget, _, __) -> QLineEdit:
         return QLineEdit(parent)
 
-    def setEditorData(self, editor: QLineEdit, index: QModelIndex):
+    @staticmethod
+    def setEditorData(editor: QLineEdit, index: QModelIndex):
         word_list = index.data(Qt.DisplayRole)
         editor.setText(word_list.name)
 
-    def setModelData(
-            self,
-            editor: QLineEdit,
-            model: PyListModel,
-            index: QModelIndex
-    ):
+    @staticmethod
+    def setModelData(editor: QLineEdit, model: PyListModel, index: QModelIndex):
         model[index.row()].name = str(editor.text())
 
 
 class OWOntology(OWWidget, ConcurrentWidgetMixin):
     name = "Ontology"
     description = ""
+    icon = "icons/Ontology.svg"
+    priority = 1110
     keywords = []
 
-    want_main_area = False
-
-    NONE, CACHED, LIBRARY = range(3)  # library list modification types
+    CACHED, LIBRARY = range(2)  # library list modification types
 
     settingsHandler = DomainContextHandler()
     ontology_library: List[Dict] = Setting([
@@ -383,8 +391,8 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
         self.settingsAboutToBePacked.connect(self._save_state)
 
     def _setup_gui(self):
-        layout = QGridLayout()
-        gui.widgetBox(self.controlArea, orientation=layout)
+        # control area
+        library_box: QGroupBox = gui.vBox(self.controlArea, "Library")
 
         edit_triggers = QListView.DoubleClicked | QListView.EditKeyPressed
         self.__library_view = QListView(
@@ -431,7 +439,7 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
 
         menu = QMenu(actions_widget)
         menu.addAction(new_from_file)
-        menu.addAction(new_from_url)
+        # menu.addAction(new_from_url)
         menu.addAction(save_to_file)
         action.setMenu(menu)
         button = actions_widget.addAction(action)
@@ -443,22 +451,19 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
         vlayout.addWidget(self.__library_view)
         vlayout.addWidget(actions_widget)
 
+        library_box.layout().setSpacing(1)
+        library_box.layout().addLayout(vlayout)
+
+        # main area
+        ontology_box: QGroupBox = gui.vBox(self.mainArea, box=True)
+
         self.__ontology_view = EditableTreeView(self)
         self.__ontology_view.dataChanged.connect(
             self.__on_ontology_data_changed
         )
 
-        library_box: QGroupBox = gui.vBox(None, "Library")
-        ontology_box: QGroupBox = gui.vBox(None, box=True)
-
-        library_box.layout().setSpacing(1)
-        library_box.layout().addLayout(vlayout)
-
         ontology_box.layout().setSpacing(1)
         ontology_box.layout().addWidget(self.__ontology_view)
-
-        layout.addWidget(library_box, 0, 0)
-        layout.addWidget(ontology_box, 0, 1)
 
     def __on_selection_changed(self, selection: QItemSelection, *_):
         if selection.indexes():
@@ -544,8 +549,6 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
             elif mod_type == self.CACHED:
                 ontology = self.__ontology_view.get_data()
                 self.__model[index].cached_word_tree = ontology
-            elif mod_type == self.NONE:
-                pass
             else:
                 raise NotImplementedError
             self.__model.emitDataChanged(index)
@@ -562,6 +565,24 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
     def _save_state(self):
         self.ontology_library = [s.as_dict() for s in self.__model]
         self.ontology = self.__ontology_view.get_data()
+
+    def send_report(self):
+        model = self.__model
+        library = model[self.ontology_index].name if model else "/"
+        self.report_items("Settings", [("Library", library)])
+
+        ontology = self.__ontology_view.get_data()
+        style = """
+        <style>
+            ul {
+                padding-top: 0px;
+                padding-right: 0px;
+                padding-bottom: 0px;
+                padding-left: 20px;
+            }
+        </style>
+        """
+        self.report_raw("Ontology", style + _tree_to_html(ontology))
 
 
 if __name__ == "__main__":
