@@ -1,7 +1,13 @@
 # pylint: disable=missing-docstring
+import os
+import pickle
+import tempfile
 import unittest
 from typing import List
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
+
+from AnyQt.QtWidgets import QFileDialog
+from AnyQt.QtCore import Qt
 
 from Orange.data import StringVariable, Table, Domain
 from Orange.widgets.tests.base import WidgetTest
@@ -67,14 +73,37 @@ class TestEditableTreeView(WidgetTest):
         self.assertEqual(model.rowCount(), 0)
 
 
-class TestOWKeywords(WidgetTest):
+class TestOWOntology(WidgetTest):
     def setUp(self):
-        self.widget = self.create_widget(OWOntology)
+        self._ontology_1 = {"foo1": {"bar1": {}, "baz1": {}}}
+        self._ontology_2 = {"foo2": {"bar2": {}, "baz2": {}}}
+        settings = {
+            "ontology_library": [
+                {"name": "Ontology 1", "ontology": self._ontology_1},
+                {"name": "Ontology 2", "ontology": self._ontology_2}
+            ],
+            "ontology": self._ontology_1
+        }
+        self.widget = self.create_widget(OWOntology, stored_settings=settings)
 
     def test_input_words(self):
+        get_ontology_data = self.widget._OWOntology__ontology_view.get_data
+
         words = create_words_table(["foo"])
         self.send_signal(self.widget.Inputs.words, words)
         self.assertFalse(self.widget.Warning.no_words_column.is_shown())
+        self.wait_until_finished()
+
+        self.assertEqual(self.widget._OWOntology__get_selected_row(), 0)
+        self.assertEqual(get_ontology_data(), {"foo": {}})
+
+        self.widget._OWOntology__set_selected_row(1)
+        self.assertEqual(self.widget._OWOntology__get_selected_row(), 1)
+        self.assertEqual(get_ontology_data(), self._ontology_2)
+
+        self.widget._OWOntology__set_selected_row(0)
+        self.assertEqual(self.widget._OWOntology__get_selected_row(), 0)
+        self.assertEqual(get_ontology_data(), {"foo": {}})
 
     def test_input_words_no_type(self):
         words = Table("zoo")
@@ -82,6 +111,77 @@ class TestOWKeywords(WidgetTest):
         self.assertTrue(self.widget.Warning.no_words_column.is_shown())
         self.send_signal(self.widget.Inputs.words, None)
         self.assertFalse(self.widget.Warning.no_words_column.is_shown())
+
+    def test_library_sel_changed(self):
+        get_ontology_data = self.widget._OWOntology__ontology_view.get_data
+        self.assertEqual(get_ontology_data(), self._ontology_1)
+        self.widget._OWOntology__set_selected_row(1)
+        self.assertEqual(self.widget._OWOntology__get_selected_row(), 1)
+        self.assertEqual(get_ontology_data(), self._ontology_2)
+
+    def test_library_add(self):
+        get_ontology_data = self.widget._OWOntology__ontology_view.get_data
+
+        self.widget._OWOntology__on_add()
+        self.assertEqual(self.widget._OWOntology__get_selected_row(), 2)
+        self.assertEqual(get_ontology_data(), self._ontology_1)
+
+        self.widget._OWOntology__set_selected_row(1)
+        self.assertEqual(get_ontology_data(), self._ontology_2)
+
+    def test_library_remove(self):
+        get_ontology_data = self.widget._OWOntology__ontology_view.get_data
+
+        self.widget._OWOntology__on_remove()
+        self.assertEqual(self.widget._OWOntology__model.rowCount(), 1)
+        self.assertEqual(get_ontology_data(), self._ontology_2)
+        self.assertEqual(self.widget._OWOntology__get_selected_row(), 0)
+
+        self.widget._OWOntology__on_remove()
+        self.assertEqual(self.widget._OWOntology__model.rowCount(), 0)
+        self.assertEqual(get_ontology_data(), self._ontology_2)
+        self.assertIsNone(self.widget._OWOntology__get_selected_row())
+
+    def test_library_update(self):
+        self.assertEqual(self.widget._OWOntology__get_selected_row(), 0)
+        model = self.widget._OWOntology__ontology_view._EditableTreeView__model
+        model.setData(model.index(0, 0), "foo3", role=Qt.EditRole)
+
+        settings = self.widget.settingsHandler.pack_data(self.widget)
+        self.assertEqual(settings["ontology_library"][0]["ontology"],
+                         self._ontology_1)
+
+        self.widget._OWOntology__on_update()
+        settings = self.widget.settingsHandler.pack_data(self.widget)
+        self.assertEqual(settings["ontology_library"][0]["ontology"],
+                         {"foo3": {"bar1": {}, "baz1": {}}})
+
+    def test_library_import(self):
+        ontology = {"foo3": {"bar3": {}, "baz3": {}}}
+        get_ontology_data = self.widget._OWOntology__ontology_view.get_data
+
+        with tempfile.NamedTemporaryFile(delete=False) as f:
+            pickle.dump(ontology, f)
+
+        with patch.object(QFileDialog, "getOpenFileName",
+                          Mock(return_value=(f.name, None))):
+            self.widget._OWOntology__on_import_file()
+            self.assertEqual(self.widget._OWOntology__get_selected_row(), 2)
+            self.assertEqual(self.widget._OWOntology__model[2].name,
+                             os.path.basename(f.name))
+            self.assertEqual(get_ontology_data(), ontology)
+
+    def test_library_save(self):
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".owl",
+                                         delete=False) as f:
+            pass
+
+        with patch.object(QFileDialog, "getSaveFileName",
+                          Mock(return_value=(f.name, None))):
+            self.widget._OWOntology__on_save()
+
+        with open(f.name, "rb") as dummy_f:
+            self.assertEqual(pickle.load(dummy_f), self._ontology_1)
 
 
 if __name__ == "__main__":

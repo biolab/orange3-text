@@ -1,9 +1,16 @@
-from typing import Optional, List, Tuple, Any, Dict, Union
+import os
+import pickle
+from typing import Optional, List, Tuple, Any, Dict
 
 import numpy as np
-from AnyQt.QtCore import Qt, QModelIndex
-from AnyQt.QtGui import QDropEvent, QStandardItemModel, QStandardItem
-from AnyQt.QtWidgets import QWidget, QAction, QVBoxLayout, QTreeView
+from AnyQt.QtCore import Qt, QModelIndex, QItemSelection, Signal, \
+    QItemSelectionModel
+from AnyQt.QtGui import QDropEvent, QStandardItemModel, QStandardItem, \
+    QPainter, QColor, QPalette
+from AnyQt.QtWidgets import QWidget, QAction, QVBoxLayout, QTreeView, QMenu, \
+    QToolButton, QGroupBox, QGridLayout, QListView, QSizePolicy, \
+    QStyledItemDelegate, QStyleOptionViewItem, QLineEdit, QFileDialog, \
+    QApplication
 from networkx import Graph, minimum_spanning_tree
 from networkx.algorithms.centrality import voterank
 from networkx.convert_matrix import from_numpy_array
@@ -12,9 +19,10 @@ from sentence_transformers import SentenceTransformer
 
 from Orange.data import Table, StringVariable, Domain
 from Orange.widgets import gui
+from Orange.widgets.settings import DomainContextHandler, Setting
 from Orange.widgets.utils.concurrent import ConcurrentWidgetMixin, TaskState
+from Orange.widgets.utils.itemmodels import ModelActionsWidget, PyListModel
 from Orange.widgets.widget import OWWidget, Msg, Input
-from orangewidget.utils.itemmodels import ModelActionsWidget
 
 WORDS_COLUMN_NAME = "Words"
 resources_path = os.path.join(os.path.dirname(__file__), "resources")
@@ -110,7 +118,6 @@ class TreeView(QTreeView):
             image: url({resources_path}/branch-open.png);
     }}
     """
-    drop_finished = Signal()
 
     def __init__(self):
         edit_triggers = QTreeView.DoubleClicked | QTreeView.EditKeyPressed
@@ -125,29 +132,24 @@ class TreeView(QTreeView):
         self.setDropIndicatorShown(True)
         self.setStyleSheet(self.Style)
 
-    def startDrag(self, actions: Qt.DropActions):
-        super().startDrag(actions)
-        self.drop_finished.emit()
-
     def dropEvent(self, event: QDropEvent):
         super().dropEvent(event)
         self.expandAll()
 
 
 class EditableTreeView(QWidget):
-    dataChanged = Signal(dict)
+    dataChanged = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self.__data_orig: Dict = {}
 
         self.__model = QStandardItemModel()
-        self.__model.dataChanged.connect(self.__on_data_changed)
+        self.__model.dataChanged.connect(self.dataChanged)
         self.__root = self.__model.invisibleRootItem()
 
         self.__tree = TreeView()
         self.__tree.setModel(self.__model)
-        self.__tree.drop_finished.connect(self.__on_data_changed)
 
         actions_widget = ModelActionsWidget()
         actions_widget.layout().setSpacing(1)
@@ -162,7 +164,7 @@ class EditableTreeView(QWidget):
 
         action = QAction("\N{MINUS SIGN}R", self,
                          toolTip="Remove word recursively (incl. children)")
-        action.triggered.connect(self.__on_remove_all)
+        action.triggered.connect(self.__on_remove_recursive)
         actions_widget.addAction(action)
 
         gui.rubber(actions_widget)
@@ -178,9 +180,6 @@ class EditableTreeView(QWidget):
         layout.addWidget(actions_widget)
         self.setLayout(layout)
 
-    def __on_data_changed(self):
-        self.dataChanged.emit(self.get_data())
-
     def __on_add(self):
         parent: QStandardItem = self.__root
         selection: List = self.__tree.selectionModel().selectedIndexes()
@@ -195,11 +194,12 @@ class EditableTreeView(QWidget):
         self.__tree.setCurrentIndex(index)
         self.__tree.edit(index)
 
-    def __on_remove_all(self):
+    def __on_remove_recursive(self):
         selection: List = self.__tree.selectionModel().selectedIndexes()
         if len(selection):
             index: QModelIndex = selection[0]
             self.__model.removeRow(index.row(), index.parent())
+            self.dataChanged.emit()
 
     def __on_remove(self):
         selection: List = self.__tree.selectionModel().selectedIndexes()
@@ -213,9 +213,11 @@ class EditableTreeView(QWidget):
                 (item.parent() or self.__root).appendRow(child)
 
             self.__model.removeRow(index.row(), index.parent())
+            self.dataChanged.emit()
 
     def __on_reset(self):
         self.set_data(self.__data_orig)
+        self.dataChanged.emit()
 
     def get_data(self) -> Dict:
         return _model_to_tree(self.__root)
@@ -231,12 +233,135 @@ class EditableTreeView(QWidget):
             self.__model.removeRows(0, self.__model.rowCount())
 
 
+class Ontology:
+    NotModified, Modified = range(2)
+
+    def __init__(
+            self,
+            name: str,
+            ontology: Dict,
+            filename: Optional[str] = None
+    ):
+        self.name = name
+        self.filename = filename
+        self.word_tree = dict(ontology)  # library ontology
+        self.cached_word_tree = dict(ontology)  # current ontology
+        self.update_rule_flag = Ontology.NotModified
+
+    @property
+    def flags(self) -> int:
+        # 0 - NotModified, 1 - Modified
+        return int(self.word_tree != self.cached_word_tree or
+                   self.update_rule_flag == Ontology.Modified)
+
+    def as_dict(self) -> Dict:
+        return {"name": self.name,
+                "ontology": dict(self.word_tree),
+                "filename": self.filename}
+
+    @classmethod
+    def from_dict(cls, state: Dict) -> "WordList":
+        return Ontology(state["name"],
+                        dict(state["ontology"]),
+                        filename=state.get("filename"))
+
+    @staticmethod
+    def generate_name(taken_names: List[str]) -> str:
+        default_name = "Untitled"
+        indices = {0}
+        for name in taken_names:
+            if name.startswith(default_name):
+                try:
+                    indices.add(int(name[len(default_name):]))
+                except ValueError:
+                    pass
+        index = min(set(range(max(indices) + 1 + 1)) - indices)
+        return f"{default_name} {index}"
+
+
+def read_from_file(parent: OWWidget) -> Optional[Ontology]:
+    filename, _ = QFileDialog.getOpenFileName(
+        parent, "Open Ontology",
+        os.path.expanduser("~/"),
+        "Ontology files (*.owl)"
+    )
+    if not filename:
+        return None
+
+    name = os.path.basename(filename)
+    with open(filename, "rb") as f:
+        data = pickle.load(f)
+
+    assert isinstance(data, dict)
+    return Ontology(name, data, filename=filename)
+
+
+def save_ontology(parent: OWWidget, filename: str, data: Dict):
+    filename, _ = QFileDialog.getSaveFileName(
+        parent, "Save Ontology", filename,
+        "Ontology files (*.owl)"
+    )
+    if filename:
+        head, tail = os.path.splitext(filename)
+        if not tail:
+            filename = head + ".owl"
+
+        assert isinstance(data, dict)
+        with open(filename, "wb") as f:
+            pickle.dump(data, f)
+
+
+class LibraryItemDelegate(QStyledItemDelegate):
+    def displayText(self, ontology: Ontology, _) -> str:
+        return "*" + ontology.name if ontology.flags & Ontology.Modified \
+            else ontology.name
+
+    def paint(
+            self,
+            painter: QPainter,
+            option: QStyleOptionViewItem,
+            index: QModelIndex
+    ):
+        word_list = index.data(Qt.DisplayRole)
+        if word_list.flags & Ontology.Modified:
+            option = QStyleOptionViewItem(option)
+            option.palette.setColor(QPalette.Text, QColor(Qt.red))
+            option.palette.setColor(QPalette.Highlight, QColor(Qt.darkRed))
+            option.palette.setColor(QPalette.HighlightedText,
+                                    QColor(Qt.white))
+        super().paint(painter, option, index)
+
+    def createEditor(self, parent: QWidget, _, __) -> QLineEdit:
+        return QLineEdit(parent)
+
+    def setEditorData(self, editor: QLineEdit, index: QModelIndex):
+        word_list = index.data(Qt.DisplayRole)
+        editor.setText(word_list.name)
+
+    def setModelData(
+            self,
+            editor: QLineEdit,
+            model: PyListModel,
+            index: QModelIndex
+    ):
+        model[index.row()].name = str(editor.text())
+
+
 class OWOntology(OWWidget, ConcurrentWidgetMixin):
     name = "Ontology"
     description = ""
     keywords = []
 
     want_main_area = False
+
+    NONE, CACHED, LIBRARY = range(3)  # library list modification types
+
+    settingsHandler = DomainContextHandler()
+    ontology_library: List[Dict] = Setting([
+        {"name": Ontology.generate_name([]), "ontology": {}},
+    ])
+    ontology_index: int = Setting(0)
+    ontology: Dict = Setting({}, schema_only=True)
 
     class Inputs:
         words = Input("Words", Table)
@@ -247,9 +372,136 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
     def __init__(self):
         OWWidget.__init__(self)
         ConcurrentWidgetMixin.__init__(self)
-        box = gui.hBox(self.mainArea)
+
+        flags = Qt.ItemIsSelectable | Qt.ItemIsEnabled | Qt.ItemIsEditable
+        self.__model = PyListModel([], self, flags=flags)
+        self.__library_view: QListView = None
+        self.__ontology_view: EditableTreeView = None
+
+        self._setup_gui()
+        self._restore_state()
+        self.settingsAboutToBePacked.connect(self._save_state)
+
+    def _setup_gui(self):
+        layout = QGridLayout()
+        gui.widgetBox(self.controlArea, orientation=layout)
+
+        edit_triggers = QListView.DoubleClicked | QListView.EditKeyPressed
+        self.__library_view = QListView(
+            editTriggers=int(edit_triggers),
+            minimumWidth=200,
+            sizePolicy=QSizePolicy(QSizePolicy.Ignored, QSizePolicy.Expanding),
+        )
+        self.__library_view.setItemDelegate(LibraryItemDelegate(self))
+        self.__library_view.setModel(self.__model)
+        self.__library_view.selectionModel().selectionChanged.connect(
+            self.__on_selection_changed
+        )
+
+        actions_widget = ModelActionsWidget()
+        actions_widget.layout().setSpacing(1)
+
+        tool_tip = "Add a new ontology to the library"
+        action = QAction("+", self, toolTip=tool_tip)
+        action.triggered.connect(self.__on_add)
+        actions_widget.addAction(action)
+
+        tool_tip = "Remove the ontology from the library"
+        action = QAction("\N{MINUS SIGN}", self, toolTip=tool_tip)
+        action.triggered.connect(self.__on_remove)
+        actions_widget.addAction(action)
+
+        tool_tip = "Save changes in the editor to the library"
+        action = QAction("Update", self, toolTip=tool_tip)
+        action.triggered.connect(self.__on_update)
+        actions_widget.addAction(action)
+
+        gui.rubber(actions_widget)
+
+        action = QAction("More", self, toolTip="More actions")
+
+        new_from_file = QAction("Import Ontology from File", self)
+        new_from_file.triggered.connect(self.__on_import_file)
+
+        new_from_url = QAction("Import Ontology from URL", self)
+        new_from_url.triggered.connect(self.__on_import_url)
+
+        save_to_file = QAction("Save Ontology to File", self)
+        save_to_file.triggered.connect(self.__on_save)
+
+        menu = QMenu(actions_widget)
+        menu.addAction(new_from_file)
+        menu.addAction(new_from_url)
+        menu.addAction(save_to_file)
+        action.setMenu(menu)
+        button = actions_widget.addAction(action)
+        button.setPopupMode(QToolButton.InstantPopup)
+
+        vlayout = QVBoxLayout()
+        vlayout.setSpacing(1)
+        vlayout.setContentsMargins(0, 0, 0, 0)
+        vlayout.addWidget(self.__library_view)
+        vlayout.addWidget(actions_widget)
+
         self.__ontology_view = EditableTreeView(self)
-        box.layout().addWidget(self.__ontology_view)
+        self.__ontology_view.dataChanged.connect(
+            self.__on_ontology_data_changed
+        )
+
+        library_box: QGroupBox = gui.vBox(None, "Library")
+        ontology_box: QGroupBox = gui.vBox(None, box=True)
+
+        library_box.layout().setSpacing(1)
+        library_box.layout().addLayout(vlayout)
+
+        ontology_box.layout().setSpacing(1)
+        ontology_box.layout().addWidget(self.__ontology_view)
+
+        layout.addWidget(library_box, 0, 0)
+        layout.addWidget(ontology_box, 0, 1)
+
+    def __on_selection_changed(self, selection: QItemSelection, *_):
+        if selection.indexes():
+            self.ontology_index = row = selection.indexes()[0].row()
+            data = self.__model[row].cached_word_tree
+            self.__ontology_view.set_data(data)
+
+    def __on_add(self):
+        name = Ontology.generate_name([l.name for l in self.__model])
+        data = self.__ontology_view.get_data()
+        self.__model.append(Ontology(name, data))
+        self.__set_selected_row(len(self.__model) - 1)
+
+    def __on_remove(self):
+        index = self.__get_selected_row()
+        if index is not None:
+            del self.__model[index]
+            self.__set_selected_row(max(index - 1, 0))
+
+    def __on_update(self):
+        self.__set_current_modified(self.LIBRARY)
+
+    def __on_import_file(self):
+        ontology = read_from_file(self)
+        if ontology is not None:
+            self.__model.append(ontology)
+            self.__set_selected_row(len(self.__model) - 1)
+        QApplication.setActiveWindow(self)
+
+    def __on_import_url(self):
+        pass
+
+    def __on_save(self):
+        index = self.__get_selected_row()
+        if index is not None:
+            filename = self.__model[index].filename
+        else:
+            filename = os.path.expanduser("~/")
+        save_ontology(self, filename, self.__ontology_view.get_data())
+        QApplication.setActiveWindow(self)
+
+    def __on_ontology_data_changed(self):
+        self.__set_current_modified(self.CACHED)
 
     @Inputs.words
     def set_words(self, words: Optional[Table]):
@@ -264,12 +516,52 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
 
     def on_done(self, data: Dict):
         self.__ontology_view.set_data(data)
+        self.__set_current_modified(self.CACHED)
 
     def on_exception(self, ex: Exception):
         raise ex
 
     def on_partial_result(self, _: Any):
         pass
+
+    def __set_selected_row(self, row: int):
+        self.__library_view.selectionModel().select(
+            self.__model.index(row, 0), QItemSelectionModel.ClearAndSelect
+        )
+
+    def __get_selected_row(self) -> Optional[int]:
+        rows = self.__library_view.selectionModel().selectedRows()
+        return rows[0].row() if rows else None
+
+    def __set_current_modified(self, mod_type: int):
+        index = self.__get_selected_row()
+        if index is not None:
+            if mod_type == self.LIBRARY:
+                ontology = self.__ontology_view.get_data()
+                self.__model[index].word_tree = ontology
+                self.__model[index].cached_word_tree = ontology
+                self.__model[index].update_rule_flag = Ontology.NotModified
+            elif mod_type == self.CACHED:
+                ontology = self.__ontology_view.get_data()
+                self.__model[index].cached_word_tree = ontology
+            elif mod_type == self.NONE:
+                pass
+            else:
+                raise NotImplementedError
+            self.__model.emitDataChanged(index)
+            self.__library_view.repaint()
+
+    def _restore_state(self):
+        source = [Ontology.from_dict(s) for s in self.ontology_library]
+        self.__model.wrap(source)
+        self.__set_selected_row(self.ontology_index)
+        if self.ontology:
+            self.__ontology_view.set_data(self.ontology)
+            self.__set_current_modified(self.CACHED)
+
+    def _save_state(self):
+        self.ontology_library = [s.as_dict() for s in self.__model]
+        self.ontology = self.__ontology_view.get_data()
 
 
 if __name__ == "__main__":
