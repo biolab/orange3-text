@@ -29,6 +29,12 @@ class Topic(Table):
 class Topics(Table):
     """ Dummy wrapper for Table so signals can distinguish All Topics from Data.
     """
+    @classmethod
+    def from_file(cls, filename):
+        t = super().from_file(filename)
+        if not isinstance(t, cls):
+            t = cls.from_numpy(t.domain, t.X, t.Y, t.metas, t.W, attributes=t.attributes)
+        return t
 
 
 class GensimProgressCallback(Metric):

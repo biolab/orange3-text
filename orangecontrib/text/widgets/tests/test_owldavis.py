@@ -8,7 +8,7 @@ from orangecontrib.text.widgets.owldavis import OWLDAvis
 from orangewidget.tests.base import WidgetTest
 
 
-class TestStatisticsWidget(WidgetTest):
+class TestOWLDAvis(WidgetTest):
     def setUp(self) -> None:
         self.widget = self.create_widget(OWLDAvis)
         self.topics = Topics.from_file(
