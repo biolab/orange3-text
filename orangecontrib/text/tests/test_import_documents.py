@@ -1,30 +1,52 @@
+import asyncio
 import os
 import unittest
+from unittest.mock import patch, MagicMock
 
 import numpy as np
 import pandas as pd
+from httpx import URL, ConnectTimeout
 
-from orangecontrib.text.import_documents import ImportDocuments, UrlReader, \
-    TxtReader, TextData
-from pkg_resources import get_distribution
+from orangecontrib.text.import_documents import (
+    ImportDocuments,
+    UrlProxyReader,
+    TxtReader,
+    TextData,
+)
 
 
-class TestUrlReader(unittest.TestCase):
+PATCH_METHOD = "httpx.AsyncClient.get"
+
+
+async def dummy_post(_, url):
+    await asyncio.sleep(0)
+    return DummyResponse(url)
+
+
+class DummyResponse:
+    content = b"lorem ipsum"
+
+    def __init__(self, url):
+        super().__init__()
+        self.url = URL(url)
+
+    raise_for_status = MagicMock()
+
+
+class TestUrlProxyReader(unittest.TestCase):
+    @patch(PATCH_METHOD, dummy_post)
     def test_init(self):
         path = "http://dummy.server.com/data/foo.txt"
-        reader = UrlReader(path)
-        self.assertEqual(reader.filename, path)
-        self.assertEqual(reader.path, path)
-
-    def test_get_reader(self):
-        path = "http://dummy.server.com/data/foo.txt"
-        reader = UrlReader.get_reader(path)
+        result = UrlProxyReader.read_files([path])
+        reader, text_data, error = result[0]
+        self.assertEqual(text_data.path, path)
+        self.assertEqual("", error)
         self.assertIsInstance(reader, TxtReader)
 
     def test_read(self):
         path = "http://file.biolab.si/text-semantics/data/semeval/C-1.txt"
-        reader = UrlReader(path)
-        textdata, error = reader.read()
+        result = UrlProxyReader.read_files([path])
+        reader, textdata, error = result[0]
         self.assertIsInstance(textdata, TextData)
         self.assertEqual(textdata.name, "C-1")
         self.assertEqual(textdata.path, path)
@@ -33,24 +55,26 @@ class TestUrlReader(unittest.TestCase):
         self.assertTrue(textdata.content.startswith("On The Complexity of Co"))
         self.assertEqual(error, "")
 
-    def test_read_file(self):
-        path = "http://file.biolab.si/text-semantics/data/elektrotehniski-" \
-               "vestnik-clanki/detektiranje-utrdb-v-šahu-.txt"
-        reader = UrlReader(path)
-        reader.read_file()
-        self.assertIsInstance(reader.content, str)
-
+    @patch(PATCH_METHOD, dummy_post)
     def test_name_text_data(self):
         path = "http://dummy.server.com/data/foo.txt"
-        reader = UrlReader(path)
-        reader.content = "text"
-        text_data = reader.make_text_data()
+        result = UrlProxyReader.read_files([path])
+        reader, text_data, error = result[0]
         self.assertIsInstance(text_data, TextData)
         self.assertEqual(text_data.name, "foo")
         self.assertEqual(text_data.path, path)
         self.assertEqual(text_data.ext, [".txt"])
         self.assertEqual(text_data.category, "data")
-        self.assertEqual(text_data.content, "text")
+        self.assertEqual(text_data.content, "lorem ipsum")
+
+    @patch(PATCH_METHOD, side_effect=ConnectTimeout("test message", request=""))
+    def test_error(self, _):
+        path = "http://dummy.server.com/data/foo.txt"
+        result = UrlProxyReader.read_files([path])
+        reader, text_data, error = result[0]
+        self.assertIsNone(reader)
+        self.assertIsNone(text_data)
+        self.assertEqual(path, error)
 
 
 class TestImportDocuments(unittest.TestCase):
@@ -75,7 +99,9 @@ class TestImportDocuments(unittest.TestCase):
     def test_read_meta_data_url(self):
         path = "http://file.biolab.si/text-semantics/data/semeval/"
         importer = ImportDocuments(path, True)
-        data1, err = importer._read_meta_data()
+        _, meta_paths = importer._retrieve_paths()
+        callback = importer._shared_callback(len(meta_paths))
+        data1, err = importer._read_meta_data(meta_paths, callback)
         self.assertIsInstance(data1, pd.DataFrame)
         self.assertEqual(len(err), 0)
 
@@ -84,8 +110,10 @@ class TestImportDocuments(unittest.TestCase):
     def test_merge_metadata_url(self):
         path = "http://file.biolab.si/text-semantics/data/semeval/"
         importer = ImportDocuments(path, True)
-        text_data, _, _, _, _, _ = importer._read_text_data()
-        meta_data, _ = importer._read_meta_data()
+        file_paths, meta_paths = importer._retrieve_paths()
+        callback = importer._shared_callback(len(file_paths) + len(meta_paths))
+        text_data, _, _, _, _, _ = importer._read_text_data(file_paths, callback)
+        meta_data, _ = importer._read_meta_data(meta_paths, callback)
 
         importer._text_data = text_data[:4]  # 'C-1', 'C-14', 'C-17', 'C-18'
         importer._meta_data = meta_data[:50]
@@ -105,8 +133,7 @@ class TestImportDocuments(unittest.TestCase):
         self.assertEqual([v.name for v in corpus.domain.metas], columns)
 
     def test_run_url(self):
-        path = "http://file.biolab.si/text-semantics/data" \
-               "/predlogi-vladi-20/"
+        path = "http://file.biolab.si/text-semantics/data/predlogi-vladi-20/"
         importer = ImportDocuments(path, True)
         corpus1, _, _, _, _, _ = importer.run()
         self.assertGreater(len(corpus1), 0)
@@ -114,16 +141,14 @@ class TestImportDocuments(unittest.TestCase):
         mask = np.ones_like(corpus1.metas, dtype=bool)
         mask[:, 1] = False
 
-        path = "http://file.biolab.si/text-semantics/data" \
-               "/predlogi-vladi-20////"
+        path = "http://file.biolab.si/text-semantics/data/predlogi-vladi-20////"
         importer = ImportDocuments(path, True)
         corpus2, _, _, _, _, _ = importer.run()
         self.assertGreater(len(corpus1), 0)
         np.testing.assert_array_equal(corpus1.metas[mask].tolist(),
                                       corpus2.metas[mask].tolist())
 
-        path = "http://file.biolab.si/text-semantics/data" \
-               "/predlogi-vladi-20"
+        path = "http://file.biolab.si/text-semantics/data/predlogi-vladi-20"
         importer = ImportDocuments(path, True)
         corpus3, _, _, _, _, _ = importer.run()
         self.assertGreater(len(corpus2), 0)
@@ -136,6 +161,7 @@ class TestImportDocuments(unittest.TestCase):
         importer = ImportDocuments(path, True)
         corpus, errors, _, _, _, _ = importer.run()
         self.assertGreater(len(corpus), 0)
+        self.assertEqual(0, len(errors))
 
     def test_conllu_reader(self):
         path = os.path.join(os.path.dirname(__file__),
@@ -146,6 +172,14 @@ class TestImportDocuments(unittest.TestCase):
         self.assertEqual(len(corpus), len(lemma))
         self.assertEqual(len(corpus), len(pos))
         self.assertEqual(len(corpus), len(ner))
+
+    @patch(PATCH_METHOD, side_effect=ConnectTimeout("test message", request=""))
+    def test_url_errors(self, _):
+        path = "http://file.biolab.si/text-semantics/data/elektrotehniski-vestnik-clanki/"
+        importer = ImportDocuments(path, True)
+        corpus, errors, _, _, _, _ = importer.run()
+        self.assertIsNone(corpus)
+        self.assertGreater(len(errors), 0)
 
 
 if __name__ == "__main__":

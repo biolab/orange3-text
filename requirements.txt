@@ -4,6 +4,7 @@ biopython # Enables Pubmed widget.
 conllu
 docx2txt>=0.6
 gensim>=4.1.2  # https://github.com/RaRe-Technologies/gensim/issues/3226
+httpx
 lemmagen3
 lxml
 nltk>=3.0.5     # TweetTokenizer introduced in 3.0.5
