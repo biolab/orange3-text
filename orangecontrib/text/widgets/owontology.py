@@ -80,6 +80,13 @@ def _model_to_tree(item: QStandardItem) -> Dict:
     return tree
 
 
+def _model_to_words(item: QStandardItem) -> List:
+    words = [item.text()] if item.text() else []
+    for i in range(item.rowCount()):
+        words.extend(_model_to_words(item.child(i)))
+    return words
+
+
 def _tree_to_model(tree: Dict, root: QStandardItem):
     for word, words in tree.items():
         item = QStandardItem(word)
@@ -255,6 +262,9 @@ class EditableTreeView(QWidget):
     def __on_reset(self):
         self.set_data(self.__data_orig)
         self.dataChanged.emit()
+
+    def get_words(self) -> List:
+        return _model_to_words(self.__root)
 
     def get_data(self) -> Dict:
         return _model_to_tree(self.__root)
@@ -481,6 +491,10 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
         library_box.layout().setSpacing(1)
         library_box.layout().addLayout(vlayout)
 
+        self.__run_button = gui.button(
+            self.controlArea, self, "Run", callback=self.__on_toggle_run
+        )
+
         # main area
         ontology_box: QGroupBox = gui.vBox(self.mainArea, box=True)
 
@@ -532,6 +546,13 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
         save_ontology(self, filename, self.__ontology_view.get_data())
         QApplication.setActiveWindow(self)
 
+    def __on_toggle_run(self):
+        if self.task is not None:
+            self.cancel()
+            self.__run_button.setText("Run")
+        else:
+            self._run()
+
     def __on_ontology_data_changed(self):
         self.__set_current_modified(self.CACHED)
 
@@ -541,12 +562,18 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
         if words:
             if WORDS_COLUMN_NAME in words.domain and words.domain[
                     WORDS_COLUMN_NAME].attributes.get("type") == "words":
-                words = list(words.get_column_view(WORDS_COLUMN_NAME)[0])
-                self.start(_run, words)
+                col = words.get_column_view(WORDS_COLUMN_NAME)[0]
+                words = dict(zip(col, np.full(len(col), {})))
+                self.__ontology_view.set_data(words)
             else:
                 self.Warning.no_words_column()
 
+    def _run(self):
+        self.__run_button.setText("Stop")
+        self.start(_run, self.__ontology_view.get_words())
+
     def on_done(self, data: Dict):
+        self.__run_button.setText("Run")
         self.__ontology_view.set_data(data)
         self.__set_current_modified(self.CACHED)
 
@@ -555,6 +582,10 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
 
     def on_partial_result(self, _: Any):
         pass
+
+    def onDeleteWidget(self):
+        self.shutdown()
+        super().onDeleteWidget()
 
     def __set_selected_row(self, row: int):
         self.__library_view.selectionModel().select(
