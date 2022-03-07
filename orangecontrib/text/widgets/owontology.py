@@ -1,7 +1,7 @@
 import os
 import pickle
 from contextlib import contextmanager
-from typing import Optional, List, Tuple, Any, Dict, Callable
+from typing import Optional, List, Tuple, Any, Dict, Callable, Set, Union
 
 import numpy as np
 from AnyQt.QtCore import Qt, QModelIndex, QItemSelection, Signal, \
@@ -22,8 +22,9 @@ from Orange.widgets import gui
 from Orange.widgets.settings import DomainContextHandler, Setting
 from Orange.widgets.utils.concurrent import ConcurrentWidgetMixin, TaskState
 from Orange.widgets.utils.itemmodels import ModelActionsWidget, PyListModel
-from Orange.widgets.widget import OWWidget, Msg, Input
+from Orange.widgets.widget import OWWidget, Msg, Input, Output
 
+OntoType = Tuple[Dict[str, "OntoType"], bool]
 WORDS_COLUMN_NAME = "Words"
 resources_path = os.path.join(os.path.dirname(__file__), "resources")
 
@@ -73,11 +74,16 @@ def _run(words: List[str], state: TaskState) -> Dict:
         return {}
 
 
-def _model_to_tree(item: QStandardItem) -> Dict:
+def _model_to_tree(
+        item: QStandardItem,
+        selection: List,
+        with_selection: bool
+) -> Union[Dict, OntoType]:
     tree = {}
     for i in range(item.rowCount()):
-        tree[item.child(i).text()] = _model_to_tree(item.child(i))
-    return tree
+        tree[item.child(i).text()] = \
+            _model_to_tree(item.child(i), selection, with_selection)
+    return (tree, item.index() in selection) if with_selection else tree
 
 
 def _model_to_words(item: QStandardItem) -> List:
@@ -87,12 +93,22 @@ def _model_to_words(item: QStandardItem) -> List:
     return words
 
 
-def _tree_to_model(tree: Dict, root: QStandardItem):
+def _tree_to_model(
+        tree: Dict,
+        root: QStandardItem,
+        sel_model: QItemSelectionModel
+) -> None:
+    if isinstance(tree, tuple):
+        tree, _ = tree
     for word, words in tree.items():
         item = QStandardItem(word)
         root.appendRow(item)
+        if isinstance(words, tuple):
+            _, selected = words
+            if selected:
+                sel_model.select(item.index(), QItemSelectionModel.Select)
         if len(words):
-            _tree_to_model(words, item)
+            _tree_to_model(words, item, sel_model)
 
 
 def _tree_to_html(tree: Dict) -> str:
@@ -174,6 +190,7 @@ class TreeView(QTreeView):
 
 class EditableTreeView(QWidget):
     dataChanged = Signal()
+    selectionChanged = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
@@ -181,11 +198,13 @@ class EditableTreeView(QWidget):
 
         self.__model = QStandardItemModel()
         self.__model.dataChanged.connect(self.dataChanged)
-        self.__root = self.__model.invisibleRootItem()
+        self.__root: QStandardItem = self.__model.invisibleRootItem()
 
         self.__tree = TreeView(self.dataChanged)
         self.__tree.drop_finished.connect(self.dataChanged)
         self.__tree.setModel(self.__model)
+        self.__tree.selectionModel().selectionChanged.connect(
+            self.selectionChanged)
 
         actions_widget = ModelActionsWidget()
         actions_widget.layout().setSpacing(1)
@@ -266,13 +285,25 @@ class EditableTreeView(QWidget):
     def get_words(self) -> List:
         return _model_to_words(self.__root)
 
-    def get_data(self) -> Dict:
-        return _model_to_tree(self.__root)
+    def get_selected_words(self) -> Set:
+        return set(self.__model.itemFromIndex(index).text() for index in
+                   self.__tree.selectionModel().selectedIndexes())
+
+    def get_selected_words_with_children(self) -> Set:
+        words = set()
+        for index in self.__tree.selectionModel().selectedIndexes():
+            item: QStandardItem = self.__model.itemFromIndex(index)
+            words.update(_model_to_words(item))
+        return words
+
+    def get_data(self, with_selection=False) -> Union[Dict, OntoType]:
+        selection = self.__tree.selectionModel().selectedIndexes()
+        return _model_to_tree(self.__root, selection, with_selection)
 
     def set_data(self, data: Dict):
         self.__data_orig = data
         self.clear()
-        _tree_to_model(data, self.__root)
+        _tree_to_model(data, self.__root, self.__tree.selectionModel())
         self.__tree.expandAll()
 
     def clear(self):
@@ -307,7 +338,7 @@ class Ontology:
                 "filename": self.filename}
 
     @classmethod
-    def from_dict(cls, state: Dict) -> "WordList":
+    def from_dict(cls, state: Dict) -> "Ontology":
         return Ontology(state["name"],
                         dict(state["ontology"]),
                         filename=state.get("filename"))
@@ -406,10 +437,15 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
         {"name": Ontology.generate_name([]), "ontology": {}},
     ])
     ontology_index: int = Setting(0)
-    ontology: Dict = Setting({}, schema_only=True)
+    ontology: OntoType = Setting((), schema_only=True)
+    include_children = Setting(True)
+    auto_commit = Setting(True)
 
     class Inputs:
         words = Input("Words", Table)
+
+    class Outputs:
+        words = Output("Words", Table)
 
     class Warning(OWWidget.Warning):
         no_words_column = Msg("Input is missing 'Words' column.")
@@ -494,6 +530,12 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
         self.__run_button = gui.button(
             self.controlArea, self, "Run", callback=self.__on_toggle_run
         )
+        gui.checkBox(
+            self.controlArea, self, "include_children", "Include subtree",
+            box="Output", callback=self.commit.deferred
+        )
+        gui.rubber(self.controlArea)
+        gui.auto_send(self.buttonsArea, self, "auto_commit")
 
         # main area
         ontology_box: QGroupBox = gui.vBox(self.mainArea, box=True)
@@ -502,6 +544,7 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
         self.__ontology_view.dataChanged.connect(
             self.__on_ontology_data_changed
         )
+        self.__ontology_view.selectionChanged.connect(self.commit.deferred)
 
         ontology_box.layout().setSpacing(1)
         ontology_box.layout().addWidget(self.__ontology_view)
@@ -555,6 +598,7 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
 
     def __on_ontology_data_changed(self):
         self.__set_current_modified(self.CACHED)
+        self.commit.deferred()
 
     @Inputs.words
     def set_words(self, words: Optional[Table]):
@@ -565,8 +609,29 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
                 col = words.get_column_view(WORDS_COLUMN_NAME)[0]
                 words = dict(zip(col, np.full(len(col), {})))
                 self.__ontology_view.set_data(words)
+                self.__set_current_modified(self.CACHED)
             else:
                 self.Warning.no_words_column()
+
+    @gui.deferred
+    def commit(self):
+        if self.include_children:
+            words = self.__ontology_view.get_selected_words_with_children()
+        else:
+            words = self.__ontology_view.get_selected_words()
+        words_table = self._create_output_table(sorted(words))
+        self.Outputs.words.send(words_table)
+
+    @staticmethod
+    def _create_output_table(words: List[str]) -> Optional[Table]:
+        if not words:
+            return None
+        words_var = StringVariable("Words")
+        words_var.attributes = {"type": "words"}
+        domain = Domain([], metas=[words_var])
+        words = Table.from_list(domain, [[w] for w in words])
+        words.name = "Words"
+        return words
 
     def _run(self):
         self.__run_button.setText("Stop")
@@ -619,10 +684,11 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
         if self.ontology:
             self.__ontology_view.set_data(self.ontology)
             self.__set_current_modified(self.CACHED)
+            self.commit.now()
 
     def _save_state(self):
         self.ontology_library = [s.as_dict() for s in self.__model]
-        self.ontology = self.__ontology_view.get_data()
+        self.ontology = self.__ontology_view.get_data(with_selection=True)
 
     def send_report(self):
         model = self.__model
@@ -675,8 +741,8 @@ if __name__ == "__main__":
         "Odločba",
         "Sklep",
     ]
-    words_var = StringVariable("Words")
-    words_var.attributes = {"type": "words"}
-    words_ = Table.from_list(Domain([], metas=[words_var]), [[w] for w in lst])
+    words_var_ = StringVariable("Words")
+    words_var_.attributes = {"type": "words"}
+    words_ = Table.from_list(Domain([], metas=[words_var_]), [[w] for w in lst])
     words_.name = "Words"
     WidgetPreview(OWOntology).run(words_)

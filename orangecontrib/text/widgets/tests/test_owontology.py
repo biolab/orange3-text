@@ -6,7 +6,8 @@ import unittest
 from typing import List
 from unittest.mock import Mock, patch
 
-from AnyQt.QtCore import Qt, QItemSelectionModel
+from AnyQt.QtCore import Qt, QItemSelectionModel, QItemSelection, \
+    QItemSelectionRange
 from AnyQt.QtWidgets import QFileDialog
 
 from Orange.data import StringVariable, Table, Domain
@@ -101,6 +102,41 @@ class TestEditableTreeView(WidgetTest):
         self.view._EditableTreeView__on_remove_recursive()
         self.assertEqual(self.view.get_data(), {})
 
+    def test_get_words(self):
+        self.view.set_data(self.data)
+        self.assertEqual(self.view.get_words(), ["foo", "bar", "baz"])
+
+    def test_get_selected_words(self):
+        self.view.set_data(self.data)
+        model = self.view._EditableTreeView__model
+        sel_model = self.view._EditableTreeView__tree.selectionModel()
+        sel_model.select(model.index(0, 0), QItemSelectionModel.ClearAndSelect)
+        self.assertEqual(self.view.get_selected_words(), {"foo"})
+
+    def test_get_selected_words_with_children(self):
+        self.view.set_data(self.data)
+        model = self.view._EditableTreeView__model
+        sel_model = self.view._EditableTreeView__tree.selectionModel()
+        sel_model.select(model.index(0, 0), QItemSelectionModel.ClearAndSelect)
+        self.assertEqual(self.view.get_selected_words_with_children(),
+                         {"foo", "bar", "baz"})
+
+    def test_get_data_with_selection(self):
+        self.view.set_data(self.data)
+        model = self.view._EditableTreeView__model
+        sel_model = self.view._EditableTreeView__tree.selectionModel()
+        sel_model.select(model.index(0, 0), QItemSelectionModel.ClearAndSelect)
+        self.assertEqual(self.view.get_data(), {"foo": {"bar": {}, "baz": {}}})
+        self.assertEqual(self.view.get_data(with_selection=True),
+                         ({"foo": ({"bar": ({}, False),
+                                    "baz": ({}, False)}, True)}, False))
+
+    def test_set_data_with_selection(self):
+        data = ({"foo": ({"bar": ({}, False),
+                          "baz": ({}, False)}, True)}, False)
+        self.view.set_data(data)
+        self.assertEqual(self.view.get_data(with_selection=True), data)
+
 
 class TestOWOntology(WidgetTest):
     def setUp(self):
@@ -111,7 +147,8 @@ class TestOWOntology(WidgetTest):
                 {"name": "Ontology 1", "ontology": self._ontology_1},
                 {"name": "Ontology 2", "ontology": self._ontology_2}
             ],
-            "ontology": self._ontology_1
+            "ontology": ({"foo1": ({"bar1": ({}, False),
+                                    "baz1": ({}, False)}, False)}, False)
         }
         self.widget = self.create_widget(OWOntology, stored_settings=settings)
 
@@ -120,8 +157,6 @@ class TestOWOntology(WidgetTest):
 
         words = create_words_table(["foo"])
         self.send_signal(self.widget.Inputs.words, words)
-        self.assertFalse(self.widget.Warning.no_words_column.is_shown())
-        self.wait_until_finished()
 
         self.assertEqual(self.widget._OWOntology__get_selected_row(), 0)
         self.assertEqual(get_ontology_data(), {"foo": {}})
@@ -140,6 +175,29 @@ class TestOWOntology(WidgetTest):
         self.assertTrue(self.widget.Warning.no_words_column.is_shown())
         self.send_signal(self.widget.Inputs.words, None)
         self.assertFalse(self.widget.Warning.no_words_column.is_shown())
+
+    def test_output_words(self):
+        def select_words(indices):
+            onto_view = self.widget._OWOntology__ontology_view
+            model = onto_view._EditableTreeView__model
+            tree = onto_view._EditableTreeView__tree
+            selection = QItemSelection()
+            sel_model = tree.selectionModel()
+            for i in indices:
+                selection.append(QItemSelectionRange(model.index(i, 0)))
+            sel_model.select(selection, QItemSelectionModel.ClearAndSelect)
+
+        words = create_words_table(["bar", "baz", "foo"])
+        self.send_signal(self.widget.Inputs.words, words)
+        self.assertIsNone(self.get_output(self.widget.Outputs.words))
+
+        select_words([1])
+        output = self.get_output(self.widget.Outputs.words)
+        self.assert_table_equal(words[1:2], output)
+
+        select_words(range(3))
+        output = self.get_output(self.widget.Outputs.words)
+        self.assert_table_equal(words, output)
 
     def test_library_sel_changed(self):
         get_ontology_data = self.widget._OWOntology__ontology_view.get_data
