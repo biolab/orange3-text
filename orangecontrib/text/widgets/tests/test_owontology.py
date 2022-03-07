@@ -6,7 +6,7 @@ import unittest
 from typing import List
 from unittest.mock import Mock, patch
 
-from AnyQt.QtCore import Qt
+from AnyQt.QtCore import Qt, QItemSelectionModel
 from AnyQt.QtWidgets import QFileDialog
 
 from Orange.data import StringVariable, Table, Domain
@@ -42,7 +42,7 @@ class TestRunner(unittest.TestCase):
 
     def test_run(self):
         result = _run(self.words, self.state)
-        self.assertEqual(result, {'foo': {'bar': {}}})
+        self.assertEqual(result, {"foo": {"bar": {}}})
 
     def test_run_single_word(self):
         result = _run(["foo"], self.state)
@@ -80,6 +80,26 @@ class TestEditableTreeView(WidgetTest):
 
         self.view.clear()
         self.assertEqual(model.rowCount(), 0)
+
+    def test_on_remove(self):
+        self.view.set_data(self.data)
+        model = self.view._EditableTreeView__model
+        sel_model = self.view._EditableTreeView__tree.selectionModel()
+        sel_model.select(model.index(0, 0), QItemSelectionModel.ClearAndSelect)
+
+        self.assertEqual(self.view.get_data(), {"foo": {"bar": {}, "baz": {}}})
+        self.view._EditableTreeView__on_remove()
+        self.assertEqual(self.view.get_data(), {"bar": {}, "baz": {}})
+
+    def test_on_remove_recursive(self):
+        self.view.set_data(self.data)
+        model = self.view._EditableTreeView__model
+        sel_model = self.view._EditableTreeView__tree.selectionModel()
+        sel_model.select(model.index(0, 0), QItemSelectionModel.ClearAndSelect)
+
+        self.assertEqual(self.view.get_data(), {"foo": {"bar": {}, "baz": {}}})
+        self.view._EditableTreeView__on_remove_recursive()
+        self.assertEqual(self.view.get_data(), {})
 
 
 class TestOWOntology(WidgetTest):

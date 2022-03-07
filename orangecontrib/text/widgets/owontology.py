@@ -1,6 +1,7 @@
 import os
 import pickle
-from typing import Optional, List, Tuple, Any, Dict
+from contextlib import contextmanager
+from typing import Optional, List, Tuple, Any, Dict, Callable
 
 import numpy as np
 from AnyQt.QtCore import Qt, QModelIndex, QItemSelection, Signal, \
@@ -99,6 +100,15 @@ def _tree_to_html(tree: Dict) -> str:
     return html
 
 
+@contextmanager
+def disconnected(signal, slot, connection_type=Qt.AutoConnection):
+    signal.disconnect(slot)
+    try:
+        yield
+    finally:
+        signal.connect(slot, connection_type)
+
+
 class TreeView(QTreeView):
     Style = f"""
     QTreeView::branch {{
@@ -128,12 +138,15 @@ class TreeView(QTreeView):
             image: url({resources_path}/branch-open.png);
     }}
     """
+    drop_finished = Signal()
 
-    def __init__(self):
+    def __init__(self, data_changed_cb: Callable):
+        self.__data_changed_cb = data_changed_cb
+
         edit_triggers = QTreeView.DoubleClicked | QTreeView.EditKeyPressed
         super().__init__(
             editTriggers=int(edit_triggers),
-            selectionMode=QTreeView.SingleSelection,
+            selectionMode=QTreeView.ExtendedSelection,
             dragEnabled=True,
             acceptDrops=True,
             defaultDropAction=Qt.MoveAction
@@ -141,6 +154,11 @@ class TreeView(QTreeView):
         self.setHeaderHidden(True)
         self.setDropIndicatorShown(True)
         self.setStyleSheet(self.Style)
+
+    def startDrag(self, actions: Qt.DropActions):
+        with disconnected(self.model().dataChanged, self.__data_changed_cb):
+            super().startDrag(actions)
+        self.drop_finished.emit()
 
     def dropEvent(self, event: QDropEvent):
         super().dropEvent(event)
@@ -158,7 +176,8 @@ class EditableTreeView(QWidget):
         self.__model.dataChanged.connect(self.dataChanged)
         self.__root = self.__model.invisibleRootItem()
 
-        self.__tree = TreeView()
+        self.__tree = TreeView(self.dataChanged)
+        self.__tree.drop_finished.connect(self.dataChanged)
         self.__tree.setModel(self.__model)
 
         actions_widget = ModelActionsWidget()
@@ -200,29 +219,37 @@ class EditableTreeView(QWidget):
         item = QStandardItem("")
         parent.appendRow(item)
         index: QModelIndex = item.index()
-        self.__model.setItemData(index, {Qt.EditRole: ""})
+        with disconnected(self.__model.dataChanged, self.dataChanged):
+            self.__model.setItemData(index, {Qt.EditRole: ""})
         self.__tree.setCurrentIndex(index)
         self.__tree.edit(index)
 
     def __on_remove_recursive(self):
-        selection: List = self.__tree.selectionModel().selectedIndexes()
-        if len(selection):
-            index: QModelIndex = selection[0]
-            self.__model.removeRow(index.row(), index.parent())
+        sel_model: QItemSelectionModel = self.__tree.selectionModel()
+        if len(sel_model.selectedIndexes()):
+            while sel_model.selectedIndexes():
+                index: QModelIndex = sel_model.selectedIndexes()[0]
+                self.__model.removeRow(index.row(), index.parent())
             self.dataChanged.emit()
 
     def __on_remove(self):
-        selection: List = self.__tree.selectionModel().selectedIndexes()
-        if len(selection):
-            index: QModelIndex = selection[0]
+        sel_model: QItemSelectionModel = self.__tree.selectionModel()
+        if len(sel_model.selectedIndexes()):
 
-            # move children to item's parent
-            item: QStandardItem = self.__model.itemFromIndex(index)
-            for i in range(item.rowCount()):
-                child: QStandardItem = item.takeChild(i)
-                (item.parent() or self.__root).appendRow(child)
+            while sel_model.selectedIndexes():
+                index: QModelIndex = sel_model.selectedIndexes()[0]
 
-            self.__model.removeRow(index.row(), index.parent())
+                # move children to item's parent
+                item: QStandardItem = self.__model.itemFromIndex(index)
+                children = [item.takeChild(i) for i in range(item.rowCount())]
+                parent = item.parent() or self.__root
+
+                self.__model.removeRow(index.row(), index.parent())
+
+                for child in children[::-1]:
+                    parent.insertRow(index.row(), child)
+
+            self.__tree.expandAll()
             self.dataChanged.emit()
 
     def __on_reset(self):
