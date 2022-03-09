@@ -194,14 +194,21 @@ class EditableTreeView(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
-        self.__data_orig: Dict = {}
+        self.__stack: List = []
+        self.__stack_index: int = -1
+
+        def push_on_data_changed(_, __, roles):
+            if Qt.EditRole in roles:
+                self._push_data()
 
         self.__model = QStandardItemModel()
         self.__model.dataChanged.connect(self.dataChanged)
+        self.__model.dataChanged.connect(push_on_data_changed)
         self.__root: QStandardItem = self.__model.invisibleRootItem()
 
         self.__tree = TreeView(self.dataChanged)
         self.__tree.drop_finished.connect(self.dataChanged)
+        self.__tree.drop_finished.connect(self._push_data)
         self.__tree.setModel(self.__model)
         self.__tree.selectionModel().selectionChanged.connect(
             self.selectionChanged)
@@ -224,9 +231,15 @@ class EditableTreeView(QWidget):
 
         gui.rubber(actions_widget)
 
-        action = QAction("Reset", self, toolTip="Reset to original data")
-        action.triggered.connect(self.__on_reset)
+        self.__undo_action = action = QAction("Undo", self, toolTip="Undo")
+        action.triggered.connect(self.__on_undo)
         actions_widget.addAction(action)
+
+        self.__redo_action = action = QAction("Redo", self, toolTip="Redo")
+        action.triggered.connect(self.__on_redo)
+        actions_widget.addAction(action)
+
+        self._enable_undo_redo()
 
         layout = QVBoxLayout()
         layout.setSpacing(1)
@@ -256,6 +269,7 @@ class EditableTreeView(QWidget):
             while sel_model.selectedIndexes():
                 index: QModelIndex = sel_model.selectedIndexes()[0]
                 self.__model.removeRow(index.row(), index.parent())
+            self._push_data()
             self.dataChanged.emit()
 
     def __on_remove(self):
@@ -276,11 +290,16 @@ class EditableTreeView(QWidget):
                     parent.insertRow(index.row(), child)
 
             self.__tree.expandAll()
+            self._push_data()
             self.dataChanged.emit()
 
-    def __on_reset(self):
-        self.set_data(self.__data_orig)
-        self.dataChanged.emit()
+    def __on_undo(self):
+        self.__stack_index -= 1
+        self._set_from_stack()
+
+    def __on_redo(self):
+        self.__stack_index += 1
+        self._set_from_stack()
 
     def get_words(self) -> List:
         return _model_to_words(self.__root)
@@ -300,8 +319,14 @@ class EditableTreeView(QWidget):
         selection = self.__tree.selectionModel().selectedIndexes()
         return _model_to_tree(self.__root, selection, with_selection)
 
-    def set_data(self, data: Dict):
-        self.__data_orig = data
+    def set_data(self, data: Dict, keep_history: bool = False):
+        if not keep_history:
+            self.__stack = []
+            self.__stack_index = -1
+        self._set_data(data)
+        self._push_data()
+
+    def _set_data(self, data: Dict):
         self.clear()
         _tree_to_model(data, self.__root, self.__tree.selectionModel())
         self.__tree.expandAll()
@@ -309,6 +334,24 @@ class EditableTreeView(QWidget):
     def clear(self):
         if self.__model.hasChildren():
             self.__model.removeRows(0, self.__model.rowCount())
+
+    def _enable_undo_redo(self):
+        index = self.__stack_index
+        self.__undo_action.setEnabled(index >= 1)
+        self.__redo_action.setEnabled(index < len(self.__stack) - 1)
+
+    def _push_data(self):
+        self.__stack_index += 1
+        self.__stack = self.__stack[:self.__stack_index]
+        self.__stack.append(self.get_data())
+        self._enable_undo_redo()
+
+    def _set_from_stack(self):
+        assert self.__stack_index < len(self.__stack)
+        assert self.__stack_index >= 0
+        self._set_data(self.__stack[self.__stack_index])
+        self._enable_undo_redo()
+        self.dataChanged.emit()
 
 
 class Ontology:
@@ -608,7 +651,7 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
                     WORDS_COLUMN_NAME].attributes.get("type") == "words":
                 col = words.get_column_view(WORDS_COLUMN_NAME)[0]
                 words = dict(zip(col, np.full(len(col), {})))
-                self.__ontology_view.set_data(words)
+                self.__ontology_view.set_data(words, keep_history=True)
                 self.__set_current_modified(self.CACHED)
             else:
                 self.Warning.no_words_column()
@@ -639,7 +682,7 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
 
     def on_done(self, data: Dict):
         self.__run_button.setText("Run")
-        self.__ontology_view.set_data(data)
+        self.__ontology_view.set_data(data, keep_history=True)
         self.__set_current_modified(self.CACHED)
 
     def on_exception(self, ex: Exception):
