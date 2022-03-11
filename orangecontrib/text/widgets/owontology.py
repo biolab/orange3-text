@@ -7,7 +7,7 @@ import numpy as np
 from AnyQt.QtCore import Qt, QModelIndex, QItemSelection, Signal, \
     QItemSelectionModel
 from AnyQt.QtGui import QDropEvent, QStandardItemModel, QStandardItem, \
-    QPainter, QColor, QPalette
+    QPainter, QColor, QPalette, QDragEnterEvent, QDragLeaveEvent
 from AnyQt.QtWidgets import QWidget, QAction, QVBoxLayout, QTreeView, QMenu, \
     QToolButton, QGroupBox, QListView, QSizePolicy, QStyledItemDelegate, \
     QStyleOptionViewItem, QLineEdit, QFileDialog, QApplication
@@ -16,6 +16,8 @@ from networkx.algorithms.centrality import voterank
 from networkx.convert_matrix import from_numpy_array
 from networkx.relabel import relabel_nodes
 from sentence_transformers import SentenceTransformer
+
+from orangewidget.utils.listview import ListViewSearch
 
 from Orange.data import Table, StringVariable, Domain
 from Orange.widgets import gui
@@ -178,14 +180,32 @@ class TreeView(QTreeView):
         self.setDropIndicatorShown(True)
         self.setStyleSheet(self.Style)
 
+        self.__disconnected = False
+
     def startDrag(self, actions: Qt.DropActions):
         with disconnected(self.model().dataChanged, self.__data_changed_cb):
             super().startDrag(actions)
         self.drop_finished.emit()
 
+    def dragEnterEvent(self, event: QDragEnterEvent):
+        if event.source() != self:
+            self.__disconnected = True
+            self.model().dataChanged.disconnect(self.__data_changed_cb)
+        super().dragEnterEvent(event)
+
+    def dragLeaveEvent(self, event: QDragLeaveEvent):
+        super().dragLeaveEvent(event)
+        if self.__disconnected:
+            self.__disconnected = False
+            self.model().dataChanged.connect(self.__data_changed_cb)
+
     def dropEvent(self, event: QDropEvent):
         super().dropEvent(event)
         self.expandAll()
+        if self.__disconnected:
+            self.__disconnected = False
+            self.model().dataChanged.connect(self.__data_changed_cb)
+            self.drop_finished.emit()
 
 
 class EditableTreeView(QWidget):
@@ -499,7 +519,9 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
 
         flags = Qt.ItemIsSelectable | Qt.ItemIsEnabled | Qt.ItemIsEditable
         self.__model = PyListModel([], self, flags=flags)
+        self.__input_model = QStandardItemModel()
         self.__library_view: QListView = None
+        self.__input_view: ListViewSearch = None
         self.__ontology_view: EditableTreeView = None
 
         self._setup_gui()
@@ -569,6 +591,18 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
 
         library_box.layout().setSpacing(1)
         library_box.layout().addLayout(vlayout)
+
+        input_box: QGroupBox = gui.vBox(self.controlArea, "Input")
+        self.__input_view = ListViewSearch(
+            sizePolicy=QSizePolicy(QSizePolicy.Ignored, QSizePolicy.Expanding),
+            selectionMode=QListView.ExtendedSelection,
+            dragEnabled=True,
+            defaultDropAction=Qt.MoveAction
+        )
+        self.__input_view.setModel(self.__input_model)
+
+        input_box.layout().setSpacing(1)
+        input_box.layout().addWidget(self.__input_view)
 
         self.__run_button = gui.button(
             self.controlArea, self, "Run", callback=self.__on_toggle_run
@@ -646,13 +680,13 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
     @Inputs.words
     def set_words(self, words: Optional[Table]):
         self.Warning.no_words_column.clear()
+        self.__input_model.clear()
         if words:
             if WORDS_COLUMN_NAME in words.domain and words.domain[
                     WORDS_COLUMN_NAME].attributes.get("type") == "words":
-                col = words.get_column_view(WORDS_COLUMN_NAME)[0]
-                words = dict(zip(col, np.full(len(col), {})))
-                self.__ontology_view.set_data(words, keep_history=True)
-                self.__set_current_modified(self.CACHED)
+                # TODO - read words from settings
+                for word in words.get_column_view(WORDS_COLUMN_NAME)[0]:
+                    self.__input_model.appendRow(QStandardItem(word))
             else:
                 self.Warning.no_words_column()
 
@@ -755,7 +789,7 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
 if __name__ == "__main__":
     from Orange.widgets.utils.widgetpreview import WidgetPreview
 
-    lst = [
+    ls = [
         "Stvar",
         "Agent",
         "Organ",
@@ -786,6 +820,6 @@ if __name__ == "__main__":
     ]
     words_var_ = StringVariable("Words")
     words_var_.attributes = {"type": "words"}
-    words_ = Table.from_list(Domain([], metas=[words_var_]), [[w] for w in lst])
+    words_ = Table.from_list(Domain([], metas=[words_var_]), [[w] for w in ls])
     words_.name = "Words"
     WidgetPreview(OWOntology).run(words_)

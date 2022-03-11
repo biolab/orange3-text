@@ -159,7 +159,7 @@ class TestOWOntology(WidgetTest):
         self.send_signal(self.widget.Inputs.words, words)
 
         self.assertEqual(self.widget._OWOntology__get_selected_row(), 0)
-        self.assertEqual(get_ontology_data(), {"foo": {}})
+        self.assertEqual(get_ontology_data(), self._ontology_1)
 
         self.widget._OWOntology__set_selected_row(1)
         self.assertEqual(self.widget._OWOntology__get_selected_row(), 1)
@@ -167,7 +167,7 @@ class TestOWOntology(WidgetTest):
 
         self.widget._OWOntology__set_selected_row(0)
         self.assertEqual(self.widget._OWOntology__get_selected_row(), 0)
-        self.assertEqual(get_ontology_data(), {"foo": {}})
+        self.assertEqual(get_ontology_data(), self._ontology_1)
 
     def test_input_words_no_type(self):
         words = Table("zoo")
@@ -187,15 +187,10 @@ class TestOWOntology(WidgetTest):
                 selection.append(QItemSelectionRange(model.index(i, 0)))
             sel_model.select(selection, QItemSelectionModel.ClearAndSelect)
 
-        words = create_words_table(["bar", "baz", "foo"])
-        self.send_signal(self.widget.Inputs.words, words)
         self.assertIsNone(self.get_output(self.widget.Outputs.words))
 
-        select_words([1])
-        output = self.get_output(self.widget.Outputs.words)
-        self.assert_table_equal(words[1:2], output)
-
-        select_words(range(3))
+        select_words(range(1))
+        words = create_words_table(["bar1", "baz1", "foo1"])
         output = self.get_output(self.widget.Outputs.words)
         self.assert_table_equal(words, output)
 
