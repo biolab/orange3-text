@@ -479,6 +479,20 @@ class FilteringTests(unittest.TestCase):
         f.close()
         os.unlink(f.name)
 
+    def test_filter_numbers(self):
+        f = preprocess.NumbersFilter()
+        with self.corpus.unlocked():
+            self.corpus.metas[0, 0] = '1 2foo bar3 baz'
+        corpus = f(self.corpus)
+        self.assertEqual(["2foo", "bar3", "baz"], corpus.tokens[0])
+
+    def test_filter_tokens_with_numbers(self):
+        f = preprocess.WithNumbersFilter()
+        with self.corpus.unlocked():
+            self.corpus.metas[0, 0] = '1 2foo bar3 baz'
+        corpus = f(self.corpus)
+        self.assertEqual(["baz"], corpus.tokens[0])
+
     def test_regex_filter(self):
         self.assertFalse(preprocess.RegexpFilter.validate_regexp('?'))
         self.assertTrue(preprocess.RegexpFilter.validate_regexp('\?'))

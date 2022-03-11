@@ -498,6 +498,7 @@ class TestFilterModule(WidgetTest):
         params = {"methods": [FilteringModule.Stopwords],
                   "language": "English", "sw_path": None, "lx_path": None,
                   "sw_list": [], "lx_list": [],
+                  "incl_num": False,
                   "pattern": FilteringModule.DEFAULT_PATTERN,
                   "freq_type": 0,
                   "rel_start": 0.1, "rel_end": 0.9,
@@ -513,6 +514,7 @@ class TestFilterModule(WidgetTest):
                   "language": "Finnish",
                   "sw_path": sw_path, "lx_path": lx_path,
                   "sw_list": [sw_path], "lx_list": [lx_path],
+                  "incl_num": False,
                   "pattern": "foo",
                   "freq_type": 1,
                   "rel_start": 0.2, "rel_end": 0.7,
@@ -525,9 +527,10 @@ class TestFilterModule(WidgetTest):
         check_boxes = self.check_boxes
         self.assertFalse(check_boxes[0].isChecked())
         self.assertTrue(check_boxes[1].isChecked())
-        self.assertTrue(check_boxes[2].isChecked())
-        self.assertFalse(check_boxes[3].isChecked())
+        self.assertFalse(check_boxes[2].isChecked())
+        self.assertTrue(check_boxes[3].isChecked())
         self.assertFalse(check_boxes[4].isChecked())
+        self.assertFalse(check_boxes[5].isChecked())
 
         self.assertEqual(self.combo.currentText(), "Finnish")
         self.assertEqual(self.sw_combo.currentText(), "Foo")
