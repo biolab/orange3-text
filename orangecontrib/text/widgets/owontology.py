@@ -1,3 +1,4 @@
+import json
 import os
 import pickle
 from contextlib import contextmanager
@@ -100,8 +101,14 @@ def _tree_to_model(
         root: QStandardItem,
         sel_model: QItemSelectionModel
 ) -> None:
+    # tuple of subtree and selection flag
     if isinstance(tree, tuple):
         tree, _ = tree
+
+    # read from .json
+    if isinstance(tree, list):
+        tree = {t: {} for t in tree}
+
     for word, words in tree.items():
         item = QStandardItem(word)
         root.appendRow(item)
@@ -420,18 +427,34 @@ class Ontology:
         return f"{default_name} {index}"
 
 
+FileFormats = [
+    "JSON file (*.json)",
+    "Pickled Python object file (*.pkl)",
+]
+
+
 def read_from_file(parent: OWWidget) -> Optional[Ontology]:
     filename, _ = QFileDialog.getOpenFileName(
         parent, "Open Ontology",
         os.path.expanduser("~/"),
-        "Ontology files (*.owl)"
+        ";;".join(FileFormats)
     )
     if not filename:
         return None
 
     name = os.path.basename(filename)
-    with open(filename, "rb") as f:
-        data = pickle.load(f)
+    _, ext = os.path.splitext(name)
+
+    if ext == ".json":
+        with open(filename) as json_file:
+            data = json.load(json_file)
+
+    elif ext == ".pkl":
+        with open(filename, "rb") as f:
+            data = pickle.load(f)
+
+    else:
+        raise NotImplementedError()
 
     assert isinstance(data, dict)
     return Ontology(name, data, filename=filename)
@@ -440,16 +463,23 @@ def read_from_file(parent: OWWidget) -> Optional[Ontology]:
 def save_ontology(parent: OWWidget, filename: str, data: Dict):
     filename, _ = QFileDialog.getSaveFileName(
         parent, "Save Ontology", filename,
-        "Ontology files (*.owl)"
+        ";;".join(FileFormats)
     )
     if filename:
-        head, tail = os.path.splitext(filename)
-        if not tail:
-            filename = head + ".owl"
-
         assert isinstance(data, dict)
-        with open(filename, "wb") as f:
-            pickle.dump(data, f)
+
+        head, tail = os.path.splitext(filename)
+
+        if tail == ".json":
+            with open(filename, "w") as f:
+                f.write(json.dumps(data))
+
+        elif tail == ".pkl":
+            with open(filename, "wb") as f:
+                pickle.dump(data, f)
+
+        else:
+            raise NotImplementedError()
 
 
 class LibraryItemDelegate(QStyledItemDelegate):

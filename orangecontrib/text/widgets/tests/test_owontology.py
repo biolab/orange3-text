@@ -242,7 +242,7 @@ class TestOWOntology(WidgetTest):
         ontology = {"foo3": {"bar3": {}, "baz3": {}}}
         get_ontology_data = self.widget._OWOntology__ontology_view.get_data
 
-        with tempfile.NamedTemporaryFile(delete=False) as f:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pkl") as f:
             pickle.dump(ontology, f)
 
         with patch.object(QFileDialog, "getOpenFileName",
@@ -254,7 +254,7 @@ class TestOWOntology(WidgetTest):
             self.assertEqual(get_ontology_data(), ontology)
 
     def test_library_save(self):
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".owl",
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".pkl",
                                          delete=False) as f:
             pass
 
