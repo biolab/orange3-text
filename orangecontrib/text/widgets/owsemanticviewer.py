@@ -99,6 +99,20 @@ class SemanticListView(QTableView):
         self.verticalHeader().hide()
 
 
+class DocumentsModel(PyTableModel):
+    @staticmethod
+    def _argsortData(data: np.ndarray, order: Qt.SortOrder) -> np.ndarray:
+        # put NaNs last when sorting
+        if data.dtype not in (float, int):
+            data = np.char.lower(data)
+        indices = np.argsort(data, kind='mergesort')
+        if order == Qt.DescendingOrder:
+            indices = indices[::-1]
+            if data.dtype == float:
+                return np.roll(indices, -np.isnan(data).sum())
+        return indices
+
+
 class DisplayDocument:
     Document, Section, Sentence = range(3)
     ITEMS = ["Document", "Section", "Sentence"]
@@ -232,7 +246,7 @@ class OWSemanticViewer(OWWidget, ConcurrentWidgetMixin):
         gui.rubber(self.controlArea)
 
         # Main area
-        model = PyTableModel(parent=self)
+        model = DocumentsModel(parent=self)
         self._list_view = SemanticListView()
         self._list_view.setModel(model)
         self._list_view.selectionModel().selectionChanged.connect(
