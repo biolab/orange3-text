@@ -4,7 +4,6 @@ import pickle
 from contextlib import contextmanager
 from typing import Optional, List, Tuple, Any, Dict, Callable, Set, Union
 
-import numpy as np
 from AnyQt.QtCore import Qt, QModelIndex, QItemSelection, Signal, \
     QItemSelectionModel
 from AnyQt.QtGui import QDropEvent, QStandardItemModel, QStandardItem, \
@@ -12,11 +11,6 @@ from AnyQt.QtGui import QDropEvent, QStandardItemModel, QStandardItem, \
 from AnyQt.QtWidgets import QWidget, QAction, QVBoxLayout, QTreeView, QMenu, \
     QToolButton, QGroupBox, QListView, QSizePolicy, QStyledItemDelegate, \
     QStyleOptionViewItem, QLineEdit, QFileDialog, QApplication
-from networkx import Graph, minimum_spanning_tree
-from networkx.algorithms.centrality import voterank
-from networkx.convert_matrix import from_numpy_array
-from networkx.relabel import relabel_nodes
-from sentence_transformers import SentenceTransformer
 
 from orangewidget.utils.listview import ListViewSearch
 
@@ -27,34 +21,11 @@ from Orange.widgets.utils.concurrent import ConcurrentWidgetMixin, TaskState
 from Orange.widgets.utils.itemmodels import ModelActionsWidget, PyListModel
 from Orange.widgets.widget import OWWidget, Msg, Input, Output
 
+from orangecontrib.text.ontology import OntologyHandler
+
 OntoType = Tuple[Dict[str, "OntoType"], bool]
 WORDS_COLUMN_NAME = "Words"
 resources_path = os.path.join(os.path.dirname(__file__), "resources")
-
-
-def _generate_ontology(words: List[str]) -> Tuple[Graph, str]:
-    """
-    Ontology generator -- computes MST on the complete graph of words.
-    """
-    model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
-    embs = np.array(model.encode(words))
-    norms = np.linalg.norm(embs, axis=1).reshape(-1, 1)
-    embs = embs / norms
-    dists = 1 - np.dot(embs, embs.T)
-    graph = from_numpy_array(dists, parallel_edges=False)
-    mapping = {i: words[i] for i in range(len(words))}
-    graph = relabel_nodes(graph, mapping)
-    mst = minimum_spanning_tree(graph)
-    root = voterank(graph, 1)[0]
-    return mst, root
-
-
-def _graph_to_tree(graph: Graph, root: str, prev: str = None) -> Dict:
-    neighbors = [n for n in graph.neighbors(root) if n != prev]
-    tree = {}
-    for neighbor in neighbors:
-        tree[neighbor] = _graph_to_tree(graph, neighbor, root)
-    return tree
 
 
 def _run(words: List[str], state: TaskState) -> Dict:
@@ -69,8 +40,8 @@ def _run(words: List[str], state: TaskState) -> Dict:
 
     if len(words) > 1:
         words = [w.lower() for w in words]
-        mst, root = _generate_ontology(words)
-        return {root: _graph_to_tree(mst, root)}
+        handler = OntologyHandler()
+        return handler.generate(words)
     elif len(words) == 1:
         return {words[0].lower(): {}}
     else:
