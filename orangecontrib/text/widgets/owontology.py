@@ -528,6 +528,7 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
         self.__library_view: QListView = None
         self.__input_view: ListViewSearch = None
         self.__ontology_view: EditableTreeView = None
+        self.ontology_info = ""
 
         self._setup_gui()
         self._restore_state()
@@ -628,6 +629,9 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
             self.controlArea, self, "include_children", "Include subtree",
             box="Output", callback=self.commit.deferred
         )
+        box = gui.vBox(self.controlArea, "Ontology info")
+        gui.label(box, self, "%(ontology_info)s")
+
         gui.auto_send(self.buttonsArea, self, "auto_commit")
 
         # main area
@@ -649,6 +653,7 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
             self.ontology_index = row = selection.indexes()[0].row()
             data = self.__model[row].cached_word_tree
             self.__ontology_view.set_data(data)
+            self.__update_score()
 
     def __on_add(self):
         name = Ontology.generate_name([l.name for l in self.__model])
@@ -698,6 +703,7 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
 
     def __on_ontology_data_changed(self):
         self.__set_current_modified(self.CACHED)
+        self.__update_score()
         self._enable_include_button()
         self.commit.deferred()
 
@@ -741,8 +747,6 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
     def _run(self):
         self.__run_button.setText("Stop")
         words = self.__ontology_view.get_words()
-        if len(words) < 2:
-            return
         handler = self.__onto_handler.generate
         self.start(_run, handler, (words,))
 
@@ -758,6 +762,13 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
         self.__run_button.setText(self.RUN_BUTTON)
         self.__ontology_view.set_data(data, keep_history=True)
         self.__set_current_modified(self.CACHED)
+        self.__update_score()
+
+    def __update_score(self):
+        tree = self.__ontology_view.get_data()
+        score = round(self.__onto_handler.score(tree), 2) \
+            if len(tree) == 1 and list(tree.values())[0] else "/"
+        self.ontology_info = f"Score: {score}"
 
     def on_exception(self, ex: Exception):
         raise ex
@@ -805,6 +816,7 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
         if self.ontology:
             self.__ontology_view.set_data(self.ontology)
             self.__set_current_modified(self.CACHED)
+            self.__update_score()
             self.commit.now()
 
     def _save_state(self):
