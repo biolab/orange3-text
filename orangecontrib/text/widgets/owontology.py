@@ -536,6 +536,7 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
     def _setup_gui(self):
         # control area
         library_box: QGroupBox = gui.vBox(self.controlArea, "Library")
+        library_box.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Maximum)
 
         edit_triggers = QListView.DoubleClicked | QListView.EditKeyPressed
         self.__library_view = QListView(
@@ -543,6 +544,7 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
             minimumWidth=200,
             sizePolicy=QSizePolicy(QSizePolicy.Ignored, QSizePolicy.Expanding),
         )
+        self.__library_view.setFixedHeight(100)
         self.__library_view.setItemDelegate(LibraryItemDelegate(self))
         self.__library_view.setModel(self.__model)
         self.__library_view.selectionModel().selectionChanged.connect(
@@ -626,7 +628,6 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
             self.controlArea, self, "include_children", "Include subtree",
             box="Output", callback=self.commit.deferred
         )
-        gui.rubber(self.controlArea)
         gui.auto_send(self.buttonsArea, self, "auto_commit")
 
         # main area
