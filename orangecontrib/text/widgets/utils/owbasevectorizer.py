@@ -50,6 +50,8 @@ class OWBaseVectorizer(OWWidget):
     @Inputs.corpus
     def set_data(self, data):
         self.corpus = data
+        if self.corpus is None:
+            self.new_corpus, self.new_attrs = None, None
         self.invalidate()
 
     def hide_attrs(self):
