@@ -12,6 +12,7 @@ from AnyQt.QtWidgets import QFileDialog
 
 from Orange.data import StringVariable, Table, Domain
 from Orange.widgets.tests.base import WidgetTest
+from orangecontrib.text.ontology import OntologyHandler
 from orangecontrib.text.widgets.owontology import OWOntology, _run, \
     EditableTreeView, _tree_to_html
 
@@ -37,26 +38,28 @@ class TestUtils(unittest.TestCase):
 
 class TestRunner(unittest.TestCase):
     def setUp(self):
+        self.handler = OntologyHandler()
         self.words = ["foo", "bar"]
         self.state = Mock()
         self.state.is_interruption_requested = Mock(return_value=False)
 
     def test_run(self):
-        result = _run(self.words, self.state)
-        self.assertEqual(result, {"foo": {"bar": {}}})
+        result = _run(self.handler.generate, (self.words,), self.state)
+        self.assertEqual(result, {"bar": {"foo": {}}})
 
     def test_run_single_word(self):
-        result = _run(["foo"], self.state)
+        result = _run(self.handler.generate, (["foo"],), self.state)
         self.assertEqual(result, {"foo": {}})
 
     def test_run_empty(self):
-        result = _run([], self.state)
+        result = _run(self.handler.generate, ([],), self.state)
         self.assertEqual(result, {})
 
     def test_run_interrupt(self):
         state = Mock()
         state.is_interruption_requested = Mock(return_value=True)
-        self.assertRaises(Exception, _run, self.words, state)
+        self.assertRaises(Exception, _run, self.handler.generate,
+                          (self.words,), state)
 
 
 class TestEditableTreeView(WidgetTest):

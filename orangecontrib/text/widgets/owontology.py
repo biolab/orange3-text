@@ -28,7 +28,7 @@ WORDS_COLUMN_NAME = "Words"
 resources_path = os.path.join(os.path.dirname(__file__), "resources")
 
 
-def _run(words: List[str], state: TaskState) -> Dict:
+def _run(handler: Callable, args: Tuple, state: TaskState) -> Dict:
     def callback(i: float, status=""):
         state.set_progress_value(i * 100)
         if status:
@@ -37,15 +37,17 @@ def _run(words: List[str], state: TaskState) -> Dict:
             raise Exception
 
     callback(0, "Calculating...")
+    return handler(*args, callback=callback)
 
-    if len(words) > 1:
-        words = [w.lower() for w in words]
-        handler = OntologyHandler()
-        return handler.generate(words)
-    elif len(words) == 1:
-        return {words[0].lower(): {}}
-    else:
-        return {}
+    # if len(words) > 1:
+    #     words = [w.lower() for w in words]
+    #     return handler(words)
+    #     handler = OntologyHandler()
+    #     return handler.generate(words)
+    # elif len(words) == 1:
+    #     return {words[0].lower(): {}}
+    # else:
+    #     return {}
 
 
 def _model_to_tree(
@@ -495,6 +497,7 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
     keywords = []
 
     CACHED, LIBRARY = range(2)  # library list modification types
+    RUN_BUTTON, INC_BUTTON = "Generate", "Include"
 
     settingsHandler = DomainContextHandler()
     ontology_library: List[Dict] = Setting([
@@ -517,6 +520,7 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
     def __init__(self):
         OWWidget.__init__(self)
         ConcurrentWidgetMixin.__init__(self)
+        self.__onto_handler = OntologyHandler()
 
         flags = Qt.ItemIsSelectable | Qt.ItemIsEnabled | Qt.ItemIsEditable
         self.__model = PyListModel([], self, flags=flags)
@@ -598,15 +602,25 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
             sizePolicy=QSizePolicy(QSizePolicy.Ignored, QSizePolicy.Expanding),
             selectionMode=QListView.ExtendedSelection,
             dragEnabled=True,
-            defaultDropAction=Qt.MoveAction
         )
         self.__input_view.setModel(self.__input_model)
+        self.__input_view.selectionModel().selectionChanged.connect(
+            self._enable_include_button
+        )
+
+        self.__inc_button = gui.button(
+            None, self, self.INC_BUTTON, enabled=False,
+            toolTip="Include selected words into the ontology",
+            autoDefault=False, callback=self.__on_toggle_include
+        )
 
         input_box.layout().setSpacing(1)
         input_box.layout().addWidget(self.__input_view)
+        input_box.layout().addWidget(self.__inc_button)
 
         self.__run_button = gui.button(
-            self.controlArea, self, "Run", callback=self.__on_toggle_run
+            self.controlArea, self, self.RUN_BUTTON,
+            callback=self.__on_toggle_run
         )
         gui.checkBox(
             self.controlArea, self, "include_children", "Include subtree",
@@ -626,6 +640,8 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
 
         ontology_box.layout().setSpacing(1)
         ontology_box.layout().addWidget(self.__ontology_view)
+
+        self._enable_include_button()
 
     def __on_selection_changed(self, selection: QItemSelection, *_):
         if selection.indexes():
@@ -667,15 +683,21 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
         save_ontology(self, filename, self.__ontology_view.get_data())
         QApplication.setActiveWindow(self)
 
+    def __on_toggle_include(self):
+        if self.task is not None:
+            self._cancel_tasks()
+        else:
+            self._run_insert()
+
     def __on_toggle_run(self):
         if self.task is not None:
-            self.cancel()
-            self.__run_button.setText("Run")
+            self._cancel_tasks()
         else:
             self._run()
 
     def __on_ontology_data_changed(self):
         self.__set_current_modified(self.CACHED)
+        self._enable_include_button()
         self.commit.deferred()
 
     @Inputs.words
@@ -685,7 +707,6 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
         if words:
             if WORDS_COLUMN_NAME in words.domain and words.domain[
                     WORDS_COLUMN_NAME].attributes.get("type") == "words":
-                # TODO - read words from settings
                 for word in words.get_column_view(WORDS_COLUMN_NAME)[0]:
                     self.__input_model.appendRow(QStandardItem(word))
             else:
@@ -711,12 +732,29 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
         words.name = "Words"
         return words
 
+    def _cancel_tasks(self):
+        self.cancel()
+        self.__inc_button.setText(self.INC_BUTTON)
+        self.__run_button.setText(self.RUN_BUTTON)
+
     def _run(self):
         self.__run_button.setText("Stop")
-        self.start(_run, self.__ontology_view.get_words())
+        words = self.__ontology_view.get_words()
+        if len(words) < 2:
+            return
+        handler = self.__onto_handler.generate
+        self.start(_run, handler, (words,))
+
+    def _run_insert(self):
+        self.__inc_button.setText("Stop")
+        tree = self.__ontology_view.get_data()
+        words = self.__get_selected_input_words()
+        handler = self.__onto_handler.insert
+        self.start(_run, handler, (tree, words))
 
     def on_done(self, data: Dict):
-        self.__run_button.setText("Run")
+        self.__inc_button.setText(self.INC_BUTTON)
+        self.__run_button.setText(self.RUN_BUTTON)
         self.__ontology_view.set_data(data, keep_history=True)
         self.__set_current_modified(self.CACHED)
 
@@ -755,6 +793,10 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
             self.__model.emitDataChanged(index)
             self.__library_view.repaint()
 
+    def __get_selected_input_words(self) -> List[str]:
+        return [self.__input_view.model().data(index) for index in
+                self.__input_view.selectedIndexes()]
+
     def _restore_state(self):
         source = [Ontology.from_dict(s) for s in self.ontology_library]
         self.__model.wrap(source)
@@ -767,6 +809,12 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
     def _save_state(self):
         self.ontology_library = [s.as_dict() for s in self.__model]
         self.ontology = self.__ontology_view.get_data(with_selection=True)
+
+    def _enable_include_button(self):
+        tree = self.__ontology_view.get_data()
+        words = self.__get_selected_input_words()
+        enabled = len(tree) == 1 and len(words) > 0
+        self.__inc_button.setEnabled(enabled)
 
     def send_report(self):
         model = self.__model
