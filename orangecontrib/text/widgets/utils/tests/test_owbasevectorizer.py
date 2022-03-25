@@ -28,3 +28,10 @@ class TestOWBaseVectorizer(WidgetTest):
         self.send_signal("Corpus", new_corpus)
         self.assertFalse(any(f.attributes['hidden'] for f in
                             self.get_output("Corpus").domain.attributes))
+
+    def test_no_data_on_input(self):
+        self.send_signal("Corpus", self.corpus)
+        self.assertTrue(self.get_output("Corpus"))
+
+        self.send_signal("Corpus", None)
+        self.assertFalse(self.get_output("Corpus"))
