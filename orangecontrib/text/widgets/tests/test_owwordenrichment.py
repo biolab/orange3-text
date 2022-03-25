@@ -105,6 +105,18 @@ class TestWordEnrichment(WidgetTest):
         self.send_signal(w.Inputs.selected_data, None)
         self.assertFalse(self.widget.Error.no_bow_features.is_shown())
 
+    def test_selected_data_is_table(self):
+        w = self.widget
+        iris = Table("iris")
+
+        self.send_signal(w.Inputs.data, self.corpus_vect)
+        self.send_signal(w.Inputs.selected_data, iris[:10])
+        self.assertTrue(self.widget.Error.no_bow_features.is_shown())
+
+        self.send_signal(w.Inputs.data, self.corpus_vect)
+        self.send_signal(w.Inputs.selected_data, self.subset_corpus)
+        self.assertFalse(self.widget.Error.no_bow_features.is_shown())
+
     def test_all_selected(self):
         w = self.widget
 
