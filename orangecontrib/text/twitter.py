@@ -1,69 +1,126 @@
-from collections import OrderedDict
-from collections.abc import Iterable
+import logging
+from functools import partial
+from typing import List, Optional, Callable
 
+import numpy as np
 import tweepy
-
 from Orange.data import (
-    StringVariable,
     ContinuousVariable,
     DiscreteVariable,
+    Domain,
+    StringVariable,
     TimeVariable,
 )
+from Orange.util import dummy_callback, wrap_callback
+from tweepy import TooManyRequests
+
 from orangecontrib.text import Corpus
 from orangecontrib.text.language_codes import code2lang
 
-__all__ = ["Credentials", "TwitterAPI"]
+
+log = logging.getLogger(__name__)
+
+# fmt: off
+SUPPORTED_LANGUAGES = [
+    "am", "ar", "bg", "bn", "bo", "ca", "ckb", "cs", "cy", "da", "de", "dv",
+    "el", "en", "es", "et", "eu", "fa", "fi", "fr", "gu", "he", "hi", "hi-Latn",
+    "ht", "hu", "hy", "id", "is", "it", "ja", "ka", "km", "kn", "ko", "lo",
+    "lt", "lv", "ml", "mr", "my", "ne", "nl", "no", "or", "pa", "pl", "ps",
+    "pt", "ro", "ru", "sd", "si", "sl", "sr", "sv", "ta", "te", "th", "tl",
+    "tr", "ug", "uk", "ur", "vi", "zh"
+]
+# fmt: on
 
 
-def coordinates_geoJSON(json):
-    if json:
-        return json.get("coordinates", [None, None])
-    return [None, None]
+class NoAuthorError(ValueError):
+    pass
 
 
-class Credentials:
-    """ Twitter API credentials. """
+def coordinates(tweet, _, __, dim):
+    coord = tweet.geo.get("coordinates", None) if tweet.geo else None
+    return coord["coordinates"][dim] if coord else None
 
-    def __init__(self, consumer_key, consumer_secret):
-        self.consumer_key = consumer_key
-        self.consumer_secret = consumer_secret
-        self.auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
-        self._valid = None
 
-    @property
-    def valid(self):
-        if self._valid is None:
-            self.check()
-        return self._valid
+def country_code(tweet, _, places):
+    place_id = tweet.geo.get("place_id", None) if tweet.geo else None
+    return places[place_id].country_code if place_id else ""
 
-    def check(self):
-        try:
-            self.auth.get_authorization_url()
-            self._valid = True
-        except tweepy.TweepyException:
-            self._valid = False
-        return self._valid
 
-    def __getstate__(self):
-        odict = self.__dict__.copy()
-        odict["_valid"] = None
-        odict.pop("auth")
-        return odict
+tv = TimeVariable("Date")
+METAS = [
+    (StringVariable("Content"), lambda doc, _, __: doc.text),
+    (
+        DiscreteVariable("Author"),
+        lambda doc, users, _: "@" + users[doc.author_id].username,
+    ),
+    (tv, lambda doc, _, __: tv.parse(doc.created_at.isoformat())),
+    (DiscreteVariable("Language"), lambda doc, _, __: doc.lang),
+    (DiscreteVariable("Location"), country_code),
+    (
+        ContinuousVariable("Number of Likes", number_of_decimals=0),
+        lambda doc, _, __: doc.public_metrics["like_count"],
+    ),
+    (
+        ContinuousVariable("Number of Retweets", number_of_decimals=0),
+        lambda doc, _, __: doc.public_metrics["retweet_count"],
+    ),
+    (
+        DiscreteVariable("In Reply To"),
+        lambda doc, users, _: "@" + users[doc.in_reply_to_user_id].username
+        if doc.in_reply_to_user_id and doc.in_reply_to_user_id in users
+        else "",
+    ),
+    (DiscreteVariable("Author Name"), lambda doc, users, __: users[doc.author_id].name),
+    (
+        StringVariable("Author Description"),
+        lambda doc, users, _: users[doc.author_id].description,
+    ),
+    (
+        ContinuousVariable("Author Tweets Count", number_of_decimals=0),
+        lambda doc, users, _: users[doc.author_id].public_metrics["tweet_count"],
+    ),
+    (
+        ContinuousVariable("Author Following Count", number_of_decimals=0),
+        lambda doc, users, _: users[doc.author_id].public_metrics["following_count"],
+    ),
+    (
+        ContinuousVariable("Author Followers Count", number_of_decimals=0),
+        lambda doc, users, _: users[doc.author_id].public_metrics["followers_count"],
+    ),
+    (
+        ContinuousVariable("Author Listed Count", number_of_decimals=0),
+        lambda doc, users, _: users[doc.author_id].public_metrics["listed_count"],
+    ),
+    (
+        DiscreteVariable("Author Verified"),
+        lambda doc, users, _: str(users[doc.author_id].verified),
+    ),
+    (ContinuousVariable("Longitude"), partial(coordinates, dim=0)),
+    (ContinuousVariable("Latitude"), partial(coordinates, dim=1)),
+]
+# maximum number of tweets that can be downloaded in one set of requests
+# max 450requests/15min, request can contain max 100 tweets
+MAX_TWEETS = 450 * 100
 
-    def __setstate__(self, odict):
-        self.__dict__.update(odict)
-        self.auth = tweepy.OAuthHandler(self.consumer_key, self.consumer_secret)
 
-    def __eq__(self, other):
-        return (
-            isinstance(other, Credentials)
-            and self.consumer_key == other.consumer_key
-            and self.consumer_secret == other.consumer_secret
-        )
+request_settings = {
+    "tweet_fields": [
+        "lang",
+        "public_metrics",
+        "in_reply_to_user_id",
+        "author_id",
+        "geo",
+        "created_at",
+    ],
+    "user_fields": ["description", "public_metrics", "verified"],
+    "place_fields": ["country_code"],
+    "expansions": ["author_id", "in_reply_to_user_id", "geo.place_id"],
+    "max_results": 100,
+}
 
 
 class TwitterAPI:
-    """ Fetch tweets from the Tweeter API.
+    """Fetch tweets from the Tweeter API.
 
     Notes:
         Results across multiple searches are aggregated. To remove tweets form
@@ -72,241 +129,178 @@ class TwitterAPI:
         argument to search method.
     """
 
-    attributes = []
-    class_vars = []
+    text_features = [METAS[0][0]]  # Content
+    string_attributes = [m for m, _ in METAS if isinstance(m, StringVariable)]
 
-    tv = TimeVariable("Date")
-    authors = [
-        (DiscreteVariable("Author"), lambda doc: "@" + doc.author.screen_name,),
-    ]
-    metas = [
-        (
-            StringVariable("Content"),
-            lambda doc: doc.full_text if not doc.retweeted else doc.text,
-        ),
-        # temporary fix until Orange>3.30.1 then change back to
-        # (tv, lambda doc: TwitterAPI.tv.parse(doc.created_at.isoformat())),
-        (tv, lambda doc: TwitterAPI.tv.parse(
-                    TwitterAPI.tv._tzre_sub(doc.created_at.isoformat()))),
-        (DiscreteVariable("Language"), lambda doc: doc.lang),
-        (
-            DiscreteVariable("Location"),
-            lambda doc: getattr(doc.place, "country_code", None),
-        ),
-        (
-            ContinuousVariable("Number of Likes", number_of_decimals=0),
-            lambda doc: doc.favorite_count,
-        ),
-        (
-            ContinuousVariable("Number of Retweets", number_of_decimals=0),
-            lambda doc: doc.retweet_count,
-        ),
-        (
-            DiscreteVariable("In Reply To"),
-            lambda doc: "@" + doc.in_reply_to_screen_name
-            if doc.in_reply_to_screen_name
-            else "",
-        ),
-        (DiscreteVariable("Author Name"), lambda doc: doc.author.name),
-        (
-            StringVariable("Author Description"),
-            lambda doc: doc.author.description,
-        ),
-        (
-            ContinuousVariable("Author Statuses Count", number_of_decimals=0),
-            lambda doc: doc.author.statuses_count,
-        ),
-        (
-            ContinuousVariable("Author Favourites Count", number_of_decimals=0),
-            lambda doc: doc.author.favourites_count,
-        ),
-        (
-            ContinuousVariable("Author Friends Count", number_of_decimals=0),
-            lambda doc: doc.author.friends_count,
-        ),
-        (
-            ContinuousVariable("Author Followers Count", number_of_decimals=0),
-            lambda doc: doc.author.followers_count,
-        ),
-        (
-            ContinuousVariable("Author Listed Count", number_of_decimals=0),
-            lambda doc: doc.author.listed_count,
-        ),
-        (
-            DiscreteVariable("Author Verified"),
-            lambda doc: str(doc.author.verified),
-        ),
-        (
-            ContinuousVariable("Longitude"),
-            lambda doc: coordinates_geoJSON(doc.coordinates)[0],
-        ),
-        (
-            ContinuousVariable("Latitude"),
-            lambda doc: coordinates_geoJSON(doc.coordinates)[1],
-        ),
-    ]
-
-    text_features = [metas[0][0]]  # Content
-    string_attributes = [m for m, _ in metas if isinstance(m, StringVariable)]
-
-    def __init__(self, credentials):
-        self.key = credentials
-        self.api = tweepy.API(credentials.auth)
-        self.container = OrderedDict()
+    def __init__(self, bearer_token):
+        self.api = tweepy.Client(bearer_token)
+        self.tweets = {}
         self.search_history = []
-
-    @property
-    def tweets(self):
-        return self.container.values()
 
     def search_content(
         self,
-        content,
+        content: List[str],
         *,
-        max_tweets=0,
-        lang=None,
-        allow_retweets=True,
-        collecting=False,
-        callback=None
-    ):
-        """ Search by content.
+        max_tweets: Optional[int] = MAX_TWEETS,
+        lang: Optional[str] = None,
+        allow_retweets: bool = True,
+        collecting: bool = False,
+        callback: Callable = dummy_callback,
+    ) -> Optional[Corpus]:
+        """
+        Search recent tweets by content (keywords).
 
-        Args:
-            content (list of str): A list of key words to search for.
-            max_tweets (int): If greater than zero limits the number of
-                downloaded tweets.
-            lang (str): A language's code (either ISO 639-1 or ISO 639-3
-                formats).
-            allow_retweets(bool): Whether to download retweets.
-            collecting (bool): Whether to collect results across multiple
-                search calls.
+        Parameters
+        ----------
+        content
+            A list of key-words to search for.
+        max_tweets
+            Limits the number of downloaded tweets. If none use APIs maximum.
+        lang
+            A language's code (either ISO 639-1 or ISO 639-3 formats).
+        allow_retweets
+            Whether to download retweets.
+        collecting
+            Whether to collect results across multiple search calls.
+        callback
+            Function to report the progress
 
-        Returns:
-            Corpus
+        Returns
+        -------
+        Corpus with tweets
         """
         if not collecting:
             self.reset()
-
-        if max_tweets == 0:
-            max_tweets = float("Inf")
+        max_tweets = max_tweets or MAX_TWEETS
 
         def build_query():
-            nonlocal content
-            if not content:
-                q = "from: "
-            else:
-                if not isinstance(content, list):
-                    content = [content]
-                q = " OR ".join(['"{}"'.format(q) for q in content])
+            assert len(content) > 0, "At leas one keyword required"
+            q = " OR ".join(['"{}"'.format(q) for q in content])
             if not allow_retweets:
-                q += " -filter:retweets"
+                q += " -is:retweet"
+            if lang:
+                q += f" lang:{lang}"
             return q
 
-        query = build_query()
-        cursor = tweepy.Cursor(
-            self.api.search_tweets, q=query, lang=lang, tweet_mode="extended"
+        paginator = tweepy.Paginator(
+            self.api.search_recent_tweets, build_query(), **request_settings
         )
-
-        corpus, count = self.fetch(
-            cursor, max_tweets, search_author=False, callback=callback
-        )
-        self.append_history(
-            "Content",
-            content,
-            lang if lang else "Any",
-            str(allow_retweets),
-            count,
-        )
-        return corpus
+        count = self._fetch(paginator, max_tweets, callback=callback)
+        self.append_history("Content", content, lang or "Any", allow_retweets, count)
+        return self._create_corpus()
 
     def search_authors(
-        self, authors, *, max_tweets=0, collecting=False, callback=None
-    ):
-        """ Search by authors.
+        self,
+        authors: List[str],
+        *,
+        max_tweets: Optional[int] = MAX_TWEETS,
+        collecting: bool = False,
+        callback: Callable = dummy_callback,
+    ) -> Optional[Corpus]:
+        """
+        Search recent tweets by authors.
 
-        Args:
-            authors (list of str): A list of authors to search for.
-            max_tweets (int): If greater than zero limits the number of
-                downloaded tweets.
-            collecting (bool): Whether to collect results across multiple
-                search calls.
+        Parameters
+        ----------
+        authors
+            A list of authors to search for.
+        max_tweets
+            Limits the number of downloaded tweets. If none use APIs maximum.
+        collecting
+            Whether to collect results across multiple search calls.
+        callback
+            Function to report the progress
 
-        Returns:
-            Corpus
+        Returns
+        -------
+        Corpus with tweets
         """
         if not collecting:
             self.reset()
 
-        if max_tweets == 0:  # set to max allowed for progress
-            max_tweets = 3200
-
-        if not isinstance(authors, list):
-            authors = [authors]
-
-        cursors = [
-            tweepy.Cursor(
-                self.api.user_timeline, screen_name=a, tweet_mode="extended"
+        count_sum = 0
+        n = len(authors)
+        for i, author in enumerate(authors):
+            author_ = self.api.get_user(username=author)
+            if author_.data is None:
+                raise NoAuthorError(author)
+            paginator = tweepy.Paginator(
+                self.api.get_users_tweets, author_.data.id, **request_settings
             )
-            for a in authors
-        ]
-        corpus, count = self.fetch(
-            cursors, max_tweets, search_author=True, callback=callback
-        )
-        self.append_history("Author", authors, None, None, count)
-        return corpus
+            count_sum += self._fetch(
+                paginator,
+                max_tweets,
+                callback=wrap_callback(callback, i / n, (i + 1) / n),
+            )
+        self.append_history("Author", authors, None, None, count_sum)
+        return self._create_corpus()
 
-    def fetch(self, cursors, max_tweets, search_author, callback):
-        if not isinstance(cursors, list):
-            cursors = [cursors]
-
+    def _fetch(
+        self, paginator: tweepy.Paginator, max_tweets: int, callback: Callable
+    ) -> int:
         count = 0
-        for i, cursor in enumerate(cursors):
-            for j, tweet in enumerate(cursor.items(max_tweets), start=1):
-                if tweet.id not in self.container:
-                    count += 1
-                self.container[tweet.id] = tweet
-                if j % 20 == 0:
-                    if callback is not None:
-                        callback(
-                            (i * max_tweets + j) / (len(cursors) * max_tweets)
-                        )
+        try:
+            done = False
+            for i, response in enumerate(paginator):
+                users = {u.id: u for u in response.includes.get("users", [])}
+                places = {p.id: p for p in response.includes.get("places", [])}
+                for j, tweet in enumerate(response.data or [], start=1):
+                    if tweet.id not in self.tweets:
+                        count += 1
+                    self.tweets[tweet.id] = [f(tweet, users, places) for _, f in METAS]
+                    callback(count / max_tweets)
+                    if count >= max_tweets:
+                        done = True
+                        break
+                if done:
+                    break
+        except TooManyRequests:
+            log.debug("TooManyRequests raised")
+        return count
 
-        return self.create_corpus(search_author), count
+    def _create_corpus(self) -> Optional[Corpus]:
+        if len(self.tweets) == 0:
+            return None
 
-    def create_corpus(self, search_author):
-        if search_author:
-            class_vars = self.authors
-            metas = self.metas
-        else:
-            class_vars = []
-            metas = self.metas + self.authors
-        return Corpus.from_documents(
-            self.tweets,
-            "Twitter",
-            self.attributes,
-            class_vars,
-            metas,
-            title_indices=[-1],
+        def to_val(attr, val):
+            if isinstance(attr, DiscreteVariable):
+                attr.val_from_str_add(val)
+            return attr.to_val(val)
+
+        m = [attr for attr, _ in METAS]
+        domain = Domain(attributes=[], class_vars=[], metas=m)
+
+        metas = np.array(
+            [
+                [to_val(attr, t) for (attr, _), t in zip(METAS, ts)]
+                for ts in self.tweets.values()
+            ],
+            dtype=object,
         )
+        x = np.empty((len(metas), 0))
 
-    def reset(self):
-        """ Removes all downloaded tweets. """
-        self.search_history = []
-        self.container = OrderedDict()
+        return Corpus(domain, x, metas=metas, text_features=self.text_features)
 
-    def append_history(self, mode, query, lang, allow_retweets, n_tweets):
-        query = ", ".join(query) if isinstance(query, Iterable) else query
-        if lang in code2lang.keys():
-            lang = code2lang[lang]
+    def append_history(
+        self,
+        mode: str,
+        query: List[str],
+        lang: Optional[str],
+        allow_retweets: Optional[bool],
+        n_tweets: int,
+    ):
+        lang = code2lang.get(lang, lang)
         self.search_history.append(
             (
                 ("Query", query),
                 ("Search by", mode),
                 ("Language", lang),
-                ("Allow retweets", allow_retweets),
+                ("Allow retweets", str(allow_retweets)),
                 ("Tweets count", n_tweets),
             )
         )
 
-    def report(self):
-        return self.search_history
+    def reset(self):
+        """Removes all downloaded tweets."""
+        self.tweets = {}
+        self.search_history = []
