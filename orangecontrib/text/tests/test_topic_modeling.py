@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 
 from orangecontrib.text import vectorization
-from orangecontrib.text.topics import LdaWrapper, HdpWrapper, LsiWrapper
+from orangecontrib.text.topics import LdaWrapper, HdpWrapper, LsiWrapper, NmfWrapper
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text import preprocess
 
@@ -112,6 +112,12 @@ class LsiTest(unittest.TestCase, BaseTests):
     def setUp(self):
         self.corpus = Corpus.from_file('deerwester')
         self.model = LsiWrapper(num_topics=5)
+
+
+class NmfTest(unittest.TestCase, BaseTests):
+    def setUp(self):
+        self.corpus = Corpus.from_file('deerwester')
+        self.model = NmfWrapper(num_topics=5)
 
 
 if __name__ == "__main__":
