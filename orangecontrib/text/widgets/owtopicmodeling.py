@@ -20,7 +20,7 @@ from Orange.widgets.widget import OWWidget, Input, Output, Msg
 from Orange.data import Table
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.topics import Topic, Topics, LdaWrapper, HdpWrapper, \
-    LsiWrapper
+    LsiWrapper, NmfWrapper
 from orangecontrib.text.topics.topics import GensimWrapper
 
 
@@ -94,6 +94,15 @@ class HdpWidget(TopicWidget):
     tau = settings.Setting(64)
 
 
+class NmfWidget(TopicWidget):
+    Model = NmfWrapper
+
+    parameters = (
+        ('num_topics', 'Number of topics', 1, 500, 1, int),
+    )
+    num_topics = settings.Setting(10)
+
+
 def require(attribute):
     def decorator(func):
         @functools.wraps(func)
@@ -137,6 +146,7 @@ class OWTopicModeling(OWWidget, ConcurrentWidgetMixin):
         (LsiWidget, 'lsi'),
         (LdaWidget, 'lda'),
         (HdpWidget, 'hdp'),
+        (NmfWidget, 'nmf')
     ]
 
     # Settings
@@ -146,6 +156,7 @@ class OWTopicModeling(OWWidget, ConcurrentWidgetMixin):
     lsi = settings.SettingProvider(LsiWidget)
     hdp = settings.SettingProvider(HdpWidget)
     lda = settings.SettingProvider(LdaWidget)
+    nmf = settings.SettingProvider(NmfWidget)
 
     selection = settings.Setting(None, schema_only=True)
 
