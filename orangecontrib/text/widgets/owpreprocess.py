@@ -96,7 +96,20 @@ class UDPipeComboBox(QComboBox):
 
 
 class RangeSpins(QHBoxLayout):
-    SpinBox = QSpinBox
+    class SpinBox(QSpinBox):
+        def validate(self, *args):
+            # accept empty input
+            valid, text, pos = super().validate(*args)
+            return 2 if valid else 0, text, pos
+
+        def valueFromText(self, text: str) -> int:
+            return int(text) if text else self.minimum()
+
+        def set_min_val(self, val: int) -> None:
+            minimum = self.minimum()
+            self.setMinimum(val)
+            if self.value() == minimum:
+                self.setValue(val)
 
     def __init__(self, start: float, step: float, end: float, minimum: int,
                  maximum: int, cb_start: Callable, cb_end: Callable,
@@ -109,8 +122,12 @@ class RangeSpins(QHBoxLayout):
                                       value=end, singleStep=step)
         self._spin_start.editingFinished.connect(edited)
         self._spin_end.editingFinished.connect(edited)
-        self._spin_start.valueChanged.connect(self._spin_end.setMinimum)
-        self._spin_end.valueChanged.connect(self._spin_start.setMaximum)
+        if self.SpinBox == QDoubleSpinBox:
+            self._spin_start.valueChanged.connect(self._spin_end.setMinimum)
+            self._spin_end.valueChanged.connect(self._spin_start.setMaximum)
+        else:
+            self._spin_end.setSpecialValueText("max")
+            self._spin_start.valueChanged.connect(self._spin_end.set_min_val)
         self._spin_start.valueChanged.connect(cb_start)
         self._spin_end.valueChanged.connect(cb_end)
         self._spin_start.setFixedWidth(50)
@@ -123,8 +140,6 @@ class RangeSpins(QHBoxLayout):
         self._spin_end.setMinimum(self._min)
         self._spin_start.setValue(start)
         self._spin_end.setValue(end)
-        self._spin_start.setMaximum(end)
-        self._spin_end.setMinimum(start)
 
     def spins(self) -> Tuple[QAbstractSpinBox, QAbstractSpinBox]:
         return self._spin_start, self._spin_end
@@ -142,6 +157,11 @@ class RangeDoubleSpins(RangeSpins):
         self._spin_end.setMaximumWidth(1000)
         self._spin_start.setMinimumWidth(0)
         self._spin_end.setMinimumWidth(0)
+
+    def set_range(self, start: float, end: float):
+        super().set_range(start, end)
+        self._spin_start.setMaximum(end)
+        self._spin_end.setMinimum(start)
 
 
 class FileLoader(QWidget):
@@ -545,7 +565,7 @@ class FilteringModule(MultipleMethodModule):
                       r"\’|…|\-|–|—|\$|&|\*|>|<|\/|\[|\]"
     DEFAULT_FREQ_TYPE = 0  # 0 - relative freq, 1 - absolute freq
     DEFAULT_REL_START, DEFAULT_REL_END, REL_MIN, REL_MAX = 0.1, 0.9, 0, 1
-    DEFAULT_ABS_START, DEFAULT_ABS_END, ABS_MIN, ABS_MAX = 1, 10, 0, 10000
+    DEFAULT_ABS_START, DEFAULT_ABS_END, ABS_MIN, ABS_MAX = 1, 10, 0, 10 ** 6
     DEFAULT_N_TOKEN = 100
     DEFAULT_POS_TAGS = "NOUN,VERB"
 
