@@ -604,7 +604,7 @@ class ImportDocuments:
                          and not matches_any(fname, exclude_patterns)]
             paths = paths + [os.path.join(dirpath, fname) for fname in
                              filenames]
-        return paths
+        return sorted(paths)
 
     @staticmethod
     def scan_url(topdir: str, include_patterns: Tuple[str] = ("*",),
