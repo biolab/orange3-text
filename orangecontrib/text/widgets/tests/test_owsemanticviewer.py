@@ -3,6 +3,7 @@ import unittest
 from typing import List
 from unittest.mock import Mock, patch
 
+import numpy as np
 from AnyQt.QtCore import Qt
 from AnyQt.QtTest import QSignalSpy
 from AnyQt.QtWidgets import QTableView
@@ -13,7 +14,7 @@ from Orange.widgets.tests.base import WidgetTest
 from orangecontrib.text import Corpus
 from orangecontrib.text.semantic_search import SemanticSearch
 from orangecontrib.text.widgets.owsemanticviewer import OWSemanticViewer, \
-    run, DisplayDocument
+    run, DisplayDocument, DocumentsModel, SemanticListView
 
 
 def create_words_table(words: List) -> Table:
@@ -265,6 +266,41 @@ class TestDisplayDocument(unittest.TestCase):
                 "\n <mark data-markjs='true'>The EPS user interface " \
                 "management system.</mark>"
         self.assertEqual(new_text, text1)
+
+
+class TestDocumentsModel(WidgetTest):
+    def setUp(self):
+        self.model = model = DocumentsModel()
+        model[:] = [[1, 1, "Foo"], [1, np.nan, "Bar"], [1, 2, "Baz"]]
+
+        self.view = view = SemanticListView()
+        view.setModel(model)
+
+    def test_sort_nans(self):
+        model = self.model
+
+        self.view.sortByColumn(1, Qt.DescendingOrder)
+        self.assertEqual(model.data(model.index(0, 2)), "Baz")
+        self.assertEqual(model.data(model.index(1, 2)), "Foo")
+        self.assertEqual(model.data(model.index(2, 2)), "Bar")
+
+        self.view.sortByColumn(1, Qt.AscendingOrder)
+        self.assertEqual(model.data(model.index(0, 2)), "Foo")
+        self.assertEqual(model.data(model.index(1, 2)), "Baz")
+        self.assertEqual(model.data(model.index(2, 2)), "Bar")
+
+    def test_sort_test_column(self):
+        model = self.model
+
+        self.view.sortByColumn(2, Qt.DescendingOrder)
+        self.assertEqual(model.data(model.index(0, 2)), "Foo")
+        self.assertEqual(model.data(model.index(1, 2)), "Baz")
+        self.assertEqual(model.data(model.index(2, 2)), "Bar")
+
+        self.view.sortByColumn(2, Qt.AscendingOrder)
+        self.assertEqual(model.data(model.index(0, 2)), "Bar")
+        self.assertEqual(model.data(model.index(1, 2)), "Baz")
+        self.assertEqual(model.data(model.index(2, 2)), "Foo")
 
 
 class DummySearch(SemanticSearch):

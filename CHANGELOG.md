@@ -5,6 +5,15 @@ Change Log
 ------------
 * ...
 
+[1.7.0] - 2022-04-08
+--------------------
+##### Enhancements
+* Twitter: adapt to APIv2 ([#780](../../pull/780))
+
+##### Bugfixes
+* Semantic Viewer: Put NaNs last when sorting ([#800](../../pull/800))
+* Twitter: Update for Python 3.10 ([#793](../../pull/793))
+
 [1.6.2] - 2022-01-10
 --------------------
 ##### Bugfixes
@@ -327,6 +336,7 @@ Change Log
 
 
 [next]: https://github.com/biolab/orange3-text/compare/1.6.2...HEAD
+[1.7.0]: https://github.com/biolab/orange3-text/compare/1.6.2...1.7.0
 [1.6.2]: https://github.com/biolab/orange3-text/compare/1.6.1...1.6.2
 [1.6.1]: https://github.com/biolab/orange3-text/compare/1.6.0...1.6.1
 [1.6.0]: https://github.com/biolab/orange3-text/compare/1.5.3...1.6.0

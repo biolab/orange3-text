@@ -4,11 +4,19 @@ import unittest
 from unittest import skipIf
 
 import numpy as np
+import pkg_resources
 from numpy.testing import assert_array_equal
 from orangecontrib.text.preprocess import RegexpTokenizer
 from scipy.sparse import csr_matrix, issparse
 
-from Orange.data import Table, DiscreteVariable, StringVariable, Domain, ContinuousVariable
+from Orange.data import (
+    Table,
+    DiscreteVariable,
+    StringVariable,
+    Domain,
+    ContinuousVariable,
+    dataset_dirs,
+)
 
 from orangecontrib.text import preprocess
 from orangecontrib.text.corpus import Corpus
@@ -39,7 +47,12 @@ class CorpusTests(unittest.TestCase):
         self.assertEqual(new.X.shape, empty_X.shape)
 
     def test_corpus_from_file(self):
+        dd_before = dataset_dirs.copy()
         c = Corpus.from_file('book-excerpts')
+        # from_file temporarily change dataset_dirs
+        # test that dataset_dirs remains unchanged after from_file call
+        self.assertListEqual(dd_before, dataset_dirs)
+
         self.assertEqual(len(c), 140)
         self.assertEqual(len(c.domain.variables), 1)
         self.assertEqual(len(c.domain.metas), 1)
@@ -90,27 +103,22 @@ class CorpusTests(unittest.TestCase):
         self.assertListEqual([], corpus.used_preprocessor.preprocessors)
 
     def test_corpus_from_file_missing(self):
-        with self.assertRaises(FileNotFoundError):
+        with self.assertRaises(OSError):
             Corpus.from_file('missing_file')
 
     def test_corpus_from_init(self):
         c = Corpus.from_file('book-excerpts')
-        c2 = Corpus(c.domain, c.X, c.Y, c.metas, c.text_features)
+        c2 = Corpus(c.domain, c.X, c.Y, c.metas, c.W, c.text_features)
         self.assertEqual(c, c2)
 
     def test_extend_corpus(self):
-        c = Corpus.from_file('book-excerpts')
-        n_classes = len(c.domain.class_var.values)
-        c_copy = c.copy()
-        new_y = [c.domain.class_var.values[int(i)] for i in c.Y]
-        new_y[0] = 'teenager'
-        c.extend_corpus(c.metas, new_y)
-
-        self.assertEqual(len(c), len(c_copy)*2)
-        self.assertEqual(c.Y.shape[0], c_copy.Y.shape[0]*2)
-        self.assertEqual(c.metas.shape[0], c_copy.metas.shape[0]*2)
-        self.assertEqual(c.metas.shape[1], c_copy.metas.shape[1])
-        self.assertEqual(len(c_copy.domain.class_var.values), n_classes+1)
+        """
+        Extend corpus is deprecated and removed from testing since it is not
+        compatible with the idea of not changing Table and it is not used in
+        the add-on. When this test start to fail remove the function and test.
+        """
+        cur_version = pkg_resources.get_distribution("orange3-text").version
+        self.assertLess(cur_version, "1.8.0")
 
     def test_extend_corpus_non_empty_X(self):
         c = Corpus.from_file('election-tweets-2016')[:10]
@@ -387,8 +395,9 @@ class CorpusTests(unittest.TestCase):
 
     def test_documents_from_sparse_features(self):
         t = Table.from_file('brown-selected')
-        c = Corpus.from_table(t.domain, t)
-        c.X = csr_matrix(c.X)
+        c = Corpus.from_file('brown-selected')
+        with c.unlocked():
+            c.X = csr_matrix(c.X)
 
         # docs from X, Y and metas
         docs = c.documents_from_features([t.domain.attributes[0], t.domain.class_var, t.domain.metas[0]])

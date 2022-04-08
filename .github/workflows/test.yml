@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-18.04, macos-10.15, windows-2016]
+        os: [ubuntu-18.04, macos-10.15, windows-2019]
         python-version: [3.7, 3.8]
         tox_env: [py-orange-released]
         experimental: [false]
@@ -34,7 +34,7 @@ jobs:
             experimental: true
             name: Big Sur
 
-          - os: windows-2016
+          - os: windows-2019
             python-version: 3.7
             tox_env: py-orange-oldest
             experimental: false
@@ -50,7 +50,7 @@ jobs:
             name: Oldest
             experimental: false
 
-          - os: windows-2016
+          - os: windows-2019
             python-version: 3.8
             tox_env: py-orange-latest
             experimental: false

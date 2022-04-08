@@ -41,11 +41,6 @@ class OWDuplicates(widget.OWWidget):
 
     threshold = settings.Setting(.0)
 
-    # Cluster variable domain role
-    AttributeRole, ClassRole, MetaRole = 0, 1, 2
-    CLUSTER_ROLES = ["Attributes", "Class", "Metas"]
-    cluster_role = settings.Setting(2)
-
     def __init__(self):
         super().__init__()
         self.corpus = None              # corpus taken from distances
@@ -91,11 +86,6 @@ class OWDuplicates(widget.OWWidget):
         self.histogram.region.sigRegionChangeFinished.connect(self.threshold_from_histogram_region)
         self.threshold_spin.setEnabled(False)
         gui.rubber(self.controlArea)
-
-        # Output
-        gui.comboBox(self.controlArea, self, "cluster_role", box='Output',
-                     label='Append Cluster IDs to:', callback=self.send_corpus,
-                     items=self.CLUSTER_ROLES)
 
     def reset(self):
         self.corpus = None
@@ -198,21 +188,13 @@ class OWDuplicates(widget.OWWidget):
                 'Duplicates Cluster',
                 values=[str(Cluster(v)) for v in set(self.clustering_mask.flatten())]
             )
-            corpus, domain = self.corpus, self.corpus.domain
-            attrs = domain.attributes
-            class_ = domain.class_vars
-            metas = domain.metas
+            d = self.corpus.domain
+            domain = Domain(d.attributes, d.class_vars, d.metas + (cluster_var,))
 
-            if self.cluster_role == self.AttributeRole:
-                attrs = attrs + (cluster_var,)
-            elif self.cluster_role == self.ClassRole:
-                class_ = class_ + (cluster_var,)
-            elif self.cluster_role == self.MetaRole:
-                metas = metas + (cluster_var,)
-
-            domain = Domain(attrs, class_, metas)
-            corpus = corpus.from_table(domain, corpus)
-            corpus.get_column_view(cluster_var)[0][:] = self.clustering_mask
+            corpus = self.corpus.transform(domain)
+            # corpus.metas is unlockable since we added new column to metas
+            with corpus.unlocked(corpus.metas):
+                corpus.get_column_view(cluster_var)[0][:] = self.clustering_mask
             self.Outputs.corpus.send(corpus)
         else:
             self.Outputs.corpus.send(None)
@@ -292,15 +274,25 @@ pg.graphicsItems.LinearRegionItem.InfiniteLine = InfiniteLine
 class Histogram(pg.PlotWidget):
     def __init__(self, parent, **kwargs):
         super().__init__(parent, setAspectLocked=True, **kwargs)
-        self.curve = self.plot([0, 1], [0], pen=pg.mkPen('b', width=2), stepMode=True)
-        self.region = pg.LinearRegionItem([0, 0], brush=pg.mkBrush('#02f1'), movable=True)
+        self.curve = self.plot(
+            [0, 1], [0], pen=pg.mkPen("b", width=2), stepMode="center"
+        )
+        self.region = pg.LinearRegionItem(
+            [0, 0], brush=pg.mkBrush("#02f1"), movable=True
+        )
         self.region.sigRegionChanged.connect(self._update_region)
         # Selected region is only open-ended on the the upper side
         self.region.hoverEvent = self.region.mouseDragEvent = lambda *args: None
         self.region.lines[0].setVisible(False)
         self.addItem(self.region)
-        self.fillCurve = self.plotItem.plot([0, 1], [0],
-            fillLevel=0, pen=pg.mkPen('b', width=2), brush='#02f3', stepMode=True)
+        self.fillCurve = self.plotItem.plot(
+            [0, 1],
+            [0],
+            fillLevel=0,
+            pen=pg.mkPen("b", width=2),
+            brush="#02f3",
+            stepMode="center",
+        )
         self.plotItem.vb.setMouseEnabled(x=False, y=False)
         self.setValues([])
 
@@ -351,10 +343,8 @@ class Histogram(pg.PlotWidget):
 
 if __name__ == "__main__":
     from Orange.distance import Euclidean
-    appl = QApplication([])
+    from Orange.widgets.utils.widgetpreview import WidgetPreview
+
     data = Table('iris')
     dm = Euclidean(data)
-    ow = OWDuplicates()
-    ow.set_distances(dm)
-    ow.show()
-    appl.exec_()
+    WidgetPreview(OWDuplicates).run(dm)

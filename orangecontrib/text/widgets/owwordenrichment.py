@@ -157,6 +157,10 @@ class OWWordEnrichment(OWWidget, ConcurrentWidgetMixin):
 
     def check_data(self):
         self.Error.clear()
+        if self.selected_data and not isinstance(self.selected_data, Corpus):
+            self.Error.no_bow_features()
+            self.clear()
+            return
         if isinstance(self.data, Table) and \
                 isinstance(self.selected_data, Table):
             if len(self.selected_data) == 0:

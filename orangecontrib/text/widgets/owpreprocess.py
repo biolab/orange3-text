@@ -527,10 +527,11 @@ class NormalizationModule(SingleMethodModule):
 
 
 class FilteringModule(MultipleMethodModule):
-    Stopwords, Lexicon, Regexp, DocFreq, DummyDocFreq, MostFreq, PosTag = \
-        range(7)
+    (Stopwords, Lexicon, Numbers, Regexp, DocFreq, DummyDocFreq,
+     MostFreq, PosTag) = range(8)
     Methods = {Stopwords: StopwordsFilter,
                Lexicon: LexiconFilter,
+               Numbers: NumbersFilter,
                Regexp: RegexpFilter,
                DocFreq: FrequencyFilter,
                DummyDocFreq: FrequencyFilter,
@@ -539,6 +540,7 @@ class FilteringModule(MultipleMethodModule):
     DEFAULT_METHODS = [Stopwords]
     DEFAULT_LANG = "English"
     DEFAULT_NONE = None
+    DEFAULT_INCL_NUM = False
     DEFAULT_PATTERN = r"\.|,|:|;|!|\?|\(|\)|\||\+|\'|\"|‘|’|“|”|\'|" \
                       r"\’|…|\-|–|—|\$|&|\*|>|<|\/|\[|\]"
     DEFAULT_FREQ_TYPE = 0  # 0 - relative freq, 1 - absolute freq
@@ -552,6 +554,7 @@ class FilteringModule(MultipleMethodModule):
         self.__sw_lang = self.DEFAULT_LANG
         self.__sw_file = self.DEFAULT_NONE
         self.__lx_file = self.DEFAULT_NONE
+        self.__incl_num = self.DEFAULT_INCL_NUM
         self.__pattern = self.DEFAULT_PATTERN
         self.__freq_type = self.DEFAULT_FREQ_TYPE
         self.__rel_freq_st = self.DEFAULT_REL_START
@@ -575,6 +578,11 @@ class FilteringModule(MultipleMethodModule):
         self.__lx_loader.set_file_list()
         self.__lx_loader.activated.connect(self.__lx_loader_activated)
         self.__lx_loader.file_loaded.connect(self.__lx_invalidate)
+
+        self.__check_numbers = QCheckBox(
+            WithNumbersFilter.name, checked=self.DEFAULT_INCL_NUM
+        )
+        self.__check_numbers.clicked.connect(self.__set_includes_numbers)
 
         validator = RegexpFilter.validate_regexp
         self.__edit = ValidatedLineEdit(self.__pattern, validator)
@@ -617,6 +625,7 @@ class FilteringModule(MultipleMethodModule):
                                 self.Lexicon, 2, 1, 2)
         self.layout().addWidget(self.__lx_loader.browse_btn, self.Lexicon, 4)
         self.layout().addWidget(self.__lx_loader.load_btn, self.Lexicon, 5)
+        self.layout().addWidget(self.__check_numbers, self.Numbers, 1)
         self.layout().addWidget(self.__edit, self.Regexp, 1, 1, 5)
         spins = self.__rel_range_spins.spins()
         self.layout().addWidget(rel_freq_rb, self.DocFreq, 1)
@@ -697,6 +706,9 @@ class FilteringModule(MultipleMethodModule):
                            params.get("sw_list", []))
         self.__set_lx_path(params.get("lx_path", self.DEFAULT_NONE),
                            params.get("lx_list", []))
+        self.__set_includes_numbers(
+            params.get("incl_num", self.DEFAULT_INCL_NUM)
+        )
         self.__set_pattern(params.get("pattern", self.DEFAULT_PATTERN))
         self.__set_freq_type(params.get("freq_type", self.DEFAULT_FREQ_TYPE))
         self.__set_rel_freq_range(
@@ -730,6 +742,14 @@ class FilteringModule(MultipleMethodModule):
         self.__lx_loader.set_file_list()
         self.__lx_loader.set_current_file(_to_abspath(path))
         self.__lx_file = self.__lx_loader.get_current_file()
+
+    def __set_includes_numbers(self, includes: bool):
+        if self.__incl_num != includes:
+            self.__incl_num = includes
+            self.__check_numbers.setChecked(includes)
+            self.changed.emit()
+            if self.Numbers in self.methods:
+                self.edited.emit()
 
     def __set_pattern(self, pattern: str):
         if self.__pattern != pattern:
@@ -792,6 +812,7 @@ class FilteringModule(MultipleMethodModule):
                        "sw_list": self.__sw_loader.recent_paths,
                        "lx_path": self.__lx_file,
                        "lx_list": self.__lx_loader.recent_paths,
+                       "incl_num": self.__incl_num,
                        "pattern": self.__pattern,
                        "freq_type": self.__freq_type,
                        "rel_start": self.__rel_freq_st,
@@ -818,6 +839,11 @@ class FilteringModule(MultipleMethodModule):
         if FilteringModule.Lexicon in methods:
             path = params.get("lx_path", FilteringModule.DEFAULT_NONE)
             filters.append(LexiconFilter(path=_to_abspath(path)))
+        if FilteringModule.Numbers in methods:
+            if params.get("incl_num", FilteringModule.DEFAULT_INCL_NUM):
+                filters.append(WithNumbersFilter())
+            else:
+                filters.append(NumbersFilter())
         if FilteringModule.Regexp in methods:
             pattern = params.get("pattern", FilteringModule.DEFAULT_PATTERN)
             filters.append(RegexpFilter(pattern=pattern))
@@ -845,6 +871,8 @@ class FilteringModule(MultipleMethodModule):
                          f"File: {_to_abspath(self.__sw_file)}"
             elif method == self.Lexicon:
                 append = f"File: {_to_abspath(self.__lx_file)}"
+            elif method == self.Numbers:
+                append = f"Includes numbers: {['No', 'Yes'][self.__incl_num]})"
             elif method == self.Regexp:
                 append = f"{self.__pattern}"
             elif method == self.DocFreq:
@@ -961,6 +989,7 @@ class OWPreprocess(Orange.widgets.data.owpreprocess.OWPreprocess,
                    ConcurrentWidgetMixin):
     name = "Preprocess Text"
     description = "Construct a text pre-processing pipeline."
+    category=None
     icon = "icons/TextPreprocess.svg"
     priority = 200
     keywords = []

@@ -69,8 +69,10 @@ class PreprocessTests(unittest.TestCase):
         p = preprocess.LowercaseTransformer()
         tokens2 = self.corpus.tokens.copy()
         tokens = p(self.corpus).tokens
-        np.testing.assert_equal(tokens,
-                                [[t.lower() for t in doc] for doc in tokens2])
+        np.testing.assert_equal(
+            tokens,
+            np.array([[t.lower() for t in doc] for doc in tokens2], dtype="object")
+        )
 
     def test_tokenizer(self):
         class SpaceTokenizer(preprocess.BaseTokenizer):
@@ -94,7 +96,9 @@ class PreprocessTests(unittest.TestCase):
         tokens = p(self.corpus).tokens
 
         np.testing.assert_equal(
-            tokens, [[t.capitalize() for t in doc] for doc in tokens2])
+            tokens,
+            np.array([[t.capitalize() for t in doc] for doc in tokens2], dtype="object")
+        )
 
     def test_token_filter(self):
         class LengthFilter(preprocess.BaseTokenFilter):
@@ -123,7 +127,8 @@ class PreprocessTests(unittest.TestCase):
                    tag.AveragedPerceptronTagger(),
                    preprocess.StopwordsFilter()]
         corpus = self.corpus
-        corpus.metas[0, 0] = "This is the most beautiful day in the world"
+        with corpus.unlocked():
+            corpus.metas[0, 0] = "This is the most beautiful day in the world"
         for pp in pp_list:
             corpus = pp(corpus)
         self.assertEqual(len(corpus.tokens), len(corpus.pos_tags))
@@ -185,8 +190,9 @@ class TransformationTests(unittest.TestCase):
 
     def test_url_remover(self):
         remover = preprocess.UrlRemover()
-        self.corpus.metas[0, 0] = 'some link to https://google.com/'
-        self.corpus.metas[1, 0] = 'some link to google.com'
+        with self.corpus.unlocked():
+            self.corpus.metas[0, 0] = 'some link to https://google.com/'
+            self.corpus.metas[1, 0] = 'some link to google.com'
         corpus = remover(self.corpus)
         self.assertListEqual(corpus.pp_documents[:2],
                              ['some link to ', 'some link to google.com'])
@@ -262,7 +268,8 @@ class TokenNormalizerTests(unittest.TestCase):
     def test_udpipe(self):
         """Test udpipe token lemmatization"""
         normalizer = preprocess.UDPipeLemmatizer('Slovenian')
-        self.corpus.metas[0, 0] = 'sem'
+        with self.corpus.unlocked():
+            self.corpus.metas[0, 0] = 'sem'
         corpus = normalizer(self.corpus)
         self.assertListEqual(list(corpus.tokens[0]), ['biti'])
         self.assertEqual(len(corpus.used_preprocessor.preprocessors), 2)
@@ -270,7 +277,8 @@ class TokenNormalizerTests(unittest.TestCase):
     def test_udpipe_doc(self):
         """Test udpipe lemmatization with its own tokenization """
         normalizer = preprocess.UDPipeLemmatizer('Slovenian', True)
-        self.corpus.metas[0, 0] = 'Gori na gori hiša gori'
+        with self.corpus.unlocked():
+            self.corpus.metas[0, 0] = 'Gori na gori hiša gori'
         corpus = normalizer(self.corpus)
         self.assertListEqual(list(corpus.tokens[0]),
                              ['gora', 'na', 'gora', 'hiša', 'goreti'])
@@ -285,7 +293,8 @@ class TokenNormalizerTests(unittest.TestCase):
                          loaded._UDPipeLemmatizer__language)
         self.assertEqual(normalizer._UDPipeLemmatizer__use_tokenizer,
                          loaded._UDPipeLemmatizer__use_tokenizer)
-        self.corpus.metas[0, 0] = 'Gori na gori hiša gori'
+        with self.corpus.unlocked():
+            self.corpus.metas[0, 0] = 'Gori na gori hiša gori'
         self.assertEqual(list(loaded(self.corpus).tokens[0]),
                          ['gora', 'na', 'gora', 'hiša', 'goreti'])
 
@@ -296,14 +305,16 @@ class TokenNormalizerTests(unittest.TestCase):
                          copied._UDPipeLemmatizer__language)
         self.assertEqual(normalizer._UDPipeLemmatizer__use_tokenizer,
                          copied._UDPipeLemmatizer__use_tokenizer)
-        self.corpus.metas[0, 0] = 'Gori na gori hiša gori'
+        with self.corpus.unlocked():
+            self.corpus.metas[0, 0] = 'Gori na gori hiša gori'
         self.assertEqual(list(copied(self.corpus).tokens[0]),
                          ['gora', 'na', 'gora', 'hiša', 'goreti'])
 
     def test_lemmagen(self):
         normalizer = preprocess.LemmagenLemmatizer('Slovenian')
         sentence = 'Gori na gori hiša gori'
-        self.corpus.metas[0, 0] = sentence
+        with self.corpus.unlocked():
+            self.corpus.metas[0, 0] = sentence
         self.assertEqual(
             [Lemmatizer("sl").lemmatize(t) for t in sentence.split()],
             normalizer(self.corpus).tokens[0],
@@ -319,7 +330,8 @@ class TokenNormalizerTests(unittest.TestCase):
 
     def test_cache(self):
         normalizer = preprocess.UDPipeLemmatizer('Slovenian')
-        self.corpus.metas[0, 0] = 'sem'
+        with self.corpus.unlocked():
+            self.corpus.metas[0, 0] = 'sem'
         normalizer(self.corpus)
         self.assertEqual(normalizer._normalization_cache['sem'], 'biti')
         self.assertEqual(40, len(normalizer._normalization_cache))
@@ -392,7 +404,8 @@ class FilteringTests(unittest.TestCase):
         f = preprocess.StopwordsFilter('english')
         self.assertFalse(f._check('a'))
         self.assertTrue(f._check('filter'))
-        self.corpus.metas[0, 0] = 'a snake is in a house'
+        with self.corpus.unlocked():
+            self.corpus.metas[0, 0] = 'a snake is in a house'
         corpus = f(self.corpus)
         self.assertListEqual(["snake", "house"], corpus.tokens[0])
         self.assertEqual(len(corpus.used_preprocessor.preprocessors), 2)
@@ -401,7 +414,8 @@ class FilteringTests(unittest.TestCase):
         f = preprocess.StopwordsFilter('slovene')
         self.assertFalse(f._check('in'))
         self.assertTrue(f._check('abeceda'))
-        self.corpus.metas[0, 0] = 'kača je v hiši'
+        with self.corpus.unlocked():
+            self.corpus.metas[0, 0] = 'kača je v hiši'
         corpus = f(self.corpus)
         self.assertListEqual(["kača", "hiši"], corpus.tokens[0])
         self.assertEqual(len(corpus.used_preprocessor.preprocessors), 2)
@@ -465,20 +479,33 @@ class FilteringTests(unittest.TestCase):
         f.close()
         os.unlink(f.name)
 
+    def test_filter_numbers(self):
+        f = preprocess.NumbersFilter()
+        with self.corpus.unlocked():
+            self.corpus.metas[0, 0] = '1 2foo bar3 baz'
+        corpus = f(self.corpus)
+        self.assertEqual(["2foo", "bar3", "baz"], corpus.tokens[0])
+
+    def test_filter_tokens_with_numbers(self):
+        f = preprocess.WithNumbersFilter()
+        with self.corpus.unlocked():
+            self.corpus.metas[0, 0] = '1 2foo bar3 baz'
+        corpus = f(self.corpus)
+        self.assertEqual(["baz"], corpus.tokens[0])
+
     def test_regex_filter(self):
         self.assertFalse(preprocess.RegexpFilter.validate_regexp('?'))
         self.assertTrue(preprocess.RegexpFilter.validate_regexp('\?'))
 
         reg_filter = preprocess.RegexpFilter(r'.')
-        corpus = self.corpus
-        filtered = reg_filter(corpus)
-        self.assertFalse(filtered.tokens[0])
+        filtered = reg_filter(self.corpus)
+        self.assertEqual(0, len(filtered.tokens[0]))
         self.assertEqual(len(filtered.used_preprocessor.preprocessors), 2)
 
         reg_filter = preprocess.RegexpFilter('foo')
-        corpus = self.corpus
-        corpus.metas[0, 0] = 'foo bar'
-        filtered = reg_filter(corpus)
+        with self.corpus.unlocked():
+            self.corpus.metas[0, 0] = 'foo bar'
+        filtered = reg_filter(self.corpus)
         self.assertEqual(filtered.tokens[0], ['bar'])
         self.assertEqual(len(filtered.used_preprocessor.preprocessors), 2)
 
@@ -503,12 +530,14 @@ class FilteringTests(unittest.TestCase):
 
     def test_can_deepcopy(self):
         copied = copy.deepcopy(self.regexp)
-        self.corpus.metas[0, 0] = 'foo bar'
+        with self.corpus.unlocked():
+            self.corpus.metas[0, 0] = 'foo bar'
         self.assertEqual(copied(self.corpus).tokens[0], ['bar'])
 
     def test_can_pickle(self):
         loaded = pickle.loads(pickle.dumps(self.regexp))
-        self.corpus.metas[0, 0] = 'foo bar'
+        with self.corpus.unlocked():
+            self.corpus.metas[0, 0] = 'foo bar'
         self.assertEqual(loaded(self.corpus).tokens[0], ['bar'])
 
 

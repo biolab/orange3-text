@@ -16,7 +16,7 @@ from orangecontrib.text.preprocess import TokenizedPreprocessor
 
 __all__ = ['BaseTokenFilter', 'StopwordsFilter', 'LexiconFilter',
            'RegexpFilter', 'FrequencyFilter', 'MostFrequentTokensFilter',
-           'PosTagFilter']
+           'PosTagFilter', 'NumbersFilter', 'WithNumbersFilter']
 
 
 class BaseTokenFilter(TokenizedPreprocessor):
@@ -136,6 +136,29 @@ class RegexpFilter(BaseTokenFilter):
 
     def _check(self, token):
         return not self.regex.match(token)
+
+
+class NumbersFilter(BaseTokenFilter):
+    """ Remove tokens that are numbers. """
+    name = 'Numbers'
+
+    def _check(self, token):
+        try:
+            float(token)
+            return False
+        except ValueError:
+            return True
+
+
+class WithNumbersFilter(RegexpFilter):
+    """ Remove tokens with numbers. """
+    name = 'Includes Numbers'
+
+    def __init__(self):
+        super().__init__(r'[0-9]')
+
+    def _check(self, token):
+        return not self.regex.findall(token)
 
 
 class FitDictionaryFilter(BaseTokenFilter):
