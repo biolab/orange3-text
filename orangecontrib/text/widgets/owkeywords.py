@@ -94,7 +94,9 @@ def run(
         # Normalize words
         for preprocessor in corpus.used_preprocessor.preprocessors:
             if isinstance(preprocessor, BaseNormalizer):
-                words = [preprocessor.normalizer(w) for w in words]
+                dummy = Corpus(Domain((), metas=[StringVariable("Words")]),
+                               metas=np.array(words)[:, None])
+                words = list(preprocessor(dummy).tokens.flatten())
 
         # Filter scores using words
         existing_words = [w for w in set(words) if w in scores.index]

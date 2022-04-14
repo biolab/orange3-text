@@ -85,7 +85,7 @@ class TestRunner(unittest.TestCase):
         self.assertEqual(len(results.scores), 42)
 
     def test_run_normalize_words(self):
-        normalizer = WordNetLemmatizer()
+        normalizer = LemmagenLemmatizer()
         corpus = normalizer(self.corpus)
 
         words = ["minor", "tree"]
