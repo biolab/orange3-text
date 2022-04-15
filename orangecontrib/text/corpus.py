@@ -255,42 +255,6 @@ class Corpus(Table):
             include_feats.append(first)
         self.set_text_features(include_feats)
 
-    def extend_corpus(self, metadata, Y):
-        """
-        Append documents to corpus.
-
-        Args:
-            metadata (numpy.ndarray): Meta data
-            Y (numpy.ndarray): Class variables
-        """
-        warn(
-            "extend_corpus is deprecated and will be removed in orange3-text 1.8",
-            FutureWarning
-        )
-        if np.prod(self.X.shape) != 0:
-            raise ValueError("Extending corpus only works when X is empty"
-                             "while the shape of X is {}".format(self.X.shape))
-
-        self.metas = np.vstack((self.metas, metadata))
-
-        cv = self.domain.class_var
-        for val in set(filter(None, Y)):
-            if val not in cv.values:
-                cv.add_value(val)
-
-        if len(self._Y.shape) == 1:
-            new_Y = np.array([cv.to_val(i) for i in Y])
-            self._Y = np.hstack((self._Y, new_Y))
-        else:
-            new_Y = np.array([cv.to_val(i) for i in Y])[:, None]
-            self._Y = np.vstack((self._Y, new_Y))
-
-        self.X = self.W = np.zeros((self.metas.shape[0], 0))
-        Table._init_ids(self)
-
-        self._tokens = None     # invalidate tokens
-        self._set_unique_titles()
-
     def extend_attributes(
             self, X, feature_names, feature_values=None, compute_values=None,
             var_attrs=None, sparse=False, rename_existing=False
