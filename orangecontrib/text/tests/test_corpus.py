@@ -111,20 +111,6 @@ class CorpusTests(unittest.TestCase):
         c2 = Corpus(c.domain, c.X, c.Y, c.metas, c.W, c.text_features)
         self.assertEqual(c, c2)
 
-    def test_extend_corpus(self):
-        """
-        Extend corpus is deprecated and removed from testing since it is not
-        compatible with the idea of not changing Table and it is not used in
-        the add-on. When this test start to fail remove the function and test.
-        """
-        cur_version = pkg_resources.get_distribution("orange3-text").version
-        self.assertLess(cur_version, "1.8.0")
-
-    def test_extend_corpus_non_empty_X(self):
-        c = Corpus.from_file('election-tweets-2016')[:10]
-        with self.assertRaises(ValueError):
-            c.extend_corpus(c.metas, c.Y)
-
     def test_extend_attributes(self):
         """
         Test correctness of extending attributes, variables must have unique
