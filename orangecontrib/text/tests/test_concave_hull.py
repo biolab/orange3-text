@@ -39,7 +39,7 @@ class TestConcaveHull(unittest.TestCase):
         self.assertEqual(2, hulls[1].shape[1])  # hull have x and y
         self.assertEqual(2, hulls[2].shape[1])  # hull have x and y
 
-    def test_compute_concave_hulls_triangle(self):
+    def test_compute_concave_hulls_3_or_less_points(self):
         """
         Concave hull must also work for tree points - it is a special case
         """
@@ -47,6 +47,36 @@ class TestConcaveHull(unittest.TestCase):
         clusters = np.array([0] * 3)
         hulls = compute_concave_hulls(data, clusters, epsilon=0.5)
 
+        self.assertEqual(1, len(hulls))
+        self.assertEqual(2, hulls[0].shape[1])  # hull have x and y
+
+        hulls = compute_concave_hulls(data[:2], clusters[:2], epsilon=0.5)
+        self.assertEqual(1, len(hulls))
+        self.assertEqual(2, hulls[0].shape[1])  # hull have x and y
+
+        hulls = compute_concave_hulls(data[:1], clusters[:1], epsilon=0.5)
+        self.assertEqual(1, len(hulls))
+        self.assertEqual(2, hulls[0].shape[1])  # hull have x and y
+
+    def test_all_points_same_value(self):
+        # same value along y axis
+        data = np.array([[1, 1], [1, 1], [2, 1]])
+        clusters = np.array([0] * 3)
+        hulls = compute_concave_hulls(data, clusters, epsilon=0.5)
+        self.assertEqual(1, len(hulls))
+        self.assertEqual(2, hulls[0].shape[1])  # hull have x and y
+
+        # same value along x axis
+        data = np.array([[1, 2], [1, 1], [1, 1]])
+        clusters = np.array([0] * 3)
+        hulls = compute_concave_hulls(data, clusters, epsilon=0.5)
+        self.assertEqual(1, len(hulls))
+        self.assertEqual(2, hulls[0].shape[1])  # hull have x and y
+
+    def test_non_float_data(self):
+        data = np.array([[1, 1], [1, 1], [2, 1]], dtype="object")
+        clusters = np.array([0] * 3)
+        hulls = compute_concave_hulls(data, clusters, epsilon=0.5)
         self.assertEqual(1, len(hulls))
         self.assertEqual(2, hulls[0].shape[1])  # hull have x and y
 
