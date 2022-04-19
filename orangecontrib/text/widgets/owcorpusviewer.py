@@ -351,7 +351,7 @@ class OWCorpusViewer(OWWidget):
                 value = value.replace('\n', '<br/>')
                 is_image = feature.attributes.get('type', '') == 'image'
                 if is_image and value != '?':
-                    value = os.path.join(feature.attributes["origin"], value)
+                    value = os.path.join(feature.attributes.get("origin", ""), value)
                     value = '<img src="{}"></img>'.format(value)
                 html += '<tr><td class="variables"><strong>{}:</strong></td>' \
                         '<td class="content">{}</td></tr>'.format(
