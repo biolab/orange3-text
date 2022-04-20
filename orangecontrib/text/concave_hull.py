@@ -148,7 +148,7 @@ def _get_shape_around_points(pts: np.ndarray, eps: Optional[float]) -> np.ndarra
             edges_list.add((i, j))
 
     if len(pts) < 4:
-        rng = list(range(3))
+        rng = list(range(len(pts)))
         return _edges_to_polygon(zip(rng, rng[1:] + rng[:1]), pts)
 
     eps = eps * 2 if eps else float("inf")
@@ -174,15 +174,15 @@ def _get_shape_around_points(pts: np.ndarray, eps: Optional[float]) -> np.ndarra
     return _edges_to_polygon(edges, pts)
 
 
-def _smoothen_hull(hull: np.ndarray) -> np.ndarray:
+def _smoothen_hull(
+    hull: np.ndarray, x_min: float, x_max: float, y_min: float, y_max: float
+) -> np.ndarray:
     """
     Expand hull a bit away from the cluster and smoothen it
     """
     # scale hull between 0 and 1 in both directions - help to produce the hull
     # with equal distance from the cluster when axes have different scaling
     x, y = hull[:, 0:1], hull[:, 1:2]
-    x_min, x_max = np.min(x), np.max(x)
-    y_min, y_max = np.min(y), np.max(y)
     x_diff, y_diff = (x_max - x_min), (y_max - y_min)
     hull = np.hstack(((x - x_min) / x_diff, (y - y_min) / y_diff))
 
@@ -212,6 +212,49 @@ def _smoothen_hull(hull: np.ndarray) -> np.ndarray:
     )
 
 
+def _generate_additional_points(points: np.ndarray, x_diff: float, y_diff: float):
+    """
+    When less than three points in "polygon" clipper cannot offset the polygon.
+    This function generates multiple points on the ellipsis around every point
+
+    Parameters
+    ----------
+    points
+        Base points to generate new points around
+    x_diff
+        Global difference between max and min point for x-axis
+    y_diff
+        Global difference between max and min point for y-axis
+
+    Returns
+    -------
+    New points - 20 points around each existing point
+    """
+    new_pt = []
+    for x, y in points:
+        r_x, r_y = x_diff * 0.05, y_diff * 0.05
+        theta = np.random.random(20) * 2 * np.pi
+        x = x + r_x * np.cos(theta)
+        y = y + r_y * np.sin(theta)
+        new_pt.append(np.hstack((x[:, None], y[:, None])))
+    return np.vstack(new_pt)
+
+
+def _global_range(points):
+    """ Compute global min and max - for equal offsetting in each direction"""
+    x, y = points[:, 0], points[:, 1]
+    x_min, x_max, y_min, y_max = x.min(), x.max(), y.min(), y.max()
+    # when x_max and x_min are equal set them 1 unit apart -
+    # same behaviour as in scatter plot
+    if x_max - x_min == 0:
+        x_min -= 0.5
+        x_max += 0.5
+    if y_max - y_min == 0:
+        y_min -= 0.5
+        y_max += 0.5
+    return x_min, x_max, y_min, y_max
+
+
 def compute_concave_hulls(
     embedding: np.ndarray, clusters: np.ndarray, epsilon: Optional[float] = None
 ) -> Dict[int, np.ndarray]:
@@ -233,6 +276,10 @@ def compute_concave_hulls(
     The points of the concave hull. Dictionary with cluster index
     as a key and array of points as a value - [[x1, y1], [x2, y2], [x3, y3], ...]
     """
+    assert embedding.shape[1] == 2, "Embedding must have two columns"
+    embedding = embedding.astype(float)  # unique with axis doesn't work with object dtype
+    x_min, x_max, y_min, y_max = _global_range(embedding)
+
     hulls = {}
     for cl in set(clusters) - {-1}:
         points = embedding[clusters == cl]
@@ -241,10 +288,17 @@ def compute_concave_hulls(
         if points.shape[0] > 1000:
             points = points[np.random.randint(points.shape[0], size=1000), :]
 
+        # remove duplicates
+        points = np.unique(points, axis=0)
+
+        if points.shape[0] < 3:
+            # if cluster consist of less than 3 points generate additional pts
+            points = _generate_additional_points(points, x_max - x_min, y_max - y_min)
+
         # compute hull around the cluster
         hull = _get_shape_around_points(points, epsilon)
         # smoothen and extend the hull
-        hulls[cl] = _smoothen_hull(hull)
+        hulls[cl] = _smoothen_hull(hull, x_min, x_max, y_min, y_max)
     return hulls
 
 
@@ -254,7 +308,7 @@ if __name__ == "__main__":
     table = Table("iris")
     clusters = np.array([1] * 50 + [2] * 50 + [3] * 50)
 
-    hulls = compute_concave_hulls(table.X[:, :2], clusters)
+    hulls = compute_concave_hulls(table.X[:1, :2], clusters[:1])
     plt.plot(table.X[:, 0], table.X[:, 1], "o")
     for k, h in hulls.items():
         plt.plot(h[:, 0], h[:, 1])
