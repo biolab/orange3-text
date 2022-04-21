@@ -8,7 +8,10 @@ from AnyQt.QtCore import pyqtSignal, QSize
 from AnyQt.QtWidgets import (QVBoxLayout, QButtonGroup, QRadioButton,
                              QGroupBox, QTreeWidgetItem, QTreeWidget,
                              QStyleOptionViewItem, QStyledItemDelegate, QStyle)
+from PyQt5.Qt import Qt
+
 from Orange.widgets.utils.concurrent import TaskState, ConcurrentWidgetMixin
+from Orange.widgets.utils.itemmodels import DomainModel
 from orangewidget.utils.itemdelegates import text_color_for_state
 
 from gensim.models import CoherenceModel
@@ -17,10 +20,11 @@ from Orange.widgets import settings
 from Orange.widgets import gui
 from Orange.widgets.settings import DomainContextHandler
 from Orange.widgets.widget import OWWidget, Input, Output, Msg
-from Orange.data import Table
+from Orange.data import Table, TimeVariable
+from Orange.preprocess.discretize import time_binnings
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.topics import Topic, Topics, LdaWrapper, HdpWrapper, \
-    LsiWrapper, NmfWrapper
+    LsiWrapper, NmfWrapper, LdaSeqWrapper
 from orangecontrib.text.topics.topics import GensimWrapper
 
 
@@ -35,13 +39,31 @@ class TopicWidget(gui.OWComponent, QGroupBox):
         QGroupBox.__init__(self, **kwargs)
         gui.OWComponent.__init__(self, master)
         self.model = self.create_model()
+        self.domain_model = None
         QVBoxLayout(self)
-        for parameter, description, minv, maxv, step, _type in self.parameters:
-            spin = gui.spin(self, self, parameter, minv=minv, maxv=maxv, step=step,
-                            label=self.spin_format.format(description=description, parameter=parameter),
-                            labelWidth=220, spinType=_type)
-            spin.clearFocus()
-            spin.editingFinished.connect(self.on_change)
+        for p in self.parameters:
+            if p[0] == "time_var":
+                parameter, description, _type = p
+                self.var_combo = gui.comboBox(
+                    self, self, parameter, label=description, orientation=Qt.Horizontal,
+                    searchable=True, model=DomainModel(placeholder="(None)", valid_types=(TimeVariable,)),
+                    callback=self._on_var_changed, contentsLength=18)
+                self.domain_model = self.var_combo.model()
+            elif p[0] == "number_of_bins":
+                slider = gui.hSlider(
+                    self, self, "number_of_bins",
+                    label="Bin width", orientation=Qt.Horizontal,
+                    minValue=0, maxValue=max(1, len(master.binnings) - 1),
+                    createLabel=False, callback=self._on_bins_changed)
+                self.bin_width_label = gui.widgetLabel(slider.box)
+                slider.sliderReleased.connect(self._on_bins_changed)
+            else:
+                parameter, description, minv, maxv, step, _type = p
+                spin = gui.spin(self, self, parameter, minv=minv, maxv=maxv, step=step,
+                                label=self.spin_format.format(description=description, parameter=parameter),
+                                labelWidth=220, spinType=_type)
+                spin.clearFocus()
+                spin.editingFinished.connect(self.on_change)
 
     def on_change(self):
         self.model = self.create_model()
@@ -52,6 +74,22 @@ class TopicWidget(gui.OWComponent, QGroupBox):
 
     def report_model(self):
         return self.model.name, ((par[1], getattr(self, par[0])) for par in self.parameters)
+
+    def _set_bin_width_slider_label(self):
+        if self.number_of_bins < len(self.binnings):
+            text = self._short_text(
+                self.binnings[self.number_of_bins].width_label)
+        else:
+            text = ""
+        self.bin_width_label.setText(text)
+
+    def _on_bins_changed(self):
+        self._set_bin_width_slider_label()
+        self.on_change()
+
+    def _on_var_changed(self):
+        self.domain_model = self.var_combo.model()
+        self.on_change()
 
 
 class LdaWidget(TopicWidget):
@@ -103,6 +141,20 @@ class NmfWidget(TopicWidget):
     num_topics = settings.Setting(10)
 
 
+class DtmWidget(TopicWidget):
+    Model = LdaSeqWrapper
+
+    settingsHandler = settings.DomainContextHandler()
+    parameters = (
+        ('num_topics', 'Number of topics', 1, 500, 1, int),
+        ('time_var', 'Time variable', list),
+        ('number_of_bins', 'Time slice', int),
+    )
+    num_topics = settings.Setting(10)
+    time_var = settings.ContextSetting(None)
+    number_of_bins = settings.ContextSetting(5, schema_only=True)
+
+
 def require(attribute):
     def decorator(func):
         @functools.wraps(func)
@@ -146,7 +198,8 @@ class OWTopicModeling(OWWidget, ConcurrentWidgetMixin):
         (LsiWidget, 'lsi'),
         (LdaWidget, 'lda'),
         (HdpWidget, 'hdp'),
-        (NmfWidget, 'nmf')
+        (NmfWidget, 'nmf'),
+        (DtmWidget, 'dtm'),
     ]
 
     # Settings
@@ -157,6 +210,7 @@ class OWTopicModeling(OWWidget, ConcurrentWidgetMixin):
     hdp = settings.SettingProvider(HdpWidget)
     lda = settings.SettingProvider(LdaWidget)
     nmf = settings.SettingProvider(NmfWidget)
+    dtm = settings.SettingProvider(DtmWidget)
 
     selection = settings.Setting(None, schema_only=True)
 
@@ -174,6 +228,8 @@ class OWTopicModeling(OWWidget, ConcurrentWidgetMixin):
 
         self.corpus = None
         self.learning_thread = None
+        self.var = None
+        self.binnings = []
         self.__pending_selection = self.selection
         self.perplexity = "n/a"
         self.coherence = "n/a"
@@ -218,7 +274,26 @@ class OWTopicModeling(OWWidget, ConcurrentWidgetMixin):
     def set_data(self, data=None):
         self.Warning.less_topics_found.clear()
         self.corpus = data
+        varmodel = self.widgets[self.method_index].domain_model
+        print(varmodel)
+        if varmodel:
+            varmodel.set_domain(data.domain if data else None)
+            self.var = varmodel[0]
+        else:
+            self.var = None
         self.apply()
+
+    def time_bins(self):
+        column = self.data.get_column_view(self.var)[0].astype(float)
+        if self.var.is_time and np.any(np.isfinite(column)):
+            self.binnings = time_binnings(column, min_unique=5)
+            max_bins = len(self.binnings) - 1
+        else:
+            self.binnings = []
+            max_bins = 0
+
+        self.controls.number_of_bins.setMaximum(max_bins)
+        self.number_of_bins = min(max_bins, self.number_of_bins)
 
     def commit(self):
         if self.corpus is not None:

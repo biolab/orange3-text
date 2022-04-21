@@ -1,5 +1,4 @@
 import inspect
-from collections import Counter
 from warnings import warn
 
 from gensim import matutils
