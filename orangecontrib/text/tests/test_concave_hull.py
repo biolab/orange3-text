@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 from Orange.data import Table
 
-from orangecontrib.text.concave_hull import compute_concave_hulls
+from orangecontrib.text.concave_hull import compute_concave_hulls, _smoothen_hull
 
 
 class TestConcaveHull(unittest.TestCase):
@@ -79,6 +79,18 @@ class TestConcaveHull(unittest.TestCase):
         hulls = compute_concave_hulls(data, clusters, epsilon=0.5)
         self.assertEqual(1, len(hulls))
         self.assertEqual(2, hulls[0].shape[1])  # hull have x and y
+
+    def test_special_cases(self):
+        # case where polygon became the line after scale_to_clipper
+        data = np.array(
+            [
+                [-0.57389557, -2.261084],
+                [-0.56854552, -2.27204857],
+                [-0.46539558, -2.22137609],
+            ]
+        )
+        hulls = _smoothen_hull(data, -10.584, 16.449, -6.569, 20.773)
+        self.assertGreater(len(hulls), 5)
 
 
 if __name__ == "__main__":
