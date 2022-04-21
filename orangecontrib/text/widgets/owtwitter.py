@@ -45,7 +45,7 @@ def search(
     else:  # mode == "authors":
         return api.search_authors(
             max_tweets=max_tweets,
-            authors=word_list,
+            authors=[word.strip("@") for word in word_list],
             collecting=collecting,
             callback=advance,
         )
