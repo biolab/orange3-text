@@ -191,13 +191,22 @@ def _smoothen_hull(
 
     # pyclipper work with integer so points need to be scaled first
     scaling_factor = 1000
-    dist_from_cluster = 0.06
+    dist_from_cluster = 0.03
     scaled_hull = pyclipper.scale_to_clipper(hull, scaling_factor)
 
     # buffer the hull for dist_from_cluster * 3
     pco1 = pyclipper.PyclipperOffset()
     pco1.AddPath(scaled_hull, pyclipper.JT_ROUND, pyclipper.ET_CLOSEDPOLYGON)
     im_solution = pco1.Execute(dist_from_cluster * scaling_factor * 3)
+
+    if len(im_solution) == 0:
+        # when the solution is empty it means that polygon either consist of
+        # one point, two points or all points are in line
+        # ET_CLOSEDPOLYGON can't offset those polygons but ET_OPENROUND can
+        pco1 = pyclipper.PyclipperOffset()
+        pco1.AddPath(scaled_hull, pyclipper.JT_ROUND, pyclipper.ET_OPENROUND)
+        im_solution = pco1.Execute(dist_from_cluster * scaling_factor * 3)
+
     # buffer the hull for dist_from_cluster * -2
     pco2 = pyclipper.PyclipperOffset()
     pco2.AddPath(im_solution[0], pyclipper.JT_ROUND, pyclipper.ET_CLOSEDPOLYGON)
@@ -210,34 +219,6 @@ def _smoothen_hull(
     return np.hstack(
         (solution[:, 0:1] * x_diff + x_min, solution[:, 1:2] * y_diff + y_min)
     )
-
-
-def _generate_additional_points(points: np.ndarray, x_diff: float, y_diff: float):
-    """
-    When less than three points in "polygon" clipper cannot offset the polygon.
-    This function generates multiple points on the ellipsis around every point
-
-    Parameters
-    ----------
-    points
-        Base points to generate new points around
-    x_diff
-        Global difference between max and min point for x-axis
-    y_diff
-        Global difference between max and min point for y-axis
-
-    Returns
-    -------
-    New points - 20 points around each existing point
-    """
-    new_pt = []
-    for x, y in points:
-        r_x, r_y = x_diff * 0.05, y_diff * 0.05
-        theta = np.random.random(20) * 2 * np.pi
-        x = x + r_x * np.cos(theta)
-        y = y + r_y * np.sin(theta)
-        new_pt.append(np.hstack((x[:, None], y[:, None])))
-    return np.vstack(new_pt)
 
 
 def _global_range(points):
@@ -290,10 +271,6 @@ def compute_concave_hulls(
 
         # remove duplicates
         points = np.unique(points, axis=0)
-
-        if points.shape[0] < 3:
-            # if cluster consist of less than 3 points generate additional pts
-            points = _generate_additional_points(points, x_max - x_min, y_max - y_min)
 
         # compute hull around the cluster
         hull = _get_shape_around_points(points, epsilon)
