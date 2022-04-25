@@ -65,7 +65,6 @@ def run(
 
     callback(0, "Calculating...")
     scores = {}
-    tokens = corpus.tokens
     documents = corpus.documents
     step = 1 / len(scoring_methods)
     for method_name, func in ScoringMethods.ITEMS:
@@ -79,7 +78,7 @@ def run(
                 kw = {"progress_callback": cb}
                 kw.update(scoring_methods_kwargs.get(method_name, {}))
 
-                keywords = func(tokens if needs_tokens else documents, **kw)
+                keywords = func(corpus if needs_tokens else documents, **kw)
                 results.all_keywords[method_name] = keywords
 
             keywords = results.all_keywords[method_name]
