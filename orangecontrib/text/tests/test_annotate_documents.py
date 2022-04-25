@@ -55,15 +55,18 @@ class TestAnnotateDocuments(unittest.TestCase):
     def test_hypergeom_clusters(self):
         labels = ClusterDocuments.gmm(self.corpus.metas[:, -2:], 3, 0.6)
         keywords = _get_characteristic_terms(self.corpus, 4)
-        keywords = _hypergeom_clusters(labels, keywords, 0.05, 3)
-        self.assertEqual(len(keywords), len(set(labels)))
+        selected_clusters_keywords, all_keywords, scores, p_values = \
+            _hypergeom_clusters(labels, keywords, 0.05, 3)
+        self.assertEqual(len(selected_clusters_keywords), len(set(labels)))
+        self.assertEqual(scores.shape, p_values.shape)
+        self.assertEqual(scores.shape, (len(set(labels)), len(all_keywords)))
 
     def test_annotate_documents(self):
         embedding = self.corpus.metas[:, -2:]
         n_components = 3
         n_words_in_cluster = 5
 
-        labels, clusters, n_comp, eps = annotate_documents(
+        labels, clusters, n_comp, eps, _ = annotate_documents(
             self.corpus, embedding, ClusterDocuments.GAUSSIAN_MIXTURE,
             n_components=n_components,
             fdr_threshold=1.1,
