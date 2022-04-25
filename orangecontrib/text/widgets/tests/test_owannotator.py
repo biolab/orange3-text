@@ -7,7 +7,7 @@ from unittest.mock import Mock, patch
 import numpy as np
 from AnyQt.QtCore import QRectF, QPointF
 
-from Orange.data import Domain
+from Orange.data import Domain, Table
 from Orange.projection import PCA
 from Orange.widgets.tests.base import WidgetTest, simulate
 from Orange.widgets.unsupervised.owtsne import OWtSNE
@@ -74,6 +74,29 @@ class TestOWAnnotator(WidgetTest):
         annotated = self.get_output(self.widget.Outputs.annotated_data)
         self.assertNotIn("Cluster", [a.name for a in annotated.domain.metas])
 
+    def test_output_scores_type(self):
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.wait_until_finished()
+        scores = self.get_output(self.widget.Outputs.scores)
+        self.assertIsInstance(scores, Table)
+
+        self.send_signal(self.widget.Inputs.corpus, None)
+        self.assertIsNone(self.get_output(self.widget.Outputs.scores))
+
+    def test_output_scores_domain(self):
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.wait_until_finished()
+
+        annotated = self.get_output(self.widget.Outputs.annotated_data)
+        cluster_labels = annotated.domain["Cluster"].values
+        scores = self.get_output(self.widget.Outputs.scores)
+        self.assertIn("Words", [a.name for a in scores.domain.metas])
+
+        attrs = scores.domain.attributes
+        for label in cluster_labels:
+            self.assertIn(f"Score({label})", [a.name for a in attrs])
+            self.assertIn(f"p_value({label})", [a.name for a in attrs])
+
     def test_axis_controls(self):
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
         simulate.combobox_activate_index(self.widget.controls.attr_y, 0)
@@ -118,6 +141,15 @@ class TestOWAnnotator(WidgetTest):
         corpus = self.corpus.transform(domain)
         self.send_signal(self.widget.Inputs.corpus, corpus)
         self.assertFalse(cluster_var_button.isEnabled())
+
+    def test_cluster_var_control_subset(self):
+        mask = self.corpus.Y == 1
+        corpus = self.corpus[mask]
+        self.send_signal(self.widget.Inputs.corpus, corpus)
+        cluster_var_button = self.widget.controls.clustering_type.buttons[2]
+        cluster_var_button.click()
+        self.wait_until_finished()
+        self.assertFalse(self.widget.Error.proj_error.is_shown())
 
     def test_color_by_cluster_control(self):
         self.send_signal(self.widget.Inputs.corpus, self.corpus)

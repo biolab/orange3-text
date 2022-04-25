@@ -23,6 +23,7 @@ from orangecontrib.text.stats import hypergeom_p_values
 KeywordsType = List[Tuple[str, float]]
 CentroidType = Tuple[float, float]
 ClusterType = Tuple[KeywordsType, CentroidType, np.ndarray]
+ScoresType = Tuple[List[str], np.ndarray, np.ndarray]
 
 
 def annotate_documents(
@@ -35,29 +36,58 @@ def annotate_documents(
         fdr_threshold: float = 0.05,
         n_words_in_cluster: int = 10,
         progress_callback: Optional[Callable] = None
-) -> Tuple[np.ndarray, Dict[int, ClusterType]]:
+) -> Tuple[np.ndarray, Dict[int, ClusterType], ScoresType]:
     """
-    Return clusters; for each cluster return list of keywords with scores and
-    concave_hulls.
+    Annotate documents in corpus, by performing clustering on the corpus and
+    assigning characteristic terms to each cluster using Hypergeometric
+    distribution.
+
+    Return annotated clusters - for each cluster return a list of keywords
+    with scores, cluster center coordinates and concave_hulls coordinates.
+    Also return optimal values for n_components/epsilon if calculated and
+    scores data (p-values and counts for all keywords).
 
     Parameters
     ----------
-    corpus
-    embedding
-    clustering_method
-    n_components
-    epsilon
-    cluster_labels
-    fdr_threshold
-    n_words_in_cluster
-    progress_callback
+    corpus : Corpus
+        Corpus to be annotated.
+    embedding : np.ndarray of size len(corpus) × 2
+        Usually tSNE projection of BoW of corpus.
+    clustering_method : int
+        0 for DBSCAN
+        1 for Gaussian mixture models
+        2 for custom clustering where cluster_labels are used
+    n_components: int, optional, default = None
+        Number of clusters for Gaussian mixture models. If None, set to the
+        number of clusters with maximal silhouette.
+    epsilon : float, optional, default = None
+        epsilon for DBSCAN. If None, optimal value is computed.
+    cluster_labels : np.ndarray, optional
+        Custom cluster labels. Usually included in corpus.
+    fdr_threshold : float, optional, default = 0.05
+        hypergeom_p_values threshold
+    n_words_in_cluster : int, optional, default = 10
+        Number of characteristic terms in each cluster.
+    progress_callback : callable, optional
+        Progress callback.
 
     Returns
     -------
-    cluster_labels
-    clusters
-    n_components
-    epsilon
+    cluster_labels : np.ndarray of size len(corpus)
+        An array of floats (i.e. 0, 1, np.nan) that represent cluster labels
+        for all documents in the corpus.
+    clusters : dict
+        Dictionary of keywords with scores, centroids and concave hulls
+        for each cluster.
+    n_components : int
+        Optimal number of clusters for Gaussian mixture models, if the
+        n_components is None, and clustering_method is
+        ClusterDocuments.GAUSSIAN_MIXTURE. n_components otherwise.
+    epsilon : float
+        Optimal value for epsilon for DBSCAN, if the epsilon is None, and
+        clustering_method is ClusterDocuments.DBSCAN. epsilon otherwise.
+    scores : tuple
+        Tuple of all keywords with p-values and counts.
 
     Raises
     ------
@@ -100,16 +130,16 @@ def annotate_documents(
         n_keywords=20,
         progress_callback=wrap_callback(progress_callback, start=0.5)
     )
-    clusters_keywords = _hypergeom_clusters(
-        cluster_labels, keywords, fdr_threshold, n_words_in_cluster
-    )
+    clusters_keywords, all_keywords, scores, p_values = \
+        _hypergeom_clusters(cluster_labels, keywords,
+                            fdr_threshold, n_words_in_cluster)
 
     concave_hulls = compute_concave_hulls(embedding, cluster_labels, epsilon)
 
     centroids = {c: tuple(np.mean(concave_hulls[c], axis=0))
                  for c in set(cluster_labels) - {-1}}
 
-    clusters = {key: (
+    clusters = {int(key): (
         clusters_keywords[key],
         centroids[key],
         concave_hulls[key]
@@ -118,7 +148,9 @@ def annotate_documents(
     cluster_labels = cluster_labels.astype(float)
     cluster_labels[cluster_labels == -1] = np.nan
 
-    return cluster_labels, clusters, n_components, epsilon
+    scores = (all_keywords, scores, p_values)
+
+    return cluster_labels, clusters, n_components, epsilon, scores
 
 
 class ClusterDocuments:
@@ -211,19 +243,20 @@ def _hypergeom_clusters(
 ) -> Dict[int, List[str]]:
     keywords = [[w for w, _ in doc_keywords] for doc_keywords in keywords]
 
-    clusters_keywords = []
+    clusters_keywords = {}
     for label in sorted(set(cluster_labels) - {-1}):
         indices = set(np.flatnonzero(cluster_labels == label))
         kwds = [k for i, k in enumerate(keywords) if i in indices]
-        clusters_keywords.append(kwds)
+        clusters_keywords[label] = kwds
 
     cv = CountVectorizer(tokenizer=lambda w: w, preprocessor=lambda w: w)
-    X = cv.fit_transform(list(chain.from_iterable(clusters_keywords)))
+    X = cv.fit_transform(list(chain.from_iterable(clusters_keywords.values())))
     all_keywords = np.array(cv.get_feature_names_out())
 
     index = 0
     selected_clusters_keywords = {}
-    for i, cls_kwds in enumerate(clusters_keywords):
+    all_scores, all_p_values = [], []
+    for label, cls_kwds in clusters_keywords.items():
         # find words that should be specific for a group with hypergeom test
         n_docs = len(cls_kwds)
         p_values = hypergeom_p_values(X, X[index:index + n_docs])
@@ -234,11 +267,16 @@ def _hypergeom_clusters(
         sel_words = [w for w in sel_words if w in words]
         sel_words = [(w, c / n_docs) for w, c
                      in Counter(sel_words).most_common(n_words)]
-        selected_clusters_keywords[i] = sel_words
+        selected_clusters_keywords[label] = sel_words
+
+        all_scores.append(X[index:index + n_docs].sum(axis=0) / n_docs)
+        all_p_values.append(p_values)
 
         index += n_docs
 
-    return selected_clusters_keywords
+    all_scores = np.vstack(all_scores)
+    all_p_values = np.vstack(all_p_values)
+    return selected_clusters_keywords, all_keywords, all_scores, all_p_values
 
 
 if __name__ == "__main__":
@@ -271,7 +309,8 @@ if __name__ == "__main__":
     embedding_ = corpus_.metas[:, -2:]
     clusters_ = ClusterDocuments.gmm(embedding_, 3, 0.6)
     keywords_ = _get_characteristic_terms(corpus_, 4)
-    clusters_keywords_ = _hypergeom_clusters(clusters_, keywords_, 0.2, 5)
+    clusters_keywords_, _, _, _ = \
+        _hypergeom_clusters(clusters_, keywords_, 0.2, 5)
     concave_hulls_ = compute_concave_hulls(embedding_, clusters_)
     centroids_ = {c: tuple(np.mean(concave_hulls_[c], axis=0))
                   for c in set(clusters_) - {-1}}

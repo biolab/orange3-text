@@ -1,15 +1,16 @@
 # pylint: disable=too-many-ancestors
 from itertools import chain
 from types import SimpleNamespace
-from typing import Dict, Optional, Union
+from typing import Dict, Optional, Union, Iterable
 
 import numpy as np
 from AnyQt.QtCore import Qt, QRectF, QObject
 from AnyQt.QtGui import QColor
-from AnyQt.QtWidgets import QWidget, QPushButton
+from AnyQt.QtWidgets import QWidget
 
 import pyqtgraph as pg
-from Orange.data import Domain, ContinuousVariable, DiscreteVariable
+from Orange.data import Domain, ContinuousVariable, DiscreteVariable, Table, \
+    StringVariable
 from Orange.data.util import array_equal, get_unique_names
 from Orange.widgets import gui, report
 from Orange.widgets.settings import Setting, ContextSetting, SettingProvider, \
@@ -22,7 +23,21 @@ from Orange.widgets.visualize.utils.widget import OWDataProjectionWidget
 from Orange.widgets.widget import Msg, Input, Output
 from orangecontrib.text import Corpus
 from orangecontrib.text.annotate_documents import annotate_documents, \
-    ClusterDocuments, ClusterType
+    ClusterDocuments, ClusterType, ScoresType
+# from orangecontrib.text.widgets.utils.words import create_words_table - TODO
+
+
+WORDS_COLUMN_NAME = "Words"
+
+
+def create_words_table(words: Iterable) -> Table:
+    words_var = StringVariable(WORDS_COLUMN_NAME)
+    words_var.attributes = {"type": "words"}
+    domain = Domain([], metas=[words_var])
+    data = [[w] for w in words]
+    words = Table.from_list(domain, data)
+    words.name = "Words"
+    return words
 
 
 class _Clusters(SimpleNamespace):
@@ -30,6 +45,7 @@ class _Clusters(SimpleNamespace):
     groups: Optional[Dict[int, ClusterType]] = None
     n_components: Optional[int] = None
     epsilon: Optional[float] = None
+    scores: Optional[ScoresType] = None
 
 
 def run(
@@ -55,19 +71,20 @@ def run(
 
     callback(0, "Calculating...")
 
-    cluster_labels, clusters, n_components, epsilon = annotate_documents(
-        corpus,
-        corpus.transform(Domain([attr_x, attr_y])).X,
-        clustering_method,
-        n_components=n_components,
-        epsilon=epsilon,
-        cluster_labels=cluster_labels,
-        fdr_threshold=fdr_threshold,
-        progress_callback=callback
-    )
+    cluster_labels, clusters, n_components, epsilon, scores = \
+        annotate_documents(
+            corpus,
+            corpus.transform(Domain([attr_x, attr_y])).X,
+            clustering_method,
+            n_components=n_components,
+            epsilon=epsilon,
+            cluster_labels=cluster_labels,
+            fdr_threshold=fdr_threshold,
+            progress_callback=callback
+        )
 
     return _Clusters(cluster_labels=cluster_labels, groups=clusters,
-                     n_components=n_components, epsilon=epsilon)
+                     n_components=n_components, epsilon=epsilon, scores=scores)
 
 
 def index_to_cluster_label(index: Union[int, float]) -> str:
@@ -220,6 +237,7 @@ class OWAnnotator(OWDataProjectionWidget, ConcurrentWidgetMixin):
     class Outputs:
         selected_data = Output("Selected Docs", Corpus, default=True)
         annotated_data = Output("Corpus", Corpus)
+        scores = Output("Scores", Table)
 
     class Warning(OWDataProjectionWidget.Warning):
         same_axis_features = Msg("Selected features for Axis x "
@@ -366,7 +384,7 @@ class OWAnnotator(OWDataProjectionWidget, ConcurrentWidgetMixin):
 
     def _invalidate_clusters(self):
         self.clusters = _Clusters(cluster_labels=None, groups=None,
-                                  n_components=None, epsilon=None)
+                                  n_components=None, epsilon=None, scores=None)
 
     def _run(self):
         self.Error.proj_error.clear()
@@ -511,16 +529,48 @@ class OWAnnotator(OWDataProjectionWidget, ConcurrentWidgetMixin):
     def get_cluster_hulls(self):
         if not self.clusters.groups:
             return None
-        colors = LimitedDiscretePalette(len(self.clusters.groups)).palette
+
+        if self.clustering_type not in ClusterDocuments.TYPES:  # From variable
+            colors = self.cluster_var.colors
+        else:
+            colors = LimitedDiscretePalette(len(self.clusters.groups)).palette
         return [(hull, colors[key])
                 for key, (_, _, hull) in self.clusters.groups.items()]
 
     def get_cluster_labels(self):
         if not self.clusters.groups:
             return None
-        colors = LimitedDiscretePalette(len(self.clusters.groups)).palette
+
+        if self.clustering_type not in ClusterDocuments.TYPES:  # From variable
+            colors = self.cluster_var.colors
+        else:
+            colors = LimitedDiscretePalette(len(self.clusters.groups)).palette
         return [(ann, centroid, colors[key])
                 for key, (ann, centroid, _) in self.clusters.groups.items()]
+
+    @gui.deferred
+    def commit(self):
+        super().commit()
+        self.send_scores()
+
+    def send_scores(self):
+        table = None
+
+        if self.clusters.scores is not None:
+            keywords, scores, p_values = self.clusters.scores
+            table = create_words_table(keywords)
+            table.name = "Scores"
+
+            for i, key in enumerate(self.clusters.groups):
+                label = index_to_cluster_label(key)
+
+                var = ContinuousVariable(f"Score({label})")
+                table = table.add_column(var, scores[i])
+
+                var = ContinuousVariable(f"p_value({label})")
+                table = table.add_column(var, p_values[i])
+
+        self.Outputs.scores.send(table)
 
     def _get_projection_data(self):
         labels = self.clusters.cluster_labels
