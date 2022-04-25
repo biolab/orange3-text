@@ -22,9 +22,10 @@ from Orange.widgets.utils.itemmodels import ModelActionsWidget, PyListModel
 from Orange.widgets.widget import OWWidget, Msg, Input, Output
 
 from orangecontrib.text.ontology import OntologyHandler
+from orangecontrib.text.widgets.utils.words import create_words_table, \
+    WORDS_COLUMN_NAME
 
 OntoType = Tuple[Dict[str, "OntoType"], bool]
-WORDS_COLUMN_NAME = "Words"
 resources_path = os.path.join(os.path.dirname(__file__), "resources")
 
 
@@ -38,16 +39,6 @@ def _run(handler: Callable, args: Tuple, state: TaskState) -> Dict:
 
     callback(0, "Calculating...")
     return handler(*args, callback=callback)
-
-    # if len(words) > 1:
-    #     words = [w.lower() for w in words]
-    #     return handler(words)
-    #     handler = OntologyHandler()
-    #     return handler.generate(words)
-    # elif len(words) == 1:
-    #     return {words[0].lower(): {}}
-    # else:
-    #     return {}
 
 
 def _model_to_tree(
@@ -732,12 +723,7 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
     def _create_output_table(words: List[str]) -> Optional[Table]:
         if not words:
             return None
-        words_var = StringVariable("Words")
-        words_var.attributes = {"type": "words"}
-        domain = Domain([], metas=[words_var])
-        words = Table.from_list(domain, [[w] for w in words])
-        words.name = "Words"
-        return words
+        return create_words_table(words)
 
     def _cancel_tasks(self):
         self.cancel()
@@ -880,8 +866,5 @@ if __name__ == "__main__":
         "Odločba",
         "Sklep",
     ]
-    words_var_ = StringVariable("Words")
-    words_var_.attributes = {"type": "words"}
-    words_ = Table.from_list(Domain([], metas=[words_var_]), [[w] for w in ls])
-    words_.name = "Words"
+    words_ = create_words_table(ls)
     WidgetPreview(OWOntology).run(words_)

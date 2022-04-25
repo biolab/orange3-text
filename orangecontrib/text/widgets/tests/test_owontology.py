@@ -3,28 +3,18 @@ import os
 import pickle
 import tempfile
 import unittest
-from typing import List
 from unittest.mock import Mock, patch
 
 from AnyQt.QtCore import Qt, QItemSelectionModel, QItemSelection, \
     QItemSelectionRange
 from AnyQt.QtWidgets import QFileDialog
 
-from Orange.data import StringVariable, Table, Domain
+from Orange.data import Table
 from Orange.widgets.tests.base import WidgetTest
 from orangecontrib.text.ontology import OntologyHandler
 from orangecontrib.text.widgets.owontology import OWOntology, _run, \
     EditableTreeView, _tree_to_html
-
-
-def create_words_table(words: List) -> Table:
-    words_var = StringVariable("Words")
-    words_var.attributes = {"type": "words"}
-    domain = Domain([], metas=[words_var])
-    data = [[w] for w in words]
-    words = Table.from_list(domain, data)
-    words.name = "Words"
-    return words
+from orangecontrib.text.widgets.utils.words import create_words_table
 
 
 class TestUtils(unittest.TestCase):

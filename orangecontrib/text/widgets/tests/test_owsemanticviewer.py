@@ -1,6 +1,5 @@
 # pylint: disable=missing-docstring
 import unittest
-from typing import List
 from unittest.mock import Mock, patch
 
 import numpy as np
@@ -8,23 +7,13 @@ from AnyQt.QtCore import Qt
 from AnyQt.QtTest import QSignalSpy
 from AnyQt.QtWidgets import QTableView
 
-from Orange.data import StringVariable, Table, Domain
 from Orange.widgets.tests.base import WidgetTest
 
 from orangecontrib.text import Corpus
 from orangecontrib.text.semantic_search import SemanticSearch
 from orangecontrib.text.widgets.owsemanticviewer import OWSemanticViewer, \
     run, DisplayDocument, DocumentsModel, SemanticListView
-
-
-def create_words_table(words: List) -> Table:
-    words_var = StringVariable("Words")
-    words_var.attributes = {"type": "words"}
-    domain = Domain([], metas=[words_var])
-    data = [[w] for w in words]
-    words = Table.from_list(domain, data)
-    words.name = "Words"
-    return words
+from orangecontrib.text.widgets.utils.words import create_words_table
 
 
 class TestRunner(unittest.TestCase):

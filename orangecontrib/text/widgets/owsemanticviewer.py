@@ -18,10 +18,11 @@ from Orange.widgets.widget import Input, Output, OWWidget, Msg
 
 from orangecontrib.text import Corpus
 from orangecontrib.text.semantic_search import SemanticSearch
+from orangecontrib.text.widgets.utils.words import create_words_table, \
+    WORDS_COLUMN_NAME
 
 IndexRole = next(gui.OrangeUserRole)
 
-WORDS_COLUMN_NAME = "Words"
 HTML = '''
 <!doctype html>
 <html>
@@ -421,11 +422,7 @@ if __name__ == "__main__":
     # pylint: disable=ungrouped-imports
     from Orange.widgets.utils.widgetpreview import WidgetPreview
 
-    words_var_ = StringVariable(WORDS_COLUMN_NAME)
-    words_var_.attributes = {"type": "words"}
-    lists = [[w] for w in ["human", "graph", "minors", "trees"]]
-    words_ = Table.from_list(Domain([], metas=[words_var_]), lists)
-    words_.name = "Words"
+    words_ = create_words_table(["human", "graph", "minors", "trees"])
     WidgetPreview(OWSemanticViewer).run(
         set_corpus=Corpus.from_file("deerwester"),  # deerwester book-excerpts
         set_words=words_

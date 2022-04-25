@@ -38,7 +38,7 @@ from orangecontrib.text.vectorization.document_embedder import (
     LANGS_TO_ISO,
     DocumentEmbedder,
 )
-
+from orangecontrib.text.widgets.utils.words import create_words_table
 
 def _word_frequency(corpus: Corpus, words: List[str], callback: Callable) -> np.ndarray:
     res = []
@@ -737,12 +737,5 @@ if __name__ == "__main__":
     for p in pp_list:
         corpus = p(corpus)
 
-    w = StringVariable("Words")
-    w.attributes["type"] = "words"
-    words = ["house", "doctor", "boy", "way", "Rum"]
-    words = Table(
-        Domain([], metas=[w]),
-        np.empty((len(words), 0)),
-        metas=np.array(words).reshape((-1, 1)),
-    )
+    words = create_words_table(["house", "doctor", "boy", "way", "Rum"])
     WidgetPreview(OWScoreDocuments).run(set_data=corpus, set_words=words)
