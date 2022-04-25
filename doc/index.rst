@@ -33,6 +33,7 @@ Widgets
    widgets/keywords
    widgets/score-documents
    widgets/semanticviewer
+   widgets/wordlist
 
 Scripting
 ---------

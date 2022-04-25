@@ -42,6 +42,16 @@
     "doc": "widgets/twitter-widget.md",
     "icon": "../orangecontrib/text/widgets/icons/Twitter.svg",
     "background": "light-blue",
+    "keywords": [
+     "twitter",
+     "tweet"
+    ]
+   },
+   {
+    "text": "Wikipedia",
+    "doc": "widgets/wikipedia-widget.md",
+    "icon": "../orangecontrib/text/widgets/icons/Wikipedia.svg",
+    "background": "light-blue",
     "keywords": []
    },
    {
@@ -176,7 +186,7 @@
    },
    {
     "text": "Word List",
-    "doc": null,
+    "doc": "widgets/wordlist.md",
     "icon": "../orangecontrib/text/widgets/icons/WordList.svg",
     "background": "light-blue",
     "keywords": []
