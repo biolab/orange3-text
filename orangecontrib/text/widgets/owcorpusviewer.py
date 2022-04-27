@@ -460,7 +460,7 @@ class OWCorpusViewer(OWWidget):
         w1, w2 = self.splitter.sizes()
         ws = w1 + w2
         if w2 < 2/3 * ws:
-            self.splitter.setSizes([ws * 1/3, ws * 2/3])
+            self.splitter.setSizes([int(ws * 1/3), int(ws * 2/3)])
 
 
 if __name__ == '__main__':
