@@ -2,12 +2,13 @@ import json
 import base64
 import zlib
 import sys
-from typing import Any, List, Optional, Callable
+from typing import Any, List, Optional, Callable, Tuple, Union
 
 import numpy as np
 
 from Orange.misc.server_embedder import ServerEmbedderCommunicator
 from Orange.util import dummy_callback
+from orangecontrib.text import Corpus
 
 # maximum document size that we still send to the server
 MAX_PACKAGE_SIZE = 3000000
@@ -99,6 +100,55 @@ class SBERT:
             else:
                 result.append(chunks[i])
         return [list(r) for r in result if len(r) > 0]
+
+    def embed_and_add_to_corpus(
+        self,
+        corpus: Corpus,
+        callback: Optional[Callable] = dummy_callback
+    ) -> Union[Tuple[Corpus, Corpus], List[Optional[List[float]]]]:
+        """Used for Document Embedding widget. See DocumentEmbedder for details."""
+
+        embs = self(corpus.documents, callback)
+
+        dim = None
+        for emb in embs:  # find embedding dimension
+            if emb is not None:
+                dim = len(emb)
+                break
+        # Check if some documents in corpus in weren't embedded
+        # for some reason. This is a very rare case.
+        skipped_documents = [emb is None for emb in embs]
+        embedded_documents = np.logical_not(skipped_documents)
+
+        variable_attrs = {
+            'hidden': True,
+            'skip-normalization': True,
+            'embedding-feature': True
+        }
+
+        new_corpus = None
+        if np.any(embedded_documents):
+            # if at least one embedding is not None, extend attributes
+            new_corpus = corpus[embedded_documents]
+            new_corpus = new_corpus.extend_attributes(
+                np.array(
+                    [e for e in embs if e],
+                    dtype=float,
+                ),
+                ['Dim{}'.format(i + 1) for i in range(dim)],
+                var_attrs=variable_attrs
+            )
+
+        skipped_corpus = None
+        if np.any(skipped_documents):
+            skipped_corpus = corpus[skipped_documents].copy()
+            skipped_corpus.name = "Skipped documents"
+            warnings.warn(("Some documents were not embedded for " +
+                           "unknown reason. Those documents " +
+                           "are skipped."),
+                          RuntimeWarning)
+
+        return new_corpus, skipped_corpus
 
     def clear_cache(self):
         if self._server_communicator:

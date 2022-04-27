@@ -30,7 +30,6 @@ class EmbeddingVectorizer(Vectorizer):
         self.new_corpus = embeddings
         self.skipped_documents = skipped
 
-
 class OWDocumentEmbedding(OWBaseVectorizer):
     name = "Document Embedding"
     description = "Document embedding using pretrained models."
@@ -56,6 +55,7 @@ class OWDocumentEmbedding(OWBaseVectorizer):
     class Warning(OWWidget.Warning):
         unsuccessful_embeddings = Msg("Some embeddings were unsuccessful.")
 
+    method = Setting(default=0)
     language = Setting(default="English")
     aggregator = Setting(default="Mean")
 
@@ -131,6 +131,7 @@ class OWDocumentEmbedding(OWBaseVectorizer):
             # with language name and selected aggregator name
             settings["language"] = LANGUAGES[settings["language"]]
             settings["aggregator"] = AGGREGATORS[settings["aggregator"]]
+
 
 
 if __name__ == "__main__":
