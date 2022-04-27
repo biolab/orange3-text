@@ -340,6 +340,16 @@ class TokenNormalizerTests(unittest.TestCase):
         loaded_normalizer = pickle.loads(pickle.dumps(normalizer))
         self.assertEqual(0, len(loaded_normalizer._normalization_cache))
 
+    def test_nocache_normalizer_restorable(self):
+        """
+        Pickled normalizers made before implementing cache in normalizer must
+        load correctly
+        """
+        test_folder = os.path.dirname(os.path.abspath(__file__))
+        with open(os.path.join(test_folder, "normalizer-v1.pkl"), "rb") as f:
+            loaded_normalizer = pickle.load(f)
+        loaded_normalizer(self.corpus)
+
 
 class UDPipeModelsTests(unittest.TestCase):
     def test_label_transform(self):

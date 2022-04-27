@@ -48,6 +48,12 @@ class BaseNormalizer(TokenizedPreprocessor):
         d["_normalization_cache"] = {}
         return d
 
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        # support old pickles (before caching was implemented) that are missing
+        # _normalization_cache
+        self._normalization_cache = {}
+
 
 class WordNetLemmatizer(BaseNormalizer):
     name = 'WordNet Lemmatizer'
@@ -201,7 +207,7 @@ class UDPipeLemmatizer(BaseNormalizer):
 
         Note: __model will be loaded on __call__
         """
-        self.__dict__.update(state)
+        super().__setstate__(state)
         self.models = UDPipeModels()
 
 
