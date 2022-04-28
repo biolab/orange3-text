@@ -83,13 +83,14 @@ function weight_factor(size) {
     const recalculated_width = combined_width();
     // with this parameter we partially bring in the average word size
     // combined with lenght (many big characters mean decrease size more)
-    size = size * (1/2 + 1/2 * 9000/textAreaEstimation);
+    var area = recalculated_width * document.getElementById("canvas").clientHeight * Math.PI / 4 / 2;
+    size = size * Math.sqrt(area / textAreaEstimation);
 
     // in basis with resizing from 300 to 700 the font size increases for
     // this factor
     const factor = 0.85;
     if(recalculated_width < 300){
-        return size;
+        return size * factor;
     } else if(recalculated_width <= 700){
         return size * (1 + ((recalculated_width - 300) / 400)) * factor;
     } else {
