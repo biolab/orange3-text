@@ -470,8 +470,8 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
             words_var = StringVariable(WORDS_COLUMN_NAME)
             words_var.attributes = {"type": "words"}
             model = self.model
-            attrs = [ContinuousVariable(model.headerData(i + 1, Qt.Horizontal))
-                     for i in range(len(self.selected_scoring_methods))]
+            attrs = [ContinuousVariable(model.headerData(i, Qt.Horizontal))
+                     for i in range(1, model.columnCount())]
             domain = Domain(attrs, metas=[words_var])
 
             sort_column, reverse = self.sort_column_order
