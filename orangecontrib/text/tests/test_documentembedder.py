@@ -153,3 +153,7 @@ class DocumentEmbedderTest(unittest.TestCase):
     def test_invalid_corpus_type(self):
         with self.assertRaises(ValueError):
             self.embedder(self.corpus[0])
+
+
+if __name__ == "__main__":
+    unittest.main()
