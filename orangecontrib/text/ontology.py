@@ -185,7 +185,7 @@ def generate_ontology(
             for i in range(population_size)
         ])
         fitness = fitness / fitness.sum()
-        new_generation = np.zeros(generation.shape, dtype=np.int32)
+        new_generation = np.zeros(generation.shape, dtype=int)
         parents_to_keep = np.argsort(fitness)[-keep_next_gen:]
         new_generation[:keep_next_gen, :] = generation[parents_to_keep, :]
         for i in range(keep_next_gen, population_size):
