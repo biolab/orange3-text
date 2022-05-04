@@ -1,17 +1,18 @@
 """This module contains classes used for embedding documents
 into a vector space.
 """
-import zlib
 import base64
 import json
 import sys
 import warnings
-from typing import Tuple, Any, Optional, Union, List
+import zlib
+from typing import Any, List, Optional, Tuple, Union
+
 import numpy as np
-
 from Orange.misc.server_embedder import ServerEmbedderCommunicator
-from orangecontrib.text import Corpus
+from Orange.util import dummy_callback
 
+from orangecontrib.text import Corpus
 
 AGGREGATORS = ['Mean', 'Sum', 'Max', 'Min']
 AGGREGATORS_L = ['mean', 'sum', 'max', 'min']
@@ -93,7 +94,7 @@ class DocumentEmbedder:
                                          embedder_type='text')
 
     def __call__(
-        self, corpus: Union[Corpus, List[List[str]]], processed_callback=None
+        self, corpus: Union[Corpus, List[List[str]]], callback=dummy_callback
     ) -> Union[Tuple[Corpus, Corpus], List[Optional[List[float]]]]:
         """Adds matrix of document embeddings to a corpus.
 
@@ -118,7 +119,8 @@ class DocumentEmbedder:
             raise ValueError("Input should be instance of Corpus or list.")
         embs = self._embedder.embedd_data(
             list(corpus.ngrams) if isinstance(corpus, Corpus) else corpus,
-            processed_callback=processed_callback)
+            callback=callback,
+        )
 
         if isinstance(corpus, list):
             return embs
@@ -174,11 +176,6 @@ class DocumentEmbedder:
         return (('Language', self.language),
                 ('Aggregator', self.aggregator))
 
-    def set_cancelled(self):
-        """Cancels current embedding process"""
-        if hasattr(self, '_embedder'):
-            self._embedder.set_cancelled()
-
     def clear_cache(self):
         """Clears embedder cache"""
         if self._embedder:
@@ -187,11 +184,8 @@ class DocumentEmbedder:
     def __enter__(self):
         return self
 
-    def __exit__(self, ex_type, value, traceback):
-        self.set_cancelled()
-
-    def __del__(self):
-        self.__exit__(None, None, None)
+    def __exit__(self, _, __, ___):
+        pass
 
 
 class _ServerEmbedder(ServerEmbedderCommunicator):

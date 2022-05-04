@@ -76,15 +76,7 @@ class SemanticSearch:
         for chunk in chunks_:
             chunks.append([chunk, queries_enc])
 
-        # temporary callback - will be changed when ServerEmbedderCommunicator
-        # change callback - return proportion instead bool
-        ticks = iter(np.linspace(0.0, 1.0, len(chunks)))
-
-        def cb(success=True):
-            if success:
-                callback(next(ticks))
-
-        result_ = self._server_communicator.embedd_data(chunks, processed_callback=cb)
+        result_ = self._server_communicator.embedd_data(chunks, callback=callback)
         if result_ is None:
             return [None] * len(texts)
 

@@ -19,7 +19,7 @@ class TestCredentials(unittest.TestCase):
 
     def test_equal(self):
         credentials = guardian.TheGuardianCredentials(API_KEY)
-        self.assertEquals(credentials, credentials)
+        self.assertEqual(credentials, credentials)
 
 
 def skip_limit_exceeded(fun):

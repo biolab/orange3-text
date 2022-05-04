@@ -1,5 +1,4 @@
 from typing import Any, Tuple
-import numpy as np
 
 from AnyQt.QtWidgets import QPushButton, QStyle, QLayout
 from AnyQt.QtCore import Qt, QSize
@@ -43,18 +42,14 @@ def run_pretrained_embedder(corpus: Corpus,
     Corpus
         New corpus with additional features.
     """
-    embedder = DocumentEmbedder(language=language,
-                                aggregator=aggregator)
+    embedder = DocumentEmbedder(language=language, aggregator=aggregator)
 
-    ticks = iter(np.linspace(0., 100., len(corpus)))
-
-    def advance(success=True):
+    def callback(progress):
         if state.is_interruption_requested():
-            embedder.set_cancelled()
-        if success:
-            state.set_progress_value(next(ticks))
+            raise Exception
+        state.set_progress_value(progress * 100)
 
-    new_corpus, skipped_corpus = embedder(corpus, processed_callback=advance)
+    new_corpus, skipped_corpus = embedder(corpus, callback=callback)
     return new_corpus, skipped_corpus
 
 

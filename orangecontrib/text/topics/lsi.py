@@ -24,4 +24,4 @@ class LsiWrapper(GensimWrapper):
     has_negative_weights = True
 
     def __init__(self, **kwargs):
-        super().__init__(**kwargs, dtype=float64)
+        super().__init__(**kwargs, dtype=float64, random_seed=0)
