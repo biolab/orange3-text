@@ -5,7 +5,7 @@ from unittest.mock import Mock, patch
 
 import numpy as np
 
-from Orange.data import StringVariable, Table, Domain
+from Orange.data import Table
 from Orange.widgets.tests.base import WidgetTest, simulate
 
 from orangecontrib.text import Corpus
@@ -14,16 +14,7 @@ from orangecontrib.text.keywords import tfidf_keywords, yake_keywords, \
 from orangecontrib.text.preprocess import *
 from orangecontrib.text.widgets.owkeywords import OWKeywords, run, \
     AggregationMethods, ScoringMethods
-
-
-def create_words_table(words: List) -> Table:
-    words_var = StringVariable("Words")
-    words_var.attributes = {"type": "words"}
-    domain = Domain([], metas=[words_var])
-    data = [[w] for w in words]
-    words = Table.from_list(domain, data)
-    words.name = "Words"
-    return words
+from orangecontrib.text.widgets.utils.words import create_words_table
 
 
 class TestRunner(unittest.TestCase):

@@ -12,6 +12,7 @@ from AnyQt.QtWidgets import QListView, QSizePolicy, QGridLayout, QLineEdit, \
     QRadioButton, QGroupBox, QToolButton, QMenu, QAction, QFileDialog, \
     QStyledItemDelegate, QStyleOptionViewItem, QWidget
 
+from orangecontrib.text.widgets.utils.words import create_words_table
 from orangewidget.utils.listview import ListViewSearch
 
 from Orange.data import Table, StringVariable, Domain
@@ -500,11 +501,7 @@ class OWWordList(OWWidget):
 
         words, selected_words = None, None
         if self.words_model:
-            words_var = StringVariable("Words")
-            words_var.attributes = {"type": "words"}
-            domain = Domain([], metas=[words_var])
-            _words = Table.from_list(domain, [[w] for w in self.words_model])
-            _words.name = "Words"
+            _words = create_words_table(self.words_model)
             if selection:
                 selected_words = _words[selection]
             words = create_annotated_table(_words, selection)

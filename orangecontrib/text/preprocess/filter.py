@@ -210,6 +210,8 @@ class FrequencyFilter(FitDictionaryFilter):
     @property
     def max_df(self):
         if isinstance(self._max_df, int):
+            if self._max_df <= self._min_df:
+                return 1.
             return self._max_df / self._corpus_len if self._corpus_len else 1.
         else:
             return self._max_df

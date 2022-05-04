@@ -211,103 +211,16 @@ class AggregationMethods:
         -------
         Aggregated keyword scores.
         """
-        return [AggregationMethods.mean,
-                AggregationMethods.median,
-                AggregationMethods.min,
-                AggregationMethods.max][agg_method](keywords)
+        compute_mean = agg_method == AggregationMethods.MEAN
+        aggregator = [np.mean, np.median, np.min, np.max][agg_method]
+        unique_scores = defaultdict(lambda: 0. if compute_mean else [])
 
-    @staticmethod
-    def mean(
-            keywords: List[List[Tuple[str, float]]]
-    ) -> List[Tuple[str, float]]:
-        """
-        'mean' aggregation function.
+        for word, score in chain.from_iterable(keywords):
+            unique_scores[word] += score if compute_mean else [score]
 
-        Parameters
-        ----------
-        keywords : list
-            List of keywords for each document.
-
-        Returns
-        -------
-        Aggregated keyword scores.
-        """
-        scores = list(chain.from_iterable(keywords))
-        unique_scores = defaultdict(lambda: 0.)
-        for word, score in scores:
-            unique_scores[word] += score
         for word, score in unique_scores.items():
-            unique_scores[word] = score / len(keywords)
-        return list(unique_scores.items())
+            # compute mean amongst all keywords
+            unique_scores[word] = score / len(keywords) if compute_mean \
+                else aggregator(score)
 
-    @staticmethod
-    def median(
-            keywords: List[List[Tuple[str, float]]]
-    ) -> List[Tuple[str, float]]:
-        """
-        'median' aggregation function.
-
-        Parameters
-        ----------
-        keywords : list
-            List of keywords for each document.
-
-        Returns
-        -------
-        Aggregated keyword scores.
-        """
-        scores = list(chain.from_iterable(keywords))
-        unique_scores = defaultdict(lambda: [])
-        for word, score in scores:
-            unique_scores[word].append(score)
-        for word, score in unique_scores.items():
-            unique_scores[word] = np.median(score)
-        return list(unique_scores.items())
-
-    @staticmethod
-    def min(
-            keywords: List[List[Tuple[str, float]]]
-    ) -> List[Tuple[str, float]]:
-        """
-        'min' aggregation function.
-
-        Parameters
-        ----------
-        keywords : list
-            List of keywords for each document.
-
-        Returns
-        -------
-        Aggregated keyword scores.
-        """
-        scores = list(chain.from_iterable(keywords))
-        unique_scores = defaultdict(lambda: [])
-        for word, score in scores:
-            unique_scores[word].append(score)
-        for word, score in unique_scores.items():
-            unique_scores[word] = np.min(score)
-        return list(unique_scores.items())
-
-    @staticmethod
-    def max(
-            keywords: List[List[Tuple[str, float]]]
-    ) -> List[Tuple[str, float]]:
-        """
-        'max' aggregation function.
-
-        Parameters
-        ----------
-        keywords : list
-            List of keywords for each document.
-
-        Returns
-        -------
-        Aggregated keyword scores.
-        """
-        scores = list(chain.from_iterable(keywords))
-        unique_scores = defaultdict(lambda: [])
-        for word, score in scores:
-            unique_scores[word].append(score)
-        for word, score in unique_scores.items():
-            unique_scores[word] = np.max(score)
         return list(unique_scores.items())

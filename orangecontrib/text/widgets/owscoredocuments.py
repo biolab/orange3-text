@@ -1,6 +1,5 @@
 import re
 from collections import Counter
-from contextlib import contextmanager
 from inspect import signature
 from typing import Callable, List, Tuple, Union
 
@@ -20,20 +19,18 @@ from AnyQt.QtWidgets import (
     QRadioButton,
     QTableView,
 )
-from Orange.data.util import get_unique_names
-from pandas import isnull
-from sklearn.metrics.pairwise import cosine_similarity
-
-# todo: uncomment when minimum version of Orange is 3.29.2
-# from orangecanvas.gui.utils import disconnected
-from orangewidget import gui
 from Orange.data import ContinuousVariable, Domain, StringVariable, Table
+from Orange.data.util import get_unique_names
 from Orange.util import wrap_callback
 from Orange.widgets.settings import ContextSetting, PerfectDomainContextHandler, Setting
 from Orange.widgets.utils.annotated_data import create_annotated_table
 from Orange.widgets.utils.concurrent import ConcurrentWidgetMixin, TaskState
 from Orange.widgets.utils.itemmodels import PyTableModel, TableModel
 from Orange.widgets.widget import Input, Msg, Output, OWWidget
+from orangecanvas.gui.utils import disconnected
+from orangewidget import gui
+from pandas import isnull
+from sklearn.metrics.pairwise import cosine_similarity
 
 from orangecontrib.text import Corpus
 from orangecontrib.text.preprocess import BaseNormalizer, BaseTransformer
@@ -41,17 +38,7 @@ from orangecontrib.text.vectorization.document_embedder import (
     LANGS_TO_ISO,
     DocumentEmbedder,
 )
-
-
-# todo: remove when minimum version of Orange is 3.29.2
-@contextmanager
-def disconnected(signal, slot, type=Qt.UniqueConnection):
-    signal.disconnect(slot)
-    try:
-        yield
-    finally:
-        signal.connect(slot, type)
-
+from orangecontrib.text.widgets.utils.words import create_words_table
 
 def _word_frequency(corpus: Corpus, words: List[str], callback: Callable) -> np.ndarray:
     res = []
@@ -81,20 +68,17 @@ def _embedding_similarity(
     callback: Callable,
     embedding_language: str,
 ) -> np.ndarray:
-    ticks = iter(np.linspace(0, 0.8, len(corpus) + len(words)))
-
-    # TODO: currently embedding report success unify them to report progress float
-    def emb_cb(sucess: bool):
-        if sucess:
-            callback(next(ticks))
-
     language = LANGS_TO_ISO[embedding_language]
     # make sure there will be only embeddings in X after calling the embedder
     corpus = Corpus.from_table(Domain([], metas=corpus.domain.metas), corpus)
     emb = DocumentEmbedder(language)
-    documet_embeddings, skipped = emb(corpus, emb_cb)
+
+    cb_part = len(corpus) / (len(corpus) + len(words))
+    documet_embeddings, skipped = emb(corpus, wrap_callback(callback, 0, cb_part))
     assert skipped is None
-    word_embeddings = np.array(emb([[w] for w in words], emb_cb))
+    word_embeddings = np.array(
+        emb([[w] for w in words], wrap_callback(callback, cb_part, 1 - cb_part))
+    )
     return cosine_similarity(documet_embeddings.X, word_embeddings)
 
 
@@ -753,12 +737,5 @@ if __name__ == "__main__":
     for p in pp_list:
         corpus = p(corpus)
 
-    w = StringVariable("Words")
-    w.attributes["type"] = "words"
-    words = ["house", "doctor", "boy", "way", "Rum"]
-    words = Table(
-        Domain([], metas=[w]),
-        np.empty((len(words), 0)),
-        metas=np.array(words).reshape((-1, 1)),
-    )
+    words = create_words_table(["house", "doctor", "boy", "way", "Rum"])
     WidgetPreview(OWScoreDocuments).run(set_data=corpus, set_words=words)
