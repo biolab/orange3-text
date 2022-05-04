@@ -23,8 +23,9 @@ from orangecontrib.text import Corpus
 from orangecontrib.text.keywords import ScoringMethods, AggregationMethods, \
     YAKE_LANGUAGE_MAPPING, RAKE_LANGUAGES, EMBEDDING_LANGUAGE_MAPPING
 from orangecontrib.text.preprocess import BaseNormalizer
+from orangecontrib.text.widgets.utils.words import create_words_table, \
+    WORDS_COLUMN_NAME
 
-WORDS_COLUMN_NAME = "Words"
 YAKE_LANGUAGES = list(YAKE_LANGUAGE_MAPPING.keys())
 EMBEDDING_LANGUAGES = list(EMBEDDING_LANGUAGE_MAPPING.keys())
 
@@ -456,9 +457,6 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
                            header.sortIndicatorOrder())
         if current_sorting != self.sort_column_order:
             header.setSortIndicator(*self.sort_column_order)
-            # needed to sort nans; 1. column has strings
-            # if self.sort_column_order[0] > 0:
-            #     self.model.sort(*self.sort_column_order)
 
     def onDeleteWidget(self):
         self.shutdown()
@@ -467,18 +465,20 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
     def commit(self):
         words = None
         if self.selected_words:
-            words_var = StringVariable(WORDS_COLUMN_NAME)
-            words_var.attributes = {"type": "words"}
+            sort_column, reverse = self.sort_column_order
             model = self.model
             attrs = [ContinuousVariable(model.headerData(i, Qt.Horizontal))
                      for i in range(1, model.columnCount())]
-            domain = Domain(attrs, metas=[words_var])
 
-            sort_column, reverse = self.sort_column_order
             data = sorted(model, key=lambda a: a[sort_column], reverse=reverse)
-            data = [s[1:] + s[:1] for s in data if s[0] in self.selected_words]
-            words = Table.from_list(domain, data)
-            words.name = "Words"
+            words_data = [s[0] for s in data if s[0] in self.selected_words]
+
+            words = create_words_table(words_data)
+            words = words.transform(Domain(attrs, metas=words.domain.metas))
+            with words.unlocked(words.X):
+                for i in range(len(attrs)):
+                    words.X[:, i] = [data[j][i + 1] for j in range(len(data))
+                                     if data[j][0] in self.selected_words]
 
         self.Outputs.words.send(words)
 
@@ -495,11 +495,7 @@ if __name__ == "__main__":
     # pylint: disable=ungrouped-imports
     from Orange.widgets.utils.widgetpreview import WidgetPreview
 
-    words_var_ = StringVariable(WORDS_COLUMN_NAME)
-    words_var_.attributes = {"type": "words"}
-    lists = [[w] for w in ["human", "graph", "minors", "trees"]]
-    words_ = Table.from_list(Domain([], metas=[words_var_]), lists)
-    words_.name = "Words"
+    words_ = create_words_table(["human", "graph", "minors", "trees"])
     WidgetPreview(OWKeywords).run(
         set_corpus=Corpus.from_file("deerwester"),  # deerwester book-excerpts
         # set_words=words_
