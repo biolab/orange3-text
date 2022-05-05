@@ -36,7 +36,7 @@ def annotate_documents(
         fdr_threshold: float = 0.05,
         n_words_in_cluster: int = 10,
         progress_callback: Optional[Callable] = None
-) -> Tuple[np.ndarray, Dict[int, ClusterType], ScoresType]:
+) -> Tuple[np.ndarray, Dict[int, ClusterType], int, float, ScoresType]:
     """
     Annotate documents in corpus, by performing clustering on the corpus and
     assigning characteristic terms to each cluster using Hypergeometric
@@ -240,7 +240,7 @@ def _hypergeom_clusters(
         keywords: List[List[str]],
         fdr_threshold: float,
         n_words: int
-) -> Dict[int, List[str]]:
+) -> Tuple[Dict[int, List[str]], np.ndarray, np.ndarray, np.ndarray]:
     keywords = [[w for w, _ in doc_keywords] for doc_keywords in keywords]
 
     clusters_keywords = {}

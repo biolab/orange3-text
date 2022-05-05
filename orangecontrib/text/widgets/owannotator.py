@@ -24,20 +24,7 @@ from Orange.widgets.widget import Msg, Input, Output
 from orangecontrib.text import Corpus
 from orangecontrib.text.annotate_documents import annotate_documents, \
     ClusterDocuments, ClusterType, ScoresType
-# from orangecontrib.text.widgets.utils.words import create_words_table - TODO
-
-
-WORDS_COLUMN_NAME = "Words"
-
-
-def create_words_table(words: Iterable) -> Table:
-    words_var = StringVariable(WORDS_COLUMN_NAME)
-    words_var.attributes = {"type": "words"}
-    domain = Domain([], metas=[words_var])
-    data = [[w] for w in words]
-    words = Table.from_list(domain, data)
-    words.name = "Words"
-    return words
+from orangecontrib.text.widgets.utils.words import create_words_table
 
 
 class _Clusters(SimpleNamespace):
@@ -60,7 +47,8 @@ def run(
         state: TaskState
 ) -> _Clusters:
     if not corpus:
-        return []
+        return _Clusters(cluster_labels=None, groups=None,
+                         n_components=None, epsilon=None, scores=None)
 
     def callback(i: float, status=""):
         state.set_progress_value(i * 100)
