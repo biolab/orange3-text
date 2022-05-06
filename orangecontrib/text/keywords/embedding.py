@@ -47,11 +47,15 @@ def _embedd_tokens(
 
 
 def cos_dist(x: np.ndarray, y: np.ndarray) -> np.ndarray:
-    return 1 - cosine_similarity(x, y)
+    return (
+        (1 - cosine_similarity(x, y))
+        if len(x) > 0 and len(y) > 0
+        else np.empty((len(x), len(y)))
+    )
 
 
 def embedding_keywords(
-    tokens: Collection[List[str]],
+    corpus: Corpus,
     language: str = "English",
     progress_callback: Callable = None,
 ) -> List[List[Tuple[str, float]]]:
@@ -60,7 +64,7 @@ def embedding_keywords(
 
     Parameters
     ----------
-    tokens
+    corpus
         Lists of tokens
     language
         Language of documents
@@ -71,11 +75,12 @@ def embedding_keywords(
     -------
     Keywords with scores
     """
-    if len(tokens) == 0:
+    if len(corpus) == 0:
         return []
     if progress_callback is None:
         progress_callback = dummy_callback
 
+    tokens = list(corpus.ngrams)
     # prepare structures
     language = EMBEDDING_LANGUAGE_MAPPING[language]
     doc_embs, word_embs, word2doc = _embedd_tokens(
