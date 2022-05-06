@@ -463,6 +463,11 @@ class FilteringTests(unittest.TestCase):
         self.assertFrequencyRange(corpus, 1, 2)
         self.assertEqual(len(corpus.used_preprocessor.preprocessors), 2)
 
+        ff = preprocess.FrequencyFilter(min_df=5, max_df=5)
+        corpus = ff(self.corpus)
+        self.assertFrequencyRange(corpus, 5, size)
+        self.assertEqual(len(corpus.used_preprocessor.preprocessors), 2)
+
     def assertFrequencyRange(self, corpus, min_fr, max_fr):
         dictionary = corpora.Dictionary(corpus.tokens)
         self.assertTrue(all(min_fr <= fr <= max_fr

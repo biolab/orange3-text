@@ -565,6 +565,20 @@ class TestFilterModule(WidgetTest):
             f"Lexicon (File: None), Regexp ({FilteringModule.DEFAULT_PATTERN})"
         )
 
+    def test_abs_spins(self):
+        self.abs_spins[0].setValue(5)
+        self.abs_spins[1].setValue(3)
+        self.assertEqual(5, self.abs_spins[0].value())
+        self.assertEqual(5, self.abs_spins[1].value())
+        self.assertEqual("max", self.abs_spins[1].text())
+        self.abs_spins[1].setValue(6)
+        self.assertEqual(5, self.abs_spins[0].value())
+        self.assertEqual(6, self.abs_spins[1].value())
+        self.abs_spins[0].setValue(7)
+        self.assertEqual(7, self.abs_spins[0].value())
+        self.assertEqual(7, self.abs_spins[1].value())
+        self.assertEqual("max", self.abs_spins[1].text())
+
 
 class TestNgramsModule(WidgetTest):
     def setUp(self):
