@@ -136,7 +136,8 @@ class OWCorpus(OWWidget, ConcurrentWidgetMixin):
             corpus = Corpus.from_table(data.domain, data)
         elif path:
             corpus = Corpus.from_file(path)
-            corpus.name = os.path.splitext(os.path.basename(path))[0]
+            if not hasattr(corpus, "name") or not corpus.name:
+                corpus.name = os.path.splitext(os.path.basename(path))[0]
         return corpus
 
     def open_file(self, path=None, data=None):
@@ -224,7 +225,6 @@ class OWCorpus(OWWidget, ConcurrentWidgetMixin):
 
     def update_feature_selection(self):
         self.Error.no_text_features_used.clear()
-        # TODO fix VariablesListItemView so it does not emit
         # duplicated data when reordering inside a single window
         def remove_duplicates(l):
             unique = []

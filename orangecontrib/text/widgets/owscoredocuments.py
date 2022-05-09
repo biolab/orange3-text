@@ -126,8 +126,9 @@ def _preprocess_words(
     #  cases like this think about implementation of preprocessors for a list
     #  of strings
     words_feature = StringVariable("words")
-    words_c = Corpus(
+    words_c = Corpus.from_numpy(
         Domain([], metas=[words_feature]),
+        np.empty((len(words), 0)),
         metas=np.array([[w] for w in words]),
         text_features=[words_feature],
     )
@@ -554,7 +555,7 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
                 metas=d.metas + tuple(ContinuousVariable(get_unique_names(d, l))
                                       for l in labels),
             )
-            out_corpus = Corpus(
+            out_corpus = Corpus.from_numpy(
                 domain,
                 self.corpus.X,
                 self.corpus.Y,

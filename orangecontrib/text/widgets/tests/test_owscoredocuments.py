@@ -27,7 +27,7 @@ def embedding_mock(_, corpus, __):
         return np.ones((len(corpus), 10))
     else:  # corpus is Corpus
         return (
-            Corpus(
+            Corpus.from_numpy(
                 domain=Domain([ContinuousVariable(str(i)) for i in range(10)]),
                 X=np.ones((len(corpus), 10)),
             ),
@@ -159,8 +159,9 @@ class TestOWScoreDocuments(WidgetTest):
         """Create sample corpus with texts passed"""
         text_var = StringVariable("Text")
         domain = Domain([], metas=[text_var])
-        c = Corpus(
+        c = Corpus.from_numpy(
             domain,
+            X=np.empty((len(texts), 0)),
             metas=np.array(texts).reshape(-1, 1),
             text_features=[text_var],
         )
