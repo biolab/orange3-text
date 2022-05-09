@@ -162,10 +162,13 @@ class Corpus(Table):
                         raise ValueError('Feature "{}" not found.'.format(f))
             if len(set(feats)) != len(feats):
                 raise ValueError('Text features must be unique.')
-            self.text_features = feats
+            if feats != self.text_features:
+                # when new features are same than before it is not required
+                # to invalidate tokens
+                self.text_features = feats
+                self._tokens = None  # invalidate tokens
         else:
             self._infer_text_features()
-        self._tokens = None     # invalidate tokens
 
     def set_title_variable(
             self, title_variable: Union[StringVariable, str, None]
