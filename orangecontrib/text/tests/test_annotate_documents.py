@@ -50,7 +50,7 @@ class TestAnnotateDocuments(unittest.TestCase):
     def test_get_characteristic_terms(self):
         keywords = _get_characteristic_terms(self.corpus, 4)
         keywords = [[w for w, _ in doc_keywords] for doc_keywords in keywords]
-        self.assertEqual(["applications", "abc", "lab", "for"], keywords[0])
+        self.assertEqual(["abc", "applications", "for", "lab"], keywords[0])
 
     def test_hypergeom_clusters(self):
         labels = ClusterDocuments.gmm(self.corpus.metas[:, -2:], 3, 0.6)

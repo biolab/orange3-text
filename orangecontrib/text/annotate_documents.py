@@ -230,7 +230,7 @@ def _get_characteristic_terms(
         n_keywords: int = 20,
         progress_callback: Callable = None
 ) -> List[List[Tuple[str, float]]]:
-    keywords = tfidf_keywords(corpus.tokens, progress_callback)
+    keywords = tfidf_keywords(corpus, progress_callback)
     return [sorted(k, key=lambda x: x[1], reverse=True)[:n_keywords]
             for k in keywords]
 
