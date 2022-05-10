@@ -4,7 +4,7 @@ from numpy.testing import assert_allclose
 
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.sentiment import LiuHuSentiment, VaderSentiment, \
-    MultiSentiment, SentiArt
+    MultiSentiment, SentiArt, LilahSentiment
 
 
 class LiuHuTest(unittest.TestCase):
@@ -106,6 +106,13 @@ class SentiArtTest(LiuHuTest):
         # this should execute without raising an exception
         result = self.method.transform(self.slo_corpus)
         assert_allclose(result.X[0, -self.new_cols:], 0)
+
+
+class LilahTest(LiuHuTest):
+    def setUp(self):
+        self.corpus = Corpus.from_file('deerwester')
+        self.method = LilahSentiment()
+        self.new_cols = 10
 
 
 if __name__ == "__main__":
