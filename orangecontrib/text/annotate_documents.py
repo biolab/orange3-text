@@ -15,7 +15,7 @@ from sklearn.mixture import GaussianMixture
 from Orange.data import dummy_callback
 from Orange.util import wrap_callback
 from orangecontrib.text import Corpus
-from orangecontrib.text.concave_hull import compute_concave_hulls
+from orangecontrib.text.hull import compute_hulls
 from orangecontrib.text.keywords import tfidf_keywords
 from orangecontrib.text.stats import hypergeom_p_values
 
@@ -134,7 +134,7 @@ def annotate_documents(
         _hypergeom_clusters(cluster_labels, keywords,
                             fdr_threshold, n_words_in_cluster)
 
-    concave_hulls = compute_concave_hulls(embedding, cluster_labels, epsilon)
+    concave_hulls = compute_hulls(embedding, cluster_labels)
 
     centroids = {c: tuple(np.mean(concave_hulls[c], axis=0))
                  for c in set(cluster_labels) - {-1}}
@@ -311,7 +311,7 @@ if __name__ == "__main__":
     keywords_ = _get_characteristic_terms(corpus_, 4)
     clusters_keywords_, _, _, _ = \
         _hypergeom_clusters(clusters_, keywords_, 0.2, 5)
-    concave_hulls_ = compute_concave_hulls(embedding_, clusters_)
+    concave_hulls_ = compute_hulls(embedding_, clusters_)
     centroids_ = {c: tuple(np.mean(concave_hulls_[c], axis=0))
                   for c in set(clusters_) - {-1}}
 
