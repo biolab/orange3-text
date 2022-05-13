@@ -47,6 +47,13 @@ class TestSentimentWidget(WidgetTest):
                          len(self.corpus.domain.variables)
                          + 7)
 
+        # test Lilah sentiment
+        self.widget.lilah_sent.click()
+        out_corpus = self.get_output(self.widget.Outputs.corpus)
+        self.assertEqual(len(out_corpus.domain.variables),
+                         len(self.corpus.domain.variables)
+                         + 10)
+
         # test liu hu
         self.widget.liu_hu.click()
         out_corpus = self.get_output(self.widget.Outputs.corpus)
@@ -114,3 +121,8 @@ class TestSentimentWidget(WidgetTest):
     def test_none_type_input(self):
         # this should not raise an exception
         self.send_signal("Corpus", None)
+
+    def test_migrates_settings(self):
+        settings = {"method_idx": 4}
+        OWSentimentAnalysis.migrate_settings(settings, version=None)
+        self.assertTrue(settings.get("method_idx", 5))

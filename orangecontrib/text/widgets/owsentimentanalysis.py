@@ -9,7 +9,7 @@ from Orange.widgets.widget import OWWidget, Msg
 from orangecontrib.text import Corpus, preprocess
 from orangecontrib.text.sentiment import VaderSentiment, LiuHuSentiment, \
     MultiSentiment, CustomDictionaries, SentiArt, MultisentimentDictionaries, \
-    SentiArtDictionaries
+    SentiArtDictionaries, LilahSentiment, LilahDictionaries
 from orangecontrib.text.widgets.owpreprocess import FileLoader, _to_abspath
 from orangecontrib.text.preprocess import PreprocessorList
 from orangewidget.utils.filedialogs import RecentPath
@@ -28,11 +28,14 @@ class OWSentimentAnalysis(OWWidget):
     class Outputs:
         corpus = Output("Corpus", Corpus)
 
+    settings_version = 1
+
     method_idx = settings.Setting(1)
     autocommit = settings.Setting(True)
     liu_language = settings.Setting('English')
     multi_language = settings.Setting('English')
     senti_language = settings.Setting('English')
+    lilah_language = settings.Setting('Slovenian')
     want_main_area = False
     resizing_enabled = False
 
@@ -41,11 +44,13 @@ class OWSentimentAnalysis(OWWidget):
         VaderSentiment,
         MultiSentiment,
         SentiArt,
+        LilahSentiment,
         CustomDictionaries
     ]
     LANG = ['English', 'Slovenian']
     MULTI_LANG = MultiSentiment.LANGS.keys()
     SENTI_LANG = SentiArt.LANGS.keys()
+    LILAH_LANG = LilahSentiment.LANGS.keys()
     DEFAULT_NONE = None
 
     class Warning(OWWidget.Warning):
@@ -88,6 +93,12 @@ class OWSentimentAnalysis(OWWidget):
                                       sendSelectedValue=True,
                                       contentsLength=10, items=[''],
                                       callback=self._method_changed)
+        self.lilah_sent = gui.appendRadioButton(box, "Lilah sentiment",
+                                               addToLayout=False)
+        self.lilah_box = gui.comboBox(None, self, 'lilah_language',
+                                      sendSelectedValue=True,
+                                      contentsLength=10, items=[''],
+                                      callback=self._method_changed)
         self.custom_list = gui.appendRadioButton(box, "Custom dictionary",
                                                  addToLayout=False)
 
@@ -111,9 +122,12 @@ class OWSentimentAnalysis(OWWidget):
         self.form.addWidget(self.senti_art, 3, 0, Qt.AlignLeft)
         self.form.addWidget(QLabel("Language:"), 3, 1, Qt.AlignRight)
         self.form.addWidget(self.senti_box, 3, 2, Qt.AlignRight)
-        self.form.addWidget(self.custom_list, 4, 0, Qt.AlignLeft)
+        self.form.addWidget(self.lilah_sent, 4, 0, Qt.AlignLeft)
+        self.form.addWidget(QLabel("Language:"), 4, 1, Qt.AlignRight)
+        self.form.addWidget(self.lilah_box, 4, 2, Qt.AlignRight)
+        self.form.addWidget(self.custom_list, 5, 0, Qt.AlignLeft)
         self.filegrid = QGridLayout()
-        self.form.addLayout(self.filegrid, 5, 0, 1, 3)
+        self.form.addLayout(self.filegrid, 6, 0, 1, 3)
         self.filegrid.addWidget(QLabel("Positive:"), 0, 0, Qt.AlignRight)
         self.filegrid.addWidget(self.__posfile_loader.file_combo, 0, 1)
         self.filegrid.addWidget(self.__posfile_loader.browse_btn, 0, 2)
@@ -125,8 +139,10 @@ class OWSentimentAnalysis(OWWidget):
 
         self.multi_dict = MultisentimentDictionaries()
         self.senti_dict = SentiArtDictionaries()
+        self.lilah_dict = LilahDictionaries()
         self.update_box(self.multi_box, self.multi_dict, MultiSentiment)
         self.update_box(self.senti_box, self.senti_dict, SentiArt)
+        self.update_box(self.lilah_box, self.lilah_dict, LilahSentiment)
         self.online = self.multi_dict.online
         self.check_sentiment_online()
 
@@ -163,13 +179,17 @@ class OWSentimentAnalysis(OWWidget):
             items = sorted([key for (key, value) in method.LANGS.items()
                             if value in supported_languages])
             box.addItems(items)
-            box.setCurrentIndex(items.index("English"))
+            if "English" in items:
+                box.setCurrentIndex(items.index("English"))
+            else:
+                box.setCurrentIndex(items.index(items[0]))
 
     def check_sentiment_online(self):
         current_state = self.multi_dict.online
         if self.online != current_state:
             self.update_box(self.multi_box, self.multi_dict, MultiSentiment)
             self.update_box(self.senti_box, self.senti_dict, SentiArt)
+            self.update_box(self.lilah_box, self.lilah_dict, SentiArt)
             self.online = current_state
 
         self.Warning.senti_offline.clear()
@@ -184,11 +204,16 @@ class OWSentimentAnalysis(OWWidget):
                 self.Warning.senti_offline()
             else:
                 self.Warning.senti_offline_no_lang()
+        if not current_state and self.method_idx == 4:
+            if self.lilah_dict_dict.supported_languages():
+                self.Warning.senti_offline()
+            else:
+                self.Warning.senti_offline_no_lang()
 
     @Inputs.corpus
     def set_corpus(self, data=None):
         self.corpus = data
-        if self.corpus is not None:
+        if self.corpus is not None and not self.corpus.has_tokens():
             # create preprocessed corpus upon setting data to avoid preprocessing
             # at each method run
             pp_list = [preprocess.LowercaseTransformer(),
@@ -221,6 +246,13 @@ class OWSentimentAnalysis(OWWidget):
                     self.update_box(self.senti_box, self.senti_dict, SentiArt)
                     return
                 out = method(language=self.senti_language).transform(corpus)
+            elif method.name == 'Lilah Sentiment':
+                if not self.lilah_dict.online:
+                    self.Warning.senti_offline()
+                    self.update_box(self.lilah_box, self.lilah_dict,
+                                    LilahSentiment)
+                    return
+                out = method(language=self.lilah_language).transform(corpus)
             elif method.name == 'Custom Dictionaries':
                 out = method(self.pos_file, self.neg_file).transform(corpus)
                 if (self.pos_file and not self.neg_file) or \
@@ -238,6 +270,14 @@ class OWSentimentAnalysis(OWWidget):
         self.report_items((
             ('Method', self.METHODS[self.method_idx].name),
         ))
+
+    @classmethod
+    def migrate_settings(cls, settings, version):
+        if version is None:
+            # in old version Custom Dictionaries were at id 4
+            method_idx = settings["method_idx"]
+            if method_idx == 4:
+                settings["metric_idx"] = 5
 
 
 def main():
