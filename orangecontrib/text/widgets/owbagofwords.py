@@ -48,16 +48,13 @@ class OWTBagOfWords(owbasevectorizer.OWBaseVectorizer):
 
         return layout
 
-    def update_method(self):
-        self.method = self.Method(norm=self.normalization,
-                                  wlocal=self.wlocal,
-                                  wglobal=self.wglobal)
+    def init_method(self):
+        return self.Method(
+            norm=self.normalization, wlocal=self.wlocal, wglobal=self.wglobal
+        )
 
 
 if __name__ == '__main__':
-    app = QApplication([])
-    widget = OWTBagOfWords()
-    widget.show()
-    corpus = Corpus.from_file('book-excerpts')
-    widget.set_data(corpus)
-    app.exec()
+    from orangewidget.utils.widgetpreview import WidgetPreview
+
+    WidgetPreview(OWTBagOfWords).run(Corpus.from_file("book-excerpts"))
