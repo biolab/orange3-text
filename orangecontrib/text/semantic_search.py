@@ -85,7 +85,7 @@ class SemanticSearch:
         for res_chunk, orig_chunk in zip(result_, chunks):
             if res_chunk is None:
                 # when embedder fails (Timeout or other error) result will be None
-                result.extend([None] * len(orig_chunk))
+                result.extend([None] * len(orig_chunk[0]))
             else:
                 result.extend(res_chunk)
 

@@ -118,6 +118,11 @@ class SemanticSearchTest(unittest.TestCase):
         result = self.semantic_search(self.corpus.documents, QUERIES)
         self.assertEqual(result, IDEAL_RESPONSE[:-1] + [None])
 
+    @patch(PATCH_METHOD, make_dummy_post(None))
+    def test_all_none(self):
+        result = self.semantic_search(self.corpus.documents * 10, QUERIES)
+        self.assertListEqual(result, [None] * len(self.corpus.documents) * 10)
+
     @patch(PATCH_METHOD, make_dummy_post(RESPONSE[0]))
     def test_success_chunks(self):
         num_docs = len(self.corpus.documents)
