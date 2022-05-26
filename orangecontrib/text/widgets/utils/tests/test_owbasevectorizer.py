@@ -15,8 +15,8 @@ class TestableBaseVectWidget(OWBaseVectorizer):
     def create_configuration_layout(self):
         return QVBoxLayout()
 
-    def update_method(self):
-        self.method = self.Method()
+    def init_method(self):
+        return self.Method()
 
 
 class TestOWBaseVectorizer(WidgetTest):

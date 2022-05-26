@@ -125,7 +125,3 @@ class OWBaseVectorizer(OWWidget, ConcurrentWidgetMixin, openclass=True):
     def cancel(self):
         self.Outputs.corpus.send(None)
         super().cancel()
-
-    def onDeleteWidget(self):
-        self.cancel()
-        super().onDeleteWidget()
