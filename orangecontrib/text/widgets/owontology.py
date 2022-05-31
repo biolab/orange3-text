@@ -503,7 +503,7 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
         words = Input("Words", Table)
 
     class Outputs:
-        words = Output("Words", Table)
+        words = Output("Words", Table, dynamic=False)
 
     class Warning(OWWidget.Warning):
         no_words_column = Msg("Input is missing 'Words' column.")

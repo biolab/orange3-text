@@ -199,7 +199,7 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
         words = Input("Words", Table)
 
     class Outputs:
-        words = Output("Words", Corpus)
+        words = Output("Words", Table, dynamic=False)
 
     class Warning(OWWidget.Warning):
         no_words_column = Msg("Input is missing 'Words' column.")

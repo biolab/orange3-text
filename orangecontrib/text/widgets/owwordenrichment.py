@@ -58,7 +58,7 @@ class OWWordEnrichment(OWWidget, ConcurrentWidgetMixin):
         data = Input("Data", Table)
 
     class Outputs:
-        words = Output("Words", Table)
+        words = Output("Words", Table, dynamic=False)
 
     want_main_area = True
 

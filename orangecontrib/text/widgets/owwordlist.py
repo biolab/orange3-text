@@ -155,7 +155,7 @@ class OWWordList(OWWidget):
 
     class Outputs:
         selected_words = Output("Selected Words", Table)
-        words = Output("Words", Table)
+        words = Output("Words", Table, dynamic=False)
 
     class Warning(OWWidget.Warning):
         no_string_vars = Msg("Input needs at least one Text variable.")
