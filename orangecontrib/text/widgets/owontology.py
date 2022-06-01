@@ -1,8 +1,11 @@
 import json
 import os
 import pickle
+import tempfile
 from contextlib import contextmanager
 from typing import Optional, List, Tuple, Any, Dict, Callable, Set, Union
+from urllib.parse import urlparse
+import requests
 
 from AnyQt.QtCore import Qt, QModelIndex, QItemSelection, Signal, \
     QItemSelectionModel
@@ -10,8 +13,8 @@ from AnyQt.QtGui import QDropEvent, QStandardItemModel, QStandardItem, \
     QPainter, QColor, QPalette, QDragEnterEvent, QDragLeaveEvent
 from AnyQt.QtWidgets import QWidget, QAction, QVBoxLayout, QTreeView, QMenu, \
     QToolButton, QGroupBox, QListView, QSizePolicy, QStyledItemDelegate, \
-    QStyleOptionViewItem, QLineEdit, QFileDialog, QApplication
-
+    QStyleOptionViewItem, QLineEdit, QFileDialog, QApplication, QDialog, \
+    QDialogButtonBox, QHBoxLayout, QLabel
 from owlready2 import Thing, World, OwlReadyOntologyParsingError
 
 from orangewidget.utils.listview import ListViewSearch
@@ -404,17 +407,69 @@ class Ontology:
         return f"{default_name} {index}"
 
 
+class UrlDialog(QDialog):
+    def __init__(self, parent=None, name="Open"):
+        super().__init__(parent)
+
+        self.__url_edit = QLineEdit()
+        self.__url_edit.setMinimumWidth(300)
+
+        button_box = QDialogButtonBox(
+            QDialogButtonBox.Cancel | QDialogButtonBox.Open,
+            Qt.Horizontal, self
+        )
+        button_box.accepted.connect(self.accept)
+        button_box.rejected.connect(self.reject)
+
+        layout = QVBoxLayout()
+        layout_ = QHBoxLayout()
+        layout_.addWidget(QLabel("URL:"))
+        layout_.addWidget(self.__url_edit)
+        layout.addLayout(layout_)
+        layout.addWidget(button_box)
+
+        self.setLayout(layout)
+        self.setWindowTitle(name)
+
+    @property
+    def url(self) -> str:
+        return self.__url_edit.text().strip()
+
+    @staticmethod
+    def getOpenUrlName(parent: OWWidget, name: str) -> Optional[str]:
+        dlg = UrlDialog(parent, name)
+        dlg.exec()
+        return dlg.result() and dlg.url
+
+
 LoadFileFormats = [
     "JSON file (*.json)",
     "Pickled Python object file (*.pkl)",
     "OWL file (*.owl)",
 ]
 
-
 SaveFileFormats = [
     "JSON file (*.json)",
     "Pickled Python object file (*.pkl)",
 ]
+
+
+def read_from_url(parent: OWWidget) -> Optional[Ontology]:
+    url = UrlDialog.getOpenUrlName(parent, "Open Ontology")
+    if not url:
+        return None
+
+    name = os.path.basename(urlparse(url).path)
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        with tempfile.TemporaryDirectory() as dir_name:
+            filename = os.path.join(dir_name, name)
+            with open(filename, "wb") as f:
+                f.write(response.content)
+            return _read_from_source(filename)
+    except Exception as ex:
+        return Ontology(name, {}, filename=url, error_msg=ex.args[0])
 
 
 def read_from_file(parent: OWWidget) -> Optional[Ontology]:
@@ -426,6 +481,10 @@ def read_from_file(parent: OWWidget) -> Optional[Ontology]:
     if not filename:
         return None
 
+    return _read_from_source(filename)
+
+
+def _read_from_source(filename: str) -> Ontology:
     name = os.path.basename(filename)
     _, ext = os.path.splitext(name)
 
@@ -450,7 +509,7 @@ def read_from_file(parent: OWWidget) -> Optional[Ontology]:
             data = _onto_to_tree(Thing, world)
 
     else:
-        raise NotImplementedError()
+        raise NotImplementedError(f"No readers for file {name}")
 
     assert isinstance(data, dict)
     return Ontology(name, data, filename=filename)
@@ -611,7 +670,7 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
 
         menu = QMenu(actions_widget)
         menu.addAction(new_from_file)
-        # menu.addAction(new_from_url)
+        menu.addAction(new_from_url)
         menu.addAction(save_to_file)
         action.setMenu(menu)
         button = actions_widget.addAction(action)
@@ -702,13 +761,11 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
 
     def __on_import_file(self):
         ontology = read_from_file(self)
-        if ontology is not None:
-            self.__model.append(ontology)
-            self.__set_selected_row(len(self.__model) - 1)
-        QApplication.setActiveWindow(self)
+        self._import_ontology(ontology)
 
     def __on_import_url(self):
-        pass
+        ontology = read_from_url(self)
+        self._import_ontology(ontology)
 
     def __on_save(self):
         index = self.__get_selected_row()
@@ -835,6 +892,12 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
     def __get_selected_input_words(self) -> List[str]:
         return [self.__input_view.model().data(index) for index in
                 self.__input_view.selectedIndexes()]
+
+    def _import_ontology(self, ontology: Ontology):
+        if ontology is not None:
+            self.__model.append(ontology)
+            self.__set_selected_row(len(self.__model) - 1)
+        QApplication.setActiveWindow(self)
 
     def _restore_state(self):
         source = [Ontology.from_dict(s) for s in self.ontology_library]
