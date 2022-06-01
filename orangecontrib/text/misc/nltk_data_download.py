@@ -1,3 +1,4 @@
+import logging
 import os
 import sys
 import time
@@ -6,8 +7,13 @@ from threading import Thread
 
 import nltk
 from Orange.misc.environ import data_dir_base
+from Orange.misc.utils.embedder_utils import get_proxies
+
 
 __all__ = ['wait_nltk_data', 'nltk_data_dir']
+
+log = logging.getLogger(__name__)
+
 
 NLTK_DATA = [
     'wordnet',
@@ -34,6 +40,16 @@ is_done_loading = False
 
 def _download_nltk_data():
     global is_done_loading
+
+    # set proxy if exist
+    proxies = get_proxies() or {}
+    # use https if exists and others otherwise
+    for key in ("https://", "all://", "http://"):
+        if key in proxies:
+            log.debug(f"Using proxy for NLTK: {proxies[key]}")
+            nltk.set_proxy(proxies[key])
+            break
+
     nltk.download(NLTK_DATA, download_dir=nltk_data_dir(), quiet=True)
     is_done_loading = True
     sys.stdout.flush()
