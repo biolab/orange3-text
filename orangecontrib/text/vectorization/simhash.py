@@ -1,4 +1,5 @@
 import nltk
+from Orange.util import dummy_callback
 from simhash import Simhash
 import numpy as np
 
@@ -36,7 +37,7 @@ class SimhashVectorizer(BaseVectorizer):
     def int2binarray(self, num):
         return [int(x) for x in self._bin_format.format(num)]
 
-    def _transform(self, corpus, source_dict):
+    def _transform(self, corpus, _, callback=dummy_callback):
         """ Computes simhash values from the given corpus
         and creates a new one with a simhash attribute.
 
@@ -46,8 +47,13 @@ class SimhashVectorizer(BaseVectorizer):
         Returns:
             Corpus with `simhash` variable
         """
-
-        X = np.array([self.int2binarray(self.compute_hash(doc)) for doc in corpus.tokens], dtype=float)
+        if not len(corpus):
+            return corpus
+        hashes = []
+        for i, doc in enumerate(corpus.tokens):
+            hashes.append(self.int2binarray(self.compute_hash(doc)))
+            callback(i / len(corpus))
+        X = np.array(hashes, dtype=float)
         corpus = corpus.extend_attributes(
             X,
             feature_names=[

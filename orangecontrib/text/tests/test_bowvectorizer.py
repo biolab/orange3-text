@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import MagicMock, call
 
 import numpy as np
 from Orange.data import Domain, StringVariable
@@ -230,6 +231,16 @@ class BowVectorizationTest(unittest.TestCase):
         # weights computed based on numbers from training dataset
         idfs_test = self.test_counts * np.log(n / document_appearance)
         self.assert_bow_same(bow_test, idfs_test, self.terms)
+
+    def test_callback(self):
+        vect = BowVectorizer()
+        corpus = Corpus.from_file("deerwester")
+        callback = MagicMock()
+
+        result = vect.transform(corpus, callback=callback)
+        self.assertIsInstance(result, Corpus)
+        self.assertEqual(len(result.domain.variables), 43)
+        callback.assert_has_calls([call(0.3), call(0.6), call(0.9), call(1)])
 
 
 if __name__ == "__main__":

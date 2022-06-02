@@ -1,6 +1,7 @@
 import numpy as np
 
 from Orange.data.util import SharedComputeValue
+from Orange.util import dummy_callback
 from orangecontrib.text.util import Sparse2CorpusSliceable
 
 
@@ -8,15 +9,13 @@ class BaseVectorizer:
     """Base class for vectorization objects. """
     name = NotImplemented
 
-    def transform(self, corpus, copy=True, source_dict=None):
+    def transform(self, corpus, copy=True, source_dict=None, callback=dummy_callback):
         """Transforms a corpus to a new one with additional attributes. """
-        if not (len(corpus.dictionary) or source_dict) or not len(corpus):
-            return corpus
         if copy:
             corpus = corpus.copy()
-        return self._transform(corpus, source_dict)
+        return self._transform(corpus, source_dict, callback)
 
-    def _transform(self, corpus, source_dict):
+    def _transform(self, corpus, source_dict, callback):
         raise NotImplementedError
 
     def report(self):

@@ -1,15 +1,22 @@
+import unittest
+
+from AnyQt.QtWidgets import QVBoxLayout
+
 from orangecontrib.text import Corpus
 from orangecontrib.text.vectorization import BowVectorizer
 from orangecontrib.text.widgets.utils.owbasevectorizer import OWBaseVectorizer
-try:
-    from orangewidget.tests.base import WidgetTest
-except:
-    from Orange.widgets.tests.base import WidgetTest
+from Orange.widgets.tests.base import WidgetTest
 
 
 class TestableBaseVectWidget(OWBaseVectorizer):
     name = "TBV"
     Method = BowVectorizer
+
+    def create_configuration_layout(self):
+        return QVBoxLayout()
+
+    def init_method(self):
+        return self.Method()
 
 
 class TestOWBaseVectorizer(WidgetTest):
@@ -35,3 +42,7 @@ class TestOWBaseVectorizer(WidgetTest):
 
         self.send_signal("Corpus", None)
         self.assertFalse(self.get_output("Corpus"))
+
+
+if __name__ == "__main__":
+    unittest.main()

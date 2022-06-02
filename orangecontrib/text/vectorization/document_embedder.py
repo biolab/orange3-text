@@ -6,13 +6,14 @@ import json
 import sys
 import warnings
 import zlib
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, Optional, Tuple
 
 import numpy as np
 from Orange.misc.server_embedder import ServerEmbedderCommunicator
 from Orange.util import dummy_callback
 
 from orangecontrib.text import Corpus
+from orangecontrib.text.vectorization.base import BaseVectorizer
 
 AGGREGATORS = ['Mean', 'Sum', 'Max', 'Min']
 AGGREGATORS_L = ['mean', 'sum', 'max', 'min']
@@ -52,7 +53,7 @@ LANGS_TO_ISO = {
 LANGUAGES = list(LANGS_TO_ISO.values())
 
 
-class DocumentEmbedder:
+class DocumentEmbedder(BaseVectorizer):
     """This class is used for obtaining dense embeddings of documents in
     corpus using fastText pretrained models from:
     E. Grave, P. Bojanowski, P. Gupta, A. Joulin, T. Mikolov,
@@ -93,9 +94,9 @@ class DocumentEmbedder:
                                          server_url='https://apiv2.garaza.io',
                                          embedder_type='text')
 
-    def __call__(
-        self, corpus: Union[Corpus, List[List[str]]], callback=dummy_callback
-    ) -> Union[Tuple[Corpus, Corpus], List[Optional[List[float]]]]:
+    def _transform(
+        self, corpus: Corpus, _, callback=dummy_callback
+    ) -> Tuple[Corpus, Corpus]:
         """Adds matrix of document embeddings to a corpus.
 
         Parameters
@@ -109,14 +110,7 @@ class DocumentEmbedder:
             Corpus (original or a copy) with new features added.
         Skipped documents
             Corpus of documents that were not embedded
-
-        Raises
-        ------
-        ValueError
-            If corpus is not instance of Corpus.
         """
-        if not isinstance(corpus, (Corpus, list)):
-            raise ValueError("Input should be instance of Corpus or list.")
         embs = self._embedder.embedd_data(
             list(corpus.ngrams) if isinstance(corpus, Corpus) else corpus,
             callback=callback,
@@ -135,12 +129,6 @@ class DocumentEmbedder:
         skipped_documents = [emb is None for emb in embs]
         embedded_documents = np.logical_not(skipped_documents)
 
-        variable_attrs = {
-            'hidden': True,
-            'skip-normalization': True,
-            'embedding-feature': True
-        }
-
         new_corpus = None
         if np.any(embedded_documents):
             # if at least one embedding is not None, extend attributes
@@ -150,18 +138,22 @@ class DocumentEmbedder:
                     [e for e, ns in zip(embs, embedded_documents) if ns],
                     dtype=float,
                 ),
-                ['Dim{}'.format(i + 1) for i in range(dim)],
-                var_attrs=variable_attrs
+                ["Dim{}".format(i + 1) for i in range(dim)],
+                var_attrs={
+                    "embedding-feature": True,
+                    "hidden": True,
+                },
             )
 
         skipped_corpus = None
         if np.any(skipped_documents):
             skipped_corpus = corpus[skipped_documents].copy()
             skipped_corpus.name = "Skipped documents"
-            warnings.warn(("Some documents were not embedded for " +
-                           "unknown reason. Those documents " +
-                           "are skipped."),
-                          RuntimeWarning)
+            warnings.warn(
+                "Some documents were not embedded for unknown reason. Those "
+                "documents are skipped.",
+                RuntimeWarning,
+            )
 
         return new_corpus, skipped_corpus
 
@@ -180,12 +172,6 @@ class DocumentEmbedder:
         """Clears embedder cache"""
         if self._embedder:
             self._embedder.clear_cache()
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, _, __, ___):
-        pass
 
 
 class _ServerEmbedder(ServerEmbedderCommunicator):
