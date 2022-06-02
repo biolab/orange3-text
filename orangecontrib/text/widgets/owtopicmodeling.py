@@ -1,5 +1,5 @@
 import functools
-from typing import Any
+from typing import Any, Optional
 
 import numpy as np
 
@@ -21,7 +21,8 @@ from Orange.widgets import gui
 from Orange.widgets.settings import DomainContextHandler
 from Orange.widgets.widget import OWWidget, Input, Output, Msg
 from Orange.data import Table, TimeVariable
-from Orange.preprocess.discretize import time_binnings
+from Orange.preprocess.discretize import time_binnings, short_time_units, \
+    Discretizer
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.topics import Topic, Topics, LdaWrapper, HdpWrapper, \
     LsiWrapper, NmfWrapper, LdaSeqWrapper
@@ -39,31 +40,15 @@ class TopicWidget(gui.OWComponent, QGroupBox):
         QGroupBox.__init__(self, **kwargs)
         gui.OWComponent.__init__(self, master)
         self.model = self.create_model()
-        self.domain_model = None
         QVBoxLayout(self)
-        for p in self.parameters:
-            if p[0] == "time_var":
-                parameter, description, _type = p
-                self.var_combo = gui.comboBox(
-                    self, self, parameter, label=description, orientation=Qt.Horizontal,
-                    searchable=True, model=DomainModel(placeholder="(None)", valid_types=(TimeVariable,)),
-                    callback=self._on_var_changed, contentsLength=18)
-                self.domain_model = self.var_combo.model()
-            elif p[0] == "number_of_bins":
-                slider = gui.hSlider(
-                    self, self, "number_of_bins",
-                    label="Bin width", orientation=Qt.Horizontal,
-                    minValue=0, maxValue=max(1, len(master.binnings) - 1),
-                    createLabel=False, callback=self._on_bins_changed)
-                self.bin_width_label = gui.widgetLabel(slider.box)
-                slider.sliderReleased.connect(self._on_bins_changed)
-            else:
-                parameter, description, minv, maxv, step, _type = p
-                spin = gui.spin(self, self, parameter, minv=minv, maxv=maxv, step=step,
-                                label=self.spin_format.format(description=description, parameter=parameter),
-                                labelWidth=220, spinType=_type)
-                spin.clearFocus()
-                spin.editingFinished.connect(self.on_change)
+        for parameter, description, minv, maxv, step, _type in self.parameters:
+            spin = gui.spin(self, self, parameter, minv=minv, maxv=maxv,
+                            step=step,
+                            label=self.spin_format.format(
+                                description=description, parameter=parameter),
+                            labelWidth=220, spinType=_type)
+            spin.clearFocus()
+            spin.editingFinished.connect(self.on_change)
 
     def on_change(self):
         self.model = self.create_model()
@@ -75,21 +60,8 @@ class TopicWidget(gui.OWComponent, QGroupBox):
     def report_model(self):
         return self.model.name, ((par[1], getattr(self, par[0])) for par in self.parameters)
 
-    def _set_bin_width_slider_label(self):
-        if self.number_of_bins < len(self.binnings):
-            text = self._short_text(
-                self.binnings[self.number_of_bins].width_label)
-        else:
-            text = ""
-        self.bin_width_label.setText(text)
-
-    def _on_bins_changed(self):
-        self._set_bin_width_slider_label()
-        self.on_change()
-
-    def _on_var_changed(self):
-        self.domain_model = self.var_combo.model()
-        self.on_change()
+    def set_data(self, _):
+        pass  # widgets that need it will reimplement
 
 
 class LdaWidget(TopicWidget):
@@ -144,15 +116,81 @@ class NmfWidget(TopicWidget):
 class DtmWidget(TopicWidget):
     Model = LdaSeqWrapper
 
-    settingsHandler = settings.DomainContextHandler()
     parameters = (
         ('num_topics', 'Number of topics', 1, 500, 1, int),
-        ('time_var', 'Time variable', list),
-        ('number_of_bins', 'Time slice', int),
     )
-    num_topics = settings.Setting(10)
-    time_var = settings.ContextSetting(None)
-    number_of_bins = settings.ContextSetting(5, schema_only=True)
+
+    num_topics: int = settings.Setting(10)
+    time_var: Optional[TimeVariable] = settings.ContextSetting(None)
+    number_of_bins: int = settings.ContextSetting(5, schema_only=True)
+
+    def __init__(self, master, **kwargs):
+        super().__init__(master, **kwargs)
+        self.binnings = None
+        self.data = None
+
+        self.domain_model = DomainModel(placeholder="(None)", valid_types=(TimeVariable,))
+        self.var_combo = gui.comboBox(
+            self, self, "time_var", label="Time variable", orientation=Qt.Horizontal,
+            searchable=True, model=self.domain_model, callback=self._on_var_changed,
+            contentsLength=18
+        )
+
+        slider = gui.hSlider(
+            self, self, "number_of_bins",
+            label="Bin width", orientation=Qt.Horizontal,
+            minValue=0, maxValue=max(1, len(master.binnings) - 1),
+            createLabel=False, callback=self._on_bins_changed)
+        self.bin_width_label = gui.widgetLabel(slider.box)
+        slider.sliderReleased.connect(self._on_bins_changed)
+
+    def _set_bin_width_slider_label(self):
+        if self.number_of_bins < len(self.binnings):
+            text = self._short_text(self.binnings[self.number_of_bins].width_label)
+        else:
+            text = ""
+        self.bin_width_label.setText(text)
+
+    def _on_bins_changed(self):
+        self._set_bin_width_slider_label()
+        self.on_change()
+
+    def _on_var_changed(self):
+        self._recompute_binnings()
+        self.on_change()
+
+    def set_data(self, data):
+        self.domain_model.set_domain(data.domain if data is not None else None)
+        self.data = data
+
+    def _recompute_binnings(self):
+        self.binnings = []
+        max_bins = 0
+        if self.time_var:
+            column = self.data.get_column_view(self.time_var)[0].astype(float)
+            if np.any(np.isfinite(column)):
+                self.binnings = time_binnings(column, min_unique=5)
+                max_bins = len(self.binnings) - 1
+
+        self.controls.number_of_bins.setMaximum(max_bins)
+        self.number_of_bins = min(max_bins, self.number_of_bins)
+        self._set_bin_width_slider_label()
+
+    @staticmethod
+    def _short_text(label):
+        return functools.reduce(
+            lambda s, rep: s.replace(*rep), short_time_units.items(), label
+        )
+
+    def create_model(self):
+        if self.time_var:
+            column = self.data.get_column_view(self.time_var)[0].astype(float)
+            bin_idx = Discretizer.digitize(column, self.binnings[self.number_of_bins].thresholds)
+            time_slice = np.bincount(bin_idx)
+            return self.Model(
+                **{par[0]: getattr(self, par[0]) for par in self.parameters},
+                time_slice=time_slice
+            )
 
 
 def require(attribute):
@@ -246,7 +284,7 @@ class OWTopicModeling(OWWidget, ConcurrentWidgetMixin):
         for i, (method, attr_name) in enumerate(self.methods):
             widget = method(self, title='Options')
             widget.setFixedWidth(self.control_area_width)
-            widget.valueChanged.connect(self.commit)
+            widget.valueChanged.connect(self.commit.deferred)
             self.widgets.append(widget)
             setattr(self, attr_name, widget)
 
@@ -274,27 +312,11 @@ class OWTopicModeling(OWWidget, ConcurrentWidgetMixin):
     def set_data(self, data=None):
         self.Warning.less_topics_found.clear()
         self.corpus = data
-        varmodel = self.widgets[self.method_index].domain_model
-        print(varmodel)
-        if varmodel:
-            varmodel.set_domain(data.domain if data else None)
-            self.var = varmodel[0]
-        else:
-            self.var = None
+        for w in self.widgets:
+            w.set_data(data)
         self.apply()
 
-    def time_bins(self):
-        column = self.data.get_column_view(self.var)[0].astype(float)
-        if self.var.is_time and np.any(np.isfinite(column)):
-            self.binnings = time_binnings(column, min_unique=5)
-            max_bins = len(self.binnings) - 1
-        else:
-            self.binnings = []
-            max_bins = 0
-
-        self.controls.number_of_bins.setMaximum(max_bins)
-        self.number_of_bins = min(max_bins, self.number_of_bins)
-
+    @gui.deferred
     def commit(self):
         if self.corpus is not None:
             self.apply()
@@ -307,7 +329,7 @@ class OWTopicModeling(OWWidget, ConcurrentWidgetMixin):
         if self.method_index != new_index:
             self.method_index = new_index
             self.toggle_widgets()
-            self.commit()
+            self.commit.deferred()
 
     def toggle_widgets(self):
         for i, widget in enumerate(self.widgets):
@@ -316,7 +338,7 @@ class OWTopicModeling(OWWidget, ConcurrentWidgetMixin):
     def apply(self):
         self.cancel()
         self.topic_desc.clear()
-        if self.corpus is not None:
+        if self.corpus is not None and self.model is not None:
             self.Warning.less_topics_found.clear()
             self.start(_run, self.corpus, self.model)
         else:
@@ -339,16 +361,21 @@ class OWTopicModeling(OWWidget, ConcurrentWidgetMixin):
         if self.model.name == "Latent Dirichlet Allocation":
             bound = self.model.model.log_perplexity(corpus.ngrams_corpus)
             self.perplexity = "{:.5f}".format(np.exp2(-bound))
-        cm = CoherenceModel(
-            model=self.model.model, texts=corpus.tokens, corpus=corpus, coherence="c_v"
-        )
-        coherence = cm.get_coherence()
-        self.coherence = "{:.5f}".format(coherence)
+        try:
+            # CoherenceModel does not support some models - e.i. LdaSeq
+            cm = CoherenceModel(
+                model=self.model.model, texts=corpus.tokens, corpus=corpus, coherence="c_v"
+            )
+            coherence = cm.get_coherence()
+            self.coherence = "{:.5f}".format(coherence)
+        except ValueError:
+            self.coherence = "n/a"
 
         self.Outputs.all_topics.send(self.model.get_all_topics_table())
 
     def on_exception(self, ex: Exception):
         self.Error.unexpected_error(str(ex))
+        raise ex
 
     def on_partial_result(self, result: Any) -> None:
         pass
@@ -360,7 +387,7 @@ class OWTopicModeling(OWWidget, ConcurrentWidgetMixin):
 
     def send_topic_by_id(self, topic_id=None):
         self.selection = topic_id
-        if self.model.model and topic_id is not None:
+        if self.model and self.model.model and topic_id is not None:
             self.Outputs.selected_topic.send(
                 self.model.get_topics_table_by_id(topic_id))
 
@@ -494,6 +521,7 @@ if __name__ == '__main__':
     app = QApplication([])
     widget = OWTopicModeling()
     # widget.set_data(Corpus.from_file('book-excerpts'))
-    widget.set_data(Corpus.from_file('deerwester'))
+    # widget.set_data(Corpus.from_file('deerwester'))
+    widget.set_data(Corpus.from_file('election-tweets-2016')[:50])
     widget.show()
     app.exec()

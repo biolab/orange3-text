@@ -2,7 +2,7 @@ import numpy as np
 
 from Orange.data.util import SharedComputeValue
 from Orange.util import dummy_callback
-from orangecontrib.text.util import Sparse2CorpusSliceable
+from gensim.matutils import Sparse2Corpus
 
 
 class BaseVectorizer:
@@ -44,7 +44,7 @@ class BaseVectorizer:
             sparse=True,
             rename_existing=True
         )
-        corpus.ngrams_corpus = Sparse2CorpusSliceable(X.T)
+        corpus.ngrams_corpus = Sparse2Corpus(X.T)
         return corpus
 
 

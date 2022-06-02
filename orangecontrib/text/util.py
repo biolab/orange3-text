@@ -1,11 +1,8 @@
 from functools import wraps
 from math import ceil
-from typing import Union, List
 
 import numpy as np
 import scipy.sparse as sp
-from gensim.matutils import Sparse2Corpus
-from scipy.sparse import csc_matrix
 
 
 def chunks(iterable, chunk_size):
@@ -63,29 +60,3 @@ def np_sp_sum(x, axis=None):
         return r
     else:
         return np.sum(x, axis=axis)
-
-
-class Sparse2CorpusSliceable(Sparse2Corpus):
-    """
-    Sparse2Corpus support only retrieving a vector for single document.
-    This class implements slice operation on the Sparse2Corpus object.
-
-    Todo: this implementation is temporary, remove it when/if implemented in gensim
-    """
-
-    def __getitem__(
-        self, key: Union[int, List[int], np.ndarray, type(...), slice]
-    ) -> Sparse2Corpus:
-        """Retrieve a document vector from the corpus by its index.
-
-        Parameters
-        ----------
-        key
-            Index of document or slice for documents
-
-        Returns
-        -------
-        Selected subset of sparse data from self.
-        """
-        sparse = self.sparse.__getitem__((slice(None, None, None), key))
-        return Sparse2CorpusSliceable(sparse)

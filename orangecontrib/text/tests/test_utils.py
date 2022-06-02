@@ -3,9 +3,8 @@ import unittest
 import numpy as np
 import scipy.sparse as sp
 from numpy.testing import assert_array_equal
-from scipy.sparse import csc_matrix
 
-from orangecontrib.text.util import chunks, np_sp_sum, Sparse2CorpusSliceable
+from orangecontrib.text.util import chunks, np_sp_sum
 
 
 class ChunksTest(unittest.TestCase):
@@ -30,44 +29,6 @@ class TestNpSpSum(unittest.TestCase):
             self.assertEqual(np_sp_sum(data), 10)
             np.testing.assert_equal(np_sp_sum(data, axis=1), np.ones(10))
             np.testing.assert_equal(np_sp_sum(data, axis=0), np.ones(10))
-
-
-class TestSparse2CorpusSliceable(unittest.TestCase):
-    def setUp(self) -> None:
-        self.orig_array = np.array([[1, 2, 3], [4, 5, 6]])
-        self.s2c = Sparse2CorpusSliceable(csc_matrix(self.orig_array))
-
-    def test_slice(self):
-        assert_array_equal(self.s2c[:2].sparse.toarray(), self.orig_array[:, :2])
-        assert_array_equal(self.s2c[1:3].sparse.toarray(), self.orig_array[:, 1:3])
-
-    def test_index(self):
-        assert_array_equal(self.s2c[1].sparse.toarray(), self.orig_array[:, [1]])
-
-    def test_list_of_indices(self):
-        assert_array_equal(
-            self.s2c[[1, 2]].sparse.toarray(), self.orig_array[:, [1, 2]]
-        )
-        assert_array_equal(self.s2c[[1]].sparse.toarray(), self.orig_array[:, [1]])
-
-    def test_ndarray(self):
-        assert_array_equal(
-            self.s2c[np.array([1, 2])].sparse.toarray(), self.orig_array[:, [1, 2]]
-        )
-        assert_array_equal(
-            self.s2c[np.array([1])].sparse.toarray(), self.orig_array[:, [1]]
-        )
-
-    def test_range(self):
-        assert_array_equal(
-            self.s2c[range(1, 3)].sparse.toarray(), self.orig_array[:, [1, 2]]
-        )
-        assert_array_equal(
-            self.s2c[range(1, 2)].sparse.toarray(), self.orig_array[:, [1]]
-        )
-
-    def test_elipsis(self):
-        assert_array_equal(self.s2c[...].sparse.toarray(), self.orig_array)
 
 
 if __name__ == "__main__":

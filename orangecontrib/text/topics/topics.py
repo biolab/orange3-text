@@ -126,13 +126,19 @@ class GensimWrapper:
             FutureWarning)
         self.model.update(documents)
 
-    def transform(self, corpus):
-        """ Create a table with topics representation. """
+    def get_topic_matrix(self, corpus):
         topics = self.model[corpus.ngrams_corpus]
-        self.actual_topics = self.model.get_topics().shape[0]
-        matrix = matutils.corpus2dense(
+        return matutils.corpus2dense(
             topics, num_docs=len(corpus), num_terms=self.num_topics
         ).T.astype(np.float64)
+
+    def get_num_topic(self):
+        return self.model.get_topics().shape[0]
+
+    def transform(self, corpus):
+        """ Create a table with topics representation. """
+        matrix = self.get_topic_matrix(corpus)
+        self.actual_topics = self.get_num_topic()
         corpus = corpus.extend_attributes(
             matrix[:, :self.actual_topics],
             self.topic_names[:self.actual_topics]
