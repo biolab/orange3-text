@@ -23,7 +23,6 @@ class OWNYT(OWWidget):
         name = "New York Times API key"
         want_main_area = False
         resizing_enabled = False
-        cm_key = CredentialManager('NY Times API Key')
         key_input = ''
 
         class Error(OWWidget.Error):
@@ -32,6 +31,7 @@ class OWNYT(OWWidget):
 
         def __init__(self, parent):
             super().__init__()
+            self.cm_key = CredentialManager('NY Times API Key')
             self.parent = parent
             self.api = None
 
