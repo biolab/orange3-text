@@ -1,8 +1,11 @@
 import json
 import os
 import pickle
+import tempfile
 from contextlib import contextmanager
 from typing import Optional, List, Tuple, Any, Dict, Callable, Set, Union
+from urllib.parse import urlparse
+import requests
 
 from AnyQt.QtCore import Qt, QModelIndex, QItemSelection, Signal, \
     QItemSelectionModel
@@ -10,11 +13,13 @@ from AnyQt.QtGui import QDropEvent, QStandardItemModel, QStandardItem, \
     QPainter, QColor, QPalette, QDragEnterEvent, QDragLeaveEvent
 from AnyQt.QtWidgets import QWidget, QAction, QVBoxLayout, QTreeView, QMenu, \
     QToolButton, QGroupBox, QListView, QSizePolicy, QStyledItemDelegate, \
-    QStyleOptionViewItem, QLineEdit, QFileDialog, QApplication
+    QStyleOptionViewItem, QLineEdit, QFileDialog, QApplication, QDialog, \
+    QDialogButtonBox, QHBoxLayout, QLabel
+from owlready2 import Thing, World, OwlReadyOntologyParsingError
 
 from orangewidget.utils.listview import ListViewSearch
 
-from Orange.data import Table, StringVariable, Domain
+from Orange.data import Table
 from Orange.widgets import gui
 from Orange.widgets.settings import DomainContextHandler, Setting
 from Orange.widgets.utils.concurrent import ConcurrentWidgetMixin, TaskState
@@ -94,6 +99,13 @@ def _tree_to_html(tree: Dict) -> str:
     html += "</ul>"
 
     return html
+
+
+def _onto_to_tree(thing: Thing, world: World) -> Dict:
+    tree = {}
+    for cl in list(thing.subclasses(world=world)):
+        tree[cl.name] = _onto_to_tree(cl, world)
+    return tree
 
 
 @contextmanager
@@ -352,10 +364,12 @@ class Ontology:
             self,
             name: str,
             ontology: Dict,
-            filename: Optional[str] = None
+            filename: Optional[str] = None,
+            error_msg: Optional[str] = None
     ):
         self.name = name
         self.filename = filename
+        self.error_msg = error_msg
         self.word_tree = dict(ontology)  # library ontology
         self.cached_word_tree = dict(ontology)  # current ontology
         self.update_rule_flag = Ontology.NotModified
@@ -369,13 +383,15 @@ class Ontology:
     def as_dict(self) -> Dict:
         return {"name": self.name,
                 "ontology": dict(self.word_tree),
-                "filename": self.filename}
+                "filename": self.filename,
+                "error_msg": self.error_msg}
 
     @classmethod
     def from_dict(cls, state: Dict) -> "Ontology":
         return Ontology(state["name"],
                         dict(state["ontology"]),
-                        filename=state.get("filename"))
+                        filename=state.get("filename"),
+                        error_msg=state.get("error_msg"))
 
     @staticmethod
     def generate_name(taken_names: List[str]) -> str:
@@ -391,21 +407,84 @@ class Ontology:
         return f"{default_name} {index}"
 
 
-FileFormats = [
+class UrlDialog(QDialog):
+    def __init__(self, parent=None, name="Open"):
+        super().__init__(parent)
+
+        self.__url_edit = QLineEdit()
+        self.__url_edit.setMinimumWidth(300)
+
+        button_box = QDialogButtonBox(
+            QDialogButtonBox.Cancel | QDialogButtonBox.Open,
+            Qt.Horizontal, self
+        )
+        button_box.accepted.connect(self.accept)
+        button_box.rejected.connect(self.reject)
+
+        layout = QVBoxLayout()
+        layout_ = QHBoxLayout()
+        layout_.addWidget(QLabel("URL:"))
+        layout_.addWidget(self.__url_edit)
+        layout.addLayout(layout_)
+        layout.addWidget(button_box)
+
+        self.setLayout(layout)
+        self.setWindowTitle(name)
+
+    @property
+    def url(self) -> str:
+        return self.__url_edit.text().strip()
+
+    @staticmethod
+    def getOpenUrlName(parent: OWWidget, name: str) -> Optional[str]:
+        dlg = UrlDialog(parent, name)
+        dlg.exec()
+        return dlg.result() and dlg.url
+
+
+LoadFileFormats = [
+    "JSON file (*.json)",
+    "Pickled Python object file (*.pkl)",
+    "OWL file (*.owl)",
+]
+
+SaveFileFormats = [
     "JSON file (*.json)",
     "Pickled Python object file (*.pkl)",
 ]
+
+
+def read_from_url(parent: OWWidget) -> Optional[Ontology]:
+    url = UrlDialog.getOpenUrlName(parent, "Open Ontology")
+    if not url:
+        return None
+
+    name = os.path.basename(urlparse(url).path)
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        with tempfile.TemporaryDirectory() as dir_name:
+            filename = os.path.join(dir_name, name)
+            with open(filename, "wb") as f:
+                f.write(response.content)
+            return _read_from_source(filename)
+    except Exception as ex:
+        return Ontology(name, {}, filename=url, error_msg=ex.args[0])
 
 
 def read_from_file(parent: OWWidget) -> Optional[Ontology]:
     filename, _ = QFileDialog.getOpenFileName(
         parent, "Open Ontology",
         os.path.expanduser("~/"),
-        ";;".join(FileFormats)
+        ";;".join(LoadFileFormats)
     )
     if not filename:
         return None
 
+    return _read_from_source(filename)
+
+
+def _read_from_source(filename: str) -> Ontology:
     name = os.path.basename(filename)
     _, ext = os.path.splitext(name)
 
@@ -417,8 +496,20 @@ def read_from_file(parent: OWWidget) -> Optional[Ontology]:
         with open(filename, "rb") as f:
             data = pickle.load(f)
 
+    elif ext == ".owl":
+        world = World()
+
+        try:
+            ontology = world.get_ontology(filename)
+            onto = ontology.load()
+        except OwlReadyOntologyParsingError as ex:
+            return Ontology(name, {}, filename=filename, error_msg=ex.args[0])
+
+        with onto:
+            data = _onto_to_tree(Thing, world)
+
     else:
-        raise NotImplementedError()
+        raise NotImplementedError(f"No readers for file {name}")
 
     assert isinstance(data, dict)
     return Ontology(name, data, filename=filename)
@@ -427,7 +518,7 @@ def read_from_file(parent: OWWidget) -> Optional[Ontology]:
 def save_ontology(parent: OWWidget, filename: str, data: Dict):
     filename, _ = QFileDialog.getSaveFileName(
         parent, "Save Ontology", filename,
-        ";;".join(FileFormats)
+        ";;".join(SaveFileFormats)
     )
     if filename:
         assert isinstance(data, dict)
@@ -508,6 +599,9 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
     class Warning(OWWidget.Warning):
         no_words_column = Msg("Input is missing 'Words' column.")
 
+    class Error(OWWidget.Error):
+        load_error = Msg("{}")
+
     def __init__(self):
         OWWidget.__init__(self)
         ConcurrentWidgetMixin.__init__(self)
@@ -576,7 +670,7 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
 
         menu = QMenu(actions_widget)
         menu.addAction(new_from_file)
-        # menu.addAction(new_from_url)
+        menu.addAction(new_from_url)
         menu.addAction(save_to_file)
         action.setMenu(menu)
         button = actions_widget.addAction(action)
@@ -640,11 +734,15 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
         self._enable_include_button()
 
     def __on_selection_changed(self, selection: QItemSelection, *_):
+        self.Error.load_error.clear()
         if selection.indexes():
             self.ontology_index = row = selection.indexes()[0].row()
             data = self.__model[row].cached_word_tree
             self.__ontology_view.set_data(data)
             self.__update_score()
+            error_msg = self.__model[row].error_msg
+            if error_msg:
+                self.Error.load_error(error_msg)
 
     def __on_add(self):
         name = Ontology.generate_name([l.name for l in self.__model])
@@ -663,18 +761,18 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
 
     def __on_import_file(self):
         ontology = read_from_file(self)
-        if ontology is not None:
-            self.__model.append(ontology)
-            self.__set_selected_row(len(self.__model) - 1)
-        QApplication.setActiveWindow(self)
+        self._import_ontology(ontology)
 
     def __on_import_url(self):
-        pass
+        ontology = read_from_url(self)
+        self._import_ontology(ontology)
 
     def __on_save(self):
         index = self.__get_selected_row()
         if index is not None:
             filename = self.__model[index].filename
+            if filename:
+                filename, _ = os.path.splitext(filename)
         else:
             filename = os.path.expanduser("~/")
         save_ontology(self, filename, self.__ontology_view.get_data())
@@ -794,6 +892,12 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
     def __get_selected_input_words(self) -> List[str]:
         return [self.__input_view.model().data(index) for index in
                 self.__input_view.selectedIndexes()]
+
+    def _import_ontology(self, ontology: Ontology):
+        if ontology is not None:
+            self.__model.append(ontology)
+            self.__set_selected_row(len(self.__model) - 1)
+        QApplication.setActiveWindow(self)
 
     def _restore_state(self):
         source = [Ontology.from_dict(s) for s in self.ontology_library]
