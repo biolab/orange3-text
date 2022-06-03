@@ -9,6 +9,7 @@ Widgets
 
    widgets/corpus-widget
    widgets/importdocuments
+   widgets/createcorpus
    widgets/guardian-widget
    widgets/nytimes
    widgets/pubmed
