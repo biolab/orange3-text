@@ -23,7 +23,7 @@ class SBERT:
         self._server_communicator = _ServerCommunicator(
             model_name='sbert',
             max_parallel_requests=100,
-            server_url='https://apiv2.garaza.io',
+            server_url='https://api.garaza.io',
             embedder_type='text',
         )
 
