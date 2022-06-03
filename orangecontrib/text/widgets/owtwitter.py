@@ -90,10 +90,9 @@ class OWTwitter(OWWidget, ConcurrentWidgetMixin):
         want_main_area = False
         resizing_enabled = False
 
-        cm_key = CredentialManager("Twitter Bearer Token")
-
         def __init__(self, parent):
             super().__init__()
+            self.cm_key = CredentialManager("Twitter Bearer Token")
             self.parent = parent
 
             box = gui.vBox(self.controlArea, "Bearer Token")
