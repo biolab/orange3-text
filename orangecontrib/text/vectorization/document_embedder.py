@@ -91,7 +91,7 @@ class DocumentEmbedder(BaseVectorizer):
         self._embedder = _ServerEmbedder(self.aggregator,
                                          model_name='fasttext-'+self.language,
                                          max_parallel_requests=100,
-                                         server_url='https://apiv2.garaza.io',
+                                         server_url='https://api.garaza.io',
                                          embedder_type='text')
 
     def _transform(
