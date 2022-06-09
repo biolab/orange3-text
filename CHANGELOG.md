@@ -5,6 +5,28 @@ Change Log
 ------------
 * ...
 
+[1.8.0] - 2022-06-09
+--------------------
+##### Enhancements
+* Create corpus - new widget ([#854](../../pull/854))
+* Computation in separate thread for base vectorizer; use base vectorizer for embedding ([#852](../../pull/852))
+* Mark "Words" outputs as non-dynamic ([#855](../../pull/855))
+* Corpus refactoring ([#767](../../pull/767))
+* Functionalities for computing concave hull around clusters of points ([#816](../../pull/816))
+
+##### Bugfixes
+* Normalize - fix unpickling for Normalizers before caching was implemented ([#838](../../pull/838))
+* Credential manager dialog at import ([#857](../../pull/857))
+* NLTK - use proxy when proxy adresses entered ([#853](../../pull/853))
+* Semantic search: fix wrong output when response is None ([#826](../../pull/826))
+* Annotate documents: update to work with the latest changes in keywords ([#845](../../pull/845))
+* Update embedder callbacks ([#842](../../pull/842))
+* Keywords: Fix sending data while running ([#836](../../pull/836))
+* Preprocess Text: set highest absolute frequency ([#807](../../pull/807))
+* Wikipedia: make widget useable again ([#825](../../pull/825))
+* Concave hull: fix cases when all points inline ([#821](../../pull/821))
+* Keywords: Always invoke preprocessor __call__ ([#815](../../pull/815))
+
 [1.7.0] - 2022-04-08
 --------------------
 ##### Enhancements
@@ -335,7 +357,8 @@ Change Log
 --------------------
 
 
-[next]: https://github.com/biolab/orange3-text/compare/1.6.2...HEAD
+[next]: https://github.com/biolab/orange3-text/compare/1.8.0...HEAD
+[1.8.0]: https://github.com/biolab/orange3-text/compare/1.7.0...1.8.0
 [1.7.0]: https://github.com/biolab/orange3-text/compare/1.6.2...1.7.0
 [1.6.2]: https://github.com/biolab/orange3-text/compare/1.6.1...1.6.2
 [1.6.1]: https://github.com/biolab/orange3-text/compare/1.6.0...1.6.1
