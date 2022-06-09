@@ -19,6 +19,7 @@ from orangecontrib.text.widgets.owscoredocuments import (
     SelectionMethods,
     _preprocess_words,
 )
+from orangecontrib.text.widgets.utils.words import create_words_table
 
 
 def embedding_mock(_, corpus, __):
@@ -26,7 +27,7 @@ def embedding_mock(_, corpus, __):
         return np.ones((len(corpus), 10))
     else:  # corpus is Corpus
         return (
-            Corpus(
+            Corpus.from_numpy(
                 domain=Domain([ContinuousVariable(str(i)) for i in range(10)]),
                 X=np.ones((len(corpus), 10)),
             ),
@@ -35,16 +36,6 @@ def embedding_mock(_, corpus, __):
 
 
 class TestOWScoreDocuments(WidgetTest):
-    @staticmethod
-    def create_words_table(words: List[str]) -> Table:
-        w = StringVariable("Words")
-        w.attributes["type"] = "words"
-        return Table(
-            Domain([], metas=[w]),
-            np.empty((len(words), 0)),
-            metas=np.array(words).reshape((-1, 1)),
-        )
-
     def setUp(self) -> None:
         self.widget: OWScoreDocuments = self.create_widget(OWScoreDocuments)
 
@@ -61,7 +52,7 @@ class TestOWScoreDocuments(WidgetTest):
 
         # create words table
         words = ["house", "doctor", "boy", "way", "Rum"]
-        self.words = self.create_words_table(words)
+        self.words = create_words_table(words)
 
     def test_set_data(self):
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
@@ -168,8 +159,9 @@ class TestOWScoreDocuments(WidgetTest):
         """Create sample corpus with texts passed"""
         text_var = StringVariable("Text")
         domain = Domain([], metas=[text_var])
-        c = Corpus(
+        c = Corpus.from_numpy(
             domain,
+            X=np.empty((len(texts), 0)),
             metas=np.array(texts).reshape(-1, 1),
             text_features=[text_var],
         )
@@ -183,7 +175,7 @@ class TestOWScoreDocuments(WidgetTest):
                 "lorem ipsum eu",
             ]
         )
-        words = self.create_words_table(["lorem", "ipsum", "eu"])
+        words = create_words_table(["lorem", "ipsum", "eu"])
         self.send_signal(self.widget.Inputs.corpus, corpus)
         self.send_signal(self.widget.Inputs.words, words)
         self.wait_until_finished()
@@ -210,7 +202,7 @@ class TestOWScoreDocuments(WidgetTest):
                 "lorem ipsum eu",
             ]
         )
-        words = self.create_words_table(["lorem", "ipsum", "eu"])
+        words = create_words_table(["lorem", "ipsum", "eu"])
         self.send_signal(self.widget.Inputs.corpus, corpus)
         self.send_signal(self.widget.Inputs.words, words)
         # unselect word_frequency and select word_ratio
@@ -241,7 +233,7 @@ class TestOWScoreDocuments(WidgetTest):
                 "lorem ipsum eu",
             ]
         )
-        words = self.create_words_table(["lorem", "ipsum", "eu"])
+        words = create_words_table(["lorem", "ipsum", "eu"])
         self.send_signal(self.widget.Inputs.corpus, corpus)
         self.send_signal(self.widget.Inputs.words, words)
         # unselect word_frequency and select embedding_similarity
@@ -426,7 +418,7 @@ class TestOWScoreDocuments(WidgetTest):
         var = ContinuousVariable("Word count")
         corpus = corpus.add_column(var, np.array([1 for _ in range(len(
             corpus))]))
-        words = self.create_words_table(["doctor", "rum", "house"])
+        words = create_words_table(["doctor", "rum", "house"])
         self.send_signal(self.widget.Inputs.corpus, corpus)
         self.send_signal(self.widget.Inputs.words, words)
         self.wait_until_finished()

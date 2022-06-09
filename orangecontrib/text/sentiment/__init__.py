@@ -242,6 +242,48 @@ class SentiArt(Sentiment):
         return scores
 
 
+class LilahDictionaries(SentimentDictionaries):
+    server_url = "http://file.biolab.si/files/sentiment-lilah/"
+
+    def __init__(self):
+        super().__init__()
+
+    def __getitem__(self, language):
+        filtering_dict = read_pickle(self.localfiles.localpath_download(
+                                     f"LiLaH-{language}.pickle"))
+        return filtering_dict
+
+    def supported_languages(self):
+        regex = r"LiLaH-(.*)\.pickle"
+        supported_languages = set()
+        for i in self.lang_files:
+            res = re.fullmatch(regex, i[0])
+            if res:
+                supported_languages.add(res.group(1))
+        return supported_languages
+
+
+class LilahSentiment(Sentiment):
+    sentiments = ('Positive', 'Negative', 'Anger', 'Anticipation', 'Disgust',
+                  'Fear', 'Joy', 'Sadness', 'Surprise', 'Trust')
+    name = 'LiLaH Sentiment'
+
+    LANGS = {'Slovenian': 'SL', 'Croatian': 'HR', 'Dutch': 'NL'}
+
+    def __init__(self, language='Slovenian'):
+        self.language = language
+        self.dictionary = LilahDictionaries()[self.LANGS[self.language]]
+
+    def get_scores(self, corpus):
+        scores = []
+        for doc in corpus.tokens:
+            score = np.array([list(self.dictionary[word].values()) for word in
+                              doc if word in self.dictionary])
+            scores.append(score.mean(axis=0) if score.shape[0] > 0
+                          else np.zeros(len(self.sentiments)))
+        return scores
+
+
 class CustomDictionaries(Sentiment):
     sentiments = ('sentiment',)
     name = 'Custom Dictionaries'

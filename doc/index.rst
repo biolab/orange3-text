@@ -9,6 +9,7 @@ Widgets
 
    widgets/corpus-widget
    widgets/importdocuments
+   widgets/createcorpus
    widgets/guardian-widget
    widgets/nytimes
    widgets/pubmed
@@ -33,6 +34,7 @@ Widgets
    widgets/keywords
    widgets/score-documents
    widgets/semanticviewer
+   widgets/wordlist
 
 Scripting
 ---------

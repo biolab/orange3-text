@@ -6,7 +6,11 @@ from unittest import skipIf
 import numpy as np
 import pkg_resources
 from numpy.testing import assert_array_equal
-from orangecontrib.text.preprocess import RegexpTokenizer
+from orangecontrib.text.preprocess import (
+    RegexpTokenizer,
+    LowercaseTransformer,
+    StopwordsFilter,
+)
 from scipy.sparse import csr_matrix, issparse
 
 from Orange.data import (
@@ -41,7 +45,7 @@ class CorpusTests(unittest.TestCase):
         new_domain = Domain((ContinuousVariable('c1'),), d.class_vars, d.metas)
 
         empty_X = csr_matrix((len(c), 1))
-        new = Corpus(new_domain, X=empty_X, Y=c.Y, metas=c.metas)
+        new = Corpus.from_numpy(new_domain, X=empty_X, Y=c.Y, metas=c.metas)
 
         self.assertEqual(empty_X.nnz, 0)
         self.assertEqual(new.X.shape, empty_X.shape)
@@ -108,22 +112,9 @@ class CorpusTests(unittest.TestCase):
 
     def test_corpus_from_init(self):
         c = Corpus.from_file('book-excerpts')
-        c2 = Corpus(c.domain, c.X, c.Y, c.metas, c.W, c.text_features)
+        with self.assertWarns(FutureWarning):
+            c2 = Corpus(c.domain, c.X, c.Y, c.metas, c.W, c.text_features)
         self.assertEqual(c, c2)
-
-    def test_extend_corpus(self):
-        """
-        Extend corpus is deprecated and removed from testing since it is not
-        compatible with the idea of not changing Table and it is not used in
-        the add-on. When this test start to fail remove the function and test.
-        """
-        cur_version = pkg_resources.get_distribution("orange3-text").version
-        self.assertLess(cur_version, "1.8.0")
-
-    def test_extend_corpus_non_empty_X(self):
-        c = Corpus.from_file('election-tweets-2016')[:10]
-        with self.assertRaises(ValueError):
-            c.extend_corpus(c.metas, c.Y)
 
     def test_extend_attributes(self):
         """
@@ -210,23 +201,41 @@ class CorpusTests(unittest.TestCase):
         c = Corpus.from_file('book-excerpts')
         n_doc = c.X.shape[0]
 
-        c2 = Corpus(c.domain, c.X, c.Y, c.metas, c.W, [])
+        c2 = Corpus.from_numpy(c.domain, c.X, c.Y, c.metas, c.W, text_features=[])
         self.assertNotEqual(c, c2)
 
-        c2 = Corpus(c.domain, np.ones((n_doc, 1)), c.Y, c.metas, c.W, c.text_features)
+        domain2 = Domain([ContinuousVariable("A")], c.domain.class_var, c.domain.metas)
+
+        c2 = Corpus.from_numpy(
+            domain2,
+            np.ones((n_doc, 1)),
+            c.Y,
+            c.metas,
+            c.W,
+            text_features=c.text_features,
+        )
         self.assertNotEqual(c, c2)
 
-        c2 = Corpus(c.domain, c.X, np.ones((n_doc, 1)), c.metas, c.W, c.text_features)
+        c2 = Corpus.from_numpy(
+            c.domain,
+            c.X,
+            np.ones((n_doc, 1)),
+            c.metas,
+            c.W,
+            text_features=c.text_features,
+        )
         self.assertNotEqual(c, c2)
 
         broken_metas = np.copy(c.metas)
-        broken_metas[0, 0] = ''
-        c2 = Corpus(c.domain, c.X, c.Y, broken_metas, c.W, c.text_features)
+        broken_metas[0, 0] = ""
+        c2 = Corpus.from_numpy(
+            c.domain, c.X, c.Y, broken_metas, c.W, text_features=c.text_features
+        )
         self.assertNotEqual(c, c2)
 
         new_meta = [StringVariable('text2')]
         broken_domain = Domain(c.domain.attributes, c.domain.class_var, new_meta)
-        c2 = Corpus(broken_domain, c.X, c.Y, c.metas, c.W, new_meta)
+        c2 = Corpus.from_numpy(broken_domain, c.X, c.Y, c.metas, c.W, new_meta)
         self.assertNotEqual(c, c2)
 
         c2 = c.copy()
@@ -488,12 +497,9 @@ class CorpusTests(unittest.TestCase):
     def test_asserting_errors(self):
         c = Corpus.from_file('book-excerpts')
 
-        with self.assertRaises(TypeError):
-            Corpus(1.0, c.Y, c.metas, c.domain, c.text_features)
-
         too_large_x = np.vstack((c.X, c.X))
         with self.assertRaises(ValueError):
-            Corpus(c.domain, too_large_x, c.Y, c.metas, c.W, c.text_features)
+            Corpus.from_numpy(c.domain, too_large_x, c.Y, c.metas, c.W, c.text_features)
 
         with self.assertRaises(ValueError):
             c.set_text_features([StringVariable('foobar')])
@@ -667,6 +673,24 @@ class CorpusTests(unittest.TestCase):
             c = pp(c)
         pickle.dumps(c)
 
+    def test_corpus_from_file_pickle(self):
+        """
+        Test that the preprocessing from pickle is kept
+        """
+        path = os.path.dirname(__file__)
+        file = os.path.abspath(os.path.join(path, "data", "book-excerpts.pkl"))
+        c = Corpus.from_file(file)
+        self.assertIsInstance(c, Corpus)
+        self.assertEqual(3, len(c))
+        # preprocessing from the pickle must be kept
+        self.assertTrue(c.has_tokens())
+        self.assertEqual(3, len(c.tokens))
+        pp = c.used_preprocessor.preprocessors
+        self.assertEqual(3, len(pp))
+        self.assertIsInstance(pp[0], LowercaseTransformer)
+        self.assertIsInstance(pp[1], RegexpTokenizer)
+        self.assertIsInstance(pp[2], StopwordsFilter)
+
 
 @skipIf(summarize is None, "summarize is not available for orange3<=3.28")
 class TestCorpusSummaries(unittest.TestCase):
@@ -676,7 +700,8 @@ class TestCorpusSummaries(unittest.TestCase):
 
         n_features = len(corpus.domain.variables) + len(corpus.domain.metas)
         details = (
-            f"<nobr>{len(corpus)} instances, {n_features} variables</nobr><br/>"
+            f"<nobr><b><u>book-excerpts</u></b>: "
+            f"{len(corpus)} instances, {n_features} variables</nobr><br/>"
             f"<nobr>Features: — (no missing values)</nobr><br/>"
             f"<nobr>Target: categorical</nobr><br/>"
             f"<nobr>Metas: string</nobr><br/>"
@@ -693,7 +718,8 @@ class TestCorpusSummaries(unittest.TestCase):
 
         n_features = len(corpus.domain.variables) + len(corpus.domain.metas)
         details = (
-            f"<nobr>{len(corpus)} instances, {n_features} variables</nobr><br/>"
+            f"<nobr><b><u>book-excerpts</u></b>: "
+            f"{len(corpus)} instances, {n_features} variables</nobr><br/>"
             f"<nobr>Features: — (no missing values)</nobr><br/>"
             f"<nobr>Target: categorical</nobr><br/>"
             f"<nobr>Metas: string</nobr><br/>"

@@ -6,18 +6,21 @@ from itertools import chain
 from typing import List, Tuple, Callable
 
 import yake
+from Orange.data import Domain
 from nltk.corpus import stopwords
 import numpy as np
-from sklearn.feature_extraction.text import TfidfVectorizer
 
 from Orange.util import dummy_callback
 
+from orangecontrib.text import Corpus
 from orangecontrib.text.keywords.rake import Rake
 from orangecontrib.text.keywords.embedding import embedding_keywords, \
     EMBEDDING_LANGUAGE_MAPPING
 from orangecontrib.text.preprocess import StopwordsFilter
 
 # all available languages for RAKE
+from orangecontrib.text.vectorization import BowVectorizer
+
 RAKE_LANGUAGES = StopwordsFilter.supported_languages()
 # all available languages for YAKE!
 YAKE_LANGUAGE_MAPPING = {
@@ -59,8 +62,7 @@ YAKE_LANGUAGE_MAPPING = {
 
 
 def tfidf_keywords(
-        tokens: List[List[str]],
-        progress_callback: Callable = None
+    corpus: Corpus, progress_callback: Callable = None
 ) -> List[List[Tuple[str, float]]]:
     """
     Extract keywords using TF-IDF.
@@ -79,15 +81,27 @@ def tfidf_keywords(
     if progress_callback is None:
         progress_callback = dummy_callback
 
-    vectorizer = TfidfVectorizer(tokenizer=lambda x: x, lowercase=False)
-    X = vectorizer.fit_transform(tokens)
-    words = vectorizer.get_feature_names()
+    # empty X part - to know that every feature of X is bag of wrds
+    domain = Domain([], class_vars=corpus.domain.class_vars, metas=corpus.domain.metas)
+    corpus = corpus.from_table(domain, corpus)
+
+    vectorizer = BowVectorizer(
+        wlocal=BowVectorizer.COUNT,
+        wglobal=BowVectorizer.IDF if len(corpus) > 1 else BowVectorizer.NONE,
+        norm=BowVectorizer.L2,
+    )
+    res = vectorizer.transform(corpus)
+    X, words = res.X, [a.name for a in res.domain.attributes]
 
     keywords = []
     n_docs = X.shape[0]
     for i, row in enumerate(X):
         progress_callback(i / n_docs)
-        keywords.append([(words[i], row[0, i]) for i in row.nonzero()[1]])
+        nonzero = row.nonzero()
+        if len(nonzero) > 1:
+            keywords.append([(words[i], row[0, i]) for i in nonzero[1]])
+        else:
+            keywords.append([])
     return keywords
 
 
@@ -211,103 +225,16 @@ class AggregationMethods:
         -------
         Aggregated keyword scores.
         """
-        return [AggregationMethods.mean,
-                AggregationMethods.median,
-                AggregationMethods.min,
-                AggregationMethods.max][agg_method](keywords)
+        compute_mean = agg_method == AggregationMethods.MEAN
+        aggregator = [np.mean, np.median, np.min, np.max][agg_method]
+        unique_scores = defaultdict(lambda: 0. if compute_mean else [])
 
-    @staticmethod
-    def mean(
-            keywords: List[List[Tuple[str, float]]]
-    ) -> List[Tuple[str, float]]:
-        """
-        'mean' aggregation function.
+        for word, score in chain.from_iterable(keywords):
+            unique_scores[word] += score if compute_mean else [score]
 
-        Parameters
-        ----------
-        keywords : list
-            List of keywords for each document.
-
-        Returns
-        -------
-        Aggregated keyword scores.
-        """
-        scores = list(chain.from_iterable(keywords))
-        unique_scores = defaultdict(lambda: 0.)
-        for word, score in scores:
-            unique_scores[word] += score
         for word, score in unique_scores.items():
-            unique_scores[word] = score / len(keywords)
-        return list(unique_scores.items())
+            # compute mean amongst all keywords
+            unique_scores[word] = score / len(keywords) if compute_mean \
+                else aggregator(score)
 
-    @staticmethod
-    def median(
-            keywords: List[List[Tuple[str, float]]]
-    ) -> List[Tuple[str, float]]:
-        """
-        'median' aggregation function.
-
-        Parameters
-        ----------
-        keywords : list
-            List of keywords for each document.
-
-        Returns
-        -------
-        Aggregated keyword scores.
-        """
-        scores = list(chain.from_iterable(keywords))
-        unique_scores = defaultdict(lambda: [])
-        for word, score in scores:
-            unique_scores[word].append(score)
-        for word, score in unique_scores.items():
-            unique_scores[word] = np.median(score)
-        return list(unique_scores.items())
-
-    @staticmethod
-    def min(
-            keywords: List[List[Tuple[str, float]]]
-    ) -> List[Tuple[str, float]]:
-        """
-        'min' aggregation function.
-
-        Parameters
-        ----------
-        keywords : list
-            List of keywords for each document.
-
-        Returns
-        -------
-        Aggregated keyword scores.
-        """
-        scores = list(chain.from_iterable(keywords))
-        unique_scores = defaultdict(lambda: [])
-        for word, score in scores:
-            unique_scores[word].append(score)
-        for word, score in unique_scores.items():
-            unique_scores[word] = np.min(score)
-        return list(unique_scores.items())
-
-    @staticmethod
-    def max(
-            keywords: List[List[Tuple[str, float]]]
-    ) -> List[Tuple[str, float]]:
-        """
-        'max' aggregation function.
-
-        Parameters
-        ----------
-        keywords : list
-            List of keywords for each document.
-
-        Returns
-        -------
-        Aggregated keyword scores.
-        """
-        scores = list(chain.from_iterable(keywords))
-        unique_scores = defaultdict(lambda: [])
-        for word, score in scores:
-            unique_scores[word].append(score)
-        for word, score in unique_scores.items():
-            unique_scores[word] = np.max(score)
         return list(unique_scores.items())

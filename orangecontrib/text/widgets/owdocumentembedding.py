@@ -1,185 +1,115 @@
-from typing import Any, Tuple
-import numpy as np
+from typing import Dict, Optional, Any
 
-from AnyQt.QtWidgets import QPushButton, QStyle, QLayout
-from AnyQt.QtCore import Qt, QSize
-
-from Orange.widgets.gui import widgetBox, comboBox, auto_commit, hBox
-from Orange.widgets.settings import Setting
-from Orange.widgets.widget import OWWidget, Msg, Input, Output
-from Orange.widgets.utils.concurrent import ConcurrentWidgetMixin, TaskState
-
+from AnyQt.QtCore import Qt
+from AnyQt.QtWidgets import QGridLayout, QLabel, QPushButton, QStyle
 from Orange.misc.utils.embedder_utils import EmbeddingConnectionError
+from Orange.widgets import gui
+from Orange.widgets.settings import Setting
+from Orange.widgets.widget import Msg, Output, OWWidget
 
-from orangecontrib.text.vectorization.document_embedder import DocumentEmbedder
-from orangecontrib.text.vectorization.document_embedder import LANGS_TO_ISO, AGGREGATORS
 from orangecontrib.text.corpus import Corpus
-
+from orangecontrib.text.vectorization.document_embedder import (
+    AGGREGATORS,
+    LANGS_TO_ISO,
+    DocumentEmbedder,
+)
+from orangecontrib.text.widgets.utils import widgets
+from orangecontrib.text.widgets.utils.owbasevectorizer import (
+    OWBaseVectorizer,
+    Vectorizer,
+)
 
 LANGUAGES = sorted(list(LANGS_TO_ISO.keys()))
 
 
-def run_pretrained_embedder(corpus: Corpus,
-                            language: str,
-                            aggregator: str,
-                            state: TaskState) -> Tuple[Corpus, Corpus]:
-    """Runs DocumentEmbedder.
+class EmbeddingVectorizer(Vectorizer):
+    skipped_documents = None
 
-    Parameters
-    ----------
-    corpus : Corpus
-        Corpus on which transform is performed.
-    language : str
-        ISO 639-1 (two-letter) code of desired language.
-    aggregator : str
-        Aggregator which creates document embedding (single
-        vector) from word embeddings (multiple vectors).
-        Allowed values are mean, sum, max, min.
-    state : TaskState
-        State object.
-
-    Returns
-    -------
-    Corpus
-        New corpus with additional features.
-    """
-    embedder = DocumentEmbedder(language=language,
-                                aggregator=aggregator)
-
-    ticks = iter(np.linspace(0., 100., len(corpus)))
-
-    def advance(success=True):
-        if state.is_interruption_requested():
-            embedder.set_cancelled()
-        if success:
-            state.set_progress_value(next(ticks))
-
-    new_corpus, skipped_corpus = embedder(corpus, processed_callback=advance)
-    return new_corpus, skipped_corpus
+    def _transform(self, callback):
+        embeddings, skipped = self.method.transform(self.corpus, callback=callback)
+        self.new_corpus = embeddings
+        self.skipped_documents = skipped
 
 
-class OWDocumentEmbedding(OWWidget, ConcurrentWidgetMixin):
+class OWDocumentEmbedding(OWBaseVectorizer):
     name = "Document Embedding"
     description = "Document embedding using pretrained models."
-    keywords = ['embedding', 'document embedding', 'text']
-    icon = 'icons/TextEmbedding.svg'
+    keywords = ["embedding", "document embedding", "text"]
+    icon = "icons/TextEmbedding.svg"
     priority = 300
 
-    want_main_area = False
-    _auto_apply = Setting(default=True)
+    buttons_area_orientation = Qt.Vertical
+    settings_version = 2
 
-    class Inputs:
-        corpus = Input('Corpus', Corpus)
+    Method = DocumentEmbedder
 
-    class Outputs:
-        new_corpus = Output('Embeddings', Corpus, default=True)
-        skipped = Output('Skipped documents', Corpus)
+    class Outputs(OWBaseVectorizer.Outputs):
+        skipped = Output("Skipped documents", Corpus)
 
     class Error(OWWidget.Error):
-        no_connection = Msg("No internet connection. " +
-                            "Please establish a connection or " +
-                            "use another vectorizer.")
-        unexpected_error = Msg('Embedding error: {}')
+        no_connection = Msg(
+            "No internet connection. Please establish a connection or use "
+            "another vectorizer."
+        )
+        unexpected_error = Msg("Embedding error: {}")
 
     class Warning(OWWidget.Warning):
-        unsuccessful_embeddings = Msg('Some embeddings were unsuccessful.')
+        unsuccessful_embeddings = Msg("Some embeddings were unsuccessful.")
 
-    language = Setting(default=LANGUAGES.index("English"))
-    aggregator = Setting(default=0)
+    language = Setting(default="English")
+    aggregator = Setting(default="Mean")
 
     def __init__(self):
-        OWWidget.__init__(self)
-        ConcurrentWidgetMixin.__init__(self)
-
-        self.aggregators = AGGREGATORS
-        self.corpus = None
-        self.new_corpus = None
-        self._setup_layout()
-
-    @staticmethod
-    def sizeHint():
-        return QSize(300, 300)
-
-    def _setup_layout(self):
-        self.controlArea.setMinimumWidth(self.sizeHint().width())
-        self.layout().setSizeConstraint(QLayout.SetFixedSize)
-
-        widget_box = widgetBox(self.controlArea, 'Settings')
-
-        self.language_cb = comboBox(
-            widget=widget_box,
-            master=self,
-            value='language',
-            label='Language: ',
-            orientation=Qt.Horizontal,
-            items=LANGUAGES,
-            callback=self._option_changed,
-            searchable=True
-         )
-
-        self.aggregator_cb = comboBox(widget=widget_box,
-                                      master=self,
-                                      value='aggregator',
-                                      label='Aggregator: ',
-                                      orientation=Qt.Horizontal,
-                                      items=self.aggregators,
-                                      callback=self._option_changed)
-
-        self.auto_commit_widget = auto_commit(widget=self.controlArea,
-                                              master=self,
-                                              value='_auto_apply',
-                                              label='Apply',
-                                              commit=self.commit,
-                                              box=False)
-
+        super().__init__()
         self.cancel_button = QPushButton(
-            'Cancel',
-            icon=self.style()
-            .standardIcon(QStyle.SP_DialogCancelButton))
-
+            "Cancel", icon=self.style().standardIcon(QStyle.SP_DialogCancelButton)
+        )
         self.cancel_button.clicked.connect(self.cancel)
-
-        hbox = hBox(self.controlArea)
-        hbox.layout().addWidget(self.cancel_button)
+        self.buttonsArea.layout().addWidget(self.cancel_button)
         self.cancel_button.setDisabled(True)
 
-    @Inputs.corpus
-    def set_data(self, data):
-        self.Warning.clear()
-        self.cancel()
+    def create_configuration_layout(self):
+        layout = QGridLayout()
+        layout.setSpacing(10)
 
-        if not data:
-            self.corpus = None
-            self.clear_outputs()
-            return
+        combo = widgets.ComboBox(
+            self,
+            "language",
+            items=LANGUAGES,
+        )
+        combo.currentIndexChanged.connect(self.on_change)
+        layout.addWidget(QLabel("Language:"))
+        layout.addWidget(combo, 0, 1)
 
-        self.corpus = data
-        self.unconditional_commit()
+        combo = widgets.ComboBox(self, "aggregator", items=AGGREGATORS)
+        combo.currentIndexChanged.connect(self.on_change)
+        layout.addWidget(QLabel("Aggregator:"))
+        layout.addWidget(combo, 1, 1)
 
-    def _option_changed(self):
-        self.commit()
+        return layout
 
+    def update_method(self):
+        self.vectorizer = EmbeddingVectorizer(self.init_method(), self.corpus)
+
+    def init_method(self):
+        return self.Method(
+            language=LANGS_TO_ISO[self.language], aggregator=self.aggregator
+        )
+
+    @gui.deferred
     def commit(self):
-        if self.corpus is None:
-            self.clear_outputs()
-            return
-
-        self.cancel_button.setDisabled(False)
-
-        self.start(run_pretrained_embedder,
-                   self.corpus,
-                   LANGS_TO_ISO[LANGUAGES[self.language]],
-                   self.aggregators[self.aggregator])
-
         self.Error.clear()
+        self.Warning.clear()
+        self.cancel_button.setDisabled(False)
+        super().commit()
 
-    def on_done(self, embeddings: Tuple[Corpus, Corpus]) -> None:
+    def on_done(self, _):
         self.cancel_button.setDisabled(True)
-        self._send_output_signals(embeddings[0], embeddings[1])
-
-    def on_partial_result(self, result: Any):
-        self.cancel()
-        self.Error.no_connection()
+        skipped = self.vectorizer.skipped_documents
+        self.Outputs.skipped.send(skipped)
+        if skipped is not None and len(skipped) > 0:
+            self.Warning.unsuccessful_embeddings()
+        super().on_done(_)
 
     def on_exception(self, ex: Exception):
         self.cancel_button.setDisabled(True)
@@ -188,27 +118,22 @@ class OWDocumentEmbedding(OWWidget, ConcurrentWidgetMixin):
         else:
             self.Error.unexpected_error(type(ex).__name__)
         self.cancel()
-        self.clear_outputs()
 
     def cancel(self):
+        self.Outputs.skipped.send(None)
         self.cancel_button.setDisabled(True)
         super().cancel()
 
-    def _send_output_signals(self, embeddings, skipped):
-        self.Outputs.new_corpus.send(embeddings)
-        self.Outputs.skipped.send(skipped)
-        unsuccessful = len(skipped) if skipped else 0
-        if unsuccessful > 0:
-            self.Warning.unsuccessful_embeddings()
-
-    def clear_outputs(self):
-        self._send_output_signals(None, None)
-
-    def onDeleteWidget(self):
-        self.cancel()
-        super().onDeleteWidget()
+    @classmethod
+    def migrate_settings(cls, settings: Dict[str, Any], version: Optional[int]):
+        if version is None or version < 2:
+            # before version 2 settings were indexes now they are strings
+            # with language name and selected aggregator name
+            settings["language"] = LANGUAGES[settings["language"]]
+            settings["aggregator"] = AGGREGATORS[settings["aggregator"]]
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     from orangewidget.utils.widgetpreview import WidgetPreview
-    WidgetPreview(OWDocumentEmbedding).run(Corpus.from_file('book-excerpts'))
+
+    WidgetPreview(OWDocumentEmbedding).run(Corpus.from_file("book-excerpts"))

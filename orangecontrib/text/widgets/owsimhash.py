@@ -1,4 +1,4 @@
-from AnyQt.QtWidgets import QApplication, QFormLayout
+from AnyQt.QtWidgets import QFormLayout
 
 from Orange.widgets import gui
 from Orange.widgets import settings
@@ -22,9 +22,8 @@ class OWSimhash(owbasevectorizer.OWBaseVectorizer):
     def create_configuration_layout(self):
         layout = QFormLayout()
 
-        spin = gui.spin(self, self, 'f', minv=1,
-                        maxv=SimhashVectorizer.max_f)
-        spin.editingFinished.connect(self.on_change)
+        spin = gui.spin(self, self, "f", minv=8, maxv=SimhashVectorizer.max_f, step=8)
+        spin.editingFinished.connect(self.f_spin_changed)
         layout.addRow('Simhash size:', spin)
 
         spin = gui.spin(self, self, 'shingle_len', minv=1, maxv=100)
@@ -32,15 +31,16 @@ class OWSimhash(owbasevectorizer.OWBaseVectorizer):
         layout.addRow('Shingle length:', spin)
         return layout
 
-    def update_method(self):
-        self.method = self.Method(shingle_len=self.shingle_len,
-                                  f=self.f)
+    def init_method(self):
+        return self.Method(shingle_len=self.shingle_len, f=self.f)
+
+    def f_spin_changed(self):
+        # simhash needs f value to be multiple of 8, correct if it is not
+        self.f = 8 * round(self.f / 8)
+        self.on_change()
 
 
 if __name__ == '__main__':
-    app = QApplication([])
-    widget = OWSimhash()
-    widget.show()
-    corpus = Corpus.from_file('book-excerpts')
-    widget.set_data(corpus)
-    app.exec()
+    from orangewidget.utils.widgetpreview import WidgetPreview
+
+    WidgetPreview(OWSimhash).run(Corpus.from_file("book-excerpts"))

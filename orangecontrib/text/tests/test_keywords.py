@@ -3,39 +3,49 @@ import unittest
 from unittest.mock import patch
 
 import numpy as np
+from Orange.data import Domain, StringVariable
+
+from orangecontrib.text import Corpus
 from orangecontrib.text.keywords import tfidf_keywords, yake_keywords, \
     rake_keywords, AggregationMethods, embedding_keywords
 
 
+def corpus_mock(tokens):
+    corpus = Corpus.from_numpy(
+        Domain([], metas=[StringVariable("texts")]),
+        np.empty((len(tokens), 0)),
+        metas=np.array([[" ".join(t)] for t in tokens]),
+    )
+    return corpus
+
+
 class TestTfIdf(unittest.TestCase):
     def test_extractor(self):
-        tokens = [["foo", "bar", "baz", "baz"],
-                  ["foobar"],
-                  []]
-        keywords = tfidf_keywords(tokens)
+        corpus = corpus_mock([["foo", "bar", "baz", "baz"], ["foobar"], [" "]])
+        keywords = tfidf_keywords(corpus)
         self.assertEqual(len(keywords), 3)
         self.assertEqual(len(keywords[0]), 3)
         self.assertEqual(len(keywords[1]), 1)
         self.assertEqual(len(keywords[2]), 0)
 
-        self.assertEqual(keywords[0][0][0], "baz")
-        self.assertGreaterEqual(keywords[0][0][1], 0.8)
-        self.assertLessEqual(keywords[0][0][1], 1)
+        self.assertEqual(keywords[0][1][0], "baz")
+        self.assertGreaterEqual(keywords[0][1][1], 0.8)
+        self.assertLessEqual(keywords[0][1][1], 1)
 
-        self.assertEqual(keywords[0][1][0], "bar")
+        self.assertEqual(keywords[0][0][0], "bar")
         self.assertEqual(keywords[0][2][0], "foo")
 
         self.assertEqual(keywords[1][0][0], "foobar")
 
     def test_empty_tokens(self):
-        self.assertRaises(ValueError, tfidf_keywords, [])
-        self.assertRaises(ValueError, tfidf_keywords, [[]])
+        keywords = tfidf_keywords(corpus_mock([[" "]]))
+        self.assertEqual(1, len(keywords))
+        self.assertEqual(0, len(keywords[0]))
 
     def test_single_letter_tokens(self):
-        keywords = tfidf_keywords([["a", "b", "b", " "]])
-        self.assertEqual(keywords[0][0][0], " ")
+        keywords = tfidf_keywords(corpus_mock([["a", "b", "b"]]))
+        self.assertEqual(keywords[0][0][0], "a")
         self.assertEqual(keywords[0][1][0], "b")
-        self.assertEqual(keywords[0][2][0], "a")
 
 
 class TestYake(unittest.TestCase):
@@ -93,10 +103,8 @@ def mock_embedding(_, tokens, __):
 @patch("orangecontrib.text.vectorization.document_embedder.DocumentEmbedder.__call__", mock_embedding)
 class TestEmbedding(unittest.TestCase):
     def test_extractor(self):
-        tokens = [["foo", "bar", "baz", "baz"],
-                  ["foobar"],
-                  []]
-        keywords = embedding_keywords(tokens)
+        corpus = corpus_mock([["foo", "bar", "baz", "baz"], ["foobar"], [" "]])
+        keywords = embedding_keywords(corpus)
         self.assertEqual(len(keywords), 3)
         self.assertEqual(len(keywords[0]), 3)
         self.assertEqual(len(keywords[1]), 1)
@@ -111,51 +119,17 @@ class TestEmbedding(unittest.TestCase):
         self.assertEqual(keywords[1][0][0], "foobar")
 
     def test_empty_tokens(self):
-        keywords = embedding_keywords([])
-        self.assertEqual(len(keywords), 0)
+        keywords = embedding_keywords(corpus_mock([[" "]]))
+        self.assertEqual(1, len(keywords))
+        self.assertEqual(0, len(keywords[0]))
 
     def test_single_letter_tokens(self):
-        keywords = embedding_keywords([["a", "b", "b", " "]])
+        keywords = embedding_keywords(corpus_mock([["a", "b", "b"]]))
         self.assertEqual(keywords[0][0][0], "b")
-        self.assertEqual(keywords[0][1][0], " ")
-        self.assertEqual(keywords[0][2][0], "a")
+        self.assertEqual(keywords[0][1][0], "a")
 
 
 class TestAggregationMethods(unittest.TestCase):
-    def test_aggregate_mean(self):
-        keywords = [[("foo", 0.1)],
-                    [("foo", 0.3), ("bar", 0.6)],
-                    [("foo", 0.5)]]
-        scores = AggregationMethods.mean(keywords)
-        self.assertEqual(scores[0][0], "foo")
-        self.assertEqual(scores[1][0], "bar")
-        self.assertAlmostEqual(scores[0][1], 0.3)
-        self.assertAlmostEqual(scores[1][1], 0.2)
-
-    def test_aggregate_median(self):
-        keywords = [[("foo", 0.1)],
-                    [("foo", 0.3), ("bar", 0.6)],
-                    [("foo", 0.5)]]
-        scores = AggregationMethods.median(keywords)
-        self.assertEqual(scores[0], ("foo", 0.3))
-        self.assertEqual(scores[1], ("bar", 0.6))
-
-    def test_aggregate_min(self):
-        keywords = [[("foo", 0.1)],
-                    [("foo", 0.3), ("bar", 0.6)],
-                    [("foo", 0.5)]]
-        scores = AggregationMethods.min(keywords)
-        self.assertEqual(scores[0], ("foo", 0.1))
-        self.assertEqual(scores[1], ("bar", 0.6))
-
-    def test_aggregate_max(self):
-        keywords = [[("foo", 0.1)],
-                    [("foo", 0.3), ("bar", 0.6)],
-                    [("foo", 0.5)]]
-        scores = AggregationMethods.max(keywords)
-        self.assertEqual(scores[0], ("foo", 0.5))
-        self.assertEqual(scores[1], ("bar", 0.6))
-
     def test_aggregate(self):
         keywords = [[("foo", 0.1)],
                     [("foo", 0.3), ("bar", 0.6)],

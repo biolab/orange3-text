@@ -15,6 +15,7 @@ from AnyQt.QtCore import QSize
 from orangecontrib.text import Corpus
 from orangecontrib.text.util import np_sp_sum
 from orangecontrib.text.stats import hypergeom_p_values
+from orangecontrib.text.widgets.utils.words import create_words_table
 
 
 class Result(SimpleNamespace):
@@ -57,7 +58,7 @@ class OWWordEnrichment(OWWidget, ConcurrentWidgetMixin):
         data = Input("Data", Table)
 
     class Outputs:
-        words = Output("Words", Table)
+        words = Output("Words", Table, dynamic=False)
 
     want_main_area = True
 
@@ -267,17 +268,14 @@ class OWWordEnrichment(OWWidget, ConcurrentWidgetMixin):
             self.Outputs.words.send(None)
         # retrieve the data except the header
         tree = np.array(self.tree_to_table(), dtype=object)[1:]
-        words_var = StringVariable("Words")
-        words_var.attributes = {"type": "words"}
-        attrs = [ContinuousVariable("p-values"),
-                 ContinuousVariable("FDR values")]
-        domain = Domain(attrs, metas=[words_var])
-
-        X = tree.take([1, 2], axis=1).astype(float)
-        metas = tree.take([0], axis=1)
-        words = Table.from_numpy(domain, X=X, metas=metas)
-        words.name = "Words"
-
+        attrs = (ContinuousVariable("p-values"),
+                 ContinuousVariable("FDR values"))
+        words = create_words_table(tree[:, 0])
+        words = words.transform(Domain(attrs, metas=words.domain.metas))
+        if len(tree[:, 0]):
+            with words.unlocked(words.X):
+                words.X[:, 0] = tree[:, 1]
+                words.X[:, 1] = tree[:, 2]
         self.Outputs.words.send(words)
 
     def send_report(self):

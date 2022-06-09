@@ -5,7 +5,7 @@ from unittest.mock import Mock, patch
 
 import numpy as np
 
-from Orange.data import StringVariable, Table, Domain
+from Orange.data import Table
 from Orange.widgets.tests.base import WidgetTest, simulate
 
 from orangecontrib.text import Corpus
@@ -14,16 +14,7 @@ from orangecontrib.text.keywords import tfidf_keywords, yake_keywords, \
 from orangecontrib.text.preprocess import *
 from orangecontrib.text.widgets.owkeywords import OWKeywords, run, \
     AggregationMethods, ScoringMethods
-
-
-def create_words_table(words: List) -> Table:
-    words_var = StringVariable("Words")
-    words_var.attributes = {"type": "words"}
-    domain = Domain([], metas=[words_var])
-    data = [[w] for w in words]
-    words = Table.from_list(domain, data)
-    words.name = "Words"
-    return words
+from orangecontrib.text.widgets.utils.words import create_words_table
 
 
 class TestRunner(unittest.TestCase):
@@ -35,16 +26,16 @@ class TestRunner(unittest.TestCase):
     def test_run_default(self):
         results = run(self.corpus, None, {}, {ScoringMethods.TF_IDF}, {},
                       AggregationMethods.MEAN, self.state)
-        self.assertEqual(results.scores[0][0], "of")
-        self.assertAlmostEqual(results.scores[0][1], 0.16, 2)
+        self.assertEqual(results.scores[0][0], "system")
+        self.assertAlmostEqual(results.scores[0][1], 0.114, 2)
         self.assertEqual(results.labels, ["TF-IDF"])
 
     def test_run_multiple_methods(self):
         results = run(self.corpus, None, {},
                       {ScoringMethods.TF_IDF, ScoringMethods.YAKE}, {},
                       AggregationMethods.MEAN, self.state)
-        self.assertEqual(results.scores[0][0], "of")
-        self.assertAlmostEqual(results.scores[0][1], 0.16, 2)
+        self.assertEqual(results.scores[0][0], "system")
+        self.assertAlmostEqual(results.scores[0][1], 0.114, 2)
         self.assertTrue(np.isnan(np.nan))
         self.assertEqual(results.labels, ["TF-IDF", "YAKE!"])
 
@@ -85,7 +76,7 @@ class TestRunner(unittest.TestCase):
         self.assertEqual(len(results.scores), 42)
 
     def test_run_normalize_words(self):
-        normalizer = WordNetLemmatizer()
+        normalizer = LemmagenLemmatizer()
         corpus = normalizer(self.corpus)
 
         words = ["minor", "tree"]
@@ -142,7 +133,7 @@ class TestOWKeywords(WidgetTest):
         self.assertDictEqual(output.domain.metas[0].attributes,
                              {"type": "words"})
         self.assertListEqual(list(output.metas[:, 0]),
-                             ["of", "system", "graph"])
+                             ['system', 'a', 'survey'])
 
     def test_input_words(self):
         words = create_words_table(["foo", "graph", "minors", "trees"])
@@ -151,7 +142,7 @@ class TestOWKeywords(WidgetTest):
         self.wait_until_finished()
         output = self.get_output(self.widget.Outputs.words)
         self.assertListEqual(list(output.metas[:, 0]),
-                             ["graph", "trees", "minors"])
+                             ['graph', 'minors', 'trees'])
 
     def test_input_words_no_type(self):
         words = Table("zoo")
@@ -169,7 +160,7 @@ class TestOWKeywords(WidgetTest):
         self.wait_until_finished(widget=widget)
         output = self.get_output(widget.Outputs.words, widget=widget)
         self.assertListEqual(list(output.metas[:, 0]),
-                             ["user", "trees", "minors"])
+                             ['user', 'minors', 'trees'])
 
     def test_sort_nans_asc(self):
         settings = {"selected_scoring_methods": {"TF-IDF", "YAKE!"},

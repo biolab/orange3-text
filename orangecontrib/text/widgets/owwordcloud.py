@@ -361,7 +361,7 @@ span.selected {color:red !important}
         # sometimes words are longer in average and word sizes in pt are bigger
         # in average - with this parameter we combine this in size scaling
         self.combined_size_length = sum([
-            len(word) * float(weight) for word, weight in
+            len(word) * float(weight) ** 2 for word, weight in
             self.wordlist
         ])
         self.on_cloud_pref_change()

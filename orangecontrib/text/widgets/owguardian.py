@@ -20,7 +20,6 @@ class OWGuardian(OWWidget):
         name = 'The Guardian Credentials'
         want_main_area = False
         resizing_enabled = False
-        cm_key = CredentialManager('The Guardian API Key')
         key_input = 'test'
 
         class Error(OWWidget.Error):
@@ -28,6 +27,7 @@ class OWGuardian(OWWidget):
 
         def __init__(self, parent):
             super().__init__()
+            self.cm_key = CredentialManager('The Guardian API Key')
             self.parent = parent
             self.api = None
 

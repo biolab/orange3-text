@@ -17,6 +17,13 @@
     "keywords": []
    },
    {
+    "text": "Create Corpus",
+    "doc": "widgets/createcorpus.md",
+    "icon": "../orangecontrib/text/widgets/icons/CreateCorpus.svg",
+    "background": "light-blue",
+    "keywords": []
+   },
+   {
     "text": "The Guardian",
     "doc": "widgets/guardian-widget.md",
     "icon": "../orangecontrib/text/widgets/icons/TheGuardian.svg",
@@ -41,6 +48,16 @@
     "text": "Twitter",
     "doc": "widgets/twitter-widget.md",
     "icon": "../orangecontrib/text/widgets/icons/Twitter.svg",
+    "background": "light-blue",
+    "keywords": [
+     "twitter",
+     "tweet"
+    ]
+   },
+   {
+    "text": "Wikipedia",
+    "doc": "widgets/wikipedia-widget.md",
+    "icon": "../orangecontrib/text/widgets/icons/Wikipedia.svg",
     "background": "light-blue",
     "keywords": []
    },
@@ -176,7 +193,7 @@
    },
    {
     "text": "Word List",
-    "doc": null,
+    "doc": "widgets/wordlist.md",
     "icon": "../orangecontrib/text/widgets/icons/WordList.svg",
     "background": "light-blue",
     "keywords": []
@@ -190,6 +207,22 @@
      "characteristic",
      "term"
     ]
+   },
+   {
+    "text": "Annotated Corpus Map",
+    "doc": null,
+    "icon": "../orangecontrib/text/widgets/icons/Annotator.svg",
+    "background": "light-blue",
+    "keywords": [
+     "annotator"
+    ]
+   },
+   {
+    "text": "Ontology",
+    "doc": null,
+    "icon": "../orangecontrib/text/widgets/icons/Ontology.svg",
+    "background": "light-blue",
+    "keywords": []
    },
    {
     "text": "Semantic Viewer",

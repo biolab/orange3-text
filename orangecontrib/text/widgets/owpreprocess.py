@@ -107,10 +107,13 @@ class RangeSpins(QHBoxLayout):
                                         value=start, singleStep=step)
         self._spin_end = self.SpinBox(minimum=start, maximum=maximum,
                                       value=end, singleStep=step)
+        self._spin_start.setMaximum(self._max)
+        self._spin_end.setMinimum(self._min)
         self._spin_start.editingFinished.connect(edited)
         self._spin_end.editingFinished.connect(edited)
-        self._spin_start.valueChanged.connect(self._spin_end.setMinimum)
-        self._spin_end.valueChanged.connect(self._spin_start.setMaximum)
+        if self.SpinBox in (QSpinBox, QDoubleSpinBox):
+            self._spin_start.valueChanged.connect(self._spin_end.setMinimum)
+            self._spin_end.valueChanged.connect(self._spin_start.setMaximum)
         self._spin_start.valueChanged.connect(cb_start)
         self._spin_end.valueChanged.connect(cb_end)
         self._spin_start.setFixedWidth(50)
@@ -128,6 +131,35 @@ class RangeSpins(QHBoxLayout):
 
     def spins(self) -> Tuple[QAbstractSpinBox, QAbstractSpinBox]:
         return self._spin_start, self._spin_end
+
+
+class RangeSpecialValueSpins(RangeSpins):
+    class SpinBox(QSpinBox):
+        def validate(self, *args):
+            # accept empty input
+            valid, text, pos = super().validate(*args)
+            return 2 if valid else 0, text, pos
+
+        def valueFromText(self, text: str) -> int:
+            return max(int(text) if text else self.minimum(), self.minimum())
+
+        def set_min_val(self, val: int) -> None:
+            minimum = self.minimum()
+            self.setMinimum(val)
+            if self.value() == minimum:
+                self.setValue(val)
+
+    def __init__(self, start: float, step: float, end: float, minimum: int,
+                 maximum: int, cb_start: Callable, cb_end: Callable,
+                 edited: Callable):
+        super().__init__(start, step, end, minimum, maximum, cb_start,
+                         cb_end, edited)
+        self._spin_end.setSpecialValueText("max")
+        self._spin_start.valueChanged.connect(self._spin_end.set_min_val)
+
+    def set_range(self, start: float, end: float):
+        self._spin_start.setValue(start)
+        self._spin_end.setValue(end)
 
 
 class RangeDoubleSpins(RangeSpins):
@@ -545,7 +577,7 @@ class FilteringModule(MultipleMethodModule):
                       r"\’|…|\-|–|—|\$|&|\*|>|<|\/|\[|\]"
     DEFAULT_FREQ_TYPE = 0  # 0 - relative freq, 1 - absolute freq
     DEFAULT_REL_START, DEFAULT_REL_END, REL_MIN, REL_MAX = 0.1, 0.9, 0, 1
-    DEFAULT_ABS_START, DEFAULT_ABS_END, ABS_MIN, ABS_MAX = 1, 10, 0, 10000
+    DEFAULT_ABS_START, DEFAULT_ABS_END, ABS_MIN, ABS_MAX = 1, 10, 0, 10 ** 6
     DEFAULT_N_TOKEN = 100
     DEFAULT_POS_TAGS = "NOUN,VERB"
 
@@ -601,7 +633,7 @@ class FilteringModule(MultipleMethodModule):
             self.REL_MAX, self.__set_rel_freq_start, self.__set_rel_freq_end,
             self.__rel_spins_edited
         )
-        self.__abs_range_spins = RangeSpins(
+        self.__abs_range_spins = RangeSpecialValueSpins(
             self.__abs_freq_st, 1, self.__abs_freq_en, self.ABS_MIN,
             self.ABS_MAX, self.__set_abs_freq_start, self.__set_abs_freq_end,
             self.__abs_spins_edited

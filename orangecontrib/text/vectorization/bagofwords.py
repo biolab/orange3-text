@@ -25,6 +25,7 @@ from collections import OrderedDict
 from functools import partial
 
 import numpy as np
+from Orange.util import dummy_callback
 from gensim import corpora, models, matutils
 from sklearn.preprocessing import normalize
 
@@ -46,8 +47,8 @@ class BowVectorizer(BaseVectorizer):
 
     wlocals = OrderedDict((
         (COUNT, lambda tf: tf),
-        (BINARY, lambda tf: np.greater(tf, 0, dtype=np.int) if tf.size
-                            else np.array([], dtype=np.int)),
+        (BINARY, lambda tf: np.greater(tf, 0).astype(int) if tf.size
+                            else np.array([], dtype=int)),
         (SUBLINEAR, lambda tf: 1 + np.log(tf)),
     ))
 
@@ -68,18 +69,23 @@ class BowVectorizer(BaseVectorizer):
         self.wlocal = wlocal
         self.wglobal = wglobal
 
-    def _transform(self, corpus, source_dict=None):
+    def _transform(self, corpus, source_dict=None, callback=dummy_callback):
+        if not (len(corpus.dictionary) or source_dict) or not len(corpus):
+            return corpus
         temp_corpus = list(corpus.ngrams_iterator(' ', include_postags=True))
         dic = corpora.Dictionary(temp_corpus, prune_at=None) if not source_dict else source_dict
+        callback(0.3)
         temp_corpus = [dic.doc2bow(doc) for doc in temp_corpus]
         model = models.TfidfModel(dictionary=dic, normalize=False,
                                   wlocal=self.wlocals[self.wlocal],
                                   wglobal=self.wglobals[self.wglobal])
+        callback(0.6)
 
         X = matutils.corpus2csc(model[temp_corpus], dtype=float, num_terms=len(dic)).T
         norm = self.norms[self.norm]
         if norm:
             X = norm(X)
+        callback(0.9)
 
         # set compute values
         shared_cv = SharedTransform(self, corpus.used_preprocessor,
@@ -88,6 +94,7 @@ class BowVectorizer(BaseVectorizer):
               for i in range(len(dic))]
 
         corpus = self.add_features(corpus, X, dic, cv, var_attrs={'bow-feature': True})
+        callback(1)
         return corpus
 
     def report(self):

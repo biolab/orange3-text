@@ -11,7 +11,7 @@ Predict sentiment from text.
 
 - Corpus: A corpus with information on the sentiment of each document.
 
-**Sentiment Analysis** predicts sentiment for each document in a corpus. It uses Liu & Hu and Vader sentiment modules from [NLTK](http://www.nltk.org/api/nltk.sentiment.html), multilingual sentiment lexicons from the [Data Science Lab](https://sites.google.com/site/datascienceslab/projects/multilingualsentiment), and [SentiArt](https://www.frontiersin.org/articles/10.3389/frobt.2019.00053/full) from Arthur Jacobs. All of them are lexicon-based. For Liu & Hu, you can choose English or Slovenian version. Vader works only on English. Multilingual sentiment supports several languages, which are listed at the bottom of this page. SentiArt works on English and German. Custom dictionary enables one to upload custom positive and negative sentiment dictionaries. Custom files should be plain text files (.txt) with each word in its own line.
+**Sentiment Analysis** predicts sentiment for each document in a corpus. It uses Liu & Hu and Vader sentiment modules from [NLTK](http://www.nltk.org/api/nltk.sentiment.html), multilingual sentiment lexicons from the [Data Science Lab](https://sites.google.com/site/datascienceslab/projects/multilingualsentiment), [SentiArt](https://www.frontiersin.org/articles/10.3389/frobt.2019.00053/full) from Arthur Jacobs, and [LiLaH sentiment](http://hdl.handle.net/11356/1318) from Walter Daelemans et al. All of them are lexicon-based. For Liu & Hu, you can choose English or Slovenian version. Vader works only on English. Multilingual sentiment supports several languages, which are listed at the bottom of this page. SentiArt works on English and German. LiLaH sentiment supports Slovenian, Croatian, and Dutch. Custom dictionary enables one to upload custom positive and negative sentiment dictionaries. Custom files should be plain text files (.txt) with each word in its own line.
 
 ![](images/SentimentAnalysis-stamped.png)
 
@@ -19,8 +19,9 @@ Predict sentiment from text.
 2. *Vader*: lexicon- and rule-based sentiment analysis
 3. *Multilingual sentiment*: lexicon-based sentiment analysis for several languages
 4. *SentiArt*: sentiment analysis based on vector space models returning text valence
-5. *Custom dictionary*: add you own positive and negative sentiment dictionaries. Accepted source type is .txt file with each word in its own line. The final score is computed in the same way as Liu Hu.
-6. If *Auto commit is on*, sentiment-tagged corpus is communicated automatically. Alternatively press *Commit*.
+5. *LiLaH sentiment*: manual translations of the NRC Emotion Lexicon
+6. *Custom dictionary*: add you own positive and negative sentiment dictionaries. Accepted source type is .txt file with each word in its own line. The final score is computed in the same way as Liu Hu.
+7. If *Auto commit is on*, sentiment-tagged corpus is communicated automatically. Alternatively press *Commit*.
 
 Example
 -------
@@ -59,6 +60,8 @@ Hu, Minqing and Bing Liu (2004). Mining opinion features in customer reviews. In
 Jacobs, Arthur M. (2019). Sentiment Analysis for Words and Fiction Characters From the Perspective of Computational (Neuro-)Poetics. Frontiers in Robotics and AI 6. https://doi.org/10.3389/frobt.2019.00053
 
 Kadunc, Klemen and Marko Robnik-Šikonja (2016). Analiza mnenj s pomočjo strojnega učenja in slovenskega leksikona sentimenta. Conference on Language Technologies & Digital Humanities, Ljubljana (in Slovene). [Available online.](http://www.sdjt.si/wp/wp-content/uploads/2016/09/JTDH-2016_Kadunc-et-al_Analiza-mnenj-s-pomocjo-strojnega-ucenja.pdf)
+
+Ljubešić, Nikola, Ilia Markov, Darja Fišer and Walter Daelemans (2020). The LiLaH Emotion Lexicon of Croatian, Dutch and Slovene. In Third Workshop on Computational Modeling of People's Opinions, Personality, and Emotion's in Social Media (PEOPLES 2020), pp. 153–157. [Available online.](https://aclanthology.org/2020.peoples-1.15)
 
 ## Multilingual Sentiment Languages
 

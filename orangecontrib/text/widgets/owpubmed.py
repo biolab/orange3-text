@@ -38,7 +38,6 @@ class OWPubmed(OWWidget):
         name = "Pubmed Email"
         want_main_area = False
         resizing_enabled = False
-        email_manager = CredentialManager('Email')
         email_input = ''
 
         class Error(OWWidget.Error):
@@ -46,6 +45,7 @@ class OWPubmed(OWWidget):
 
         def __init__(self, parent):
             super().__init__()
+            self.email_manager = CredentialManager('Email')
             self.parent = parent
             self.api = None
 
