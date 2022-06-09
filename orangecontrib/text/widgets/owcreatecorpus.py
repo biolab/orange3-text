@@ -1,19 +1,18 @@
 from typing import List, Tuple
 
 import numpy as np
-from AnyQt.QtCore import Signal
-from Orange.data import Domain, StringVariable
-from Orange.widgets import gui
-from Orange.widgets.widget import OWWidget, Output
-from AnyQt.QtWidgets import QGroupBox
-from PyQt5.QtCore import QSize, Qt
-from PyQt5.QtWidgets import (
-    QVBoxLayout,
+from AnyQt.QtCore import QSize, Qt, Signal
+from AnyQt.QtWidgets import (
+    QGroupBox,
     QLineEdit,
     QPlainTextEdit,
-    QSizePolicy,
     QPushButton,
+    QSizePolicy,
+    QVBoxLayout,
 )
+from Orange.data import Domain, StringVariable
+from Orange.widgets import gui
+from Orange.widgets.widget import Output, OWWidget
 from orangewidget.settings import Setting
 
 from orangecontrib.text import Corpus
