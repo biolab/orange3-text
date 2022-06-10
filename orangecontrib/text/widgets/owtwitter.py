@@ -1,8 +1,7 @@
 from typing import List, Optional
 
 from AnyQt.QtCore import Qt
-from AnyQt.QtWidgets import QGridLayout, QLabel
-from PyQt5.QtWidgets import QPlainTextEdit
+from AnyQt.QtWidgets import QGridLayout, QLabel, QPlainTextEdit
 
 from orangewidget.utils.widgetpreview import WidgetPreview
 from Orange.widgets import gui

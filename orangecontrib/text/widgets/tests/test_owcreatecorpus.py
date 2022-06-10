@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 from Orange.data import StringVariable
 from Orange.widgets.tests.base import WidgetTest
-from PyQt5.QtWidgets import QPushButton
+from AnyQt.QtWidgets import QPushButton
 
 from orangecontrib.text.widgets.owcreatecorpus import OWCreateCorpus
 
