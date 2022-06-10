@@ -3,25 +3,21 @@ from unittest.mock import patch
 from collections.abc import Iterator
 import asyncio
 
-from orangecontrib.text.semantic_search import (
-    SemanticSearch,
-    MIN_CHUNKS,
-    MAX_PACKAGE_SIZE
-)
+from orangecontrib.text.semantic_search import SemanticSearch
 from orangecontrib.text import Corpus
 
 PATCH_METHOD = 'httpx.AsyncClient.post'
 QUERIES = ['test query', 'another test query']
 RESPONSE = [
-    b'{ "embedding": [[[[0, 57], 0.22114424407482147]]] }',
-    b'{ "embedding": [[[[0, 57], 0.5597518086433411]]] }',
-    b'{ "embedding": [[[[0, 40], 0.11774948984384537]]] }',
-    b'{ "embedding": [[[[0, 50], 0.2228381633758545]]] }',
-    b'{ "embedding": [[[[0, 61], 0.19825558364391327]]] }',
-    b'{ "embedding": [[[[0, 47], 0.19025272130966187]]] }',
-    b'{ "embedding": [[[[0, 40], 0.09688498824834824]]] }',
-    b'{ "embedding": [[[[0, 55], 0.2982504367828369]]] }',
-    b'{ "embedding": [[[[0, 12], 0.2982504367828369]]] }',
+    b'{ "embedding": [[[0, 57], 0.22114424407482147]] }',
+    b'{ "embedding": [[[0, 57], 0.5597518086433411]] }',
+    b'{ "embedding": [[[0, 40], 0.11774948984384537]] }',
+    b'{ "embedding": [[[0, 50], 0.2228381633758545]] }',
+    b'{ "embedding": [[[0, 61], 0.19825558364391327]] }',
+    b'{ "embedding": [[[0, 47], 0.19025272130966187]] }',
+    b'{ "embedding": [[[0, 40], 0.09688498824834824]] }',
+    b'{ "embedding": [[[0, 55], 0.2982504367828369]] }',
+    b'{ "embedding": [[[0, 12], 0.2982504367828369]] }',
 ]
 IDEAL_RESPONSE = [
     [[[0, 57], 0.22114424407482147]],
@@ -37,7 +33,6 @@ IDEAL_RESPONSE = [
 
 
 class DummyResponse:
-
     def __init__(self, content):
         self.content = content
 
@@ -52,6 +47,16 @@ def make_dummy_post(response, sleep=0):
     return dummy_post
 
 
+def sort_by_doc_len(documents):
+    """
+    Sort document in the same order as they are sorted by embedder before they
+    are sent to the server. This we can test results given by pathed method.
+    """
+    return sorted(
+        documents, key=lambda doc: len(SemanticSearch.encode_text(doc)), reverse=True
+    )
+
+
 class SemanticSearchTest(unittest.TestCase):
 
     def setUp(self):
@@ -60,34 +65,6 @@ class SemanticSearchTest(unittest.TestCase):
 
     def tearDown(self):
         self.semantic_search.clear_cache()
-
-    def test_make_chunks_small(self):
-        chunks = self.semantic_search._make_chunks(
-            self.corpus.documents, [100] * len(self.corpus.documents)
-        )
-        self.assertEqual(len(chunks), min(len(self.corpus.documents), MIN_CHUNKS))
-
-    def test_make_chunks_medium(self):
-        num_docs = len(self.corpus.documents)
-        documents = self.corpus.documents
-        if num_docs < MIN_CHUNKS:
-            documents = [documents[0]] * MIN_CHUNKS
-        chunks = self.semantic_search._make_chunks(
-            documents, [MAX_PACKAGE_SIZE / MIN_CHUNKS - 1] * len(documents)
-        )
-        self.assertEqual(len(chunks), MIN_CHUNKS)
-
-    def test_make_chunks_large(self):
-        num_docs = len(self.corpus.documents)
-        documents = self.corpus.documents
-        if num_docs < MIN_CHUNKS:
-            documents = [documents[0]] * MIN_CHUNKS * 100
-        mps = MAX_PACKAGE_SIZE
-        chunks = self.semantic_search._make_chunks(
-            documents,
-            [mps / 100] * (len(documents) - 2) + [0.3 * mps, 0.9 * mps, mps]
-        )
-        self.assertGreater(len(chunks), MIN_CHUNKS)
 
     @patch(PATCH_METHOD)
     def test_empty_corpus(self, mock):
@@ -103,7 +80,7 @@ class SemanticSearchTest(unittest.TestCase):
 
     @patch(PATCH_METHOD, make_dummy_post(iter(RESPONSE)))
     def test_success(self):
-        result = self.semantic_search(self.corpus.documents, QUERIES)
+        result = self.semantic_search(sort_by_doc_len(self.corpus.documents), QUERIES)
         self.assertEqual(result, IDEAL_RESPONSE)
 
     # added None three times since server will repeate request on None response
@@ -115,22 +92,13 @@ class SemanticSearchTest(unittest.TestCase):
         fail to respond three times because Timeout or other error).
         Make sure that semantic search module can handle None responses.
         """
-        result = self.semantic_search(self.corpus.documents, QUERIES)
+        result = self.semantic_search(sort_by_doc_len(self.corpus.documents), QUERIES)
         self.assertEqual(result, IDEAL_RESPONSE[:-1] + [None])
 
     @patch(PATCH_METHOD, make_dummy_post(None))
     def test_all_none(self):
         result = self.semantic_search(self.corpus.documents * 10, QUERIES)
         self.assertListEqual(result, [None] * len(self.corpus.documents) * 10)
-
-    @patch(PATCH_METHOD, make_dummy_post(RESPONSE[0]))
-    def test_success_chunks(self):
-        num_docs = len(self.corpus.documents)
-        documents = self.corpus.documents
-        if num_docs < MIN_CHUNKS:
-            documents = [documents[0]] * MIN_CHUNKS
-        result = self.semantic_search(documents, QUERIES)
-        self.assertEqual(len(result), MIN_CHUNKS)
 
 
 if __name__ == "__main__":
