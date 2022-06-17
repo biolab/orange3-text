@@ -13,7 +13,7 @@ from Orange.widgets.tests.base import WidgetTest
 from Orange.widgets.tests.utils import simulate
 
 from orangecontrib.text import Corpus, preprocess
-from orangecontrib.text.vectorization.document_embedder import DocumentEmbedder
+from orangecontrib.text.vectorization.document_embedder import _ServerEmbedder
 from orangecontrib.text.widgets.owscoredocuments import (
     OWScoreDocuments,
     SelectionMethods,
@@ -22,17 +22,8 @@ from orangecontrib.text.widgets.owscoredocuments import (
 from orangecontrib.text.widgets.utils.words import create_words_table
 
 
-def embedding_mock(_, corpus, __):
-    if isinstance(corpus, list):
-        return np.ones((len(corpus), 10))
-    else:  # corpus is Corpus
-        return (
-            Corpus.from_numpy(
-                domain=Domain([ContinuousVariable(str(i)) for i in range(10)]),
-                X=np.ones((len(corpus), 10)),
-            ),
-            None,
-        )
+def embedding_mock(_, data, callback=None):
+    return np.ones((len(data), 10))
 
 
 class TestOWScoreDocuments(WidgetTest):
@@ -126,7 +117,7 @@ class TestOWScoreDocuments(WidgetTest):
         self.send_signal(self.widget.Inputs.words, None)
         self.assertIsNone(self.widget.words)
 
-    @patch.object(DocumentEmbedder, "__call__", new=embedding_mock)
+    @patch.object(_ServerEmbedder, "embedd_data", new=embedding_mock)
     def test_change_scorer(self):
         model = self.widget.model
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
@@ -224,7 +215,7 @@ class TestOWScoreDocuments(WidgetTest):
         self.wait_until_finished()
         self.assertListEqual([x[1] for x in self.widget.model], [1, 1, 1])
 
-    @patch.object(DocumentEmbedder, "__call__", new=embedding_mock)
+    @patch.object(_ServerEmbedder, "embedd_data", new=embedding_mock)
     def test_embedding_similarity(self):
         corpus = self.create_corpus(
             [
