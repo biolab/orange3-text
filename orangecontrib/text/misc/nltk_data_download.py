@@ -4,6 +4,7 @@ import sys
 import time
 from functools import wraps
 from threading import Thread
+from urllib.parse import urlparse, ParseResult
 
 import nltk
 from Orange.misc.environ import data_dir_base
@@ -38,18 +39,44 @@ def nltk_data_dir():
 is_done_loading = False
 
 
+# for any other potential scheme, it should be provided by user
+DEFAULT_PORTS = {
+    "http": "80",
+    "https": "443",
+    "socks4": "1080",
+    "socks": "1080",
+    "quic": "443",
+}
+
+
+def _get_proxy_address():
+    """
+    Set proxy addresses for NLTK since NLTK do not use proxy addresses from
+    https_proxy environment variable
+    """
+    proxies = get_proxies() or {}
+    # nltk uses https to download data
+    if "https://" in proxies:
+        proxy = urlparse(proxies['https://'])
+        log.debug(f"Using proxy for NLTK: {proxy}")
+        port = proxy.port or DEFAULT_PORTS.get(proxy.scheme)
+        url = ParseResult(
+            scheme=proxy.scheme,
+            netloc="{}:{}".format(proxy.hostname, port) if port else proxy.netloc,
+            path=proxy.path,
+            params=proxy.params,
+            query=proxy.query,
+            fragment=proxy.fragment
+        ).geturl()
+        return url
+
+
 def _download_nltk_data():
     global is_done_loading
 
-    # set proxy if exist
-    proxies = get_proxies() or {}
-    # use https if exists and others otherwise
-    for key in ("https://", "all://", "http://"):
-        if key in proxies:
-            log.debug(f"Using proxy for NLTK: {proxies[key]}")
-            nltk.set_proxy(proxies[key])
-            break
-
+    proxy_address = _get_proxy_address()
+    if proxy_address:
+        nltk.set_proxy(proxy_address)
     nltk.download(NLTK_DATA, download_dir=nltk_data_dir(), quiet=True)
     is_done_loading = True
     sys.stdout.flush()
