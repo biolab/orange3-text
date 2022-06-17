@@ -11,6 +11,7 @@ from Orange.widgets.tests.base import WidgetTest
 from Orange.widgets.tests.utils import simulate
 
 from orangecontrib.text.corpus import Corpus
+from orangecontrib.text import preprocess
 from orangecontrib.text.widgets.owsentimentanalysis import OWSentimentAnalysis
 
 
@@ -126,3 +127,18 @@ class TestSentimentWidget(WidgetTest):
         settings = {"method_idx": 4}
         OWSentimentAnalysis.migrate_settings(settings, version=None)
         self.assertTrue(settings.get("method_idx", 5))
+
+    def test_preprocessed(self):
+        widget = self.create_widget(OWSentimentAnalysis)
+        corpus = self.corpus.copy()
+        pp_list = [preprocess.LowercaseTransformer(),
+                   preprocess.WordPunctTokenizer()]
+        for pp in pp_list:
+            corpus = pp(corpus)
+        self.send_signal(widget.Inputs.corpus, corpus)
+        self.assertTrue(widget.pp_corpus)
+        widget.liu_hu.click()
+        simulate.combobox_activate_item(widget.liu_lang, "English")
+        self.assertTrue(widget.pp_corpus)
+        self.send_signal(widget.Inputs.corpus, None)
+        self.assertIsNone(widget.pp_corpus)
