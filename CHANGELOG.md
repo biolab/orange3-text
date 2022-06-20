@@ -5,6 +5,12 @@ Change Log
 ------------
 * ...
 
+[1.8.1] - 2022-06-20
+--------------------
+##### Bugfixes
+* Score Documents - adapt to the latest changes in document embedding ([#866](../../pull/866))
+* Temporary proxy fix
+
 [1.8.0] - 2022-06-09
 --------------------
 ##### Enhancements
@@ -357,7 +363,8 @@ Change Log
 --------------------
 
 
-[next]: https://github.com/biolab/orange3-text/compare/1.8.0...HEAD
+[next]: https://github.com/biolab/orange3-text/compare/1.8.1...HEAD
+[1.8.1]: https://github.com/biolab/orange3-text/compare/1.8.0...1.8.1
 [1.8.0]: https://github.com/biolab/orange3-text/compare/1.7.0...1.8.0
 [1.7.0]: https://github.com/biolab/orange3-text/compare/1.6.2...1.7.0
 [1.6.2]: https://github.com/biolab/orange3-text/compare/1.6.1...1.6.2

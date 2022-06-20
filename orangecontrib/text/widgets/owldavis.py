@@ -3,8 +3,8 @@ from typing import Dict, List, Optional, Tuple
 import numpy as np
 import pyqtgraph as pg
 from AnyQt.QtCore import QPointF, Qt
-from PyQt5.QtGui import QColor, QPen
-from PyQt5.QtWidgets import QGraphicsSceneHelpEvent, QToolTip
+from AnyQt.QtGui import QColor, QPen
+from AnyQt.QtWidgets import QGraphicsSceneHelpEvent, QToolTip
 from pyqtgraph import LabelItem, AxisItem
 from pyqtgraph.graphicsItems.LegendItem import ItemSample
 

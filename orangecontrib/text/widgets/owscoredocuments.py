@@ -74,10 +74,14 @@ def _embedding_similarity(
     emb = DocumentEmbedder(language)
 
     cb_part = len(corpus) / (len(corpus) + len(words))
-    documet_embeddings, skipped = emb(corpus, wrap_callback(callback, 0, cb_part))
+    documet_embeddings, skipped = emb.transform(
+        corpus, wrap_callback(callback, 0, cb_part)
+    )
     assert skipped is None
+
+    words = [[w] for w in words]
     word_embeddings = np.array(
-        emb([[w] for w in words], wrap_callback(callback, cb_part, 1 - cb_part))
+        emb.transform(words, wrap_callback(callback, cb_part, 1 - cb_part))
     )
     return cosine_similarity(documet_embeddings.X, word_embeddings)
 
