@@ -36,6 +36,7 @@ from Orange.data import DiscreteVariable, Domain, StringVariable, \
 from Orange.data.io import detect_encoding, sanitize_variable
 from Orange.data.util import get_unique_names
 from Orange.util import Registry, dummy_callback
+from Orange.misc.utils.embedder_utils import get_proxies
 
 from orangecontrib.text.corpus import Corpus
 
@@ -238,7 +239,7 @@ class UrlProxyReader:
 
     @staticmethod
     async def _read_files(urls: List[str], callback: Callable) -> List[ResponseType]:
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        async with httpx.AsyncClient(timeout=10.0, proxies=get_proxies()) as client:
             req = [UrlProxyReader._read_file(url, client, callback) for url in urls]
             return await asyncio.gather(*req)
 
