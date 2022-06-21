@@ -3,7 +3,7 @@ from typing import Optional, Callable
 from itertools import chain
 import numpy as np
 
-from AnyQt.QtCore import Qt, QAbstractTableModel, QSize, QItemSelectionModel, \
+from AnyQt.QtCore import Qt, QAbstractTableModel, QItemSelectionModel, \
     QItemSelection, QModelIndex
 from AnyQt.QtWidgets import QSizePolicy, QTableView, QStyledItemDelegate
 from AnyQt.QtGui import QColor
@@ -17,7 +17,6 @@ from Orange.util import dummy_callback
 from nltk import ConcordanceIndex
 
 from orangecontrib.text.corpus import Corpus
-from orangecontrib.text.topics import Topic
 from orangecontrib.text.preprocess import WordPunctTokenizer
 
 
@@ -186,7 +185,7 @@ class OWConcordance(OWWidget, ConcurrentWidgetMixin):
 
     class Inputs:
         corpus = Input("Corpus", Corpus)
-        query_word = Input("Query Word", Topic)
+        query_word = Input("Query Word", Table)
 
     class Outputs:
         selected_documents = Output("Selected Documents", Corpus, default=True)

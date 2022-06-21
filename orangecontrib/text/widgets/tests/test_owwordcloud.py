@@ -1,8 +1,7 @@
 import unittest
 
 import numpy as np
-import pkg_resources
-
+from AnyQt.QtCore import QItemSelectionModel
 from Orange.widgets.tests.base import WidgetTest
 from Orange.data import StringVariable, Domain
 from scipy.sparse import csr_matrix
@@ -154,6 +153,20 @@ class TestWordCloudWidget(WidgetTest):
             self.corpus.metas = np.array([[" "]] * len(self.corpus))
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
         self.wait_until_finished()
+
+    def test_select_words_output(self):
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.assertIsNone(self.get_output(self.widget.Outputs.selected_words))
+
+        mode = QItemSelectionModel.Rows | QItemSelectionModel.Select
+        view = self.widget.tableview
+        view.clearSelection()
+        view.selectionModel().select(self.widget.tablemodel.index(2, 0), mode)
+        view.selectionModel().select(self.widget.tablemodel.index(3, 0), mode)
+
+        output = self.get_output(self.widget.Outputs.selected_words)
+        self.assertEqual(2, len(output))
+        self.assertEqual("words", output.domain["Words"].attributes["type"])
 
 
 if __name__ == "__main__":
