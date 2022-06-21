@@ -17,6 +17,7 @@ from Orange.widgets.utils.itemmodels import PyTableModel
 from Orange.widgets.widget import Input, Output, OWWidget
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.topics import Topic
+from orangecontrib.text.widgets.utils.words import create_words_table
 
 COLORS = ["#da1", "#629", "#787"]
 GRAY_COLORS = ["#000", "#444", "#777", "#aaa"]
@@ -477,16 +478,12 @@ span.selected {color:red !important}
             out = self.corpus[rows]
         self.Outputs.corpus.send(out)
 
-        topic = None
+        words_table = None
         words = list(self.selected_words)
         if words:
-            topic = Topic.from_numpy(
-                Domain([], metas=[StringVariable("Words")]),
-                X=np.empty((len(words), 0)),
-                metas=np.c_[words].astype(object),
-            )
-            topic.name = "Selected Words"
-        self.Outputs.selected_words.send(topic)
+            words_table = create_words_table(words)
+            words_table.name = "Selected Words"
+        self.Outputs.selected_words.send(words_table)
 
     def send_report(self):
         if self.webview:
