@@ -38,10 +38,10 @@ def _embedd_tokens(
     # embedd documents
     embedder = DocumentEmbedder(language=language)
     # tokens is tranformedt to list in case it is np.ndarray
-    doc_embs = np.array(embedder(list(tokens), emb_cb))
+    doc_embs = np.array(embedder.transform(list(tokens), emb_cb))
 
     # embedd words
-    word_embs = np.array(embedder([[w] for w in words], emb_cb))
+    word_embs = np.array(embedder.transform([[w] for w in words], emb_cb))
 
     return doc_embs, word_embs, word2doc
 
