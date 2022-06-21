@@ -5,6 +5,12 @@ Change Log
 ------------
 * ...
 
+[1.9.0] - 2022-06-21
+--------------------
+##### Bugfixes
+* Import Documents - fix metadata matching ([#870](../../pull/870))
+* Word cloud - add type to the selected words output ([#868](../../pull/868))
+
 [1.8.1] - 2022-06-20
 --------------------
 ##### Bugfixes
@@ -363,7 +369,8 @@ Change Log
 --------------------
 
 
-[next]: https://github.com/biolab/orange3-text/compare/1.8.1...HEAD
+[next]: https://github.com/biolab/orange3-text/compare/1.9.0...HEAD
+[1.8.1]: https://github.com/biolab/orange3-text/compare/1.8.1...1.9.0
 [1.8.1]: https://github.com/biolab/orange3-text/compare/1.8.0...1.8.1
 [1.8.0]: https://github.com/biolab/orange3-text/compare/1.7.0...1.8.0
 [1.7.0]: https://github.com/biolab/orange3-text/compare/1.6.2...1.7.0
