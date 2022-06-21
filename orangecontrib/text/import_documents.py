@@ -36,6 +36,7 @@ from Orange.data import DiscreteVariable, Domain, StringVariable, \
 from Orange.data.io import detect_encoding, sanitize_variable
 from Orange.data.util import get_unique_names
 from Orange.util import Registry, dummy_callback
+from Orange.misc.utils.embedder_utils import get_proxies
 
 from orangecontrib.text.corpus import Corpus
 
@@ -195,6 +196,16 @@ class TsvMetaReader(Reader):
         self.content = pd.read_csv(self.path, delimiter="\t")
 
 
+def quote_url(u):
+    u = u.strip()
+    # Support URL with query or fragment like http://filename.txt?a=1&b=2#c=3
+
+    def quote_byte(b):
+        return chr(b) if b < 0x80 else "%{:02X}".format(b)
+
+    return "".join(map(quote_byte, u.encode("utf-8")))
+
+
 ResponseType = Tuple[Optional[Reader], Optional[TextData], Optional[str]]
 
 
@@ -228,7 +239,7 @@ class UrlProxyReader:
 
     @staticmethod
     async def _read_files(urls: List[str], callback: Callable) -> List[ResponseType]:
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        async with httpx.AsyncClient(timeout=10.0, proxies=get_proxies()) as client:
             req = [UrlProxyReader._read_file(url, client, callback) for url in urls]
             return await asyncio.gather(*req)
 
@@ -236,15 +247,6 @@ class UrlProxyReader:
     async def _read_file(
         url: str, client: httpx.AsyncClient, callback: Callable
     ) -> ResponseType:
-        def quote_url(u):
-            u = u.strip()
-            # Support URL with query or fragment like http://filename.txt?a=1&b=2#c=3
-
-            def quote_byte(b):
-                return chr(b) if b < 0x80 else "%{:02X}".format(b)
-
-            return "".join(map(quote_byte, u.encode("utf-8")))
-
         # repeat if unsuccessful (can be due to network error)
         for _ in range(3):
             try:
@@ -549,7 +551,7 @@ class ImportDocuments:
             path_column = corpus.get_column_view("utterance")[0]
         else:
             df = self._meta_data.set_index(
-                self.startdir + self._meta_data[self.META_DATA_FILE_KEY]
+                self.startdir + self._meta_data[self.META_DATA_FILE_KEY].apply(quote_url)
             )
             path_column = corpus.get_column_view("path")[0]
 
