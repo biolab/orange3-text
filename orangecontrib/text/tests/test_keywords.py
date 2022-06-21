@@ -100,7 +100,7 @@ def mock_embedding(_, tokens, __):
     return emb
 
 
-@patch("orangecontrib.text.vectorization.document_embedder.DocumentEmbedder.__call__", mock_embedding)
+@patch("orangecontrib.text.vectorization.document_embedder.DocumentEmbedder.transform", mock_embedding)
 class TestEmbedding(unittest.TestCase):
     def test_extractor(self):
         corpus = corpus_mock([["foo", "bar", "baz", "baz"], ["foobar"], [" "]])
