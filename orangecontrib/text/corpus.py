@@ -22,7 +22,6 @@ from Orange.data import (
 )
 from Orange.preprocess.transformation import Identity
 from Orange.data.util import get_unique_names
-from orangecontrib.text.vectorization import BowVectorizer
 
 try:
     from orangewidget.utils.signals import summarize, PartialSummary
@@ -86,7 +85,6 @@ class Corpus(Table):
         self.text_features = []    # list of text features for mining
         self._tokens = None
         self._dictionary = None
-        self._ngrams_corpus = None
         self.ngram_range = (1, 1)
         self.attributes = {}
         self._pos_tags = None
@@ -460,16 +458,6 @@ class Corpus(Table):
                 for doc in data)
 
     @property
-    def ngrams_corpus(self):
-        if self._ngrams_corpus is None:
-            return BowVectorizer().transform(self).ngrams_corpus
-        return self._ngrams_corpus
-
-    @ngrams_corpus.setter
-    def ngrams_corpus(self, value):
-        self._ngrams_corpus = value
-
-    @property
     def ngrams(self):
         """generator: Ngram representations of documents."""
         return self.ngrams_iterator(join_with=' ')
@@ -487,7 +475,6 @@ class Corpus(Table):
         c.used_preprocessor = self.used_preprocessor
         c._titles = self._titles
         c._pp_documents = self._pp_documents
-        c._ngrams_corpus = self._ngrams_corpus
         return c
 
     @staticmethod
@@ -651,8 +638,6 @@ class Corpus(Table):
             new.ngram_range = orig.ngram_range
             new.attributes = orig.attributes
             new.used_preprocessor = orig.used_preprocessor
-            if orig._ngrams_corpus is not None:
-                new.ngrams_corpus = orig._ngrams_corpus[key]
         else:  # orig is not Corpus
             new._set_unique_titles()
             new._infer_text_features()

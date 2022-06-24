@@ -21,7 +21,7 @@ from Orange.data import Table
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.topics import Topic, Topics, LdaWrapper, HdpWrapper, \
     LsiWrapper, NmfWrapper
-from orangecontrib.text.topics.topics import GensimWrapper
+from orangecontrib.text.topics.topics import GensimWrapper, infer_ngrams_corpus
 
 
 class TopicWidget(gui.OWComponent, QGroupBox):
@@ -262,7 +262,7 @@ class OWTopicModeling(OWWidget, ConcurrentWidgetMixin):
             self.Warning.less_topics_found()
 
         if self.model.name == "Latent Dirichlet Allocation":
-            bound = self.model.model.log_perplexity(corpus.ngrams_corpus)
+            bound = self.model.model.log_perplexity(infer_ngrams_corpus(corpus))
             self.perplexity = "{:.5f}".format(np.exp2(-bound))
         cm = CoherenceModel(
             model=self.model.model, texts=corpus.tokens, corpus=corpus, coherence="c_v"

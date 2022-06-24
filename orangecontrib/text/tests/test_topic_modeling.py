@@ -57,6 +57,9 @@ class BaseTests:
         empty = p(self.corpus)
         self.assertIsNone(self.model.fit(empty))
 
+    def test_slice(self):
+        self.model.fit(self.corpus[:len(self.corpus) // 2])
+
     def test_get_top_words(self):
         self.model.fit(self.corpus)
         self.assertRaises(ValueError, self.model.get_topics_table_by_id, 1000)
