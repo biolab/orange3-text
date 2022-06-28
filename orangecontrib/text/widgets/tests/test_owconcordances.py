@@ -193,15 +193,15 @@ class TestConcordanceWidget(WidgetTest):
         view.selectRow(1)
         self.assertEqual({ind.row() for ind in view.selectedIndexes()},
                          {0, 1})
-        self.assertEqual(self.get_output("Selected Documents"),
-                         self.corpus[[1]])
+        self.assertListEqual(self.get_output("Selected Documents").documents,
+                         [self.corpus.documents[1]])
 
         # Select a single row
         view.selectRow(3)
         self.assertEqual({ind.row() for ind in view.selectedIndexes()},
                          {3})
-        self.assertEqual(self.get_output("Selected Documents"),
-                         self.corpus[[4]])
+        self.assertListEqual(self.get_output("Selected Documents").documents,
+                         [self.corpus.documents[4]])
 
         # Add a "double" row, three are selected, two documents on the output
         selection_model = view.selectionModel()
@@ -211,8 +211,8 @@ class TestConcordanceWidget(WidgetTest):
         selection_model.select(selection, selection_model.Select)
         self.assertEqual({ind.row() for ind in view.selectedIndexes()},
                          {0, 1, 3})
-        self.assertEqual(self.get_output("Selected Documents"),
-                         self.corpus[[1, 4]])
+        self.assertEqual(self.get_output("Selected Documents").documents,
+                         [self.corpus.documents[i] for i in (1, 4)])
 
         # Clear selection by clicking outside
         ind_10 = widget.model.index(-1, 0)

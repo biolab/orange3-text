@@ -1,4 +1,5 @@
 import os
+import warnings
 from collections import Counter, defaultdict
 from copy import copy
 from numbers import Integral
@@ -658,6 +659,11 @@ class Corpus(Table):
             new._infer_text_features()
 
     def __eq__(self, other):
+        warnings.warn(
+            "Corpus's __eq__  is deprecated and will be removed in Orange3-text"
+            "1.11. Equality operator will return True only for the same objects.",
+            FutureWarning
+        )
         def arrays_equal(a, b):
             if sp.issparse(a) != sp.issparse(b):
                 return False

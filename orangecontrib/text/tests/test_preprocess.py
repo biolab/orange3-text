@@ -53,7 +53,7 @@ class PreprocessTests(unittest.TestCase):
                          list(map(len, corpus1._tokens)))
 
         corpus2 = PreprocessorList(self.pp_list)(self.corpus)
-        self.assertEqual(corpus1, corpus2)
+        np.testing.assert_array_equal(corpus1.tokens, corpus2.tokens)
 
     def test_apply_preprocessors(self):
         corpus = PreprocessorList(self.pp_list)(self.corpus)
