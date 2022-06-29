@@ -107,12 +107,12 @@ class TestSentimentWidget(WidgetTest):
         self.assertTrue(widget.Warning.no_dicts_loaded.is_shown())
         widget.pos_file = os.path.join(os.path.dirname(__file__),
                                        "data/sentiment/pos.txt")
-        widget.commit()
+        widget.commit.now()
         self.assertTrue(widget.Warning.one_dict_only.is_shown())
         self.assertFalse(widget.Warning.no_dicts_loaded.is_shown())
         widget.neg_file = os.path.join(os.path.dirname(__file__),
                                        "data/sentiment/neg.txt")
-        widget.commit()
+        widget.commit.now()
         self.assertFalse(widget.Warning.one_dict_only.is_shown())
         self.assertFalse(widget.Warning.no_dicts_loaded.is_shown())
         widget.vader.click()

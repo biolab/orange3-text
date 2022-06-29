@@ -528,10 +528,13 @@ class ImportDocuments:
         domain["name"].attributes["title"] = True
         data = np.array(data, dtype=object)
         if len(data):
-            corpus = Corpus(domain,
-                            Y=category_data,
-                            metas=data,
-                            text_features=[domain.metas[-1]])
+            corpus = Corpus.from_numpy(
+                domain,
+                X=np.empty((len(category_data), 0)),
+                Y=category_data,
+                metas=data,
+                text_features=[domain.metas[-1]]
+            )
         return corpus
 
     def _add_metadata(self, corpus: Corpus) -> Corpus:

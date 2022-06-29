@@ -4,7 +4,7 @@ from AnyQt.QtCore import QSize
 
 from Orange.widgets.widget import OWWidget, Input, Output, Msg
 from Orange.widgets.settings import Setting
-from Orange.widgets.gui import widgetBox, comboBox, spin, button
+from Orange.widgets.gui import widgetBox, comboBox, spin, button, deferred
 from Orange.widgets.utils.concurrent import ConcurrentWidgetMixin, TaskState
 from Orange.data import Table
 
@@ -50,7 +50,6 @@ class OWCorpusToNetwork(OWWidget, ConcurrentWidgetMixin):
     priority = 250
 
     want_main_area = False
-    _auto_apply = Setting(default=True)
     node_type = Setting(default=0)
     threshold = Setting(default=1)
     window_size = Setting(default=1)
@@ -60,7 +59,7 @@ class OWCorpusToNetwork(OWWidget, ConcurrentWidgetMixin):
         corpus = Input("Corpus", Corpus)
 
     class Outputs:
-        network = Output("Network", "orangecontrib.network.Network")
+        network = Output("Network", "orangecontrib.network.Network", auto_summary=True)
         items = Output("Node Data", Table)
 
     class Error(OWWidget.Error):

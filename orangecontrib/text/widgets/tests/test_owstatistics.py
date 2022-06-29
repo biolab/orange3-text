@@ -33,7 +33,7 @@ class TestStatisticsWidget(WidgetTest):
         )
         text_var = StringVariable("text")
         domain = Domain([], metas=[text_var])
-        self.corpus = Corpus(
+        self.corpus = Corpus.from_numpy(
             domain,
             X=np.empty((len(metas), 0)),
             metas=metas,

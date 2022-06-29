@@ -279,7 +279,7 @@ class TwitterAPI:
         )
         x = np.empty((len(metas), 0))
 
-        return Corpus(domain, x, metas=metas, text_features=self.text_features)
+        return Corpus.from_numpy(domain, x, metas=metas, text_features=self.text_features)
 
     def append_history(
         self,

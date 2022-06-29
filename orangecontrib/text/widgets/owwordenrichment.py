@@ -217,7 +217,7 @@ class OWWordEnrichment(OWWidget, ConcurrentWidgetMixin):
         for i in range(len(self.cols)):
             self.sig_words.resizeColumnToContents(i)
         self.set_displayed_info(count)
-        self.commit()
+        self.commit.deferred()
 
     def build_tree(self) -> int:
         count = 0
@@ -263,6 +263,7 @@ class OWWordEnrichment(OWWidget, ConcurrentWidgetMixin):
             view.append(line)
         return view
 
+    @gui.deferred
     def commit(self):
         if not self.sig_words:
             self.Outputs.words.send(None)
