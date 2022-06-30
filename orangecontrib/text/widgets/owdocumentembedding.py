@@ -34,14 +34,14 @@ class EmbeddingVectorizer(Vectorizer):
 class OWDocumentEmbedding(OWBaseVectorizer):
     name = "Document Embedding"
     description = "Document embedding using pretrained models."
-    keywords = ["embedding", "document embedding", "text"]
+    keywords = ["embedding", "document embedding", "text", "fasttext", "bert", "sbert"]
     icon = "icons/TextEmbedding.svg"
     priority = 300
 
     buttons_area_orientation = Qt.Vertical
     settings_version = 2
 
-    Methods = [DocumentEmbedder, SBERT]
+    Methods = [SBERT, DocumentEmbedder]
 
     class Outputs(OWBaseVectorizer.Outputs):
         skipped = Output("Skipped documents", Corpus)
@@ -74,9 +74,10 @@ class OWDocumentEmbedding(OWBaseVectorizer):
         rbtns = gui.radioButtons(None, self, "method", callback=self.on_change)
         layout.addWidget(rbtns)
 
+        gui.appendRadioButton(rbtns, "Multilingual SBERT")
         gui.appendRadioButton(rbtns, "fastText:")
         ibox = gui.indentedBox(rbtns)
-        gui.comboBox(
+        self.language_cb = gui.comboBox(
             ibox,
             self,
             "language",
@@ -85,8 +86,9 @@ class OWDocumentEmbedding(OWBaseVectorizer):
             sendSelectedValue=True,  # value is actual string not index
             orientation=Qt.Horizontal,
             callback=self.on_change,
+            searchable=True,
         )
-        gui.comboBox(
+        self.aggregator_cb = gui.comboBox(
             ibox,
             self,
             "aggregator",
@@ -95,17 +97,20 @@ class OWDocumentEmbedding(OWBaseVectorizer):
             sendSelectedValue=True,  # value is actual string not index
             orientation=Qt.Horizontal,
             callback=self.on_change,
+            searchable=True,
         )
 
-        gui.appendRadioButton(rbtns, "Multilingual SBERT:")
         return layout
 
     def update_method(self):
+        disabled = self.method == 0
+        self.aggregator_cb.setDisabled(disabled)
+        self.language_cb.setDisabled(disabled)
         self.vectorizer = EmbeddingVectorizer(self.init_method(), self.corpus)
 
     def init_method(self):
         params = dict(language=LANGS_TO_ISO[self.language], aggregator=self.aggregator)
-        kwargs = (params, {})[self.method]
+        kwargs = ({}, params)[self.method]
         return self.Methods[self.method](**kwargs)
 
     @gui.deferred

@@ -70,6 +70,7 @@ class OWBaseVectorizer(OWWidget, ConcurrentWidgetMixin, openclass=True):
 
         box = QGroupBox(title="Options")
         box.setLayout(self.create_configuration_layout())
+        box.layout().setContentsMargins(4, 4, 4, 4)  # same than other widgets
         self.controlArea.layout().addWidget(box)
 
         output_layout = gui.hBox(self.controlArea)
