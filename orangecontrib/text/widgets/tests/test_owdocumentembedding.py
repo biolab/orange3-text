@@ -1,18 +1,24 @@
 import unittest
 from unittest.mock import Mock, patch
 
+import numpy as np
 from AnyQt.QtWidgets import QComboBox
 from Orange.widgets.tests.base import WidgetTest
 from Orange.widgets.tests.utils import simulate
 from Orange.misc.utils.embedder_utils import EmbeddingConnectionError
+from PyQt5.QtWidgets import QRadioButton
 
 from orangecontrib.text.tests.test_documentembedder import PATCH_METHOD, make_dummy_post
+from orangecontrib.text.vectorization.sbert import EMB_DIM
 from orangecontrib.text.widgets.owdocumentembedding import OWDocumentEmbedding
 from orangecontrib.text import Corpus
 
 
 async def none_method(_, __):
     return None
+
+_response_list = str(np.arange(0, EMB_DIM, dtype=float).tolist())
+SBERT_RESPONSE = f'{{"embedding": [{_response_list}]}}'.encode()
 
 
 class TestOWDocumentEmbedding(WidgetTest):
@@ -104,6 +110,18 @@ class TestOWDocumentEmbedding(WidgetTest):
         self.assertIsNone(self.get_output(self.widget.Outputs.corpus))
         self.assertEqual(len(self.get_output(self.widget.Outputs.skipped)), len(self.corpus))
         self.assertTrue(self.widget.Warning.unsuccessful_embeddings.is_shown())
+
+    @patch(PATCH_METHOD, make_dummy_post(SBERT_RESPONSE))
+    def test_sbert(self):
+        self.widget.findChildren(QRadioButton)[1].click()
+        self.widget.vectorizer.method.clear_cache()
+
+        self.send_signal("Corpus", self.corpus)
+        result = self.get_output(self.widget.Outputs.corpus)
+        self.assertIsInstance(result, Corpus)
+        self.assertEqual(len(self.corpus), len(result))
+        self.assertTupleEqual(self.corpus.domain.metas, result.domain.metas)
+        self.assertEqual(384, len(result.domain.attributes))
 
 
 if __name__ == "__main__":

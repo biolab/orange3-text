@@ -157,7 +157,7 @@ class DocumentEmbedder(BaseVectorizer):
 
         return new_corpus, skipped_corpus
 
-    def report(self) -> Tuple[Tuple[str, str], Tuple[str, str]]:
+    def report(self) -> Tuple[Tuple[str, str], ...]:
         """Reports on current parameters of DocumentEmbedder.
 
         Returns
@@ -165,8 +165,11 @@ class DocumentEmbedder(BaseVectorizer):
         tuple
             Tuple of parameters.
         """
-        return (('Language', self.language),
-                ('Aggregator', self.aggregator))
+        return (
+            ("Embedder", "fastText"),
+            ("Language", self.language),
+            ("Aggregator", self.aggregator),
+        )
 
     def clear_cache(self):
         """Clears embedder cache"""

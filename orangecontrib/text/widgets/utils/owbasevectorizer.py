@@ -117,7 +117,7 @@ class OWBaseVectorizer(OWWidget, ConcurrentWidgetMixin, openclass=True):
         self.commit.deferred()
 
     def send_report(self):
-        self.report_items(self.method.report())
+        self.report_items(self.vectorizer.method.report())
 
     def create_configuration_layout(self):
         raise NotImplementedError
