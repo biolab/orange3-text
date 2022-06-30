@@ -1,6 +1,7 @@
 import os
 import pickle
 import unittest
+from datetime import datetime
 from unittest import skipIf
 
 import numpy as np
@@ -658,6 +659,38 @@ class CorpusTests(unittest.TestCase):
         self.assertIsInstance(pp[1], RegexpTokenizer)
         self.assertIsInstance(pp[2], StopwordsFilter)
 
+    def test_language_copied(self):
+        """
+        When crating a copy of corpus with from_table or from_table_rows the
+        language change should not affect original corpus
+        """
+        corpus = Corpus.from_file("book-excerpts")
+        self.assertEqual(corpus.language, "en")
+
+        new_corpus = corpus.from_table(corpus.domain, corpus)
+        new_corpus.attributes["language"] = "sl"
+        self.assertEqual(new_corpus.language, "sl")
+        self.assertEqual(corpus.language, "en")
+
+        new_corpus = corpus.from_table_rows(corpus, [1, 2])
+        new_corpus.attributes["language"] = "sl"
+        self.assertEqual(new_corpus.language, "sl")
+        self.assertEqual(corpus.language, "en")
+
+    def test_remove_attributes_copy(self):
+        """
+        Happy new year!
+
+        We added a deepcopy of attributes to from_table and from_table_rows
+        since Orange didn't copy attributes. It should be removed when oldest
+        supported Orange is 3.34 or higher.
+        When test starts to fail:
+        - remove it
+        - remove copying of attributes in from_table and from_table_rows
+        - update Orange version to >=3.34 if not done yet
+        """
+        self.assertLess(datetime.today(), datetime(2024, 1, 1))
+
 
 @skipIf(summarize is None, "summarize is not available for orange3<=3.28")
 class TestCorpusSummaries(unittest.TestCase):
@@ -672,7 +705,8 @@ class TestCorpusSummaries(unittest.TestCase):
             f"<nobr>Features: — (no missing values)</nobr><br/>"
             f"<nobr>Target: categorical</nobr><br/>"
             f"<nobr>Metas: string</nobr><br/>"
-            f"<nobr>Corpus is not preprocessed</nobr>"
+            f"<nobr>Corpus is not preprocessed</nobr><br/>"
+            f"<nobr>Language: English</nobr>"
         )
         summary = summarize.dispatch(Corpus)(corpus)
         self.assertEqual(140, summary.summary)
@@ -690,10 +724,44 @@ class TestCorpusSummaries(unittest.TestCase):
             f"<nobr>Features: — (no missing values)</nobr><br/>"
             f"<nobr>Target: categorical</nobr><br/>"
             f"<nobr>Metas: string</nobr><br/>"
-            f"<nobr>Tokens: 128020, Types: 11712</nobr>"
+            f"<nobr>Tokens: 128020, Types: 11712</nobr><br/>"
+            f"<nobr>Language: English</nobr>"
         )
         summary = summarize.dispatch(Corpus)(corpus)
         self.assertEqual(140, summary.summary)
+        self.assertEqual(details, summary.details)
+
+    def test_language(self):
+        """Check if details part of the summary is formatted correctly"""
+        corpus = Corpus.from_file("book-excerpts")
+        corpus.attributes["language"] = "sl"
+
+        n_features = len(corpus.domain.variables) + len(corpus.domain.metas)
+        details = (
+            f"<nobr><b><u>book-excerpts</u></b>: "
+            f"{len(corpus)} instances, {n_features} variables</nobr><br/>"
+            f"<nobr>Features: — (no missing values)</nobr><br/>"
+            f"<nobr>Target: categorical</nobr><br/>"
+            f"<nobr>Metas: string</nobr><br/>"
+            f"<nobr>Corpus is not preprocessed</nobr><br/>"
+            f"<nobr>Language: Slovenian</nobr>"
+        )
+        summary = summarize.dispatch(Corpus)(corpus)
+        self.assertEqual(details, summary.details)
+
+        corpus.attributes["language"] = None
+
+        n_features = len(corpus.domain.variables) + len(corpus.domain.metas)
+        details = (
+            f"<nobr><b><u>book-excerpts</u></b>: "
+            f"{len(corpus)} instances, {n_features} variables</nobr><br/>"
+            f"<nobr>Features: — (no missing values)</nobr><br/>"
+            f"<nobr>Target: categorical</nobr><br/>"
+            f"<nobr>Metas: string</nobr><br/>"
+            f"<nobr>Corpus is not preprocessed</nobr><br/>"
+            f"<nobr>Language: not set</nobr>"
+        )
+        summary = summarize.dispatch(Corpus)(corpus)
         self.assertEqual(details, summary.details)
 
 

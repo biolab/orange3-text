@@ -29,3 +29,4 @@ tweepy >=4.0.0
 ufal.udpipe >=1.2.0.3
 wikipedia
 yake
+langdetect
