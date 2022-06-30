@@ -27,6 +27,13 @@ class TestOWDocumentEmbedding(WidgetTest):
         self.corpus = Corpus.from_file('deerwester')
         self.larger_corpus = Corpus.from_file('book-excerpts')
 
+        # test on fastText, except for tests that change the setting
+        self.widget.findChildren(QRadioButton)[1].click()
+        self.widget.vectorizer.method.clear_cache()
+
+    def tearDown(self):
+        self.widget.vectorizer.method.clear_cache()
+
     def test_input(self):
         set_data = self.widget.set_data = Mock()
         self.send_signal("Corpus", None)
@@ -42,7 +49,6 @@ class TestOWDocumentEmbedding(WidgetTest):
         self.assertIsNone(self.get_output(self.widget.Outputs.corpus))
 
         self.send_signal("Corpus", self.corpus)
-        self.wait_until_finished()
         result = self.get_output(self.widget.Outputs.corpus)
         self.assertIsNotNone(result)
         self.assertIsInstance(result, Corpus)
@@ -113,7 +119,7 @@ class TestOWDocumentEmbedding(WidgetTest):
 
     @patch(PATCH_METHOD, make_dummy_post(SBERT_RESPONSE))
     def test_sbert(self):
-        self.widget.findChildren(QRadioButton)[1].click()
+        self.widget.findChildren(QRadioButton)[0].click()
         self.widget.vectorizer.method.clear_cache()
 
         self.send_signal("Corpus", self.corpus)
