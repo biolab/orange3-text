@@ -5,6 +5,15 @@ Change Log
 ------------
 * ...
 
+[1.10.0] - 2022-07-08
+--------------------
+##### Enhancements
+* Document Embedding - set SBERT as default ([#875](../../pull/875))
+* Document Embedding: add SBERT ([#839](../../pull/839))
+
+##### Bugfixes
+* Corpus: fix ngrams_corpus ([#871](../../pull/871))
+
 [1.9.0] - 2022-06-21
 --------------------
 ##### Bugfixes
@@ -369,8 +378,9 @@ Change Log
 --------------------
 
 
-[next]: https://github.com/biolab/orange3-text/compare/1.9.0...HEAD
-[1.8.1]: https://github.com/biolab/orange3-text/compare/1.8.1...1.9.0
+[next]: https://github.com/biolab/orange3-text/compare/1.10.0...HEAD
+[1.10.0]: https://github.com/biolab/orange3-text/compare/1.9.0...1.10.0
+[1.9.0]: https://github.com/biolab/orange3-text/compare/1.8.1...1.9.0
 [1.8.1]: https://github.com/biolab/orange3-text/compare/1.8.0...1.8.1
 [1.8.0]: https://github.com/biolab/orange3-text/compare/1.7.0...1.8.0
 [1.7.0]: https://github.com/biolab/orange3-text/compare/1.6.2...1.7.0
