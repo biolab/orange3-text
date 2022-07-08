@@ -150,7 +150,7 @@ class OWCorpusViewer(OWWidget):
             self.update_info()
             self.set_selection()
             self.show_docs()
-        self.commit()
+        self.commit.now()
 
     def reset_widget(self):
         # Corpus
@@ -245,7 +245,7 @@ class OWCorpusViewer(OWWidget):
         """
         self.selected_documents = self.get_selected_documents_from_view()
         self.show_docs()
-        self.commit()
+        self.commit.deferred()
 
     def show_docs(self):
         """ Show the selected documents in the right area """
@@ -405,7 +405,7 @@ class OWCorpusViewer(OWWidget):
             self.list_docs()
             self.set_selection()
             self.update_info()
-            self.commit()
+            self.commit.deferred()
 
     def update_info(self):
         if self.corpus is not None:
@@ -419,6 +419,7 @@ class OWCorpusViewer(OWWidget):
             self.n_tokens = ''
             self.n_types = ''
 
+    @gui.deferred
     def commit(self):
         matched = unmatched = annotated_corpus = None
         corpus = self.corpus

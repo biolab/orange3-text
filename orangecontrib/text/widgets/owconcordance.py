@@ -173,8 +173,17 @@ class ConcordanceModel(QAbstractTableModel):
                 txt.append(str(self.data(index)))
             data.append([" ".join(txt)])
             docs.append([self.corpus.titles[self.word_index[row][0]]])
-        conc = np.array(np.hstack((data, docs)), dtype=object) if data else np.empty((0,2))
-        return Corpus(domain, metas=conc, text_features=[domain.metas[0]])
+        conc = (
+            np.array(np.hstack((data, docs)), dtype=object)
+            if data
+            else np.empty((0, 2))
+        )
+        return Corpus.from_numpy(
+            domain,
+            X=np.empty((len(conc), 0)),
+            metas=conc,
+            text_features=[domain.metas[0]],
+        )
 
 
 class OWConcordance(OWWidget, ConcurrentWidgetMixin):
@@ -262,7 +271,7 @@ class OWConcordance(OWWidget, ConcurrentWidgetMixin):
     def selection_changed(self):
         selection = self.conc_view.selectionModel().selection()
         self.selected_rows = sorted(set(cell.row() for cell in selection.indexes()))
-        self.commit()
+        self.commit.deferred()
 
     def set_selection(self, selection):
         if selection:
@@ -306,7 +315,7 @@ class OWConcordance(OWWidget, ConcurrentWidgetMixin):
 
     def on_done(self, _):
         self.update_widget()
-        self.commit()
+        self.commit.deferred()
 
     def handleNewSignals(self):
         self.set_selection(self.selected_rows)
@@ -336,6 +345,7 @@ class OWConcordance(OWWidget, ConcurrentWidgetMixin):
             self.n_tokens = ''
             self.n_types = ''
 
+    @gui.deferred
     def commit(self):
         selected_docs = sorted(set(self.model.word_index[row][0]
                                    for row in self.selected_rows))

@@ -248,7 +248,7 @@ class TestWordEnrichment(WidgetTest):
         widget.filter_fdr_value = 0.01
 
         widget.filter_and_display()
-        widget.commit()
+        widget.commit.now()
         output = self.get_output(self.widget.Outputs.words)
         self.assertEqual(
             len(output), int(widget.info_fil.text().split(": ")[1])
@@ -261,7 +261,7 @@ class TestWordEnrichment(WidgetTest):
         widget.filter_fdr_value = 0.01
 
         widget.filter_and_display()
-        widget.commit()
+        widget.commit.now()
         output = self.get_output(self.widget.Outputs.words)
         self.assertEqual(len(output), 0)
 

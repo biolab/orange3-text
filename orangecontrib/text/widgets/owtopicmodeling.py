@@ -21,7 +21,7 @@ from Orange.data import Table
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.topics import Topic, Topics, LdaWrapper, HdpWrapper, \
     LsiWrapper, NmfWrapper
-from orangecontrib.text.topics.topics import GensimWrapper
+from orangecontrib.text.topics.topics import GensimWrapper, infer_ngrams_corpus
 
 
 class TopicWidget(gui.OWComponent, QGroupBox):
@@ -190,7 +190,7 @@ class OWTopicModeling(OWWidget, ConcurrentWidgetMixin):
         for i, (method, attr_name) in enumerate(self.methods):
             widget = method(self, title='Options')
             widget.setFixedWidth(self.control_area_width)
-            widget.valueChanged.connect(self.commit)
+            widget.valueChanged.connect(self.commit.deferred)
             self.widgets.append(widget)
             setattr(self, attr_name, widget)
 
@@ -220,6 +220,7 @@ class OWTopicModeling(OWWidget, ConcurrentWidgetMixin):
         self.corpus = data
         self.apply()
 
+    @gui.deferred
     def commit(self):
         if self.corpus is not None:
             self.apply()
@@ -232,7 +233,7 @@ class OWTopicModeling(OWWidget, ConcurrentWidgetMixin):
         if self.method_index != new_index:
             self.method_index = new_index
             self.toggle_widgets()
-            self.commit()
+            self.commit.deferred()
 
     def toggle_widgets(self):
         for i, widget in enumerate(self.widgets):
@@ -262,7 +263,7 @@ class OWTopicModeling(OWWidget, ConcurrentWidgetMixin):
             self.Warning.less_topics_found()
 
         if self.model.name == "Latent Dirichlet Allocation":
-            bound = self.model.model.log_perplexity(corpus.ngrams_corpus)
+            bound = self.model.model.log_perplexity(infer_ngrams_corpus(corpus))
             self.perplexity = "{:.5f}".format(np.exp2(-bound))
         cm = CoherenceModel(
             model=self.model.model, texts=corpus.tokens, corpus=corpus, coherence="c_v"

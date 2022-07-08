@@ -32,7 +32,7 @@ DummyResponse = namedtuple("DummyRespons", ["data", "includes"])
 EXPECTED_RESULTS = {
     "Content": ["my first tweet", "good start", "it is boring afternoon", "test"],
     "Author": ["@anaana", "@bert", "@bert", "@cc"],
-    "Date": [date(2020, 1, 1), date(2020, 1, 2), date(2020, 1, 3), date(2020, 1, 4)],
+    "Date": pd.to_datetime([date(2020, 1, 1), date(2020, 1, 2), date(2020, 1, 3), date(2020, 1, 4)]),
     "Language": ["en", "it", "en", np.nan],
     "Location": ["sl", np.nan, np.nan, np.nan],
     "Number of Likes": [1, 100, 100, 1],

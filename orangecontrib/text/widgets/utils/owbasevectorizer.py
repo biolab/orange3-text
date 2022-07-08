@@ -70,6 +70,7 @@ class OWBaseVectorizer(OWWidget, ConcurrentWidgetMixin, openclass=True):
 
         box = QGroupBox(title="Options")
         box.setLayout(self.create_configuration_layout())
+        box.layout().setContentsMargins(4, 4, 4, 4)  # same than other widgets
         self.controlArea.layout().addWidget(box)
 
         output_layout = gui.hBox(self.controlArea)
@@ -117,7 +118,7 @@ class OWBaseVectorizer(OWWidget, ConcurrentWidgetMixin, openclass=True):
         self.commit.deferred()
 
     def send_report(self):
-        self.report_items(self.method.report())
+        self.report_items(self.vectorizer.method.report())
 
     def create_configuration_layout(self):
         raise NotImplementedError

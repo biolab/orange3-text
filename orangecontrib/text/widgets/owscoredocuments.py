@@ -613,11 +613,12 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
         self.scores = {}
         self.cancel()
         self._fill_and_output()
-        self.commit()
+        self.commit.now()
 
     def __setting_changed(self) -> None:
-        self.commit()
+        self.commit.deferred()
 
+    @gui.deferred
     def commit(self) -> None:
         self.Error.custom_err.clear()
         self.cancel()

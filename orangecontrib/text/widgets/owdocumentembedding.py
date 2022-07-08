@@ -1,7 +1,7 @@
 from typing import Dict, Optional, Any
 
 from AnyQt.QtCore import Qt
-from AnyQt.QtWidgets import QGridLayout, QLabel, QPushButton, QStyle
+from AnyQt.QtWidgets import QVBoxLayout, QPushButton, QStyle
 from Orange.misc.utils.embedder_utils import EmbeddingConnectionError
 from Orange.widgets import gui
 from Orange.widgets.settings import Setting
@@ -13,7 +13,7 @@ from orangecontrib.text.vectorization.document_embedder import (
     LANGS_TO_ISO,
     DocumentEmbedder,
 )
-from orangecontrib.text.widgets.utils import widgets
+from orangecontrib.text.vectorization.sbert import SBERT
 from orangecontrib.text.widgets.utils.owbasevectorizer import (
     OWBaseVectorizer,
     Vectorizer,
@@ -34,14 +34,14 @@ class EmbeddingVectorizer(Vectorizer):
 class OWDocumentEmbedding(OWBaseVectorizer):
     name = "Document Embedding"
     description = "Document embedding using pretrained models."
-    keywords = ["embedding", "document embedding", "text"]
+    keywords = ["embedding", "document embedding", "text", "fasttext", "bert", "sbert"]
     icon = "icons/TextEmbedding.svg"
     priority = 300
 
     buttons_area_orientation = Qt.Vertical
     settings_version = 2
 
-    Method = DocumentEmbedder
+    Methods = [SBERT, DocumentEmbedder]
 
     class Outputs(OWBaseVectorizer.Outputs):
         skipped = Output("Skipped documents", Corpus)
@@ -56,8 +56,9 @@ class OWDocumentEmbedding(OWBaseVectorizer):
     class Warning(OWWidget.Warning):
         unsuccessful_embeddings = Msg("Some embeddings were unsuccessful.")
 
-    language = Setting(default="English")
-    aggregator = Setting(default="Mean")
+    method: int = Setting(default=0)
+    language: str = Setting(default="English")
+    aggregator: str = Setting(default="Mean")
 
     def __init__(self):
         super().__init__()
@@ -69,32 +70,48 @@ class OWDocumentEmbedding(OWBaseVectorizer):
         self.cancel_button.setDisabled(True)
 
     def create_configuration_layout(self):
-        layout = QGridLayout()
-        layout.setSpacing(10)
+        layout = QVBoxLayout()
+        rbtns = gui.radioButtons(None, self, "method", callback=self.on_change)
+        layout.addWidget(rbtns)
 
-        combo = widgets.ComboBox(
+        gui.appendRadioButton(rbtns, "Multilingual SBERT")
+        gui.appendRadioButton(rbtns, "fastText:")
+        ibox = gui.indentedBox(rbtns)
+        self.language_cb = gui.comboBox(
+            ibox,
             self,
             "language",
             items=LANGUAGES,
+            label="Language:",
+            sendSelectedValue=True,  # value is actual string not index
+            orientation=Qt.Horizontal,
+            callback=self.on_change,
+            searchable=True,
         )
-        combo.currentIndexChanged.connect(self.on_change)
-        layout.addWidget(QLabel("Language:"))
-        layout.addWidget(combo, 0, 1)
-
-        combo = widgets.ComboBox(self, "aggregator", items=AGGREGATORS)
-        combo.currentIndexChanged.connect(self.on_change)
-        layout.addWidget(QLabel("Aggregator:"))
-        layout.addWidget(combo, 1, 1)
+        self.aggregator_cb = gui.comboBox(
+            ibox,
+            self,
+            "aggregator",
+            items=AGGREGATORS,
+            label="Aggregator:",
+            sendSelectedValue=True,  # value is actual string not index
+            orientation=Qt.Horizontal,
+            callback=self.on_change,
+            searchable=True,
+        )
 
         return layout
 
     def update_method(self):
+        disabled = self.method == 0
+        self.aggregator_cb.setDisabled(disabled)
+        self.language_cb.setDisabled(disabled)
         self.vectorizer = EmbeddingVectorizer(self.init_method(), self.corpus)
 
     def init_method(self):
-        return self.Method(
-            language=LANGS_TO_ISO[self.language], aggregator=self.aggregator
-        )
+        params = dict(language=LANGS_TO_ISO[self.language], aggregator=self.aggregator)
+        kwargs = ({}, params)[self.method]
+        return self.Methods[self.method](**kwargs)
 
     @gui.deferred
     def commit(self):
@@ -103,13 +120,13 @@ class OWDocumentEmbedding(OWBaseVectorizer):
         self.cancel_button.setDisabled(False)
         super().commit()
 
-    def on_done(self, _):
+    def on_done(self, result):
         self.cancel_button.setDisabled(True)
         skipped = self.vectorizer.skipped_documents
         self.Outputs.skipped.send(skipped)
         if skipped is not None and len(skipped) > 0:
             self.Warning.unsuccessful_embeddings()
-        super().on_done(_)
+        super().on_done(result)
 
     def on_exception(self, ex: Exception):
         self.cancel_button.setDisabled(True)

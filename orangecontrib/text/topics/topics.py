@@ -13,6 +13,8 @@ from Orange.util import dummy_callback
 
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.util import chunkable
+from gensim.matutils import Sparse2Corpus
+from orangecontrib.text.vectorization import BowVectorizer
 
 MAX_WORDS = 1000
 
@@ -57,6 +59,30 @@ class GensimProgressCallback(Metric):
         return self.epochs / model.passes
 
 
+def infer_ngrams_corpus(corpus, return_dict=False):
+
+    bow_features = [
+        (i, attribute.name) for i, attribute in enumerate(corpus.domain.attributes)
+        if 'bow-feature' in attribute.attributes
+    ]
+    if len(bow_features) == 0:
+        corpus = BowVectorizer().transform(corpus)
+        bow_features = [
+            (i, attribute.name) for i, attribute in enumerate(corpus.domain.attributes)
+            if 'bow-feature' in attribute.attributes
+        ]
+
+    feature_presence = corpus.X.sum(axis=0)
+    keep = [(i, a) for i, a in bow_features if feature_presence[0, i] > 0]
+    # sort features by the order in the dictionary
+    dictionary = Dictionary(corpus.ngrams_iterator(include_postags=True), prune_at=None)
+    idx_of_keep = np.argsort([dictionary.token2id[a] for _, a in keep])
+    keep = [keep[i][0] for i in idx_of_keep]
+    result = Sparse2Corpus(corpus.X[:, keep].T)
+
+    return (result, dictionary) if return_dict else result
+
+
 class GensimWrapper:
     name = NotImplemented
     Model = NotImplemented
@@ -96,11 +122,11 @@ class GensimWrapper:
                 model_kwars, callbacks=[GensimProgressCallback(on_progress)]
             )
 
-        id2word = Dictionary(corpus.ngrams_iterator(include_postags=True), prune_at=None)
+        ngrams_corpus, dictionary = infer_ngrams_corpus(corpus, return_dict=True)
         self.model = self.Model(
-            corpus=corpus.ngrams_corpus, id2word=id2word, **model_kwars
+            corpus=ngrams_corpus, id2word=dictionary, **model_kwars
         )
-        self.n_words = len(corpus.dictionary)
+        self.n_words = ngrams_corpus.sparse.shape[0]
         self.topic_names = ['Topic {}'.format(i+1) for i in range(self.num_topics)]
 
     def dummy_method(self, *args, **kwargs):
@@ -129,7 +155,7 @@ class GensimWrapper:
 
     def transform(self, corpus):
         """ Create a table with topics representation. """
-        topics = self.model[corpus.ngrams_corpus]
+        topics = self.model[infer_ngrams_corpus(corpus)]
         self.actual_topics = self.model.get_topics().shape[0]
         matrix = matutils.corpus2dense(
             topics, num_docs=len(corpus), num_terms=self.num_topics
