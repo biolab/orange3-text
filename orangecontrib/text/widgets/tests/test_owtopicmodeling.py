@@ -63,7 +63,7 @@ class TestTopicModeling(WidgetTest):
 
         # test LDA, which is the only one with log perplexity
         self.widget.method_index = 1
-        self.widget.commit()
+        self.widget.commit.now()
         self.wait_until_finished()
 
         self.assertNotEqual(self.widget.perplexity, "n/a")

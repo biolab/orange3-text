@@ -94,8 +94,11 @@ def run(
         # Normalize words
         for preprocessor in corpus.used_preprocessor.preprocessors:
             if isinstance(preprocessor, BaseNormalizer):
-                dummy = Corpus(Domain((), metas=[StringVariable("Words")]),
-                               metas=np.array(words)[:, None])
+                dummy = Corpus.from_numpy(
+                    Domain((), metas=[StringVariable("Words")]),
+                    X=np.empty((len(words), 0)),
+                    metas=np.array(words)[:, None]
+                )
                 words = list(preprocessor(dummy).tokens.flatten())
 
         # Filter scores using words
@@ -339,14 +342,14 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
         # invoked, since selection is actually the same, only order is not
         if self.sel_method == SelectionMethods.MANUAL and self.selected_words \
                 or self.sel_method == SelectionMethods.ALL:
-            self.commit()
+            self.commit.deferred()
 
     def __on_selection_changed(self):
         selected_rows = self.view.selectionModel().selectedRows(0)
         model = self.view.model()
         self.selected_words = [model.data(model.index(i.row(), 0))
                                for i in selected_rows]
-        self.commit()
+        self.commit.deferred()
 
     @Inputs.corpus
     def set_corpus(self, corpus: Optional[Corpus]):
@@ -461,6 +464,7 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
         self.shutdown()
         super().onDeleteWidget()
 
+    @gui.deferred
     def commit(self):
         words = None
         if self.selected_words:

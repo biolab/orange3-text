@@ -390,3 +390,7 @@ class PubmedTests(unittest.TestCase):
             num_records,
             use_cache=False
         )
+
+
+if __name__ == "__main__":
+    unittest.main()

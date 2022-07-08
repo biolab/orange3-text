@@ -139,14 +139,15 @@ class OWTweetProfiler(OWWidget, ConcurrentWidgetMixin):
             if ind:
                 self.tweet_attr = ind[0]
 
-        self.commit()
+        self.commit.now()
 
     def apply(self):
-        self.commit()
+        self.commit.deferred()
 
     def _get_config(self):
         return self.tweet_attr, self.model_name, self.output_mode
 
+    @gui.deferred
     def commit(self):
         self.Error.clear()
 

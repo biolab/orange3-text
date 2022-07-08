@@ -164,7 +164,9 @@ def _corpus_from_records(records, includes_metadata):
 
     Y = np.array([class_vars[0].to_val(cv) for cv in class_values])[:, None]
 
-    return Corpus(domain=domain, Y=Y, metas=meta_values)
+    return Corpus.from_numpy(
+        domain=domain, X=np.empty((len(Y), 0)), Y=Y, metas=meta_values
+    )
 
 
 class Pubmed:

@@ -223,11 +223,12 @@ class OWSentimentAnalysis(OWWidget):
                 self.pp_corpus = PreprocessorList(pp_list)(self.corpus)
             else:
                 self.pp_corpus = self.corpus
-        self.commit()
+        self.commit.now()
 
     def _method_changed(self):
-        self.commit()
+        self.commit.deferred()
 
+    @gui.deferred
     def commit(self):
         if self.corpus is not None:
             self.Warning.senti_offline.clear()

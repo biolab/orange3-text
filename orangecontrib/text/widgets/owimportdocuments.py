@@ -201,8 +201,8 @@ class OWImportDocuments(widget.OWWidget):
         url_combo.setEditable(True)
         url_combo.setInsertPolicy(url_combo.InsertAtTop)
         url_edit = url_combo.lineEdit()
-        l, t, r, b = url_edit.getTextMargins()
-        url_edit.setTextMargins(l + 5, t, r, b)
+        m = url_edit.textMargins()
+        url_edit.setTextMargins(m.left() + 5, m.top(), m.right(), m.bottom())
         layout.addWidget(url_combo, 3, 1, 1, 3)
         url_combo.activated.connect(self._url_set)
         # whit completer we set that combo box is case sensitive when
