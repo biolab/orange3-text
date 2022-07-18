@@ -120,7 +120,7 @@ class TestTwitterWidget(WidgetTest):
         TestTwitterAPI.assert_query(mock, '"OrangeDataMiner" -is:retweet lang:en')
         mock.reset_mock()
 
-        simulate.combobox_activate_item(self.widget.language_combo, "Slovene")
+        simulate.combobox_activate_item(self.widget.language_combo, "Slovenian")
         self.widget.search_button.click()
         self.wait_until_finished()
 

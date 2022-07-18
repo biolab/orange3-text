@@ -101,6 +101,8 @@ class Corpus(Table):
             self.set_text_features(text_features)
 
         self._set_unique_titles()
+        if "language" not in self.attributes:
+            self.attributes["language"] = None
 
     @property
     def used_preprocessor(self):
