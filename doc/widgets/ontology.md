@@ -1,7 +1,7 @@
 Ontology
 ========
 
-Generate, edit, load and save ontologies 
+Generate, edit, load and save ontologies.
 
 **Inputs**
 
@@ -15,8 +15,17 @@ The ontology widget enables various operations with ontologies:
 - Generate ontology from words on the input
 - Load existing ontology from a file or URL. The widget supports OWL, JSON, and Pickle formats.
 - Manually edit the ontology
-- Include word from the input in the existing ontology to the position where it fits best according to the embedding similarity
+- Include word from the input in the existing ontology to the position where it fits best according to the fitness function
 - Save ontology to file
+
+Ontologies are generated using the genetic algorithm. The fitness function used in 
+the algorithm determines the quality of a generated ontology by considering pairwise 
+cosine similarities between each word in the ontology and its parent and siblings. 
+More concretely, the similarity is computed between SBERT embeddings of said words. 
+The fitness function also accounts for the average number of children each word has 
+(to avoid too shallow or too deep ontologies) and the syntactic overlap between words 
+and their children along with their respective lengths (this term is intended to push 
+more general words above the less general ones).
 
 ![](images/Ontology.png)
 
