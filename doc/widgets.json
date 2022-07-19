@@ -219,7 +219,7 @@
    },
    {
     "text": "Ontology",
-    "doc": null,
+    "doc": "widgets/ontology.md",
     "icon": "../orangecontrib/text/widgets/icons/Ontology.svg",
     "background": "light-blue",
     "keywords": []
