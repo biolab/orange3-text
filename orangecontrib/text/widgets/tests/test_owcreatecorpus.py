@@ -3,7 +3,8 @@ import unittest
 import numpy as np
 from Orange.data import StringVariable
 from Orange.widgets.tests.base import WidgetTest
-from AnyQt.QtWidgets import QPushButton
+from AnyQt.QtWidgets import QPushButton, QComboBox
+from orangewidget.tests.utils import simulate
 
 from orangecontrib.text.widgets.owcreatecorpus import OWCreateCorpus
 
@@ -196,6 +197,15 @@ class TestOWCreateCorpus(WidgetTest):
         np.testing.assert_array_equal(["Document 3"], corpus.titles)
         self.assertListEqual(["Test 3"], corpus.documents)
         np.testing.assert_array_equal([["Document 3", "Test 3"]], corpus.metas)
+
+    def test_language(self):
+        corpus = self.get_output(self.widget.Outputs.corpus)
+        self.assertEqual("en", corpus.language)
+
+        combo = self.widget.controlArea.findChild(QComboBox)
+        simulate.combobox_activate_index(combo, 2)
+        corpus = self.get_output(self.widget.Outputs.corpus)
+        self.assertEqual("am", corpus.language)
 
 
 if __name__ == "__main__":
