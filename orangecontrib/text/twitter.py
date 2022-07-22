@@ -10,13 +10,13 @@ from Orange.data import (
     Domain,
     StringVariable,
     TimeVariable,
+    Variable,
 )
 from Orange.util import dummy_callback, wrap_callback
 from tweepy import TooManyRequests
 
 from orangecontrib.text import Corpus
-from orangecontrib.text.language import ISO2LANG
-
+from orangecontrib.text.language import ISO2LANG, infer_language_from_variable
 
 log = logging.getLogger(__name__)
 
@@ -46,57 +46,61 @@ def country_code(tweet, _, places):
     return places[place_id].country_code if place_id else ""
 
 
-tv = TimeVariable("Date")
 METAS = [
-    (StringVariable("Content"), lambda doc, _, __: doc.text),
+    (partial(StringVariable, "Content"), lambda doc, _, __: doc.text),
     (
-        DiscreteVariable("Author"),
+        partial(DiscreteVariable, "Author"),
         lambda doc, users, _: "@" + users[doc.author_id].username,
     ),
-    (tv, lambda doc, _, __: tv.parse(doc.created_at.isoformat())),
-    (DiscreteVariable("Language"), lambda doc, _, __: doc.lang),
-    (DiscreteVariable("Location"), country_code),
+    # Twitter API return values in UTC, since Date variable is created later we
+    # don't use TimeVariable.parse but transform to UNIX timestamp manually
+    (partial(TimeVariable, "Date"), lambda doc, _, __: doc.created_at.timestamp()),
+    (partial(DiscreteVariable, "Language"), lambda doc, _, __: doc.lang),
+    (partial(DiscreteVariable, "Location"), country_code),
     (
-        ContinuousVariable("Number of Likes", number_of_decimals=0),
+        partial(ContinuousVariable, "Number of Likes", number_of_decimals=0),
         lambda doc, _, __: doc.public_metrics["like_count"],
     ),
     (
-        ContinuousVariable("Number of Retweets", number_of_decimals=0),
+        partial(ContinuousVariable, "Number of Retweets", number_of_decimals=0),
         lambda doc, _, __: doc.public_metrics["retweet_count"],
     ),
     (
-        DiscreteVariable("In Reply To"),
+        partial(DiscreteVariable, "In Reply To"),
         lambda doc, users, _: "@" + users[doc.in_reply_to_user_id].username
         if doc.in_reply_to_user_id and doc.in_reply_to_user_id in users
         else "",
     ),
-    (DiscreteVariable("Author Name"), lambda doc, users, __: users[doc.author_id].name),
     (
-        StringVariable("Author Description"),
+        partial(DiscreteVariable, "Author Name"),
+        lambda doc, users, __: users[doc.author_id].name,
+    ),
+    (
+        partial(StringVariable, "Author Description"),
         lambda doc, users, _: users[doc.author_id].description,
     ),
     (
-        ContinuousVariable("Author Tweets Count", number_of_decimals=0),
+        partial(ContinuousVariable, "Author Tweets Count", number_of_decimals=0),
         lambda doc, users, _: users[doc.author_id].public_metrics["tweet_count"],
     ),
     (
-        ContinuousVariable("Author Following Count", number_of_decimals=0),
+        partial(ContinuousVariable, "Author Following Count", number_of_decimals=0),
         lambda doc, users, _: users[doc.author_id].public_metrics["following_count"],
     ),
     (
-        ContinuousVariable("Author Followers Count", number_of_decimals=0),
+        partial(ContinuousVariable, "Author Followers Count", number_of_decimals=0),
         lambda doc, users, _: users[doc.author_id].public_metrics["followers_count"],
     ),
     (
-        ContinuousVariable("Author Listed Count", number_of_decimals=0),
+        partial(ContinuousVariable, "Author Listed Count", number_of_decimals=0),
         lambda doc, users, _: users[doc.author_id].public_metrics["listed_count"],
     ),
     (
-        DiscreteVariable("Author Verified"),
+        partial(DiscreteVariable, "Author Verified"),
         lambda doc, users, _: str(users[doc.author_id].verified),
     ),
-    (ContinuousVariable("Longitude"), partial(coordinates, dim=0)),
-    (ContinuousVariable("Latitude"), partial(coordinates, dim=1)),
+    (partial(ContinuousVariable, "Longitude"), partial(coordinates, dim=0)),
+    (partial(ContinuousVariable, "Latitude"), partial(coordinates, dim=1)),
 ]
 # maximum number of tweets that can be downloaded in one set of requests
 # max 450requests/15min, request can contain max 100 tweets
@@ -128,10 +132,6 @@ class TwitterAPI:
         call `reset` method before searching or provide `collecting=False`
         argument to search method.
     """
-
-    text_features = [METAS[0][0]]  # Content
-    string_attributes = [m for m, _ in METAS if isinstance(m, StringVariable)]
-
     def __init__(self, bearer_token):
         self.api = tweepy.Client(bearer_token)
         self.tweets = {}
@@ -187,7 +187,7 @@ class TwitterAPI:
         )
         count = self._fetch(paginator, max_tweets, callback=callback)
         self.append_history("Content", content, lang or "Any", allow_retweets, count)
-        return self._create_corpus()
+        return self._create_corpus(lang)
 
     def search_authors(
         self,
@@ -241,10 +241,10 @@ class TwitterAPI:
         count = 0
         try:
             done = False
-            for i, response in enumerate(paginator):
+            for response in paginator:
                 users = {u.id: u for u in response.includes.get("users", [])}
                 places = {p.id: p for p in response.includes.get("places", [])}
-                for j, tweet in enumerate(response.data or [], start=1):
+                for tweet in response.data or []:
                     if tweet.id not in self.tweets:
                         count += 1
                     self.tweets[tweet.id] = [f(tweet, users, places) for _, f in METAS]
@@ -258,7 +258,7 @@ class TwitterAPI:
             log.debug("TooManyRequests raised")
         return count
 
-    def _create_corpus(self) -> Optional[Corpus]:
+    def _create_corpus(self, language: Optional[str] = None) -> Optional[Corpus]:
         if len(self.tweets) == 0:
             return None
 
@@ -267,19 +267,24 @@ class TwitterAPI:
                 attr.val_from_str_add(val)
             return attr.to_val(val)
 
-        m = [attr for attr, _ in METAS]
+        m = [attr() for attr, _ in METAS]
         domain = Domain(attributes=[], class_vars=[], metas=m)
 
         metas = np.array(
             [
-                [to_val(attr, t) for (attr, _), t in zip(METAS, ts)]
+                [to_val(attr, t) for attr, t in zip(m, ts)]
                 for ts in self.tweets.values()
             ],
             dtype=object,
         )
         x = np.empty((len(metas), 0))
 
-        return Corpus.from_numpy(domain, x, metas=metas, text_features=self.text_features)
+        language_var = domain["Language"]
+        assert isinstance(language_var, DiscreteVariable)
+        language = language or infer_language_from_variable(language_var)
+        return Corpus.from_numpy(
+            domain, x, metas=metas, text_features=[domain["Content"]], language=language
+        )
 
     def append_history(
         self,

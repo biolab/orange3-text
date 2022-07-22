@@ -247,7 +247,7 @@ class TestTwitterAPI(unittest.TestCase):
     def test_load_data(self):
         corpus = self.client.search_content(["orange"])
         self.assertEqual(4, len(corpus))
-        self.assertTupleEqual(tuple(m[0] for m in twitter.METAS), corpus.domain.metas)
+        self.assertTupleEqual(tuple(m[0]() for m in twitter.METAS), corpus.domain.metas)
 
         df = table_to_frame(corpus, include_metas=True)
         pd.testing.assert_frame_equal(
@@ -261,7 +261,7 @@ class TestTwitterAPI(unittest.TestCase):
 
         corpus = self.client.search_authors(["orange"])
         self.assertEqual(4, len(corpus))
-        self.assertTupleEqual(tuple(m[0] for m in twitter.METAS), corpus.domain.metas)
+        self.assertTupleEqual(tuple(m[0]() for m in twitter.METAS), corpus.domain.metas)
 
         df = table_to_frame(corpus, include_metas=True)
         pd.testing.assert_frame_equal(
@@ -368,6 +368,33 @@ class TestTwitterAPI(unittest.TestCase):
         user_patch.return_value = MagicMock(data=None)
         with self.assertRaises(NoAuthorError):
             self.client.search_authors(["orange"], collecting=True)
+
+    @patch("tweepy.Client.get_user")
+    def test_tweets_language(self, user_mock):
+        user_mock.return_value = MagicMock(data=MagicMock(id=1))
+
+        with patch("tweepy.Paginator", DummyPaginator(tweets, users, places)):
+            # language should be None returned tweets have different languages
+            corpus = self.client.search_content(["orange"])
+            self.assertIsNone(corpus.language)
+
+            # corpus language should be same than language in the request
+            corpus = self.client.search_content(["orange"], lang="en")
+            self.assertEqual("en", corpus.language)
+
+            # language should be None returned tweets have different languages
+            corpus = self.client.search_content(["orange"])
+            self.assertIsNone(corpus.language)
+
+        with patch(
+            "tweepy.Paginator", DummyPaginator([tweets[0], tweets[2]], users, places)
+        ):
+            # corpus language should be same than language in the request
+            corpus = self.client.search_content(["orange"])
+            self.assertEqual("en", corpus.language)
+
+            corpus = self.client.search_content(["orange"])
+            self.assertEqual("en", corpus.language)
 
 
 if __name__ == "__main__":
