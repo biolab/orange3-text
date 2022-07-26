@@ -78,9 +78,10 @@ class OWGuardian(OWWidget):
     recent_queries = Setting([])
     date_from = Setting((datetime.now().date() - timedelta(365)))
     date_to = Setting(datetime.now().date())
-    attributes = [feat.name for feat, _ in TheGuardianAPI.metas if
-                  isinstance(feat, StringVariable)]
-    text_includes = Setting([feat.name for feat in TheGuardianAPI.text_features])
+    attributes = [
+        part.args[0] for part, _ in TheGuardianAPI.metas if part.func is StringVariable
+    ]
+    text_includes = Setting([feat for feat in TheGuardianAPI.text_features])
 
     class Warning(OWWidget.Warning):
         no_text_fields = Msg('Text features are inferred when none are selected.')
