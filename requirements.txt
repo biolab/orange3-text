@@ -3,7 +3,7 @@ beautifulsoup4
 biopython # Enables Pubmed widget.
 conllu
 docx2txt>=0.6
-gensim>=4.2.0
+gensim==4.1.2  # temporary fix - reset when gensim solves https://github.com/RaRe-Technologies/gensim/issues/3368
 httpx
 lemmagen3
 lxml

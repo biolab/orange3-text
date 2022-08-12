@@ -181,8 +181,8 @@ class OWTopicModeling(OWWidget, ConcurrentWidgetMixin):
         # Commit button
         gui.auto_commit(self.buttonsArea, self, 'autocommit', 'Commit', box=False)
 
-        button_group = QButtonGroup(self, exclusive=True)
-        button_group.buttonClicked[int].connect(self.change_method)
+        self.button_group = QButtonGroup(self, exclusive=True)
+        self.button_group.buttonClicked.connect(self.change_method)
 
         self.widgets = []
         method_layout = QVBoxLayout()
@@ -195,11 +195,11 @@ class OWTopicModeling(OWWidget, ConcurrentWidgetMixin):
             setattr(self, attr_name, widget)
 
             rb = QRadioButton(text=widget.Model.name)
-            button_group.addButton(rb, i)
+            self.button_group.addButton(rb, i)
             method_layout.addWidget(rb)
             method_layout.addWidget(widget)
 
-        button_group.button(self.method_index).setChecked(True)
+        self.button_group.button(self.method_index).setChecked(True)
         self.toggle_widgets()
         method_layout.addStretch()
 
@@ -229,7 +229,8 @@ class OWTopicModeling(OWWidget, ConcurrentWidgetMixin):
     def model(self):
         return self.widgets[self.method_index].model
 
-    def change_method(self, new_index):
+    def change_method(self):
+        new_index = self.button_group.checkedId()
         if self.method_index != new_index:
             self.method_index = new_index
             self.toggle_widgets()

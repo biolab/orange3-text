@@ -22,6 +22,7 @@ class TestTopicModeling(WidgetTest):
         self.assertIsNone(output)
 
     def test_saved_selection(self):
+        self.widget.method_index = 1
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
         self.wait_until_finished()
 
