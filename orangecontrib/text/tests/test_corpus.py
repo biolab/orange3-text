@@ -700,7 +700,7 @@ class TestCorpusSummaries(unittest.TestCase):
 
         version = pkg_resources.get_distribution("orange3-text").version.split(".")
         version = tuple(map(int, version[:3]))
-        self.assertLess(version, (1, 11, 0))
+        self.assertLess(version, (1, 12, 0))
 
 
 if __name__ == "__main__":
