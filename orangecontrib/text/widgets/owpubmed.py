@@ -136,7 +136,7 @@ class OWPubmed(OWWidget):
         # API key
         self.email_dlg = self.EmailCredentialsDialog(self)
         gui.button(self.controlArea, self, 'Email',
-                   callback=self.email_dlg.exec_,
+                   callback=self.email_dlg.exec,
                    focusPolicy=Qt.NoFocus)
         gui.separator(self.controlArea)
 
@@ -146,7 +146,7 @@ class OWPubmed(OWWidget):
         # RECORD SEARCH
         self.search_tabs = gui.tabWidget(self.controlArea)
         # --- Regular search ---
-        regular_search_box = gui.widgetBox(self.controlArea, addSpace=True)
+        regular_search_box = gui.widgetBox(self.controlArea)
 
         # Author
         self.author_input = gui.lineEdit(regular_search_box, self, 'author',
@@ -207,7 +207,7 @@ class OWPubmed(OWWidget):
         regular_search_box.setMaximumSize(tab_height)
 
         # --- Advanced search ---
-        advanced_search_box = gui.widgetBox(self.controlArea, addSpace=True)
+        advanced_search_box = gui.widgetBox(self.controlArea)
         # Advanced search query.
         h_box = gui.hBox(advanced_search_box)
         self.advanced_query_input = QTextEdit(h_box)
@@ -243,7 +243,7 @@ class OWPubmed(OWWidget):
         # RECORD RETRIEVAL
         # Text includes box.
         text_includes_box = gui.widgetBox(
-            self.controlArea, 'Text includes', addSpace=True)
+            self.controlArea, 'Text includes')
         self.authors_checkbox = gui.checkBox(
             text_includes_box, self, 'includes_authors', 'Authors')
         self.title_checkbox = gui.checkBox(
@@ -468,7 +468,7 @@ class OWPubmed(OWWidget):
 
     def open_calendar(self, widget):
         cal_dlg = CalendarDialog(self, 'Date picker')
-        if cal_dlg.exec_():
+        if cal_dlg.exec():
             widget.setText(cal_dlg.picked_date)
 
     def send_report(self):
