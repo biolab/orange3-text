@@ -61,7 +61,7 @@ class OWWikipedia(OWWidget):
 
         # Language
         row += 1
-        languages = tuple(sorted(set(LANG2ISO.items()) - {(None, None)}))
+        languages = sorted(set(LANG2ISO.items()) - {(None, None)})
         language_edit = ComboBox(self, 'language', languages)
         layout.addWidget(QLabel('Language:'), row, 0, 1, self.label_width)
         layout.addWidget(language_edit, row, self.label_width, 1, self.widgets_width)
