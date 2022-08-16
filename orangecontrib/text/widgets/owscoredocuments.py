@@ -35,11 +35,9 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 from orangecontrib.text import Corpus
 from orangecontrib.text.preprocess import BaseNormalizer, NGrams, BaseTokenFilter
-from orangecontrib.text.vectorization.document_embedder import (
-    LANGS_TO_ISO,
-    DocumentEmbedder,
-)
+from orangecontrib.text.vectorization.sbert import SBERT
 from orangecontrib.text.widgets.utils import enum2int
+
 from orangecontrib.text.widgets.utils.words import create_words_table
 
 
@@ -69,24 +67,29 @@ def _embedding_similarity(
     corpus: Corpus,
     words: List[str],
     callback: Callable,
-    embedding_language: str,
 ) -> np.ndarray:
-    language = LANGS_TO_ISO[embedding_language]
     # make sure there will be only embeddings in X after calling the embedder
     corpus = Corpus.from_table(Domain([], metas=corpus.domain.metas), corpus)
-    emb = DocumentEmbedder(language)
+    emb = SBERT()
 
     cb_part = len(corpus) / (len(corpus) + len(words))
     documet_embeddings, skipped = emb.transform(
         corpus, wrap_callback(callback, 0, cb_part)
     )
-    assert skipped is None
+    if skipped:
+        # raise when any embedding failed. It could be also done that distances
+        # are computed only for valid embeddings, but it doesn't make sense
+        # since cases when part of documents do not embed are extremely rare
+        # usually when a network error happen embedding of all documents fail
+        raise ValueError("Some documents not embedded; try to rerun scoring")
 
-    words = [[w] for w in words]
-    word_embeddings = np.array(
-        emb.transform(words, wrap_callback(callback, cb_part, 1 - cb_part))
-    )
-    return cosine_similarity(documet_embeddings.X, word_embeddings)
+    # document embedding need corpus - changing list of words to corpus
+    w_emb = emb.embed_batches(words, batch_size=50)
+    if any(x is None for x in w_emb):
+        # raise when some words not embedded, using only valid word embedding
+        # would cause wrong results
+        raise ValueError("Some words not embedded; try to rerun scoring")
+    return cosine_similarity(documet_embeddings.X, np.array(w_emb))
 
 
 SCORING_METHODS = {
@@ -108,9 +111,7 @@ SCORING_METHODS = {
     ),
 }
 
-ADDITIONAL_OPTIONS = {
-    "embedding_similarity": ("embedding_language", list(LANGS_TO_ISO.keys()))
-}
+ADDITIONAL_OPTIONS = {}
 
 AGGREGATIONS = {
     "Mean": np.mean,
@@ -137,6 +138,7 @@ def _preprocess_words(
         np.empty((len(words), 0)),
         metas=np.array([[w] for w in words]),
         text_features=[words_feature],
+        language=corpus.language
     )
     # apply all corpus preprocessors except Filter and NGrams, which change terms
     # filter removes words from the term, and NGrams split the term in grams.
@@ -193,12 +195,16 @@ def _run(
         scoring_method = SCORING_METHODS[sm][1]
         sig = signature(scoring_method)
         add_params = {k: v for k, v in additional_params.items() if k in sig.parameters}
-        scs = scoring_method(
-            corpus,
-            words,
-            wrap_callback(callback, start=(i + 1) * cb_part, end=(i + 2) * cb_part),
-            **add_params
-        )
+        try:
+            scs = scoring_method(
+                corpus,
+                words,
+                wrap_callback(callback, start=(i + 1) * cb_part, end=(i + 2) * cb_part),
+                **add_params
+            )
+        except ValueError as ex:
+            state.set_partial_result((sm, aggregation, str(ex)))
+            continue
         scs = AGGREGATIONS[aggregation](scs, axis=1)
         state.set_partial_result((sm, aggregation, scs))
 
@@ -328,7 +334,6 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
     word_frequency: bool = Setting(True)
     word_appearance: bool = Setting(False)
     embedding_similarity: bool = Setting(False)
-    embedding_language: int = Setting(0)
 
     sort_column_order: Tuple[int, int] = Setting(DEFAULT_SORTING)
     selected_rows: List[int] = ContextSetting([], schema_only=True)
@@ -345,6 +350,7 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
 
     class Warning(OWWidget.Warning):
         corpus_not_normalized = Msg("Use Preprocess Text to normalize corpus.")
+        scoring_warning = Msg("{}")
 
     class Error(OWWidget.Error):
         custom_err = Msg("{}")
@@ -627,6 +633,7 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
     @gui.deferred
     def commit(self) -> None:
         self.Error.custom_err.clear()
+        self.Warning.scoring_warning.clear()
         self.cancel()
         if self.corpus is not None and self.words is not None:
             scorers = self._get_active_scorers()
@@ -650,10 +657,19 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
     def on_done(self, _: None) -> None:
         self._send_output()
 
-    def on_partial_result(self, result: Tuple[str, str, np.ndarray]) -> None:
+    def on_partial_result(
+        self, result: Tuple[str, str, Union[np.ndarray, str]]
+    ) -> None:
         sc_method, aggregation, scores = result
-        self.scores[(sc_method, aggregation)] = scores
-        self._fill_table()
+        if isinstance(scores, str):
+            # scoring failed with error in scores variable
+            self.Warning.scoring_warning(
+                f"{SCORING_METHODS[sc_method][0]} failed: {scores}"
+            )
+        else:
+            # scoring successful
+            self.scores[(sc_method, aggregation)] = scores
+            self._fill_table()
 
     def on_exception(self, ex: Exception) -> None:
         self.Error.custom_err(ex)
