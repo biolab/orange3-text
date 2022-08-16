@@ -164,8 +164,10 @@ def _corpus_from_records(records, includes_metadata):
 
     Y = np.array([class_vars[0].to_val(cv) for cv in class_values])[:, None]
 
+    # as documented here https://www.nlm.nih.gov/bsd/mms/medlineelements.html#ab
+    # all abstracts are in English - setting language to English
     return Corpus.from_numpy(
-        domain=domain, X=np.empty((len(Y), 0)), Y=Y, metas=meta_values
+        domain=domain, X=np.empty((len(Y), 0)), Y=Y, metas=meta_values, language="en"
     )
 
 

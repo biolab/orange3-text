@@ -113,7 +113,6 @@ class PubmedTests(unittest.TestCase):
         )
         self.assertEqual(type(_date_to_iso(unexpected_input)), type(np.nan))
 
-
     def test_record_to_corpus(self):
         mock_records = [
             {
@@ -150,6 +149,7 @@ class PubmedTests(unittest.TestCase):
         self.assertCountEqual(meta_values[0], correct_metas[0])
         self.assertCountEqual(class_values, correct_classes)
         self.assertIsNotNone(corpus)
+        self.assertEqual(corpus.language, "en")
 
     @patch('Bio.Entrez.esearch', mock_entrez.esearch)
     @patch('Bio.Entrez.read', mock_entrez.read)
