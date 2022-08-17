@@ -5,9 +5,21 @@ import random
 import pkg_resources
 
 from AnyQt.QtCore import Qt, pyqtSignal
-from AnyQt.QtWidgets import QComboBox, QButtonGroup, QLabel, QCheckBox, \
-    QRadioButton, QGridLayout, QLineEdit, QSpinBox, QFormLayout, QHBoxLayout, \
-    QDoubleSpinBox, QFileDialog, QAbstractSpinBox
+from AnyQt.QtWidgets import (
+    QComboBox,
+    QButtonGroup,
+    QLabel,
+    QCheckBox,
+    QRadioButton,
+    QGridLayout,
+    QLineEdit,
+    QSpinBox,
+    QFormLayout,
+    QHBoxLayout,
+    QDoubleSpinBox,
+    QFileDialog,
+    QAbstractSpinBox,
+)
 from AnyQt.QtWidgets import QWidget, QPushButton, QSizePolicy, QStyle
 from AnyQt.QtGui import QBrush, QValidator
 
@@ -17,8 +29,12 @@ from orangewidget.utils.filedialogs import RecentPath
 import Orange.widgets.data.owpreprocess
 from Orange.widgets import gui
 from Orange.widgets.data.owpreprocess import PreprocessAction, Description
-from Orange.widgets.data.utils.preprocess import ParametersRole, \
-    DescriptionRole, BaseEditor, StandardItemModel
+from Orange.widgets.data.utils.preprocess import (
+    ParametersRole,
+    DescriptionRole,
+    BaseEditor,
+    StandardItemModel,
+)
 from Orange.widgets.settings import Setting
 from Orange.widgets.utils.concurrent import TaskState, ConcurrentWidgetMixin
 from Orange.widgets.widget import Input, Output, Msg, Message
@@ -29,7 +45,6 @@ from orangecontrib.text.preprocess import *
 from orangecontrib.text.preprocess.normalize import UDPipeStopIteration
 from orangecontrib.text.tag import AveragedPerceptronTagger, MaxEntTagger, \
     POSTagger
-from orangecontrib.text.tag.pos import StanfordPOSTaggerError
 
 _DEFAULT_NONE = "(none)"
 
@@ -62,37 +77,6 @@ class ComboBox(QComboBox):
         self.addItems(items)
         self.setCurrentText(value)
         self.currentTextChanged.connect(callback)
-
-
-class UDPipeComboBox(QComboBox):
-    def __init__(self, master: BaseEditor, value: str, default: str,
-                 callback: Callable):
-        super().__init__(master)
-        self.__items = []  # type: List
-        self.__default_lang = default
-        self.add_items(value)
-        self.currentTextChanged.connect(callback)
-        self.setMinimumWidth(80)
-
-    @property
-    def items(self) -> List:
-        return UDPipeLemmatizer().models.supported_languages
-
-    def add_items(self, value: str):
-        self.__items = self.items
-        self.addItems(self.__items)
-        if value in self.__items:
-            self.setCurrentText(value)
-        elif self.__default_lang in self.__items:
-            self.setCurrentText(self.__default_lang)
-        elif self.__items:
-            self.setCurrentIndex(0)
-
-    def showPopup(self):
-        if self.__items != self.items:
-            self.clear()
-            self.add_items(self.currentText())
-        super().showPopup()
 
 
 class RangeSpins(QHBoxLayout):
@@ -424,97 +408,36 @@ class NormalizationModule(SingleMethodModule):
                UDPipe: UDPipeLemmatizer,
                Lemmagen: LemmagenLemmatizer}
     DEFAULT_METHOD = Porter
-    DEFAULT_LANGUAGE = "English"
     DEFAULT_USE_TOKE = False
 
     def __init__(self, parent=None, **kwargs):
         super().__init__(parent, **kwargs)
-        self.__snowball_lang = self.DEFAULT_LANGUAGE
-        self.__udpipe_lang = self.DEFAULT_LANGUAGE
-        self.__lemmagen_lang = self.DEFAULT_LANGUAGE
         self.__use_tokenizer = self.DEFAULT_USE_TOKE
 
-        self.__combo_sbl = ComboBox(
-            self, SnowballStemmer.supported_languages,
-            self.__snowball_lang, self.__set_snowball_lang
-        )
-        self.__combo_udl = UDPipeComboBox(
-            self, self.__udpipe_lang, self.DEFAULT_LANGUAGE,
-            self.__set_udpipe_lang
-        )
         self.__check_use = QCheckBox("UDPipe tokenizer",
                                      checked=self.DEFAULT_USE_TOKE)
         self.__check_use.clicked.connect(self.__set_use_tokenizer)
-        self.__combo_lemm = ComboBox(
-            self, LemmagenLemmatizer.lemmagen_languages,
-            self.__lemmagen_lang, self.__set_lemmagen_lang
-        )
 
-        label = QLabel("Language:")
-        label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self.layout().addWidget(label, self.Snowball, 1)
-        self.layout().addWidget(self.__combo_sbl, self.Snowball, 2)
-
-        label = QLabel("Language:")
-        label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self.layout().addWidget(label, self.UDPipe, 1)
-        self.layout().addWidget(self.__combo_udl, self.UDPipe, 2)
-
-        self.layout().addWidget(self.__check_use, self.UDPipe, 3)
+        self.layout().addWidget(self.__check_use, self.UDPipe, 2)
         self.layout().setColumnStretch(2, 1)
         self.__enable_udpipe()
 
-        label = QLabel("Language:")
-        label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self.layout().addWidget(label, self.Lemmagen, 1)
-        self.layout().addWidget(self.__combo_lemm, self.Lemmagen, 2)
-
     def __enable_udpipe(self):
-        enable = bool(self.__combo_udl.items)
+        enable = bool(UDPipeLemmatizer().models.supported_languages)
         layout = self.layout()  # type: QGridLayout
-        for i in range(4):
+        for i in (0, 2):
             layout.itemAtPosition(self.UDPipe, i).widget().setEnabled(enable)
         if self.method == self.UDPipe and not enable:
             self._set_method(self.Porter)
 
     def setParameters(self, params: Dict):
         super().setParameters(params)
-        snowball_lang = params.get("snowball_language", self.DEFAULT_LANGUAGE)
-        self.__set_snowball_lang(snowball_lang)
-        udpipe_lang = params.get("udpipe_language", self.DEFAULT_LANGUAGE)
-        self.__set_udpipe_lang(udpipe_lang)
         use_tokenizer = params.get("udpipe_tokenizer", self.DEFAULT_USE_TOKE)
         self.__set_use_tokenizer(use_tokenizer)
-        lemmagen_lang = params.get("lemmagen_language", self.DEFAULT_LANGUAGE)
-        self.__set_lemmagen_lang(lemmagen_lang)
 
     def _set_method(self, method: int):
         super()._set_method(method)
         self.__enable_udpipe()
-
-    def __set_snowball_lang(self, language: str):
-        if self.__snowball_lang != language:
-            self.__snowball_lang = language
-            self.__combo_sbl.setCurrentText(language)
-            self.changed.emit()
-            if self.method == self.Snowball:
-                self.edited.emit()
-
-    def __set_udpipe_lang(self, language: str):
-        if self.__udpipe_lang != language:
-            self.__udpipe_lang = language
-            self.__combo_udl.setCurrentText(language)
-            self.changed.emit()
-            if self.method == self.UDPipe:
-                self.edited.emit()
-
-    def __set_lemmagen_lang(self, language: str):
-        if self.__lemmagen_lang != language:
-            self.__lemmagen_lang = language
-            self.__combo_lemm.setCurrentText(language)
-            self.changed.emit()
-            if self.method == self.Lemmagen:
-                self.edited.emit()
 
     def __set_use_tokenizer(self, use: bool):
         if self.__use_tokenizer != use:
@@ -526,36 +449,22 @@ class NormalizationModule(SingleMethodModule):
 
     def parameters(self) -> Dict:
         params = super().parameters()
-        params.update({"snowball_language": self.__snowball_lang,
-                       "udpipe_language": self.__udpipe_lang,
-                       "udpipe_tokenizer": self.__use_tokenizer,
-                       "lemmagen_language": self.__lemmagen_lang})
+        params.update({"udpipe_tokenizer": self.__use_tokenizer})
         return params
 
     @staticmethod
     def createinstance(params: Dict) -> BaseNormalizer:
         method = params.get("method", NormalizationModule.DEFAULT_METHOD)
         args = {}
-        def_lang = NormalizationModule.DEFAULT_LANGUAGE
-        if method == NormalizationModule.Snowball:
-            args = {"language": params.get("snowball_language", def_lang)}
-        elif method == NormalizationModule.UDPipe:
+        if method == NormalizationModule.UDPipe:
             def_use = NormalizationModule.DEFAULT_USE_TOKE
-            args = {"language": params.get("udpipe_language", def_lang),
-                    "use_tokenizer": params.get("udpipe_tokenizer", def_use)}
-        elif method == NormalizationModule.Lemmagen:
-            args = {"language": params.get("lemmagen_language", def_lang)}
+            args = {"use_tokenizer": params.get("udpipe_tokenizer", def_use)}
         return NormalizationModule.Methods[method](**args)
 
     def __repr__(self):
         text = super().__repr__()
-        if self.method == self.Snowball:
-            text = f"{text} ({self.__snowball_lang})"
-        elif self.method == self.UDPipe:
-            text = f"{text} ({self.__udpipe_lang}, " \
-                   f"Tokenize: {['No', 'Yes'][self.__use_tokenizer]})"
-        elif self.method == self.Lemmagen:
-            text = f"{text} ({self.__lemmagen_lang})"
+        if self.method == self.UDPipe:
+            text = f"Tokenize: {['No', 'Yes'][self.__use_tokenizer]})"
         return text
 
 
@@ -571,7 +480,7 @@ class FilteringModule(MultipleMethodModule):
                MostFreq: MostFrequentTokensFilter,
                PosTag: PosTagFilter}
     DEFAULT_METHODS = [Stopwords]
-    DEFAULT_LANG = "English"
+    DEFAULT_USE_DEFAULT_SW = True
     DEFAULT_NONE = None
     DEFAULT_INCL_NUM = False
     DEFAULT_PATTERN = r"\.|,|:|;|!|\?|\(|\)|\||\+|\'|\"|‘|’|“|”|\'|" \
@@ -584,7 +493,7 @@ class FilteringModule(MultipleMethodModule):
 
     def __init__(self, parent=None, **kwargs):
         super().__init__(parent, **kwargs)
-        self.__sw_lang = self.DEFAULT_LANG
+        self.__use_default_sw = self.DEFAULT_USE_DEFAULT_SW
         self.__sw_file = self.DEFAULT_NONE
         self.__lx_file = self.DEFAULT_NONE
         self.__incl_num = self.DEFAULT_INCL_NUM
@@ -598,14 +507,12 @@ class FilteringModule(MultipleMethodModule):
         self.__pos_tag = self.DEFAULT_POS_TAGS
         self.__invalidated = False
 
-        self.__combo = ComboBox(
-            self, [_DEFAULT_NONE] + StopwordsFilter.supported_languages(),
-            self.__sw_lang, self.__set_language
-        )
         self.__sw_loader = FileLoader()
         self.__sw_loader.set_file_list()
         self.__sw_loader.activated.connect(self.__sw_loader_activated)
         self.__sw_loader.file_loaded.connect(self.__sw_invalidate)
+        self.__use_default_sw_cb = QCheckBox("Use default stop words", checked=self.DEFAULT_USE_DEFAULT_SW)
+        self.__use_default_sw_cb.clicked.connect(self.__set_use_default_sw)
 
         self.__lx_loader = FileLoader()
         self.__lx_loader.set_file_list()
@@ -654,8 +561,7 @@ class FilteringModule(MultipleMethodModule):
                                 self.Stopwords, 2, 1, 2)
         self.layout().addWidget(self.__sw_loader.browse_btn, self.Stopwords, 4)
         self.layout().addWidget(self.__sw_loader.load_btn, self.Stopwords, 5)
-        self.layout().addWidget(self.__lx_loader.file_combo,
-                                self.Lexicon, 2, 1, 2)
+        self.layout().addWidget(self.__lx_loader.file_combo, self.Lexicon, 1, 1, 3)
         self.layout().addWidget(self.__lx_loader.browse_btn, self.Lexicon, 4)
         self.layout().addWidget(self.__lx_loader.load_btn, self.Lexicon, 5)
         self.layout().addWidget(self.__check_numbers, self.Numbers, 1)
@@ -734,14 +640,16 @@ class FilteringModule(MultipleMethodModule):
 
     def setParameters(self, params: Dict):
         super().setParameters(params)
-        self.__set_language(params.get("language", self.DEFAULT_LANG))
-        self.__set_sw_path(params.get("sw_path", self.DEFAULT_NONE),
-                           params.get("sw_list", []))
-        self.__set_lx_path(params.get("lx_path", self.DEFAULT_NONE),
-                           params.get("lx_list", []))
-        self.__set_includes_numbers(
-            params.get("incl_num", self.DEFAULT_INCL_NUM)
+        self.__set_use_default_sw(
+            params.get("use_default_sw", self.DEFAULT_USE_DEFAULT_SW)
         )
+        self.__set_sw_path(
+            params.get("sw_path", self.DEFAULT_NONE), params.get("sw_list", [])
+        )
+        self.__set_lx_path(
+            params.get("lx_path", self.DEFAULT_NONE), params.get("lx_list", [])
+        )
+        self.__set_includes_numbers(params.get("incl_num", self.DEFAULT_INCL_NUM))
         self.__set_pattern(params.get("pattern", self.DEFAULT_PATTERN))
         self.__set_freq_type(params.get("freq_type", self.DEFAULT_FREQ_TYPE))
         self.__set_rel_freq_range(
@@ -755,14 +663,6 @@ class FilteringModule(MultipleMethodModule):
         self.__set_n_tokens(params.get("n_tokens", self.DEFAULT_N_TOKEN))
         self.__set_tags(params.get("pos_tags", self.DEFAULT_POS_TAGS))
         self.__invalidated = False
-
-    def __set_language(self, language: str):
-        if self.__sw_lang != language:
-            self.__sw_lang = language
-            self.__combo.setCurrentText(language)
-            self.changed.emit()
-            if self.Stopwords in self.methods:
-                self.edited.emit()
 
     def __set_sw_path(self, path: RecentPath, paths: List[RecentPath] = []):
         self.__sw_loader.recent_paths = paths
@@ -782,6 +682,14 @@ class FilteringModule(MultipleMethodModule):
             self.__check_numbers.setChecked(includes)
             self.changed.emit()
             if self.Numbers in self.methods:
+                self.edited.emit()
+
+    def __set_use_default_sw(self, use_default: bool):
+        if self.__use_default_sw != use_default:
+            self.__use_default_sw = use_default
+            self.__use_default_sw_cb.setChecked(use_default)
+            self.changed.emit()
+            if self.Stopwords in self.methods:
                 self.edited.emit()
 
     def __set_pattern(self, pattern: str):
@@ -840,7 +748,7 @@ class FilteringModule(MultipleMethodModule):
 
     def parameters(self) -> Dict:
         params = super().parameters()
-        params.update({"language": self.__sw_lang,
+        params.update({"use_default_sw": self.__use_default_sw,
                        "sw_path": self.__sw_file,
                        "sw_list": self.__sw_loader.recent_paths,
                        "lx_path": self.__lx_file,
@@ -865,10 +773,15 @@ class FilteringModule(MultipleMethodModule):
         methods = params.get("methods", FilteringModule.DEFAULT_METHODS)
         filters = []
         if FilteringModule.Stopwords in methods:
-            lang = params.get("language", FilteringModule.DEFAULT_LANG)
             path = params.get("sw_path", FilteringModule.DEFAULT_NONE)
-            filters.append(StopwordsFilter(language=map_none(lang),
-                                           path=_to_abspath(path)))
+            use_default_sw = params.get(
+                "use_default_sw", FilteringModule.DEFAULT_USE_DEFAULT_SW
+            )
+            filters.append(
+                StopwordsFilter(
+                    use_default_stopwords=use_default_sw, path=_to_abspath(path)
+                )
+            )
         if FilteringModule.Lexicon in methods:
             path = params.get("lx_path", FilteringModule.DEFAULT_NONE)
             filters.append(LexiconFilter(path=_to_abspath(path)))
@@ -900,8 +813,7 @@ class FilteringModule(MultipleMethodModule):
         texts = []
         for method in self.methods:
             if method == self.Stopwords:
-                append = f"Language: {self.__sw_lang}, " \
-                         f"File: {_to_abspath(self.__sw_file)}"
+                append = f"Use default stopwords: {['No', 'Yes'][self.__use_default_sw]}, File: {_to_abspath(self.__sw_file)}"
             elif method == self.Lexicon:
                 append = f"File: {_to_abspath(self.__lx_file)}"
             elif method == self.Numbers:
@@ -1162,8 +1074,6 @@ class OWPreprocess(Orange.widgets.data.owpreprocess.OWPreprocess,
             self.Error.file_not_found()
         except UnicodeError as e:
             self.Error.invalid_encoding(e)
-        except StanfordPOSTaggerError as e:
-            self.Error.stanford_tagger(e)
         except Exception as e:
             self.Error.unknown_error(str(e))
 
@@ -1266,8 +1176,6 @@ class OWPreprocess(Orange.widgets.data.owpreprocess.OWPreprocess,
                 if normalizer["enabled"]:
                     params = {
                         "method": normalizer["method_index"],
-                        "snowball_language": normalizer["snowball_language"],
-                        "udpipe_language": normalizer["udpipe_language"],
                         "udpipe_tokenizer": normalizer["udpipe_tokenizer"]
                     }
                     preprocessors.append(("preprocess.normalize", params))
@@ -1284,7 +1192,6 @@ class OWPreprocess(Orange.widgets.data.owpreprocess.OWPreprocess,
                     sw_path, sw_list = str_into_paths("recent_sw_files")
                     lx_path, lx_list = str_into_paths("recent_lexicon_files")
                     params = {"methods": filters["checked"],
-                              "language": filters["stopwords_language"],
                               "sw_path": sw_path, "sw_list": sw_list,
                               "lx_path": lx_path, "lx_list": lx_list,
                               "pattern": filters["pattern"],

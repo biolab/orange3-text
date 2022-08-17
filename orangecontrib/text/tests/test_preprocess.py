@@ -111,6 +111,9 @@ class PreprocessTests(unittest.TestCase):
             def _preprocess(cls, token):
                 return token.capitalize()
 
+            def _language_supported(self, _):
+                return True
+
         p = CapTokenNormalizer()
         tokens2 = self.corpus.tokens.copy()
         tokens = p(self.corpus).tokens
@@ -281,11 +284,16 @@ class TokenNormalizerTests(unittest.TestCase):
         self.assertEqual(stemmer._preprocess('token'), 'toke')
 
     def test_snowball(self):
-        stemmer = preprocess.SnowballStemmer('french')
+        stemmer = preprocess.SnowballStemmer()
         token = 'voudrais'
-        self.assertEqual(
-            stemmer._preprocess(token),
-            nltk.SnowballStemmer(language='french').stem(token))
+        with self.corpus.unlocked():
+            self.corpus.metas[0, 0] = token
+            self.corpus.attributes["language"] = "fr"
+        corpus = stemmer(self.corpus)
+        self.assertListEqual(
+            list(corpus.tokens[0]),
+            [nltk.SnowballStemmer(language='french').stem(token)]
+        )
 
     def test_udpipe(self):
         """Test udpipe token lemmatization"""
@@ -310,8 +318,6 @@ class TokenNormalizerTests(unittest.TestCase):
         # udpipe store model after first call - model is not picklable
         normalizer(self.corpus)
         loaded = pickle.loads(pickle.dumps(normalizer))
-        self.assertEqual(normalizer._UDPipeLemmatizer__language,
-                         loaded._UDPipeLemmatizer__language)
         self.assertEqual(normalizer._UDPipeLemmatizer__use_tokenizer,
                          loaded._UDPipeLemmatizer__use_tokenizer)
         with self.corpus.unlocked():
@@ -323,8 +329,6 @@ class TokenNormalizerTests(unittest.TestCase):
     def test_udpipe_deepcopy(self):
         normalizer = preprocess.UDPipeLemmatizer("Lithuanian", True)
         copied = copy.deepcopy(normalizer)
-        self.assertEqual(normalizer._UDPipeLemmatizer__language,
-                         copied._UDPipeLemmatizer__language)
         self.assertEqual(normalizer._UDPipeLemmatizer__use_tokenizer,
                          copied._UDPipeLemmatizer__use_tokenizer)
         with self.corpus.unlocked():
@@ -334,10 +338,11 @@ class TokenNormalizerTests(unittest.TestCase):
         )
 
     def test_lemmagen(self):
-        normalizer = preprocess.LemmagenLemmatizer('Slovenian')
+        normalizer = preprocess.LemmagenLemmatizer()
         sentence = 'Gori na gori hiša gori'
         with self.corpus.unlocked():
             self.corpus.metas[0, 0] = sentence
+        self.corpus.attributes["language"] = "sl"
         self.assertEqual(
             [Lemmatizer("sl").lemmatize(t) for t in sentence.split()],
             normalizer(self.corpus).tokens[0],
@@ -430,24 +435,36 @@ class FilteringTests(unittest.TestCase):
         self.assertEqual(filtered, ['a'])
 
     def test_stopwords(self):
-        f = preprocess.StopwordsFilter('english')
-        self.assertFalse(f._check('a'))
-        self.assertTrue(f._check('filter'))
+        f = preprocess.StopwordsFilter()
         with self.corpus.unlocked():
             self.corpus.metas[0, 0] = 'a snake is in a house'
+            self.corpus.metas[1, 0] = 'a filter'
         corpus = f(self.corpus)
         self.assertListEqual(["snake", "house"], corpus.tokens[0])
+        self.assertListEqual(["filter"], corpus.tokens[1])
         self.assertEqual(len(corpus.used_preprocessor.preprocessors), 2)
 
     def test_stopwords_slovene(self):
-        f = preprocess.StopwordsFilter('slovene')
-        self.assertFalse(f._check('in'))
-        self.assertTrue(f._check('abeceda'))
+        f = preprocess.StopwordsFilter()
         with self.corpus.unlocked():
             self.corpus.metas[0, 0] = 'kača je v hiši'
+            self.corpus.metas[1, 0] = 'in abeceda'
+        self.corpus.attributes["language"] = "sl"
         corpus = f(self.corpus)
         self.assertListEqual(["kača", "hiši"], corpus.tokens[0])
+        self.assertListEqual(["abeceda"], corpus.tokens[1])
         self.assertEqual(len(corpus.used_preprocessor.preprocessors), 2)
+
+    def test_stopwords_language_error(self):
+        # fail when use_default_stopwords and language not supported
+        f = preprocess.StopwordsFilter(use_default_stopwords=True)
+        self.corpus.attributes["language"] = "am"
+        with self.assertRaises(ValueError):
+            f(self.corpus)
+        # success when not use_default_stopwords and language not supported
+        f = preprocess.StopwordsFilter(use_default_stopwords=False)
+        corpus = f(self.corpus)
+        self.assertEqual(len(corpus.tokens), 9)
 
     def test_lexicon(self):
         f = tempfile.NamedTemporaryFile(delete=False)

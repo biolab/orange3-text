@@ -11,6 +11,7 @@ from Orange.data.io import detect_encoding
 from Orange.util import wrap_callback, dummy_callback
 
 from orangecontrib.text import Corpus
+from orangecontrib.text.language import ISO2LANG
 from orangecontrib.text.misc import wait_nltk_data
 from orangecontrib.text.preprocess import TokenizedPreprocessor
 
@@ -75,13 +76,28 @@ class StopwordsFilter(BaseTokenFilter, FileWordListMixin):
     """ Remove tokens present in NLTK's language specific lists or a file. """
     name = 'Stopwords'
 
+    # nltk uses different language nams for some languages
+    nltk_mapping = {"Slovenian": "Slovene"}
+
     @wait_nltk_data
-    def __init__(self, language='English', path: str = None):
+    def __init__(self, use_default_stopwords: bool = True, path: str = None):
         super().__init__()
         FileWordListMixin.__init__(self, path)
-        self.__stopwords = set(x.strip() for x in
-                               stopwords.words(language.lower())) \
-            if language else []
+        self.__use_default_stopwords = use_default_stopwords
+        self.__stopwords = set()
+
+    def __call__(self, corpus: Corpus, callback: Callable = None) -> Corpus:
+        la = ISO2LANG[corpus.language]
+        la = self.nltk_mapping.get(la, la)
+        if self.__use_default_stopwords:
+            if la in self.supported_languages():
+                self.__stopwords = set(x.strip() for x in stopwords.words(la.lower()))
+            else:
+                raise ValueError(
+                    "The stopwords filter does not support the Corpus's language. "
+                    "Provide a custom stopwords file to use it."
+                )
+        return super().__call__(corpus, callback)
 
     @staticmethod
     @wait_nltk_data

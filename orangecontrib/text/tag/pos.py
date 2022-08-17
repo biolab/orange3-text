@@ -2,7 +2,6 @@ from typing import List, Callable
 
 import nltk
 import numpy as np
-
 from Orange.util import wrap_callback, dummy_callback
 
 from orangecontrib.text import Corpus
@@ -11,7 +10,7 @@ from orangecontrib.text.preprocess import TokenizedPreprocessor
 from orangecontrib.text.util import chunkable
 
 
-__all__ = ['POSTagger', 'StanfordPOSTagger', 'AveragedPerceptronTagger', 'MaxEntTagger']
+__all__ = ["POSTagger", "AveragedPerceptronTagger", "MaxEntTagger"]
 
 
 class POSTagger(TokenizedPreprocessor):
@@ -22,6 +21,8 @@ class POSTagger(TokenizedPreprocessor):
     def __call__(self, corpus: Corpus, callback: Callable = None,
                  **kw) -> Corpus:
         """ Marks tokens of a corpus with POS tags. """
+        if corpus.language is None or not self._language_supported(corpus.language):
+            raise ValueError(f"{self.name} does not support the Corpus's language.")
         if callback is None:
             callback = dummy_callback
         corpus = super().__call__(corpus, wrap_callback(callback, end=0.2))
@@ -37,40 +38,8 @@ class POSTagger(TokenizedPreprocessor):
         return list(map(lambda sent: list(map(lambda x: x[1], sent)),
                         self.tagger(tokens)))
 
-
-class StanfordPOSTaggerError(Exception):
-    pass
-
-
-class StanfordPOSTagger(nltk.StanfordPOSTagger, POSTagger):
-    name = 'Stanford POS Tagger'
-
-    @classmethod
-    def check(cls, path_to_model, path_to_jar):
-        """ Checks whether provided `path_to_model` and `path_to_jar` are valid.
-
-        Raises:
-            ValueError: in case at least one of the paths is invalid.
-
-        Notes:
-            Can raise an exception if Java Development Kit is not installed or not properly configured.
-
-        Examples:
-            >>> try:
-            ...    StanfordPOSTagger.check('path/to/model', 'path/to/stanford.jar')
-            ... except ValueError as e:
-            ...    print(e)
-            Could not find stanford-postagger.jar jar file at path/to/stanford.jar
-
-        """
-        try:
-            cls(path_to_model, path_to_jar).tag(())
-        except OSError as e:
-            raise StanfordPOSTaggerError(
-                'Either Java SDK not installed or some of the '
-                'files are invalid.\n' + str(e))
-        except LookupError as e:
-            raise StanfordPOSTaggerError(str(e).strip(' =\n'))
+    def _language_supported(self, iso_language: str) -> bool:
+        raise NotImplementedError
 
 
 class AveragedPerceptronTagger(POSTagger):
@@ -80,6 +49,9 @@ class AveragedPerceptronTagger(POSTagger):
     def __init__(self):
         super().__init__(nltk.PerceptronTagger())
 
+    def _language_supported(self, iso_language: str) -> bool:
+        return iso_language == "en"
+
 
 class MaxEntTagger(POSTagger):
     name = 'Treebank POS Tagger (MaxEnt)'
@@ -88,3 +60,6 @@ class MaxEntTagger(POSTagger):
     def __init__(self):
         tagger = nltk.data.load('taggers/maxent_treebank_pos_tagger/english.pickle')
         super().__init__(tagger)
+
+    def _language_supported(self, iso_language: str) -> bool:
+        return iso_language == "en"
