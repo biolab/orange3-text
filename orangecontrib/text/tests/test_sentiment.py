@@ -10,7 +10,7 @@ from orangecontrib.text.sentiment import LiuHuSentiment, VaderSentiment, \
 class LiuHuTest(unittest.TestCase):
     def setUp(self):
         self.corpus = Corpus.from_file('deerwester')
-        self.method = LiuHuSentiment('English')
+        self.method = LiuHuSentiment('en')
         self.new_cols = 1
 
     def test_transform(self):
@@ -53,7 +53,7 @@ class LiuHuTest(unittest.TestCase):
 class LiuHuSlovenian(unittest.TestCase):
     def setUp(self):
         self.corpus = Corpus.from_file('slo-opinion-corpus')
-        self.method = LiuHuSentiment('Slovenian')
+        self.method = LiuHuSentiment('sl')
         self.new_cols = 1
 
     def test_transform(self):

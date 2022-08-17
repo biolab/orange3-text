@@ -1,7 +1,7 @@
 from typing import List
 
 from AnyQt.QtCore import Qt
-from AnyQt.QtWidgets import QApplication, QGridLayout, QLabel
+from AnyQt.QtWidgets import QGridLayout, QLabel
 
 from Orange.widgets import gui, settings
 from Orange.widgets.utils.signals import Input, Output
@@ -32,10 +32,6 @@ class OWSentimentAnalysis(OWWidget):
 
     method_idx = settings.Setting(1)
     autocommit = settings.Setting(True)
-    liu_language = settings.Setting('English')
-    multi_language = settings.Setting('English')
-    senti_language = settings.Setting('English')
-    lilah_language = settings.Setting('Slovenian')
     want_main_area = False
     resizing_enabled = False
 
@@ -47,19 +43,22 @@ class OWSentimentAnalysis(OWWidget):
         LilahSentiment,
         CustomDictionaries
     ]
-    LANG = ['English', 'Slovenian']
-    MULTI_LANG = MultiSentiment.LANGS.keys()
-    SENTI_LANG = SentiArt.LANGS.keys()
-    LILAH_LANG = LilahSentiment.LANGS.keys()
     DEFAULT_NONE = None
 
     class Warning(OWWidget.Warning):
-        senti_offline = Msg('No internet connection! Sentiment now only works '
-                            'with local models.')
-        senti_offline_no_lang = Msg('No internet connection and no local '
-                                    'language resources are available.')
-        one_dict_only = Msg(f'Only one dictionary loaded.')
-        no_dicts_loaded = Msg('No dictionaries loaded.')
+        senti_offline = Msg(
+            "No internet connection! Sentiment now only works with local models."
+        )
+        senti_offline_no_lang = Msg(
+            "No internet connection and no local language resources are available."
+        )
+        one_dict_only = Msg(f"Only one dictionary loaded.")
+        no_dicts_loaded = Msg("No dictionaries loaded.")
+
+    class Error(OWWidget.Error):
+        lang_unsupported = Msg(
+            "{} does not support the Corpus's language. Please select another method."
+        )
 
     def __init__(self):
         super().__init__()
@@ -69,38 +68,21 @@ class OWSentimentAnalysis(OWWidget):
         self.neg_file = None
         self.senti_dict = None
 
-        self.form = QGridLayout()
-        self.method_box = box = gui.radioButtonsInBox(
-            self.controlArea, self, "method_idx", [], box="Method",
-            orientation=self.form, callback=self._method_changed)
-        self.liu_hu = gui.appendRadioButton(box, "Liu Hu", addToLayout=False)
-        self.liu_lang = gui.comboBox(None, self, 'liu_language',
-                                     sendSelectedValue=True,
-                                     contentsLength=10,
-                                     items=self.LANG,
-                                     callback=self._method_changed)
-        self.vader = gui.appendRadioButton(box, "Vader", addToLayout=False)
-        self.multi_sent = gui.appendRadioButton(box, "Multilingual "
-                                                     "sentiment",
-                                                addToLayout=False)
-        self.multi_box = gui.comboBox(None, self, 'multi_language',
-                                      sendSelectedValue=True,
-                                      contentsLength=10, items=[''],
-                                      callback=self._method_changed)
-        self.senti_art = gui.appendRadioButton(box, "SentiArt",
-                                               addToLayout=False)
-        self.senti_box = gui.comboBox(None, self, 'senti_language',
-                                      sendSelectedValue=True,
-                                      contentsLength=10, items=[''],
-                                      callback=self._method_changed)
-        self.lilah_sent = gui.appendRadioButton(box, "Lilah sentiment",
-                                               addToLayout=False)
-        self.lilah_box = gui.comboBox(None, self, 'lilah_language',
-                                      sendSelectedValue=True,
-                                      contentsLength=10, items=[''],
-                                      callback=self._method_changed)
-        self.custom_list = gui.appendRadioButton(box, "Custom dictionary",
-                                                 addToLayout=False)
+        box = gui.radioButtonsInBox(
+            self.controlArea,
+            self,
+            "method_idx",
+            [
+                "Liu Hu",
+                "Vader",
+                "Multilingual sentiment",
+                "SentiArt",
+                "Lilah sentiment",
+                "Custom dictionary",
+            ],
+            box="Method",
+            callback=self._method_changed,
+        )
 
         self.__posfile_loader = FileLoader()
         self.__posfile_loader.set_file_list()
@@ -112,43 +94,26 @@ class OWSentimentAnalysis(OWWidget):
         self.__negfile_loader.activated.connect(self.__neg_loader_activated)
         self.__negfile_loader.file_loaded.connect(self.__neg_loader_activated)
 
-        self.form.addWidget(self.liu_hu, 0, 0, Qt.AlignLeft)
-        self.form.addWidget(QLabel("Language:"), 0, 1, Qt.AlignRight)
-        self.form.addWidget(self.liu_lang, 0, 2, Qt.AlignRight)
-        self.form.addWidget(self.vader, 1, 0, Qt.AlignLeft)
-        self.form.addWidget(self.multi_sent, 2, 0, Qt.AlignLeft)
-        self.form.addWidget(QLabel("Language:"), 2, 1, Qt.AlignRight)
-        self.form.addWidget(self.multi_box, 2, 2, Qt.AlignRight)
-        self.form.addWidget(self.senti_art, 3, 0, Qt.AlignLeft)
-        self.form.addWidget(QLabel("Language:"), 3, 1, Qt.AlignRight)
-        self.form.addWidget(self.senti_box, 3, 2, Qt.AlignRight)
-        self.form.addWidget(self.lilah_sent, 4, 0, Qt.AlignLeft)
-        self.form.addWidget(QLabel("Language:"), 4, 1, Qt.AlignRight)
-        self.form.addWidget(self.lilah_box, 4, 2, Qt.AlignRight)
-        self.form.addWidget(self.custom_list, 5, 0, Qt.AlignLeft)
-        self.filegrid = QGridLayout()
-        self.form.addLayout(self.filegrid, 6, 0, 1, 3)
-        self.filegrid.addWidget(QLabel("Positive:"), 0, 0, Qt.AlignRight)
-        self.filegrid.addWidget(self.__posfile_loader.file_combo, 0, 1)
-        self.filegrid.addWidget(self.__posfile_loader.browse_btn, 0, 2)
-        self.filegrid.addWidget(self.__posfile_loader.load_btn, 0, 3)
-        self.filegrid.addWidget(QLabel("Negative:"), 1, 0, Qt.AlignRight)
-        self.filegrid.addWidget(self.__negfile_loader.file_combo, 1, 1)
-        self.filegrid.addWidget(self.__negfile_loader.browse_btn, 1, 2)
-        self.filegrid.addWidget(self.__negfile_loader.load_btn, 1, 3)
+        filegrid = QGridLayout()
+        gui.indentedBox(box, orientation=filegrid)
+        filegrid.addWidget(QLabel("Positive:"), 0, 0, Qt.AlignRight)
+        filegrid.addWidget(self.__posfile_loader.file_combo, 0, 1)
+        filegrid.addWidget(self.__posfile_loader.browse_btn, 0, 2)
+        filegrid.addWidget(self.__posfile_loader.load_btn, 0, 3)
+        filegrid.addWidget(QLabel("Negative:"), 1, 0, Qt.AlignRight)
+        filegrid.addWidget(self.__negfile_loader.file_combo, 1, 1)
+        filegrid.addWidget(self.__negfile_loader.browse_btn, 1, 2)
+        filegrid.addWidget(self.__negfile_loader.load_btn, 1, 3)
 
         self.multi_dict = MultisentimentDictionaries()
         self.senti_dict = SentiArtDictionaries()
         self.lilah_dict = LilahDictionaries()
-        self.update_box(self.multi_box, self.multi_dict, MultiSentiment)
-        self.update_box(self.senti_box, self.senti_dict, SentiArt)
-        self.update_box(self.lilah_box, self.lilah_dict, LilahSentiment)
         self.online = self.multi_dict.online
         self.check_sentiment_online()
 
-        ac = gui.auto_commit(self.controlArea, self, 'autocommit', 'Commit',
-                             'Autocommit is on')
-        ac.layout().insertSpacing(1, 8)
+        gui.auto_commit(
+            self.controlArea, self, "autocommit", "Commit", "Autocommit is on"
+        )
 
     def __pos_loader_activated(self):
         cf = self.__posfile_loader.get_current_file()
@@ -172,24 +137,9 @@ class OWSentimentAnalysis(OWWidget):
         self.__negfile_loader.set_current_file(_to_abspath(path))
         self.neg_file = self.__negfile_loader.get_current_file()
 
-    def update_box(self, box, dictionary, method):
-        box.clear()
-        supported_languages = dictionary.supported_languages()
-        if supported_languages:
-            items = sorted([key for (key, value) in method.LANGS.items()
-                            if value in supported_languages])
-            box.addItems(items)
-            if "English" in items:
-                box.setCurrentIndex(items.index("English"))
-            else:
-                box.setCurrentIndex(items.index(items[0]))
-
     def check_sentiment_online(self):
         current_state = self.multi_dict.online
         if self.online != current_state:
-            self.update_box(self.multi_box, self.multi_dict, MultiSentiment)
-            self.update_box(self.senti_box, self.senti_dict, SentiArt)
-            self.update_box(self.lilah_box, self.lilah_dict, SentiArt)
             self.online = current_state
 
         self.Warning.senti_offline.clear()
@@ -228,46 +178,52 @@ class OWSentimentAnalysis(OWWidget):
     def _method_changed(self):
         self.commit.deferred()
 
+    def _compute_sentiment(self, method):
+        corpus = self.pp_corpus
+        if method.name == "Liu Hu":
+            out = method(language=corpus.language).transform(corpus)
+        elif method.name == "Multilingual Sentiment":
+            if not self.senti_dict.online:
+                self.Warning.senti_offline()
+                return
+            else:
+                out = method(language=corpus.language).transform(corpus)
+        elif method.name == "SentiArt":
+            if not self.senti_dict.online:
+                self.Warning.senti_offline()
+                return
+            out = method(language=corpus.language).transform(corpus)
+        elif method.name == "Lilah Sentiment":
+            if not self.lilah_dict.online:
+                self.Warning.senti_offline()
+                return
+            out = method(language=corpus.language).transform(corpus)
+        elif method.name == "Custom Dictionaries":
+            out = method(self.pos_file, self.neg_file).transform(corpus)
+            if (self.pos_file and not self.neg_file) or (
+                self.neg_file and not self.pos_file
+            ):
+                self.Warning.one_dict_only()
+            if not self.pos_file and not self.neg_file:
+                self.Warning.no_dicts_loaded()
+        else:
+            out = method().transform(corpus)
+        return out
+
     @gui.deferred
     def commit(self):
+        self.Warning.senti_offline.clear()
+        self.Warning.one_dict_only.clear()
+        self.Warning.no_dicts_loaded.clear()
+        self.Error.lang_unsupported.clear()
+
         if self.corpus is not None:
-            self.Warning.senti_offline.clear()
-            self.Warning.one_dict_only.clear()
-            self.Warning.no_dicts_loaded.clear()
             method = self.METHODS[self.method_idx]
-            corpus = self.pp_corpus
-            if method.name == 'Liu Hu':
-                out = method(language=self.liu_language).transform(corpus)
-            elif method.name == 'Multilingual Sentiment':
-                if not self.senti_dict.online:
-                    self.Warning.senti_offline()
-                    self.update_box(self.multi_box, self.multi_dict, MultiSentiment)
-                    return
-                else:
-                    out = method(language=self.multi_language).transform(corpus)
-            elif method.name == 'SentiArt':
-                if not self.senti_dict.online:
-                    self.Warning.senti_offline()
-                    self.update_box(self.senti_box, self.senti_dict, SentiArt)
-                    return
-                out = method(language=self.senti_language).transform(corpus)
-            elif method.name == 'Lilah Sentiment':
-                if not self.lilah_dict.online:
-                    self.Warning.senti_offline()
-                    self.update_box(self.lilah_box, self.lilah_dict,
-                                    LilahSentiment)
-                    return
-                out = method(language=self.lilah_language).transform(corpus)
-            elif method.name == 'Custom Dictionaries':
-                out = method(self.pos_file, self.neg_file).transform(corpus)
-                if (self.pos_file and not self.neg_file) or \
-                    (self.neg_file and not self.pos_file):
-                    self.Warning.one_dict_only()
-                if not self.pos_file and not self.neg_file:
-                    self.Warning.no_dicts_loaded()
+            if method.check_language(self.corpus.language):
+                self.Outputs.corpus.send(self._compute_sentiment(method))
             else:
-                out = method().transform(corpus)
-            self.Outputs.corpus.send(out)
+                self.Error.lang_unsupported(method.name)
+                self.Outputs.corpus.send(None)
         else:
             self.Outputs.corpus.send(None)
 
@@ -286,13 +242,9 @@ class OWSentimentAnalysis(OWWidget):
 
 
 def main():
-    app = QApplication([])
-    widget = OWSentimentAnalysis()
-    corpus = Corpus.from_file('book-excerpts')
-    corpus = corpus[:3]
-    widget.set_corpus(corpus)
-    widget.show()
-    app.exec()
+    from orangewidget.utils.widgetpreview import WidgetPreview
+
+    WidgetPreview(OWSentimentAnalysis).run(Corpus.from_file("book-excerpts")[:3])
 
 
 if __name__ == '__main__':
