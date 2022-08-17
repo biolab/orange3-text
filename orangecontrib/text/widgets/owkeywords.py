@@ -20,14 +20,11 @@ from Orange.widgets.utils.itemmodels import PyTableModel, TableModel
 from Orange.widgets.widget import Input, Output, OWWidget, Msg
 
 from orangecontrib.text import Corpus
-from orangecontrib.text.keywords import ScoringMethods, AggregationMethods, \
-    YAKE_LANGUAGE_MAPPING, RAKE_LANGUAGES
+from orangecontrib.text.keywords import ScoringMethods, AggregationMethods
 from orangecontrib.text.preprocess import BaseNormalizer
 from orangecontrib.text.widgets.utils import enum2int
 from orangecontrib.text.widgets.utils.words import create_words_table, \
     WORDS_COLUMN_NAME
-
-YAKE_LANGUAGES = list(YAKE_LANGUAGE_MAPPING.keys())
 
 
 class Results(SimpleNamespace):
@@ -97,7 +94,8 @@ def run(
                 dummy = Corpus.from_numpy(
                     Domain((), metas=[StringVariable("Words")]),
                     X=np.empty((len(words), 0)),
-                    metas=np.array(words)[:, None]
+                    metas=np.array(words)[:, None],
+                    language=corpus.language,
                 )
                 words = list(preprocessor(dummy).tokens.flatten())
 
@@ -192,8 +190,6 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
 
     settingsHandler = DomainContextHandler()
     selected_scoring_methods: Set[str] = Setting({ScoringMethods.TF_IDF})
-    yake_lang_index: int = Setting(YAKE_LANGUAGES.index("English"))
-    rake_lang_index: int = Setting(RAKE_LANGUAGES.index("English"))
     agg_method: int = Setting(AggregationMethods.MEAN)
     sel_method: int = ContextSetting(SelectionMethods.N_BEST)
     n_selected: int = ContextSetting(3)
@@ -221,17 +217,7 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
         self._setup_gui()
 
     def _setup_gui(self):
-        grid = QGridLayout()
-        box = gui.widgetBox(self.controlArea, "Scoring Methods", grid)
-
-        yake_cb = gui.comboBox(
-            self.controlArea, self, "yake_lang_index", items=YAKE_LANGUAGES,
-            callback=self.__on_yake_lang_changed
-        )
-        rake_cb = gui.comboBox(
-            self.controlArea, self, "rake_lang_index", items=RAKE_LANGUAGES,
-            callback=self.__on_rake_lang_changed
-        )
+        box = gui.vBox(self.controlArea, "Scoring Methods")
 
         for i, (method_name, _) in enumerate(ScoringMethods.ITEMS):
             check_box = QCheckBox(method_name, self)
@@ -240,12 +226,7 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
                 lambda state, name=method_name:
                 self.__on_scoring_method_state_changed(state, name)
             )
-            box.layout().addWidget(check_box, i, 0)
-            if method_name == ScoringMethods.YAKE:
-                box.layout().addWidget(yake_cb, i, 1)
-            if method_name == ScoringMethods.RAKE:
-                box.layout().addWidget(rake_cb, i, 1)
-
+            box.layout().addWidget(check_box)
         box = gui.vBox(self.controlArea, "Aggregation")
         gui.comboBox(
             box, self, "agg_method", items=AggregationMethods.ITEMS,
@@ -282,8 +263,7 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
         self.mainArea.layout().addWidget(self.__filter_line_edit)
 
         def select_manual():
-            self.sel_method = SelectionMethods.MANUAL
-            self.__sel_method_buttons.button(SelectionMethods.MANUAL).setChecked(True)
+            self.__sel_method_buttons.button(SelectionMethods.MANUAL).click()
 
         self.view = KeywordsTableView()
         self.view.pressedAny.connect(select_manual)
@@ -311,18 +291,6 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
         elif method_name in self.selected_scoring_methods:
             self.selected_scoring_methods.remove(method_name)
         self.update_scores()
-
-    def __on_yake_lang_changed(self):
-        if ScoringMethods.YAKE in self.selected_scoring_methods:
-            if ScoringMethods.YAKE in self.__cached_keywords:
-                del self.__cached_keywords[ScoringMethods.YAKE]
-            self.update_scores()
-
-    def __on_rake_lang_changed(self):
-        if ScoringMethods.RAKE in self.selected_scoring_methods:
-            if ScoringMethods.RAKE in self.__cached_keywords:
-                del self.__cached_keywords[ScoringMethods.RAKE]
-            self.update_scores()
 
     def __on_filter_changed(self):
         model = self.view.model()
@@ -376,14 +344,15 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
         self.update_scores()
 
     def update_scores(self):
+        language = self.corpus.language if self.corpus else None
         kwargs = {
             ScoringMethods.YAKE: {
-                "language": YAKE_LANGUAGES[self.yake_lang_index],
+                "language": language,
                 "max_len": self.corpus.ngram_range[1] if self.corpus else 1
             },
             ScoringMethods.RAKE: {
-                "language": RAKE_LANGUAGES[self.rake_lang_index],
-                "max_len": self.corpus.ngram_range[1] if self.corpus else 1,
+                "language": language,
+                "max_len": self.corpus.ngram_range[1] if self.corpus else 1
             },
         }
         self.start(run, self.corpus, self.words, self.__cached_keywords,
@@ -450,7 +419,8 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
         # PyQt6's SortOrder is Enum (and not IntEnum as in PyQt5),
         # transform sort_column_order[1], which is int, in Qt.SortOrder Enum
         sco = (self.sort_column_order[0], Qt.SortOrder(self.sort_column_order[1]))
-        current_sorting = (header.sortIndicatorSection(), header.sortIndicatorOrder())
+        current_sorting = (
+        header.sortIndicatorSection(), header.sortIndicatorOrder())
         if current_sorting != sco:
             header.setSortIndicator(*sco)
 
