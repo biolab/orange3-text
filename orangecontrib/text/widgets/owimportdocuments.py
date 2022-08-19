@@ -26,6 +26,7 @@ from AnyQt.QtWidgets import (
     QVBoxLayout, QLabel, QGridLayout, QSizePolicy, QCompleter
 )
 from numpy import array
+from orangewidget.settings import ContextHandler, Context
 
 from orangewidget.utils.itemmodels import PyListModel
 
@@ -37,17 +38,19 @@ from Orange.widgets.utils.concurrent import (
     ThreadExecutor, FutureWatcher, methodinvoke
 )
 from Orange.widgets.widget import Output
+from orangecanvas.preview.previewbrowser import TextLabel
 
 from orangecontrib.text.corpus import Corpus
-from orangecontrib.text.import_documents import ImportDocuments, \
-    NoDocumentsException
-
-try:
-    from orangecanvas.preview.previewbrowser import TextLabel
-except ImportError:
-    from Orange.canvas.preview.previewbrowser import TextLabel
+from orangecontrib.text.import_documents import ImportDocuments, NoDocumentsException
+from orangecontrib.text.language import (
+    ISO2LANG,
+    detect_language,
+    LANG2ISO,
+    LanguageModel,
+)
 
 # domain for skipped images output
+
 SKIPPED_DOMAIN = Domain([], metas=[
     StringVariable("name"),
     StringVariable("path")
@@ -85,6 +88,26 @@ class State(enum.IntEnum):
     NoState, Processing, Done, Cancelled, Error = range(5)
 
 
+class ImportDocumentContextHandler(ContextHandler):
+    """Context handler that matches hashes of documents"""
+
+    @staticmethod
+    def corpus_hash(corpus: Corpus) -> int:
+        """Compute hash of all documents in the Corpus"""
+        return hash(tuple(corpus.documents))
+
+    def new_context(self, corpus: Corpus) -> Context:
+        context = super().new_context()
+        context.documents_hash = self.corpus_hash(corpus)
+        return context
+
+    # noinspection PyMethodOverriding
+    def match(self, context: Context, corpus: Corpus) -> int:
+        if context.documents_hash == self.corpus_hash(corpus):
+            return self.PERFECT_MATCH
+        return self.NO_MATCH
+
+
 class OWImportDocuments(widget.OWWidget):
     name = "Import Documents"
     description = "Import text documents from folders."
@@ -95,6 +118,8 @@ class OWImportDocuments(widget.OWWidget):
         data = Output("Corpus", Corpus, default=True)
         skipped_documents = Output("Skipped documents", Table)
 
+    settingsHandler = ImportDocumentContextHandler()
+
     LOCAL_FILE, URL = range(2)
     source = settings.Setting(LOCAL_FILE)
     #: list of recent paths
@@ -104,6 +129,7 @@ class OWImportDocuments(widget.OWWidget):
     lemma_cb = settings.Setting(True)
     pos_cb = settings.Setting(False)
     ner_cb = settings.Setting(False)
+    language: str = settings.ContextSetting("English")
 
     want_main_area = False
     resizing_enabled = False
@@ -215,6 +241,17 @@ class OWImportDocuments(widget.OWWidget):
 
         reloadaction.changed.connect(
             lambda: reloadbutton.setEnabled(reloadaction.isEnabled())
+        )
+
+        gui.comboBox(
+            self.controlArea,
+            self,
+            "language",
+            box="Language",
+            model=LanguageModel(),
+            sendSelectedValue=True,
+            searchable=True,
+            callback=self.commit,
         )
 
         box = gui.hBox(self.controlArea, "Conllu import options")
@@ -535,6 +572,7 @@ class OWImportDocuments(widget.OWWidget):
         self.error()
         self.Warning.clear()
         self.progress_widget.setValue(0)
+        self.closeContext()
 
         self.__invalidated = False
         startdir = self.currentPath if self.source == self.LOCAL_FILE \
@@ -624,6 +662,10 @@ class OWImportDocuments(widget.OWWidget):
             self.n_text_data = len(corpus)
             self.n_text_categories = len(corpus.domain.class_var.values) \
                 if corpus.domain.class_var else 0
+            self.language = ISO2LANG[corpus.language or detect_language(corpus)]
+            self.openContext(corpus)
+        else:
+            self.language = None
 
         self.base_corpus = self.corpus = corpus
         self.is_conllu = is_conllu
@@ -681,6 +723,8 @@ class OWImportDocuments(widget.OWWidget):
         """
         if self.is_conllu:
             self.add_features()
+        if self.corpus:
+            self.corpus.attributes["language"] = LANG2ISO[self.language]
         self.Outputs.data.send(self.corpus)
         if self.skipped_documents:
             skipped_table = (
