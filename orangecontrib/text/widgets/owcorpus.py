@@ -1,6 +1,7 @@
 import os
-import numpy as np
 
+import numpy as np
+from AnyQt.QtCore import Qt
 from Orange.data import Table, StringVariable, Variable
 from Orange.data.io import FileFormat
 from Orange.widgets import gui
@@ -10,8 +11,67 @@ from Orange.widgets.settings import Setting, ContextSetting,\
     DomainContextHandler
 from Orange.widgets.widget import OWWidget, Msg, Input, Output
 from Orange.widgets.utils.concurrent import TaskState, ConcurrentWidgetMixin
+from orangecanvas.gui.utils import disconnected
+from orangewidget.settings import ContextHandler
+
 from orangecontrib.text.corpus import Corpus, get_sample_corpora_dir
+from orangecontrib.text.language import (
+    LANG2ISO,
+    detect_language,
+    ISO2LANG,
+    LanguageModel,
+)
 from orangecontrib.text.widgets.utils import widgets, QSize
+
+
+class CorpusContextHandler(DomainContextHandler):
+    """
+    Since Corpus enable language selection and language is not domain dependent
+    but documents dependent setting specific handler is required. It will mathc
+    contexts when selected attributes are the same, hash of the documents
+    is the same and corpus's input language is the same.
+
+    Note: With this modification context matching is stricter. It was discussed
+    that in this case there would be two contexts required one for attributes
+    and one for language. Idea is that in the feature we implement context handlers
+    such that specific matcher can be set for a specific setting (e.g. language).
+    """
+
+    def open_context(self, widget, corpus):
+        """
+        Modifying open_context such that it propagates complete corpus not only
+        domain - required for hash computation
+        """
+        if corpus is None:
+            return
+        ContextHandler.open_context(
+            self, widget, corpus, *self.encode_domain(corpus.domain)
+        )
+
+    def new_context(self, corpus, attributes, metas):
+        """Adding hash of documents to the context"""
+        context = super().new_context(corpus, attributes, metas)
+        context.documents_hash = hash(tuple(corpus.documents))
+        context.language = corpus.language
+        return context
+
+    def match(self, context, corpus, attrs, metas):
+        """
+        For a match documents in the corpus must have same hash value and
+        attributes should mathc
+        """
+        if (
+            hasattr(context, "documents_hash")
+            and context.documents_hash != hash(tuple(corpus.documents))
+            or hasattr(context, "language")
+            and context.language != corpus.language
+        ):
+            return self.NO_MATCH
+        return super().match(context, corpus.domain, attrs, metas)
+
+    def decode_setting(self, setting, value, corpus=None, *args):
+        """Modifying decode setting to work with Corpus instead of domain"""
+        return super().decode_setting(setting, value, corpus.domain, *args)
 
 
 class OWCorpus(OWWidget, ConcurrentWidgetMixin):
@@ -37,7 +97,7 @@ class OWCorpus(OWWidget, ConcurrentWidgetMixin):
                   for f in sorted(set(FileFormat.readers.values()),
                                   key=list(FileFormat.readers.values()).index)))
 
-    settingsHandler = DomainContextHandler()
+    settingsHandler = CorpusContextHandler()
 
     recent_files = Setting([
         "book-excerpts.tab",
@@ -48,6 +108,7 @@ class OWCorpus(OWWidget, ConcurrentWidgetMixin):
     ])
     used_attrs = ContextSetting([])
     title_variable = ContextSetting("")
+    language: str = ContextSetting("English")
 
     class Error(OWWidget.Error):
         read_file = Msg("Can't read file ({})")
@@ -74,10 +135,29 @@ class OWCorpus(OWWidget, ConcurrentWidgetMixin):
         # dropdown to select title variable
         self.title_model = DomainModel(
             valid_types=(StringVariable,), placeholder="(no title)")
+        box = gui.vBox(self.controlArea, "Corpus settings")
+        common_settings = dict(
+            labelWidth=100,
+            searchable=True,
+            orientation=Qt.Horizontal,
+            callback=self.update_feature_selection,
+        )
         gui.comboBox(
-            self.controlArea, self, "title_variable",
-            box="Title variable", model=self.title_model,
-            callback=self.update_feature_selection
+            box,
+            self,
+            "title_variable",
+            label="Title variable",
+            model=self.title_model,
+            **common_settings
+        )
+        gui.comboBox(
+            box,
+            self,
+            "language",
+            label="Language",
+            model=LanguageModel(),
+            sendSelectedValue=True,
+            **common_settings
         )
 
         # Used Text Features
@@ -145,7 +225,10 @@ class OWCorpus(OWWidget, ConcurrentWidgetMixin):
         self.Error.clear()
         self.cancel()
         self.unused_attrs_model[:] = []
-        self.used_attrs_model[:] = []
+        with disconnected(
+            self.used_attrs_model.rowsRemoved, self.update_feature_selection
+        ):
+            self.used_attrs_model[:] = []
         self.start(self._load_corpus, path, data)
 
     def on_done(self, corpus: Corpus) -> None:
@@ -160,6 +243,9 @@ class OWCorpus(OWWidget, ConcurrentWidgetMixin):
             self.Error.corpus_without_text_features()
             self.Outputs.corpus.send(None)
             return
+        # set language on Corpus's language (when corpus with already defined
+        # language opened) or guess language
+        self.language = ISO2LANG[corpus.language or detect_language(corpus)]
         self.openContext(self.corpus)
         self.used_attrs_model.extend(self.used_attrs)
         self.unused_attrs_model.extend(
@@ -225,6 +311,7 @@ class OWCorpus(OWWidget, ConcurrentWidgetMixin):
 
     def update_feature_selection(self):
         self.Error.no_text_features_used.clear()
+
         # duplicated data when reordering inside a single window
         def remove_duplicates(l):
             unique = []
@@ -242,6 +329,7 @@ class OWCorpus(OWWidget, ConcurrentWidgetMixin):
                 self.Error.no_text_features_used()
 
             self.corpus.set_title_variable(self.title_variable)
+            self.corpus.attributes["language"] = LANG2ISO[self.language]
             # prevent sending "empty" corpora
             dom = self.corpus.domain
             empty = not (dom.variables or dom.metas) \
