@@ -1,6 +1,9 @@
 import unittest
+from distutils.version import LooseVersion
 
 from AnyQt.QtCore import Qt
+
+import Orange
 from Orange.widgets.tests.base import WidgetTest
 
 from orangecontrib.text import Corpus
@@ -15,6 +18,17 @@ class TestOWCollocations(WidgetTest):
 
         # create corpus
         self.corpus = Corpus.from_file("deerwester")
+
+    def test_table_import_deprecated(self):
+        """This test will fail with Orange version > 3.32. This serves as a
+        reminder to port BarRatioTableModel from core Orange, remove the
+        redundant code in OWCollocations, and this test."""
+        if LooseVersion(Orange.__version__) > LooseVersion("3.34.0"):
+            self.fail(
+                "BarRatioTableModel should now be available in the released "
+                "version of Orange. Please import the model from gui.py and "
+                "remove the redundant code."
+            )
 
     def test_set_data(self):
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
