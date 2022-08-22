@@ -766,7 +766,7 @@ def main(argv=sys.argv):
     if path is not None:
         w.setCurrentPath(path)
 
-    app.exec_()
+    app.exec()
     w.saveSettings()
     w.onDeleteWidget()
     return 0

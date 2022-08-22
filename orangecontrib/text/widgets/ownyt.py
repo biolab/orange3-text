@@ -106,11 +106,11 @@ class OWNYT(OWWidget):
         # API key
         self.api_dlg = self.APICredentialsDialog(self)
         self.api_dlg.accept(silent=True)
-        gui.button(self.controlArea, self, 'Article API Key', callback=self.api_dlg.exec_,
+        gui.button(self.controlArea, self, 'Article API Key', callback=self.api_dlg.exec,
                    focusPolicy=Qt.NoFocus)
 
         # Query
-        query_box = gui.widgetBox(self.controlArea, 'Query', addSpace=True)
+        query_box = gui.widgetBox(self.controlArea, 'Query')
         self.query_box = QueryBox(query_box, self, self.recent_queries,
                                   callback=self.new_query_input)
 
