@@ -234,6 +234,15 @@
     ]
    },
    {
+    "text": "Collocations",
+    "doc": "widgets/collocations.md",
+    "icon": "../orangecontrib/text/widgets/icons/Collocations.svg",
+    "background": "light-blue",
+    "keywords": [
+     "PMI"
+    ]
+   },
+   {
     "text": "Statistics",
     "doc": "widgets/statistics.md",
     "icon": "../orangecontrib/text/widgets/icons/Statistics.svg",
