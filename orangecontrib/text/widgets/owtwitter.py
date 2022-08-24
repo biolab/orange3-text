@@ -212,7 +212,7 @@ class OWTwitter(OWWidget, ConcurrentWidgetMixin):
         self.setFocus()  # to widget itself to show placeholder for query_edit
 
     def open_key_dialog(self):
-        self.api_dlg.exec_()
+        self.api_dlg.exec()
 
     def mode_toggle(self):
         if self.mode == self.AUTHOR:

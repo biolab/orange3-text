@@ -34,7 +34,9 @@ Widgets
    widgets/keywords
    widgets/score-documents
    widgets/semanticviewer
+   widgets/collocations
    widgets/wordlist
+   widgets/ontology
 
 Scripting
 ---------

@@ -219,7 +219,7 @@
    },
    {
     "text": "Ontology",
-    "doc": null,
+    "doc": "widgets/ontology.md",
     "icon": "../orangecontrib/text/widgets/icons/Ontology.svg",
     "background": "light-blue",
     "keywords": []
@@ -231,6 +231,15 @@
     "background": "light-blue",
     "keywords": [
      "search"
+    ]
+   },
+   {
+    "text": "Collocations",
+    "doc": "widgets/collocations.md",
+    "icon": "../orangecontrib/text/widgets/icons/Collocations.svg",
+    "background": "light-blue",
+    "keywords": [
+     "PMI"
     ]
    },
    {

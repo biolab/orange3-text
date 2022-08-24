@@ -4,7 +4,6 @@ import unittest
 from unittest import skipIf
 
 import numpy as np
-import pkg_resources
 from numpy.testing import assert_array_equal
 from orangecontrib.text.preprocess import (
     RegexpTokenizer,
@@ -73,12 +72,16 @@ class CorpusTests(unittest.TestCase):
         path = os.path.dirname(__file__)
         file = os.path.abspath(os.path.join(path, '..', 'datasets', 'book-excerpts.tab'))
         c2 = Corpus.from_file(file)
-        self.assertEqual(c, c2)
+        np.testing.assert_array_equal(c.X, c2.X)
+        np.testing.assert_array_equal(c.metas, c2.metas)
+        self.assertEqual(c.documents, c2.documents)
 
     def test_corpus_from_file_with_tab(self):
         c = Corpus.from_file('book-excerpts')
         c2 = Corpus.from_file('book-excerpts.tab')
-        self.assertEqual(c, c2)
+        np.testing.assert_array_equal(c.X, c2.X)
+        np.testing.assert_array_equal(c.metas, c2.metas)
+        self.assertEqual(c.documents, c2.documents)
 
     def test_corpus_from_numpy(self):
         domain = Domain(
@@ -114,7 +117,9 @@ class CorpusTests(unittest.TestCase):
         c = Corpus.from_file('book-excerpts')
         with self.assertWarns(FutureWarning):
             c2 = Corpus(c.domain, c.X, c.Y, c.metas, c.W, c.text_features)
-        self.assertEqual(c, c2)
+        np.testing.assert_array_equal(c.X, c2.X)
+        np.testing.assert_array_equal(c.metas, c2.metas)
+        self.assertEqual(c.documents, c2.documents)
 
     def test_extend_attributes(self):
         """
@@ -196,51 +201,6 @@ class CorpusTests(unittest.TestCase):
         self.assertEqual(new_c.text_features, c.text_features)
         self.assertEqual(new_c.ngram_range, c.ngram_range)
         self.assertEqual(new_c.attributes, c.attributes)
-
-    def test_corpus_not_eq(self):
-        c = Corpus.from_file('book-excerpts')
-        n_doc = c.X.shape[0]
-
-        c2 = Corpus.from_numpy(c.domain, c.X, c.Y, c.metas, c.W, text_features=[])
-        self.assertNotEqual(c, c2)
-
-        domain2 = Domain([ContinuousVariable("A")], c.domain.class_var, c.domain.metas)
-
-        c2 = Corpus.from_numpy(
-            domain2,
-            np.ones((n_doc, 1)),
-            c.Y,
-            c.metas,
-            c.W,
-            text_features=c.text_features,
-        )
-        self.assertNotEqual(c, c2)
-
-        c2 = Corpus.from_numpy(
-            c.domain,
-            c.X,
-            np.ones((n_doc, 1)),
-            c.metas,
-            c.W,
-            text_features=c.text_features,
-        )
-        self.assertNotEqual(c, c2)
-
-        broken_metas = np.copy(c.metas)
-        broken_metas[0, 0] = ""
-        c2 = Corpus.from_numpy(
-            c.domain, c.X, c.Y, broken_metas, c.W, text_features=c.text_features
-        )
-        self.assertNotEqual(c, c2)
-
-        new_meta = [StringVariable('text2')]
-        broken_domain = Domain(c.domain.attributes, c.domain.class_var, new_meta)
-        c2 = Corpus.from_numpy(broken_domain, c.X, c.Y, c.metas, c.W, new_meta)
-        self.assertNotEqual(c, c2)
-
-        c2 = c.copy()
-        c2.ngram_range = (2, 4)
-        self.assertNotEqual(c, c2)
 
     def test_from_table(self):
         t = Table.from_file('brown-selected')
@@ -436,7 +396,9 @@ class CorpusTests(unittest.TestCase):
         c.store_tokens(c.tokens)
 
         sel = c[:, :]
-        self.assertEqual(sel, c)
+        np.testing.assert_array_equal(sel.X, c.X)
+        np.testing.assert_array_equal(sel.metas, c.metas)
+        np.testing.assert_array_equal(sel.tokens, c.tokens)
 
         sel = c[0]
         self.assertEqual(len(sel), 1)
@@ -525,7 +487,6 @@ class CorpusTests(unittest.TestCase):
         p(corpus)
         copied = corpus.copy()
         self.assertIsNot(copied, corpus)
-        self.assertEqual(copied, corpus)
 
     def test_ngrams_iter(self):
         c = Corpus.from_file('deerwester')
@@ -728,6 +689,18 @@ class TestCorpusSummaries(unittest.TestCase):
         summary = summarize.dispatch(Corpus)(corpus)
         self.assertEqual(140, summary.summary)
         self.assertEqual(details, summary.details)
+
+    def test_deprecated_eq(self):
+        """
+        Corpus's __eq__ is deprecated. When this test starts to fail:
+        - remove __eq__ in corpus
+        - remove this test
+        """
+        import pkg_resources
+
+        version = pkg_resources.get_distribution("orange3-text").version.split(".")
+        version = tuple(map(int, version[:3]))
+        self.assertLess(version, (1, 12, 0))
 
 
 if __name__ == "__main__":
