@@ -690,18 +690,6 @@ class TestCorpusSummaries(unittest.TestCase):
         self.assertEqual(140, summary.summary)
         self.assertEqual(details, summary.details)
 
-    def test_deprecated_eq(self):
-        """
-        Corpus's __eq__ is deprecated. When this test starts to fail:
-        - remove __eq__ in corpus
-        - remove this test
-        """
-        import pkg_resources
-
-        version = pkg_resources.get_distribution("orange3-text").version.split(".")
-        version = tuple(map(int, version[:3]))
-        self.assertLess(version, (1, 12, 0))
-
 
 if __name__ == "__main__":
     unittest.main()
