@@ -443,7 +443,13 @@ class CorpusTests(unittest.TestCase):
         self.assertEqual(sel.attributes, c.attributes)
 
         sel = c[...]
-        self.assertEqual(sel, c)
+        self.assertEqual(len(sel), len(c))
+        self.assertEqual(len(sel._tokens), len(c))
+        np.testing.assert_equal(sel._tokens, c._tokens)
+        self.assertEqual(sel._dictionary, c._dictionary)
+        self.assertEqual(sel.text_features, c.text_features)
+        self.assertEqual(sel.ngram_range, c.ngram_range)
+        self.assertEqual(sel.attributes, c.attributes)
 
         sel = c[range(0, 5)]
         self.assertEqual(len(sel), 5)
