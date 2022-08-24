@@ -5,6 +5,16 @@ Change Log
 ------------
 * ...
 
+[1.11.0] - 2022-08-24
+--------------------
+##### Enhancements
+* Ontology widget documentation ([#881](../../pull/881))
+* Collocations widget ([#782](../../pull/782))
+
+##### Bugfixes
+* Replace exec_ with exec and fix deprecations ([#887](../../pull/887))
+* Ontology - fix cannot be called from a running event loop error ([#882](../../pull/882))
+
 [1.10.0] - 2022-07-08
 --------------------
 ##### Enhancements
@@ -378,7 +388,8 @@ Change Log
 --------------------
 
 
-[next]: https://github.com/biolab/orange3-text/compare/1.10.0...HEAD
+[next]: https://github.com/biolab/orange3-text/compare/1.11.0...HEAD
+[1.11.0]: https://github.com/biolab/orange3-text/compare/1.10.0...1.11.0
 [1.10.0]: https://github.com/biolab/orange3-text/compare/1.9.0...1.10.0
 [1.9.0]: https://github.com/biolab/orange3-text/compare/1.8.1...1.9.0
 [1.8.1]: https://github.com/biolab/orange3-text/compare/1.8.0...1.8.1
