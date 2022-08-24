@@ -134,7 +134,7 @@ class OWCorpusViewer(OWWidget):
             domain = self.corpus.domain
             # Enable/disable tokens checkbox
             if not self.corpus.has_tokens():
-                self.show_tokens_checkbox.setCheckState(False)
+                self.show_tokens_checkbox.setCheckState(Qt.Unchecked)
             self.show_tokens_checkbox.setEnabled(self.corpus.has_tokens())
 
             self.search_features = list(filter_visible(chain(domain.variables, domain.metas)))

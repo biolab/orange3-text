@@ -1,4 +1,6 @@
 import unittest
+
+import numpy as np
 from AnyQt.QtTest import QSignalSpy
 from Orange.widgets.tests.base import WidgetTest
 from Orange.data import StringVariable
@@ -17,7 +19,10 @@ class TestCorpusViewerWidget(WidgetTest):
         self.assertEqual(len(self.widget.corpus), 9)
         self.widget.doc_list.selectAll()
         out_corpus = self.get_output(self.widget.Outputs.matching_docs)
-        self.assertEqual(out_corpus, self.corpus)
+        np.testing.assert_array_equal(out_corpus.X, self.corpus.X)
+        np.testing.assert_array_equal(out_corpus.Y, self.corpus.Y)
+        np.testing.assert_array_equal(out_corpus.metas, self.corpus.metas)
+        np.testing.assert_array_equal(out_corpus._tokens, self.corpus._tokens)
 
     def test_search(self):
         self.send_signal(self.widget.Inputs.corpus, self.corpus)

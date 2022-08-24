@@ -443,7 +443,13 @@ class CorpusTests(unittest.TestCase):
         self.assertEqual(sel.attributes, c.attributes)
 
         sel = c[...]
-        self.assertEqual(sel, c)
+        self.assertEqual(len(sel), len(c))
+        self.assertEqual(len(sel._tokens), len(c))
+        np.testing.assert_equal(sel._tokens, c._tokens)
+        self.assertEqual(sel._dictionary, c._dictionary)
+        self.assertEqual(sel.text_features, c.text_features)
+        self.assertEqual(sel.ngram_range, c.ngram_range)
+        self.assertEqual(sel.attributes, c.attributes)
 
         sel = c[range(0, 5)]
         self.assertEqual(len(sel), 5)
@@ -689,18 +695,6 @@ class TestCorpusSummaries(unittest.TestCase):
         summary = summarize.dispatch(Corpus)(corpus)
         self.assertEqual(140, summary.summary)
         self.assertEqual(details, summary.details)
-
-    def test_deprecated_eq(self):
-        """
-        Corpus's __eq__ is deprecated. When this test starts to fail:
-        - remove __eq__ in corpus
-        - remove this test
-        """
-        import pkg_resources
-
-        version = pkg_resources.get_distribution("orange3-text").version.split(".")
-        version = tuple(map(int, version[:3]))
-        self.assertLess(version, (1, 12, 0))
 
 
 if __name__ == "__main__":

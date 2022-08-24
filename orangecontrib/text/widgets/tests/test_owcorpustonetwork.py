@@ -1,3 +1,4 @@
+import unittest
 from unittest.mock import Mock
 from unittest import skipIf
 
@@ -25,8 +26,9 @@ class TestOWCorpusToNetwork(WidgetTest):
         set_data = self.widget.set_data = Mock()
         self.send_signal("Corpus", None)
         set_data.assert_called_with(None)
-        self.send_signal("Corpus", self.corpus[:0])
-        set_data.assert_called_with(self.corpus[:0])
+        sampled = self.corpus[:0]
+        self.send_signal("Corpus", sampled)
+        set_data.assert_called_with(sampled)
         self.send_signal("Corpus", self.corpus)
         set_data.assert_called_with(self.corpus)
 
@@ -48,3 +50,7 @@ class TestOWCorpusToNetwork(WidgetTest):
         simulate.combobox_activate_index(cbox, 1)
         self.assertTrue(self.widget.controls.window_size.isEnabled())
         self.assertTrue(self.widget.controls.freq_threshold.isEnabled())
+
+
+if __name__ == "__main__":
+    unittest.main()
