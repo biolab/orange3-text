@@ -172,4 +172,4 @@ class _ServerCommunicator(ServerEmbedderCommunicator):
             # Document in corpus is too large. Size limit is 500 KB
             # (after compression). - document skipped
             return None
-        return json.dumps([data]).encode("utf-8", "replace")
+        return json.dumps(data).encode("utf-8", "replace")
