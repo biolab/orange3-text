@@ -17,7 +17,7 @@ async def none_method(_, __):
     return None
 
 _response_list = str(np.arange(0, EMB_DIM, dtype=float).tolist())
-SBERT_RESPONSE = f'{{"embedding": [{_response_list}]}}'.encode()
+SBERT_RESPONSE = f'{{"embedding": {_response_list}}}'.encode()
 
 
 class TestOWDocumentEmbedding(WidgetTest):

@@ -10,7 +10,7 @@ from orangecontrib.text.ontology import Tree, EmbeddingStorage, OntologyHandler,
 
 
 RESPONSE = [
-    f'{{ "embedding": [{[i] * EMB_DIM}] }}'.encode()
+    f'{{ "embedding": {[i] * EMB_DIM} }}'.encode()
     for i in range(4)
 ]
 
