@@ -153,7 +153,7 @@ class TreeView(QTreeView):
 
         edit_triggers = QTreeView.DoubleClicked | QTreeView.EditKeyPressed
         super().__init__(
-            editTriggers=int(edit_triggers),
+            editTriggers=edit_triggers,
             selectionMode=QTreeView.ExtendedSelection,
             dragEnabled=True,
             acceptDrops=True,
@@ -165,7 +165,7 @@ class TreeView(QTreeView):
 
         self.__disconnected = False
 
-    def startDrag(self, actions: Qt.DropActions):
+    def startDrag(self, actions: Qt.DropAction):
         with disconnected(self.model().dataChanged, self.__data_changed_cb):
             super().startDrag(actions)
         self.drop_finished.emit()
@@ -626,7 +626,7 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
 
         edit_triggers = QListView.DoubleClicked | QListView.EditKeyPressed
         self.__library_view = QListView(
-            editTriggers=int(edit_triggers),
+            editTriggers=edit_triggers,
             minimumWidth=200,
             sizePolicy=QSizePolicy(QSizePolicy.Ignored, QSizePolicy.Expanding),
         )

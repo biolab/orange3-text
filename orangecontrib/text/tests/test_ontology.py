@@ -1,22 +1,32 @@
 import unittest
+from typing import List, Union
 from unittest.mock import patch
-from collections.abc import Iterator
-import os
+from typing import Iterator
 import asyncio
 
 import numpy as np
 
-from orangecontrib.text.ontology import Tree, EmbeddingStorage, OntologyHandler, EMB_DIM
+from orangecontrib.text.ontology import Tree, OntologyHandler
 
 
+EMB_DIM = 384
 RESPONSE = [
     f'{{ "embedding": {[i] * EMB_DIM} }}'.encode()
     for i in range(4)
 ]
+RESPONSE2 = [np.zeros(384), np.ones(384), np.zeros(384), np.ones(384)*2]
+RESPONSE3 = [np.zeros(384), np.ones(384), np.arange(384), np.ones(384)*2]
+
+
+def arrays_to_response(array: List[Union[np.ndarray, List]]) -> Iterator[bytes]:
+    return iter(array_to_response(a) for a in array)
+
+
+def array_to_response(array: Union[np.ndarray, List]) -> bytes:
+    return f'{{ "embedding": {array.tolist()} }}'.encode()
 
 
 class DummyResponse:
-
     def __init__(self, content):
         self.content = content
 
@@ -72,54 +82,11 @@ class TestTree(unittest.TestCase):
             Tree.from_prufer_sequence([1, 0, 3], list(map(str, range(4))))
 
 
-class TestEmbeddingStorage(unittest.TestCase):
-
-    def setUp(self):
-        self.storage = EmbeddingStorage()
-
-    def tearDown(self):
-        self.storage.clear_storage()
-
-    def test_clear_storage(self):
-        self.storage.save_embedding("testword", np.zeros(3))
-        self.assertEqual(len(self.storage.embeddings), 1)
-        self.storage.clear_storage()
-        self.assertEqual(len(self.storage.embeddings), 0)
-        self.assertEqual(len(os.listdir(self.storage.cache_dir)), 0)
-
-    def test_save_embedding(self):
-        self.storage.save_embedding("testword", np.zeros(3))
-        self.storage.save_embedding("testword2", np.zeros(3))
-        self.assertEqual(len(self.storage.embeddings), 2)
-        self.assertEqual(len(os.listdir(self.storage.cache_dir)), 2)
-
-    def test_get_embedding(self):
-        self.storage.save_embedding("testword", np.arange(3))
-        emb = self.storage.get_embedding("testword")
-        self.assertEqual(emb.tolist(), [0, 1, 2])
-
-    def test_get_from_cache(self):
-        self.storage.save_embedding("testword", np.arange(3))
-        self.storage.embeddings = dict()
-        emb = self.storage.get_embedding("testword")
-        self.assertEqual(emb.tolist(), [0, 1, 2])
-
-    def test_similarities(self):
-        self.storage.similarities['a', 'b'] = 0.75
-        self.storage.save_similarities()
-        storage = EmbeddingStorage()
-        self.assertEqual(len(storage.similarities), 1)
-        self.assertTrue(('a', 'b') in storage.similarities)
-        self.assertEqual(storage.similarities['a', 'b'], 0.75)
-
-
 class TestOntologyHandler(unittest.TestCase):
-
     def setUp(self):
         self.handler = OntologyHandler()
 
     def tearDown(self):
-        self.handler.storage.clear_storage()
         self.handler.embedder.clear_cache()
 
     @patch('orangecontrib.text.ontology.generate_ontology')
@@ -128,34 +95,23 @@ class TestOntologyHandler(unittest.TestCase):
             self.handler.generate(words)
             mock.assert_not_called()
 
+    @patch('httpx.AsyncClient.post', make_dummy_post(arrays_to_response(RESPONSE3)))
     def test_generate_small(self):
-        self.handler.storage.save_embedding('1', np.zeros(384))
-        self.handler.storage.save_embedding('2', np.ones(384))
-        self.handler.storage.save_embedding('3', np.arange(384))
         tree = self.handler.generate(['1', '2', '3'])
         self.assertTrue(isinstance(tree, dict))
 
-    @patch('httpx.AsyncClient.post')
-    def test_generate(self, mock):
-        self.handler.storage.save_embedding('1', np.zeros(384))
-        self.handler.storage.save_embedding('2', np.ones(384))
-        self.handler.storage.save_embedding('3', np.arange(384))
-        self.handler.storage.save_embedding('4', np.ones(384) * 2)
+    @patch('httpx.AsyncClient.post', make_dummy_post(arrays_to_response(RESPONSE3)))
+    def test_generate(self):
         tree = self.handler.generate(['1', '2', '3', '4'])
         self.assertTrue(isinstance(tree, dict))
-        mock.request.assert_not_called()
-        mock.get_response.assert_not_called()
 
     @patch('httpx.AsyncClient.post', make_dummy_post(iter(RESPONSE)))
     def test_generate_with_unknown_embeddings(self):
         tree = self.handler.generate(['1', '2', '3', '4'])
         self.assertTrue(isinstance(tree, dict))
 
+    @patch('httpx.AsyncClient.post', make_dummy_post(arrays_to_response(RESPONSE2)))
     def test_insert(self):
-        self.handler.storage.save_embedding('1', np.zeros(384))
-        self.handler.storage.save_embedding('2', np.ones(384))
-        self.handler.storage.save_embedding('3', np.arange(384))
-        self.handler.storage.save_embedding('4', np.ones(384) * 2)
         tree = self.handler.generate(['1', '2', '3'])
         new_tree = self.handler.insert(tree, ['4'])
         self.assertGreater(
@@ -163,10 +119,8 @@ class TestOntologyHandler(unittest.TestCase):
             len(Tree.from_dict(tree).adj_list)
         )
 
+    @patch('httpx.AsyncClient.post', make_dummy_post(array_to_response(np.zeros(384))))
     def test_score(self):
-        self.handler.storage.save_embedding('1', np.zeros(384))
-        self.handler.storage.save_embedding('2', np.ones(384))
-        self.handler.storage.save_embedding('3', np.arange(384))
         tree = self.handler.generate(['1', '2', '3'])
         score = self.handler.score(tree)
         self.assertGreater(score, 0)
