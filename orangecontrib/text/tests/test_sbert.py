@@ -8,7 +8,7 @@ from orangecontrib.text import Corpus
 
 PATCH_METHOD = 'httpx.AsyncClient.post'
 RESPONSE = [
-    f'{{ "embedding": [{[i] * EMB_DIM}] }}'.encode()
+    f'{{ "embedding": {[i] * EMB_DIM} }}'.encode()
     for i in range(9)
 ]
 
