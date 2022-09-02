@@ -320,8 +320,6 @@ class Corpus(Table):
             else:
                 var = ContinuousVariable(f, compute_value=cv)
             var.sparse = sparse     # don't pass this to constructor so this works with Orange < 3.8.0
-            if cv is not None:      # set original variable for cv
-                cv.variable = var
             if isinstance(var_attrs, dict):
                 var.attributes.update(var_attrs)
             additional_attributes.append(var)
