@@ -97,33 +97,92 @@ class TestOntologyHandler(unittest.TestCase):
 
     @patch('httpx.AsyncClient.post', make_dummy_post(arrays_to_response(RESPONSE3)))
     def test_generate_small(self):
-        tree = self.handler.generate(['1', '2', '3'])
+        tree, skipped = self.handler.generate(['1', '2', '3'])
         self.assertTrue(isinstance(tree, dict))
+        self.assertEqual(skipped, 0)
 
     @patch('httpx.AsyncClient.post', make_dummy_post(arrays_to_response(RESPONSE3)))
     def test_generate(self):
-        tree = self.handler.generate(['1', '2', '3', '4'])
+        tree, skipped = self.handler.generate(['1', '2', '3', '4'])
         self.assertTrue(isinstance(tree, dict))
+        self.assertEqual(skipped, 0)
 
     @patch('httpx.AsyncClient.post', make_dummy_post(iter(RESPONSE)))
     def test_generate_with_unknown_embeddings(self):
-        tree = self.handler.generate(['1', '2', '3', '4'])
+        tree, skipped = self.handler.generate(['1', '2', '3', '4'])
         self.assertTrue(isinstance(tree, dict))
+        self.assertEqual(skipped, 0)
 
     @patch('httpx.AsyncClient.post', make_dummy_post(arrays_to_response(RESPONSE2)))
     def test_insert(self):
-        tree = self.handler.generate(['1', '2', '3'])
-        new_tree = self.handler.insert(tree, ['4'])
+        tree, skipped = self.handler.generate(['1', '2', '3'])
+        self.assertEqual(skipped, 0)
+        new_tree, skipped = self.handler.insert(tree, ['4'])
         self.assertGreater(
             len(Tree.from_dict(new_tree).adj_list),
             len(Tree.from_dict(tree).adj_list)
         )
+        self.assertEqual(skipped, 0)
 
     @patch('httpx.AsyncClient.post', make_dummy_post(array_to_response(np.zeros(384))))
     def test_score(self):
-        tree = self.handler.generate(['1', '2', '3'])
+        tree, skipped = self.handler.generate(['1', '2', '3'])
         score = self.handler.score(tree)
         self.assertGreater(score, 0)
+        self.assertEqual(skipped, 0)
+
+    @patch('httpx.AsyncClient.post', make_dummy_post(b''))
+    def test_embedding_fails_generate(self):
+        """ Tests the case when embedding fails totally - return empty tree """
+        tree, skipped = self.handler.generate(['1', '2', '3'])
+        score = self.handler.score(tree)
+        self.assertDictEqual(tree, {})
+        self.assertEqual(score, 0)
+        self.assertEqual(skipped, 3)
+
+    @patch('httpx.AsyncClient.post', make_dummy_post(
+        iter(list(arrays_to_response([np.arange(384), np.ones(384)])) + [b""] * 3)
+    ))
+    def test_some_embedding_fails_generate(self):
+        """
+        Tests the case when embedding fail partially
+        - consider only successfully embedded words
+        """
+        tree, skipped = self.handler.generate(['1', '2', '3'])
+        score = self.handler.score(tree)
+        self.assertDictEqual(tree, {'1': {'2': {}}})
+        self.assertGreater(score, 0)
+        self.assertEqual(skipped, 1)
+
+    @patch('httpx.AsyncClient.post', make_dummy_post(
+        # success for generate part and fail for insert part
+        iter(list(arrays_to_response(RESPONSE3)) + [b""] * 3)
+    ))
+    def test_embedding_fails_insert(self):
+        """
+        Tests the case when embedding fails for word that is tried to be inserted
+        - don't insert it
+        """
+        tree, skipped = self.handler.generate(['1', '2', '3', '4'])
+        self.assertEqual(skipped, 0)
+        new_tree, skipped = self.handler.insert(tree, ['5'])
+        self.assertDictEqual(tree, new_tree)
+        self.assertEqual(skipped, 1)
+
+    @patch('httpx.AsyncClient.post', make_dummy_post(
+        # success for generate part and fail for part of new inputs
+        iter(list(arrays_to_response(RESPONSE3)) + [b""] * 3)
+    ))
+    def test_some_embedding_fails_insert(self):
+        """
+        ests the case when embedding fails for some words that are tried to be
+        inserted - insert only successfully embedded words
+        """
+        tree, skipped = self.handler.generate(['1', '2', '3'])
+        self.assertEqual(skipped, 0)
+        new_tree, skipped = self.handler.insert(tree, ['4', '5'])
+        self.assertDictEqual(new_tree, {'1': {'2': {'4': {}}, '3': {}}})
+        self.assertEqual(skipped, 1)
 
 
 if __name__ == '__main__':

@@ -598,6 +598,7 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
 
     class Warning(OWWidget.Warning):
         no_words_column = Msg("Input is missing 'Words' column.")
+        skipped_words = Msg("{} terms are skipped due to server connection error.")
 
     class Error(OWWidget.Error):
         load_error = Msg("{}")
@@ -830,23 +831,28 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
 
     def _run(self):
         self.__run_button.setText("Stop")
+        self.Warning.skipped_words.clear()
         words = self.__ontology_view.get_words()
         handler = self.__onto_handler.generate
         self.start(_run, handler, (words,))
 
     def _run_insert(self):
         self.__inc_button.setText("Stop")
+        self.Warning.skipped_words.clear()
         tree = self.__ontology_view.get_data()
         words = self.__get_selected_input_words()
         handler = self.__onto_handler.insert
         self.start(_run, handler, (tree, words))
 
-    def on_done(self, data: Dict):
+    def on_done(self, result: Tuple[Dict, int]):
+        data, num_skipped = result
         self.__inc_button.setText(self.INC_BUTTON)
         self.__run_button.setText(self.RUN_BUTTON)
         self.__ontology_view.set_data(data, keep_history=True)
         self.__set_current_modified(self.CACHED)
         self.__update_score()
+        if num_skipped > 0:
+            self.Warning.skipped_words(num_skipped)
 
     def __update_score(self):
         tree = self.__ontology_view.get_data()

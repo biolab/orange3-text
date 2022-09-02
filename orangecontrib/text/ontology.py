@@ -226,40 +226,49 @@ class OntologyHandler:
         self,
         words: List[str],
         callback: Callable = dummy_callback
-    ) -> Dict:
-        if len(words) == 0:
-            return {}
-        if len(words) == 1:
-            return {words[0]: {}}
-        if len(words) == 2:
-            return {sorted(words)[0]: {sorted(words)[1]: {}}}
+    ) -> Tuple[Dict, int]:
         embeddings = self.embedder(words, wrap_callback(callback, end=0.1))
+        non_none = [(w, e) for w, e in zip(words, embeddings) if e is not None]
+        skipped = len(words) - len(non_none)
+        if len(non_none) == 0:
+            return {}, skipped
+        words, embeddings = zip(*non_none)
         sims = self._get_similarities(embeddings)
         callback(0.2)
-        if len(words) == 3:
+        if len(words) == 1:
+            return {words[0]: {}}, skipped
+        elif len(words) == 2:
+            return {sorted(words)[0]: {sorted(words)[1]: {}}}, skipped
+        elif len(words) == 3:
             root = np.argmin(np.sum(sims, axis=1))
             rest = sorted([words[i] for i in range(3) if i != root])
-            return {words[root]: {rest[0]: {}, rest[1]: {}}}
+            return {words[root]: {rest[0]: {}, rest[1]: {}}}, skipped
         ontology, root = generate_ontology(
             words,
             sims,
             callback=wrap_callback(callback, start=0.2)
         )
-        return Tree.from_prufer_sequence(ontology, words, root).to_dict()
+        return Tree.from_prufer_sequence(ontology, words, root).to_dict(), skipped
 
     def insert(
         self,
         tree: Dict,
         words: List[str],
         callback: Callable = dummy_callback
-    ) -> Dict:
+    ) -> Tuple[Dict, int]:
         tree = Tree.from_dict(tree)
         ticks = iter(np.linspace(0.3, 0.9, len(words)))
+        skipped = 0
 
         for word in words:
             tree.adj_list.append(set())
             tree.labels.append(word)
             embeddings = self.embedder(tree.labels)
+            if embeddings[-1] is None:
+                # the last embedding is for the newly provided word
+                # if embedding is not successful skip it
+                skipped += 1
+                continue
             sims = self._get_similarities(embeddings)
             idx = len(tree.adj_list) - 1
             fitness_function = FitnessFunction(tree.labels, sims).fitness
@@ -275,9 +284,11 @@ class OntologyHandler:
             tree.adj_list[idx].add(best)
             callback(next(ticks))
 
-        return tree.to_dict()
+        return tree.to_dict(), skipped
 
     def score(self, tree: Dict, callback: Callable = dummy_callback) -> float:
+        if not tree:
+            return 0
         tree = Tree.from_dict(tree)
         embeddings = self.embedder(tree.labels, wrap_callback(callback, end=0.7))
         sims = self._get_similarities(embeddings)
