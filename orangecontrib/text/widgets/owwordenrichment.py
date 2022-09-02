@@ -2,19 +2,18 @@ from types import SimpleNamespace
 from typing import List, Optional
 
 import numpy as np
-
-from AnyQt.QtWidgets import QTreeWidget, QTreeView, QTreeWidgetItem
-
-from Orange.data import Table, Domain, ContinuousVariable, StringVariable
+from AnyQt.QtCore import QSize, Qt
+from AnyQt.QtWidgets import QTreeView, QTreeWidget, QTreeWidgetItem
+from Orange.data import ContinuousVariable, Domain, StringVariable, Table
+from Orange.statistics.util import FDR
 from Orange.widgets import gui
 from Orange.widgets.settings import Setting
 from Orange.widgets.utils.concurrent import ConcurrentWidgetMixin, TaskState
-from Orange.widgets.widget import OWWidget, Msg, Input, Output
-from Orange.statistics.util import FDR
-from AnyQt.QtCore import QSize
+from Orange.widgets.widget import Input, Msg, Output, OWWidget
+
 from orangecontrib.text import Corpus
-from orangecontrib.text.util import np_sp_sum
 from orangecontrib.text.stats import hypergeom_p_values
+from orangecontrib.text.util import np_sp_sum
 from orangecontrib.text.widgets.utils.words import create_words_table
 
 
@@ -125,7 +124,7 @@ class OWWordEnrichment(OWWidget, ConcurrentWidgetMixin):
         self.sig_words.setHeaderLabels(self.cols)
         self.sig_words.setSortingEnabled(True)
         self.sig_words.setSelectionMode(QTreeView.NoSelection)
-        self.sig_words.sortByColumn(1, 0)   # 0 is ascending order
+        self.sig_words.sortByColumn(1, Qt.AscendingOrder)
         for i in range(len(self.cols)):
             self.sig_words.resizeColumnToContents(i)
         self.mainArea.layout().addWidget(self.sig_words)
