@@ -428,7 +428,8 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
         model.setHorizontalHeaderLabels(["Document"])
 
         def select_manual():
-            self.__set_selection_method(SelectionMethods.MANUAL)
+            self.sel_method = SelectionMethods.MANUAL
+            self._sel_method_buttons.button(SelectionMethods.MANUAL).setChecked(True)
 
         self.view = view = ScoreDocumentsTableView()
         view.pressedAny.connect(select_manual)
