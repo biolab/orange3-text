@@ -286,7 +286,8 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
         self.mainArea.layout().addWidget(self.__filter_line_edit)
 
         def select_manual():
-            self._set_selection_method(SelectionMethods.MANUAL)
+            self.sel_method = SelectionMethods.MANUAL
+            self.__sel_method_buttons.button(SelectionMethods.MANUAL).setChecked(True)
 
         self.view = KeywordsTableView()
         self.view.pressedAny.connect(select_manual)
