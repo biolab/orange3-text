@@ -23,7 +23,8 @@ class DummyResponse:
 
 def make_dummy_post(response, sleep=0):
     @staticmethod
-    async def dummy_post(url, headers, data):
+    async def dummy_post(url, headers, data=None, content=None):
+        assert data or content
         await asyncio.sleep(sleep)
         return DummyResponse(
             content=next(response) if isinstance(response, Iterator) else response
