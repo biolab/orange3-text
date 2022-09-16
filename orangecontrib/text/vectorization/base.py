@@ -76,3 +76,17 @@ class VectorizationComputeValue(SharedComputeValue):
     def compute(self, _, shared_data):
         ind = shared_data.feature_name_to_index[self.name]
         return shared_data.X[:, ind]
+
+    def __setstate__(self, state):
+        """
+        Before orange3-text version 1.12.0 variable was wrongly set to current
+        variable (variable that has this compute value attached) instead of
+        original variable which caused fails after latest changes in core
+        Orange. Since variable from VectorizationComputeValue is never used in
+        practice we do not set it anymore (it is always None for
+        VectorizationComputeValue).
+        Anyway it is still set in pickles create before 1.12.0 and this line
+        removes it when unpickling old pickles.
+        """
+        state["variable"] = None
+        self.__dict__.update(state)
