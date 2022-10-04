@@ -1,8 +1,8 @@
-import warnings
 from collections import namedtuple
 import numpy as np
 
 from Orange.widgets.widget import OWWidget
+from Orange.widgets.gui import BarRatioTableModel
 from Orange.data import Domain, StringVariable, ContinuousVariable, Table
 from AnyQt.QtCore import Qt, pyqtSignal as Signal
 from AnyQt.QtWidgets import QTableView, QItemDelegate
@@ -12,7 +12,6 @@ from nltk import BigramCollocationFinder, TrigramCollocationFinder
 
 from orangecontrib.text import Corpus
 from orangewidget import settings, gui
-from orangewidget.utils.itemmodels import PyTableModel
 from orangewidget.utils.signals import Input, Output
 from orangewidget.utils.widgetpreview import WidgetPreview
 
@@ -73,72 +72,6 @@ class TableView(QTableView):
         self.manualSelection.emit()
 
 
-class TableModel(PyTableModel):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._extremes = {}
-
-    def data(self, index, role=Qt.DisplayRole):
-        if role == gui.BarRatioRole and index.isValid():
-            value = super().data(index, Qt.EditRole)
-            if not isinstance(value, float):
-                return None
-            vmin, vmax = self._extremes.get(index.column(), (-np.inf, np.inf))
-            value = (value - vmin) / ((vmax - vmin) or 1)
-            return value
-
-        if role == Qt.DisplayRole and index.column() != VARNAME_COL:
-            role = Qt.EditRole
-
-        value = super().data(index, role)
-
-        # Display nothing for non-existent attr value counts in column 1
-        if role == Qt.EditRole \
-                and index.column() == NVAL_COL and np.isnan(value):
-            return ''
-
-        return value
-
-    def headerData(self, section, orientation, role=Qt.DisplayRole):
-        if role == Qt.InitialSortOrderRole:
-            return Qt.DescendingOrder if section > 0 else Qt.AscendingOrder
-        return super().headerData(section, orientation, role)
-
-    def setExtremesFrom(self, column, values):
-        """Set extremes for column's ratio bars from values"""
-        try:
-            with warnings.catch_warnings():
-                warnings.filterwarnings(
-                    "ignore", ".*All-NaN slice encountered.*", RuntimeWarning)
-                vmin = np.nanmin(values)
-            if np.isnan(vmin):
-                raise TypeError
-        except TypeError:
-            vmin, vmax = -np.inf, np.inf
-        else:
-            vmax = np.nanmax(values)
-        self._extremes[column] = (vmin, vmax)
-
-    def resetSorting(self, yes_reset=False):
-        # pylint: disable=arguments-differ
-        """We don't want to invalidate our sort proxy model everytime we
-        wrap a new list. Our proxymodel only invalidates explicitly
-        (i.e. when new data is set)"""
-        if yes_reset:
-            super().resetSorting()
-
-    def _argsortData(self, data, order):
-        if data.dtype not in (float, int):
-            data = np.char.lower(data)
-        indices = np.argsort(data, kind='mergesort')
-        if order == Qt.DescendingOrder:
-            indices = indices[::-1]
-            if data.dtype == float:
-                # Always sort NaNs last
-                return np.roll(indices, -np.isnan(data).sum())
-        return indices
-
-
 class OWCollocations(OWWidget):
     name = "Collocations"
     description = "Compute significant bigrams and trigrams."
@@ -189,7 +122,8 @@ class OWCollocations(OWWidget):
                    autoDefault=False)
 
         # GUI
-        self.collModel = model = TableModel(parent=self)  # type: TableModel
+        self.collModel = model = BarRatioTableModel(parent=self)  # type:
+        # TableModel
         model.setHorizontalHeaderLabels(["Method", "Score"])
         self.collView = view = TableView(self)  # type: TableView
         self.mainArea.layout().addWidget(view)
