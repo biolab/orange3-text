@@ -5,9 +5,10 @@ import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
+import numpy as np
 from AnyQt.QtCore import Qt, QItemSelectionModel, QItemSelection, \
     QItemSelectionRange
-from AnyQt.QtWidgets import QFileDialog
+from AnyQt.QtWidgets import QFileDialog, QPushButton
 
 from Orange.data import Table
 from Orange.widgets.tests.base import WidgetTest
@@ -35,15 +36,15 @@ class TestRunner(unittest.TestCase):
 
     def test_run(self):
         result = _run(self.handler.generate, (self.words,), self.state)
-        self.assertEqual(result, {"bar": {"foo": {}}})
+        self.assertEqual(result, ({"bar": {"foo": {}}}, 0))
 
     def test_run_single_word(self):
         result = _run(self.handler.generate, (["foo"],), self.state)
-        self.assertEqual(result, {"foo": {}})
+        self.assertEqual(result, ({"foo": {}}, 0))
 
     def test_run_empty(self):
         result = _run(self.handler.generate, ([],), self.state)
-        self.assertEqual(result, {})
+        self.assertEqual(result, ({}, 0))
 
     def test_run_interrupt(self):
         state = Mock()
@@ -260,6 +261,85 @@ class TestOWOntology(WidgetTest):
 
     def test_send_report(self):
         self.widget.send_report()
+
+    def test_skipped_words_generate(self):
+        """
+        Test case when embedding fails when generating the ontology. It results
+        in exclusion of non-embedded terms and warning.
+        """
+        get_ontology_data = self.widget._OWOntology__ontology_view.get_data
+        self.assertDictEqual(get_ontology_data(), {"foo1": {"bar1": {}, "baz1": {}}})
+
+        # generate with embedding error - two skipped
+        with patch(
+            "orangecontrib.text.vectorization.sbert.SBERT.__call__",
+            return_value=[np.ones(300), None, None],
+        ):
+            self.widget._OWOntology__run_button.click()
+            self.wait_until_finished()
+            self.assertDictEqual(get_ontology_data(), {"foo1": {}})
+            self.assertTrue(self.widget.Warning.skipped_words.is_shown())
+            self.assertEqual(
+                str(self.widget.Warning.skipped_words),
+                "2 terms are skipped due to server connection error.",
+            )
+
+        # generate without embedding error
+        with patch(
+            "orangecontrib.text.vectorization.sbert.SBERT.__call__",
+            return_value=[np.ones(300)],
+        ):
+            self.widget._OWOntology__run_button.click()
+            self.wait_until_finished()
+            self.assertDictEqual(get_ontology_data(), {"foo1": {}})
+            self.assertFalse(self.widget.Warning.skipped_words.is_shown())
+
+    def test_skipped_words_insert(self):
+        """
+        Test case when embedding fails when inserting the term. It results
+        in exclusion of non-embedded terms and warning.
+        """
+        words = create_words_table(["foo2", "foo3"])
+        self.send_signal(self.widget.Inputs.words, words)
+
+        # insert with an embedding error
+        with patch(
+            "orangecontrib.text.vectorization.sbert.SBERT.__call__",
+            side_effect=[
+                [np.ones(300), np.ones(300), np.ones(300), None],
+                [np.ones(300), np.ones(300), np.ones(300)],
+            ],
+        ):
+            get_ontology_data = self.widget._OWOntology__ontology_view.get_data
+            self.assertDictEqual(
+                get_ontology_data(), {"foo1": {"bar1": {}, "baz1": {}}}
+            )
+
+            self.widget._OWOntology__input_view.setCurrentIndex(
+                self.widget._OWOntology__input_model.index(0, 0)
+            )
+            self.widget._OWOntology__inc_button.click()
+            self.wait_until_finished()
+            self.assertDictEqual(
+                get_ontology_data(), {"foo1": {"bar1": {}, "baz1": {}}}
+            )
+            self.assertTrue(self.widget.Warning.skipped_words.is_shown())
+            self.assertEqual(
+                str(self.widget.Warning.skipped_words),
+                "1 terms are skipped due to server connection error.",
+            )
+
+        # insert without embedding error
+        with patch(
+            "orangecontrib.text.vectorization.sbert.SBERT.__call__",
+            return_value=[np.ones(300)] * 4,
+        ):
+            self.widget._OWOntology__inc_button.click()
+            self.wait_until_finished()
+            self.assertDictEqual(
+                get_ontology_data(), {"foo1": {"bar1": {}, "baz1": {}, "foo2": {}}}
+            )
+            self.assertFalse(self.widget.Warning.skipped_words.is_shown())
 
 
 if __name__ == "__main__":
