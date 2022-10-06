@@ -117,7 +117,9 @@ class BowVectorizationTest(unittest.TestCase):
         corpus = Corpus.from_file("deerwester")[:0]
         vect = BowVectorizer(norm=BowVectorizer.L1)
         out = vect.transform(corpus)
-        self.assertEqual(out, corpus)
+        np.testing.assert_array_equal(corpus.X, out.X)
+        np.testing.assert_array_equal(corpus.Y, out.Y)
+        np.testing.assert_array_equal(corpus.metas, out.metas)
 
     def tests_duplicated_names(self):
         """

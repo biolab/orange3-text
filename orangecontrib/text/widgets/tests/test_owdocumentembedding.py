@@ -2,11 +2,10 @@ import unittest
 from unittest.mock import Mock, patch
 
 import numpy as np
-from AnyQt.QtWidgets import QComboBox
+from AnyQt.QtWidgets import QComboBox, QRadioButton
 from Orange.widgets.tests.base import WidgetTest
 from Orange.widgets.tests.utils import simulate
 from Orange.misc.utils.embedder_utils import EmbeddingConnectionError
-from PyQt5.QtWidgets import QRadioButton
 
 from orangecontrib.text.tests.test_documentembedder import PATCH_METHOD, make_dummy_post
 from orangecontrib.text.vectorization.sbert import EMB_DIM
@@ -18,7 +17,7 @@ async def none_method(_, __):
     return None
 
 _response_list = str(np.arange(0, EMB_DIM, dtype=float).tolist())
-SBERT_RESPONSE = f'{{"embedding": [{_response_list}]}}'.encode()
+SBERT_RESPONSE = f'{{"embedding": {_response_list}}}'.encode()
 
 
 class TestOWDocumentEmbedding(WidgetTest):
@@ -38,8 +37,9 @@ class TestOWDocumentEmbedding(WidgetTest):
         set_data = self.widget.set_data = Mock()
         self.send_signal("Corpus", None)
         set_data.assert_called_with(None)
-        self.send_signal("Corpus", self.corpus[:0])
-        set_data.assert_called_with(self.corpus[:0])
+        sample = self.corpus[:0]
+        self.send_signal("Corpus", sample)
+        set_data.assert_called_with(sample)
         self.send_signal("Corpus", self.corpus)
         set_data.assert_called_with(self.corpus)
 

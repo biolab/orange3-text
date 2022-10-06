@@ -56,7 +56,7 @@ class SBERT(BaseVectorizer):
         # embedd - send to server
         results = self._server_communicator.embedd_data(sorted_texts, callback=callback)
         # unsort and unpack
-        return [x[0] if x else None for _, x in sorted(zip(indices, results))]
+        return [x if x else None for _, x in sorted(zip(indices, results))]
 
     def _transform(
         self, corpus: Corpus, _, callback=dummy_callback
@@ -172,4 +172,4 @@ class _ServerCommunicator(ServerEmbedderCommunicator):
             # Document in corpus is too large. Size limit is 500 KB
             # (after compression). - document skipped
             return None
-        return json.dumps([data]).encode("utf-8", "replace")
+        return json.dumps(data).encode("utf-8", "replace")

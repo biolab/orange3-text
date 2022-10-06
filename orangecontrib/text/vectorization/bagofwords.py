@@ -88,10 +88,8 @@ class BowVectorizer(BaseVectorizer):
         callback(0.9)
 
         # set compute values
-        shared_cv = SharedTransform(self, corpus.used_preprocessor,
-                                    source_dict=dic)
-        cv = [VectorizationComputeValue(shared_cv, dic[i])
-              for i in range(len(dic))]
+        shared_cv = SharedTransform(self, corpus.used_preprocessor, source_dict=dic)
+        cv = [VectorizationComputeValue(shared_cv, dic[i]) for i in range(len(dic))]
 
         corpus = self.add_features(corpus, X, dic, cv, var_attrs={'bow-feature': True})
         callback(1)

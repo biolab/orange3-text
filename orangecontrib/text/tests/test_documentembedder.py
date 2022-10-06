@@ -17,7 +17,8 @@ class DummyResponse:
 
 def make_dummy_post(response, sleep=0):
     @staticmethod
-    async def dummy_post(url, headers, data):
+    async def dummy_post(url, headers, data=None, content=None):
+        assert data or content
         await asyncio.sleep(sleep)
         return DummyResponse(content=response)
     return dummy_post
@@ -143,16 +144,6 @@ class DocumentEmbedderTest(unittest.TestCase):
             self.embedder = DocumentEmbedder(language='eng')
         with self.assertRaises(ValueError):
             self.embedder = DocumentEmbedder(aggregator='average')
-
-    def test_remove_temporary_proxy_solution(self):
-        """
-        When it starts to fail:
-        - remove this test
-        - remove temporary implementation of get_proxy() function in text.__inint__
-        - set minimum version of Orange on 3.33
-        """
-        import Orange
-        self.assertGreater("3.34.0", Orange.__version__)
 
 
 if __name__ == "__main__":

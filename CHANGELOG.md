@@ -5,6 +5,15 @@ Change Log
 ------------
 * ...
 
+[1.12.0] - 2022-10-06
+--------------------
+##### Bugfixes
+* Ontology - remove cache and other fixes ([#896](../../pull/896))
+* VectorizationComputeValue - fix unpickling old pickles ([#904](../../pull/904))
+* Keywords/Score Documents - fix ctrl/cmd selection ([#902](../../pull/902))
+* Word Enrichment - fix PyQt6 incompatibility and sort imports ([#901](../../pull/901))
+* VectorizationComputeValue - remove wrongly set "original" variable ([#900](../../pull/900))
+
 [1.11.0] - 2022-08-24
 --------------------
 ##### Enhancements
@@ -388,7 +397,8 @@ Change Log
 --------------------
 
 
-[next]: https://github.com/biolab/orange3-text/compare/1.11.0...HEAD
+[next]: https://github.com/biolab/orange3-text/compare/1.12.0...HEAD
+[1.12.0]: https://github.com/biolab/orange3-text/compare/1.11.0...1.12.0
 [1.11.0]: https://github.com/biolab/orange3-text/compare/1.10.0...1.11.0
 [1.10.0]: https://github.com/biolab/orange3-text/compare/1.9.0...1.10.0
 [1.9.0]: https://github.com/biolab/orange3-text/compare/1.8.1...1.9.0
