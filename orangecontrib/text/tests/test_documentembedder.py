@@ -126,13 +126,6 @@ class DocumentEmbedderTest(unittest.TestCase):
         embedder.transform(self.corpus[[0]])
         self.assertEqual(len(embedder._embedder._cache._cache_dict), 2)
 
-    @patch(PATCH_METHOD, make_dummy_post(b'{"embedding": [0.3, 1]}'))
-    def test_cancel(self):
-        self.assertFalse(self.embedder._embedder._cancelled)
-        self.embedder._embedder._cancelled = True
-        with self.assertRaises(Exception):
-            self.embedder.transform(self.corpus[[0]])
-
     @patch(PATCH_METHOD, side_effect=OSError)
     def test_connection_error(self, _):
         embedder = DocumentEmbedder()
