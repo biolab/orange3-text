@@ -565,6 +565,7 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
                 self.corpus.X,
                 self.corpus.Y,
                 np.hstack([self.corpus.metas, scores]),
+                ids=self.corpus.ids,
             )
             Corpus.retain_preprocessing(self.corpus, out_corpus)
         else:
