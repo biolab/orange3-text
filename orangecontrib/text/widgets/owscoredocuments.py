@@ -24,7 +24,7 @@ from Orange.data import ContinuousVariable, Domain, StringVariable, Table
 from Orange.data.util import get_unique_names
 from Orange.util import wrap_callback
 from Orange.widgets.settings import ContextSetting, PerfectDomainContextHandler, Setting
-from Orange.widgets.utils.annotated_data import create_annotated_table
+from Orange.widgets.utils.annotated_data import create_annotated_table, add_columns
 from Orange.widgets.utils.concurrent import ConcurrentWidgetMixin, TaskState
 from Orange.widgets.utils.itemmodels import PyTableModel, TableModel
 from Orange.widgets.widget import Input, Msg, Output, OWWidget
@@ -299,7 +299,7 @@ class ScoreDocumentsTableModel(PyTableModel):
                 # in document title column remove newline characters from titles
                 dat = self.simplify(dat)
             return dat
-        if role == Qt.BackgroundColorRole and index.column() == 0:
+        if role == Qt.BackgroundRole and index.column() == 0:
             return TableModel.ColorForRole[TableModel.Meta]
         return super().data(index, role)
 
@@ -409,7 +409,7 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
             button.setChecked(method == self.sel_method)
             grid.addWidget(button, method, 0)
             self._sel_method_buttons.addButton(button, method)
-        self._sel_method_buttons.buttonClicked[int].connect(self.__set_selection_method)
+        self._sel_method_buttons.buttonClicked.connect(self.__on_method_change)
 
         spin = gui.spin(
             box,
@@ -448,7 +448,7 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
 
         proxy_model = ScoreDocumentsProxyModel()
         proxy_model.setFilterKeyColumn(0)
-        proxy_model.setFilterCaseSensitivity(False)
+        proxy_model.setFilterCaseSensitivity(Qt.CaseInsensitive)
         view.setModel(proxy_model)
         view.model().setSourceModel(self.model)
         self.view.selectionModel().selectionChanged.connect(self.__on_selection_change)
@@ -475,6 +475,9 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
     def __on_selection_change(self):
         self.selected_rows = self.get_selected_indices()
         self._send_output()
+
+    def __on_method_change(self):
+        self.__set_selection_method(self._sel_method_buttons.checkedId())
 
     def __set_selection_method(self, method: int):
         self.sel_method = method
@@ -562,20 +565,11 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
         scores, labels = self._gather_scores()
         if labels:
             d = self.corpus.domain
-            domain = Domain(
-                d.attributes,
-                d.class_var,
-                metas=d.metas + tuple(ContinuousVariable(get_unique_names(d, l))
-                                      for l in labels),
-            )
-            out_corpus = Corpus.from_numpy(
-                domain,
-                self.corpus.X,
-                self.corpus.Y,
-                np.hstack([self.corpus.metas, scores]),
-                ids=self.corpus.ids,
-            )
-            Corpus.retain_preprocessing(self.corpus, out_corpus)
+            new_vars = tuple(ContinuousVariable(get_unique_names(d, l)) for l in labels)
+            new_domain = add_columns(d, metas=new_vars)
+            out_corpus = Corpus.from_table(new_domain, self.corpus)
+            with out_corpus.unlocked(out_corpus.metas):
+                out_corpus[:, new_vars] = scores
         else:
             out_corpus = self.corpus
 
