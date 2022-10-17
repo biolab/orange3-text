@@ -324,6 +324,7 @@ class OWAnnotator(OWDataProjectionWidget, ConcurrentWidgetMixin):
 
     def __on_clustering_type_changed(self):
         self._enable_clustering_controls()
+        self._invalidate_clusters()
         self._run()
 
     def __on_epsilon_check_changed(self):
@@ -343,6 +344,7 @@ class OWAnnotator(OWDataProjectionWidget, ConcurrentWidgetMixin):
         self._run()
 
     def __on_cluster_var_changed(self):
+        self._invalidate_clusters()
         self._run()
 
     def __on_fdr_threshold_changed(self):
