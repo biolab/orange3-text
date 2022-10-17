@@ -438,6 +438,18 @@ class TestOWScoreDocuments(WidgetTest):
         output = self.get_output(self.widget.Outputs.selected_documents)
         self.assertTrue("Word count (1)" in output.domain)
 
+    def test_output_ids(self):
+        corpus = Corpus.from_file("book-excerpts")
+        var = ContinuousVariable("Word count")
+        corpus = corpus.add_column(var, np.array([1 for _ in range(len(
+            corpus))]))
+        words = create_words_table(["doctor", "rum", "house"])
+        self.send_signal(self.widget.Inputs.corpus, corpus)
+        self.send_signal(self.widget.Inputs.words, words)
+        self.wait_until_finished()
+        output = self.get_output(self.widget.Outputs.selected_documents)
+        self.assertTrue(all([i in corpus.ids for i in output.ids]))
+
     def test_titles_no_newline(self):
         corpus = Corpus.from_file("andersen")
         with corpus.unlocked():
