@@ -254,6 +254,25 @@ class TestOWAnnotator(WidgetTest):
         self.widget.controls.clustering_type.buttons[2].click()
         self.assertIsNotNone(self.widget.cluster_var)
 
+    def test_invalidate(self):
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+
+        self.wait_until_finished()
+        self.assertEqual(len(self.widget.clusters.groups), 1)
+
+        self.widget.controls.clustering_type.buttons[1].click()
+        self.wait_until_finished()
+        self.assertEqual(len(self.widget.clusters.groups), 3)
+
+        self.widget.controls.use_n_components.setChecked(True)
+        self.widget.controls.n_components.setValue(4)
+        self.wait_until_finished()
+        self.assertEqual(len(self.widget.clusters.groups), 4)
+
+        self.widget.controls.clustering_type.buttons[2].click()
+        self.wait_until_finished()
+        self.assertEqual(len(self.widget.clusters.groups), 2)
+
 
 if __name__ == "__main__":
     unittest.main()
