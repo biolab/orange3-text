@@ -59,7 +59,7 @@ def _word_appearance(
         t = set(t)
         res.append([w in t for w in words])
         callback((i + 1) / len(tokens))
-    return np.array(res)
+    return np.array(res).astype(float)
 
 
 def _embedding_similarity(
