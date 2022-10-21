@@ -215,6 +215,20 @@ class TestOWScoreDocuments(WidgetTest):
         self.wait_until_finished()
         self.assertListEqual([x[1] for x in self.widget.model], [1, 1, 1])
 
+        # test case where all values are 0
+        corpus = self.create_corpus(
+            [
+                "Lorem ipsum dolor sit ipsum, consectetur adipiscing elit.",
+                "Sed eu sollicitudin velit lorem.",
+            ]
+        )
+        self.send_signal(self.widget.Inputs.corpus, corpus)
+        simulate.combobox_activate_item(cb_aggregation, "Min")
+        self.wait_until_finished()
+        scores = [x[1] for x in self.widget.model]
+        self.assertTrue(all(isinstance(s, float) for s in scores))
+        self.assertListEqual(scores, [0, 0])
+
     @patch.object(_ServerEmbedder, "embedd_data", new=embedding_mock)
     def test_embedding_similarity(self):
         corpus = self.create_corpus(
