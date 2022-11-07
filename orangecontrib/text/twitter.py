@@ -15,7 +15,7 @@ from Orange.util import dummy_callback, wrap_callback
 from tweepy import TooManyRequests
 
 from orangecontrib.text import Corpus
-from orangecontrib.text.language_codes import code2lang
+from orangecontrib.text.language import ISO2LANG
 
 
 log = logging.getLogger(__name__)
@@ -289,7 +289,7 @@ class TwitterAPI:
         allow_retweets: Optional[bool],
         n_tweets: int,
     ):
-        lang = code2lang.get(lang, lang)
+        lang = ISO2LANG.get(lang, lang)
         self.search_history.append(
             (
                 ("Query", query),

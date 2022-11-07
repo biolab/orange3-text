@@ -5,7 +5,6 @@ from typing import Union, List
 import numpy as np
 import scipy.sparse as sp
 from gensim.matutils import Sparse2Corpus
-from scipy.sparse import csc_matrix
 
 
 def chunks(iterable, chunk_size):

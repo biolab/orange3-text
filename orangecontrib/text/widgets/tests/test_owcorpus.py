@@ -3,6 +3,7 @@ import unittest
 import numpy as np
 from Orange.data import Table, Domain, StringVariable, ContinuousVariable
 from Orange.widgets.tests.base import WidgetTest
+from Orange.widgets.tests.utils import simulate
 
 from orangecontrib.text import Corpus
 from orangecontrib.text.widgets.owcorpus import OWCorpus
@@ -248,6 +249,81 @@ class TestOWCorpus(WidgetTest):
         self.assertTrue(
             self.widget.Error.corpus_without_text_features.is_shown()
         )
+
+    def test_context(self):
+        data = Table(Corpus.from_file("book-excerpts"))
+        data.attributes["language"] = "sl"
+        self.send_signal(self.widget.Inputs.data, data)
+        self.wait_until_finished()
+        self.assertEqual("Slovenian", self.widget.language)
+        self.assertEqual("sl", self.get_output(self.widget.Outputs.corpus).language)
+
+        # change language to see if context work later when reopened
+        simulate.combobox_activate_item(self.widget.controls.language, "Dutch")
+        self.assertEqual("Dutch", self.widget.language)
+        self.assertEqual("nl", self.get_output(self.widget.Outputs.corpus).language)
+
+        data1 = Table(Corpus.from_file("deerwester"))
+        self.send_signal(self.widget.Inputs.data, data1)
+        self.wait_until_finished()
+        self.assertEqual("English", self.widget.language)
+        self.assertEqual("en", self.get_output(self.widget.Outputs.corpus).language)
+
+        self.send_signal(self.widget.Inputs.data, data)
+        self.wait_until_finished()
+        self.assertEqual("Dutch", self.widget.language)
+        self.assertEqual("nl", self.get_output(self.widget.Outputs.corpus).language)
+
+        # when corpus on input in different language do not match
+        data.attributes["language"] = "sk"
+        self.send_signal(self.widget.Inputs.data, data)
+        self.wait_until_finished()
+        self.assertEqual("Slovak", self.widget.language)
+        self.assertEqual("sk", self.get_output(self.widget.Outputs.corpus).language)
+
+        # different documents in corpus (should not match the context)
+        data2 = data[:10]
+        data2.attributes["language"] = "sl"
+        self.send_signal(self.widget.Inputs.data, data2)
+        self.wait_until_finished()
+        self.assertEqual("Slovenian", self.widget.language)
+        self.assertEqual("sl", self.get_output(self.widget.Outputs.corpus).language)
+
+    def test_guess_language(self):
+        data = Table(Corpus.from_file("book-excerpts"))
+        # since Table is made from Corpus language attribute is in attributes
+        # drop it
+        data.attributes = {}
+        # change default to something that is not corpus's language
+        self.widget.language = "Slovenian"
+        self.send_signal(self.widget.Inputs.data, data)
+        self.wait_until_finished()
+        self.assertEqual("English", self.widget.language)
+        self.assertEqual("en", self.get_output(self.widget.Outputs.corpus).language)
+
+        # change language to see if context work later when reopened
+        simulate.combobox_activate_item(self.widget.controls.language, "Dutch")
+        self.assertEqual("Dutch", self.widget.language)
+        self.assertEqual("nl", self.get_output(self.widget.Outputs.corpus).language)
+
+        data1 = Table(Corpus.from_file("deerwester"))
+        self.send_signal(self.widget.Inputs.data, data1)
+        self.wait_until_finished()
+        self.assertEqual("English", self.widget.language)
+        self.assertEqual("en", self.get_output(self.widget.Outputs.corpus).language)
+
+        self.send_signal(self.widget.Inputs.data, data)
+        self.wait_until_finished()
+        self.assertEqual("Dutch", self.widget.language)
+        self.assertEqual("nl", self.get_output(self.widget.Outputs.corpus).language)
+
+        # different documents in corpus (should not match the context)
+        data2 = data[:10]
+        data2.attributes["language"] = None
+        self.send_signal(self.widget.Inputs.data, data2)
+        self.wait_until_finished()
+        self.assertEqual("English", self.widget.language)
+        self.assertEqual("en", self.get_output(self.widget.Outputs.corpus).language)
 
 
 if __name__ == "__main__":
