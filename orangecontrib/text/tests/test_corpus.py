@@ -691,6 +691,12 @@ class CorpusTests(unittest.TestCase):
         """
         self.assertLess(datetime.today(), datetime(2024, 1, 1))
 
+    def test_language_unpickle(self):
+        path = os.path.dirname(__file__)
+        file = os.path.abspath(os.path.join(path, "data", "book-excerpts.pkl"))
+        corpus = Corpus.from_file(file)
+        self.assertIsNone(corpus.attributes["language"])
+
 
 @skipIf(summarize is None, "summarize is not available for orange3<=3.28")
 class TestCorpusSummaries(unittest.TestCase):

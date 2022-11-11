@@ -1,3 +1,4 @@
+import os
 import unittest
 
 import numpy as np
@@ -324,6 +325,15 @@ class TestOWCorpus(WidgetTest):
         self.wait_until_finished()
         self.assertEqual("English", self.widget.language)
         self.assertEqual("en", self.get_output(self.widget.Outputs.corpus).language)
+
+    def test_language_unpickle(self):
+        path = os.path.dirname(__file__)
+        file = os.path.abspath(os.path.join(path, "..", "..", "tests",
+                                            "data", "book-excerpts.pkl"))
+        corpus = Corpus.from_file(file)
+        self.send_signal(self.widget.Inputs.data, corpus)
+        self.wait_until_finished()
+        self.assertEqual(self.widget.language, "English")
 
 
 if __name__ == "__main__":

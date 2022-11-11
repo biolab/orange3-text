@@ -4,7 +4,7 @@ from collections import Counter, defaultdict
 from copy import copy, deepcopy
 from numbers import Integral
 from itertools import chain
-from typing import Union, Optional, List, Tuple
+from typing import Union, Optional, List, Tuple, Dict
 from warnings import warn
 
 import nltk
@@ -367,6 +367,11 @@ class Corpus(Table):
     @property
     def language(self):
         return self.attributes["language"]
+
+    def __setstate__(self, state: Dict):
+        super().__setstate__(state)
+        if "language" not in self.attributes:
+            self.attributes["language"] = None
 
     def documents_from_features(self, feats):
         """
