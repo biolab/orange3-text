@@ -1,4 +1,7 @@
+from typing import Dict
+
 import numpy as np
+from gensim.corpora import Dictionary
 
 from Orange.data.util import SharedComputeValue
 from Orange.util import dummy_callback
@@ -66,6 +69,28 @@ class SharedTransform:
         }
         return corpus
 
+    @staticmethod
+    def __hashable_dict(kwargs: Dict) -> Dict:
+        """
+        Gensim Dictionary is not hashable. Replace Dictionary with its id when
+        in kwargs
+        """
+        return {k: (id(v) if isinstance(v, Dictionary) else v) for k, v in kwargs.items()}
+
+    def __eq__(self, other):
+        kwargs1 = self.__hashable_dict(self.kwargs)
+        kwargs2 = self.__hashable_dict(other.kwargs)
+        return (
+            type(self) is type(other)
+            and self.preprocessor == other.preprocessor
+            and self.vectorizer == other.vectorizer
+            and kwargs1 == kwargs2
+        )
+
+    def __hash__(self):
+        kwargs = frozenset(self.__hashable_dict(self.kwargs).items())
+        return hash((type(self), self.preprocessor, self.vectorizer, kwargs))
+
 
 class VectorizationComputeValue(SharedComputeValue):
     """ Compute Value for vectorization features. """
@@ -90,3 +115,13 @@ class VectorizationComputeValue(SharedComputeValue):
         """
         state["variable"] = None
         self.__dict__.update(state)
+
+    def __eq__(self, other):
+        return (
+            type(self) is type(other)
+            and self.compute_shared == other.compute_shared
+            and self.name == other.name
+        )
+
+    def __hash__(self):
+        return hash((type(self), self.compute_shared, self.name))

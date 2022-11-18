@@ -233,13 +233,13 @@ class TestOWAnnotator(WidgetTest):
         output = self.get_output(self.widget.Outputs.annotated_data)
         self.assertIsNotNone(output)
 
-    # def test_send_report(self):
-    #     self.send_signal(self.widget.Inputs.corpus, self.corpus)
-    #     self.widget.report_button.click()
-    #     self.wait_until_finished()
-    #     self.widget.report_button.click()
-    #     self.send_signal(self.widget.Inputs.corpus, None)
-    #     self.widget.report_button.click()
+    def test_send_report(self):
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.widget.report_button.click()
+        self.wait_until_finished()
+        self.widget.report_button.click()
+        self.send_signal(self.widget.Inputs.corpus, None)
+        self.widget.report_button.click()
 
     def test_no_disc_var_context(self):
         domain = Domain(self.corpus.domain.attributes,
