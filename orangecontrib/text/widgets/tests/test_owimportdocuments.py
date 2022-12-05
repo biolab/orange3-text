@@ -3,6 +3,8 @@ import unittest
 from unittest.mock import patch, Mock
 
 from Orange.widgets.tests.base import WidgetTest
+from Orange.widgets.tests.utils import simulate
+
 from orangecontrib.text.widgets.owimportdocuments import OWImportDocuments
 
 
@@ -116,6 +118,37 @@ class TestOWImportDocuments(WidgetTest):
         widget.reload()
         self.wait_until_finished(widget=widget)
         self.assertIsNone(self.get_output(widget.Outputs.data))
+
+    def tests_context(self):
+        self.widget: OWImportDocuments = self.create_widget(OWImportDocuments)
+        # change default to something else to see if language is changed
+        self.widget.language = "Slovenian"
+
+        path = os.path.join(os.path.dirname(__file__), "data/documents", "good")
+        self.widget.setCurrentPath(path)
+        self.widget.reload()
+        self.wait_until_finished()
+
+        # english is recognized for selected documents
+        self.assertEqual(self.widget.language, "English")
+        self.assertEqual("en", self.get_output(self.widget.Outputs.data).language)
+        simulate.combobox_activate_item(self.widget.controls.language, "Dutch")
+
+        self.assertEqual(self.widget.language, "Dutch")
+        self.assertEqual("nl", self.get_output(self.widget.Outputs.data).language)
+
+        # read something else
+        path1 = os.path.join(os.path.dirname(__file__), "data/conllu")
+        self.widget.setCurrentPath(path1)
+        self.widget.reload()
+        self.wait_until_finished()
+
+        # read same data again and observe if context is restored
+        self.widget.setCurrentPath(path)
+        self.widget.reload()
+        self.wait_until_finished()
+        self.assertEqual(self.widget.language, "Dutch")
+        self.assertEqual("nl", self.get_output(self.widget.Outputs.data).language)
 
 
 if __name__ == "__main__":
