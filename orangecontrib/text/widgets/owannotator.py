@@ -397,7 +397,7 @@ class OWAnnotator(OWDataProjectionWidget, ConcurrentWidgetMixin):
                 n_components = self.n_components
         else:
             assert self.cluster_var
-            column = self.data.get_column_view(self.cluster_var)[0]
+            column = self.data.get_column(self.cluster_var)
             labels = column.astype(float)
         self.start(run, self.data, self.attr_x, self.attr_y,
                    self.clustering_type, n_components, epsilon, labels,

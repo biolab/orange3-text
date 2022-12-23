@@ -178,7 +178,7 @@ class OWDocMap(widget.OWWidget):
         locations. """
         if self.data is not None:
             attr = self.data.domain[self.selected_attr]
-            for i in self.data.get_column_view(self.data.domain.index(attr))[0]:
+            for i in self.data.get_column(self.data.domain.index(attr)):
                 # If string attr is None instead of empty string skip it.
                 # This happens on data sets from WB Indicators.
                 if i is not None:

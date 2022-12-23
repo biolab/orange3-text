@@ -474,7 +474,7 @@ class OWWordList(OWWidget):
         else:
             lib_words = self.words_model[:]
         if self.__input_words is not None:
-            in_words = self.__input_words.get_column_view(self.words_var)[0]
+            in_words = self.__input_words.get_column(self.words_var)
             in_words = list(in_words)
             update_rule = self.update_rule_index
 

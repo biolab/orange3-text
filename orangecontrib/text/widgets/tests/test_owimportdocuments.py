@@ -31,14 +31,14 @@ class TestOWImportDocuments(WidgetTest):
         output = self.get_output(self.widget.Outputs.data)
         self.assertEqual(4, len(output))
         self.assertEqual(3, len(output.domain.metas))
-        names = output.get_column_view("name")[0]
+        names = output.get_column("name")
         self.assertListEqual(
             # ž in sample_text_ž must be unicode char 0x17E not decomposed
             # 0x7A + 0x30C as it is in file name
             ["sample_docx", "sample_odt", "sample_pdf", "sample_txt_ž"],
             sorted(names.tolist()),
         )
-        texts = output.get_column_view("content")[0]
+        texts = output.get_column("content")
         self.assertListEqual(
             # ž in sample_text_ž must be unicode char 0x17E not decomposed
             # 0x7A + 0x30C as it is in file name
@@ -53,7 +53,7 @@ class TestOWImportDocuments(WidgetTest):
         skipped_output = self.get_output(self.widget.Outputs.skipped_documents)
         self.assertEqual(1, len(skipped_output))
         self.assertEqual(2, len(skipped_output.domain.metas))
-        names = skipped_output.get_column_view("name")[0]
+        names = skipped_output.get_column("name")
         self.assertListEqual(
             ["sample_pdf_corrupted.pdf"],
             sorted(names.tolist()),

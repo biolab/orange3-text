@@ -200,7 +200,7 @@ class BowVectorizationTest(unittest.TestCase):
         self.assertSetEqual(set(terms), set(a.name for a in corpus.domain.attributes))
         for i, a in enumerate(terms):
             self.assertListEqual(
-                corpus.get_column_view(a)[0].tolist(),
+                corpus.get_column(a).tolist(),
                 values[:, i].tolist(),
                 f"BOW differ for term {a}",
             )

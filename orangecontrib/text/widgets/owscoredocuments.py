@@ -505,16 +505,16 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
             (a for a in attrs if a.attributes.get("type", "") == "words"), None
         )
         if words_attr:
-            return words.get_column_view(words_attr)[0].tolist()
+            return words.get_column(words_attr).tolist()
         else:
             # find the most suitable attribute - one with lowest average text
             # length - counted as a number of words
             def avg_len(attr):
-                array_ = words.get_column_view(attr)[0]
+                array_ = words.get_column(attr)
                 array_ = array_[~isnull(array_)]
                 return sum(len(a.split()) for a in array_) / len(array_)
             attr = sorted(attrs, key=avg_len)[0]
-            return words.get_column_view(attr)[0].tolist()
+            return words.get_column(attr).tolist()
 
     @Inputs.words
     def set_words(self, words: Table) -> None:
