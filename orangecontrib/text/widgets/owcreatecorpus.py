@@ -16,6 +16,7 @@ from Orange.widgets.widget import Output, OWWidget
 from orangewidget.settings import Setting
 
 from orangecontrib.text import Corpus
+from orangecontrib.text.language import LANG2ISO, DEFAULT_LANGUAGE, LanguageModel
 
 
 class EditorsVerticalScrollArea(gui.VerticalScrollArea):
@@ -76,12 +77,25 @@ class OWCreateCorpus(OWWidget):
 
     want_main_area = False
 
+    language: str = Setting(DEFAULT_LANGUAGE)
     texts: List[Tuple[str, str]] = Setting([("", "")] * 3)
     auto_commit: bool = Setting(True)
 
     def __init__(self):
         super().__init__()
         self.editors = []
+
+        gui.comboBox(
+            self.controlArea,
+            self,
+            "language",
+            model=LanguageModel(),
+            box="Language",
+            orientation=Qt.Horizontal,
+            callback=self.commit.deferred,
+            sendSelectedValue=True,
+            searchable=True,
+        )
 
         scroll_area = EditorsVerticalScrollArea()
         self.editor_vbox = gui.vBox(self.controlArea, spacing=0)
@@ -142,12 +156,13 @@ class OWCreateCorpus(OWWidget):
             np.empty((len(self.texts), 0)),
             metas=np.array(self.texts),
             text_features=[doc_var],
+            language=LANG2ISO[self.language],
         )
         corpus.set_title_variable(title_var)
         self.Outputs.corpus.send(corpus)
 
     def sizeHint(self) -> QSize:
-        return QSize(600, 600)
+        return QSize(600, 650)
 
 
 if __name__ == "__main__":
