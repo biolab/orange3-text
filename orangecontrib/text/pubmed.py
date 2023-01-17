@@ -6,11 +6,8 @@ from datetime import datetime
 import numpy as np
 from Bio import Entrez
 from Bio import Medline
+from Orange.misc import environ
 
-try:
-    from Orange.misc import environ
-except ImportError:
-    from Orange.canvas.utils import environ
 
 from Orange.data import StringVariable, DiscreteVariable, TimeVariable, Domain
 from orangecontrib.text.corpus import Corpus
