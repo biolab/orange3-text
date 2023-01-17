@@ -138,7 +138,6 @@ def _preprocess_words(
         np.empty((len(words), 0)),
         metas=np.array([[w] for w in words]),
         text_features=[words_feature],
-        language=corpus.language
     )
     # apply all corpus preprocessors except Filter and NGrams, which change terms
     # filter removes words from the term, and NGrams split the term in grams.
