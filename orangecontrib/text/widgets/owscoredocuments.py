@@ -38,6 +38,7 @@ from orangecontrib.text.vectorization.document_embedder import (
     LANGS_TO_ISO,
     DocumentEmbedder,
 )
+from orangecontrib.text.widgets.utils import enum2int
 from orangecontrib.text.widgets.utils.words import create_words_table
 
 def _word_frequency(corpus: Corpus, words: List[str], callback: Callable) -> np.ndarray:
@@ -317,7 +318,7 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
     buttons_area_orientation = Qt.Vertical
 
     # default order - table sorted in input order
-    DEFAULT_SORTING = (-1, Qt.AscendingOrder)
+    DEFAULT_SORTING = (-1, enum2int(Qt.AscendingOrder))
 
     settingsHandler = PerfectDomainContextHandler()
     auto_commit: bool = Setting(True)
@@ -451,7 +452,7 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
 
     def __on_horizontal_header_clicked(self, index: int):
         header = self.view.horizontalHeader()
-        self.sort_column_order = (index, header.sortIndicatorOrder())
+        self.sort_column_order = (index, enum2int(header.sortIndicatorOrder()))
         self._select_rows()
         # when sorting change output table must consider the new order
         # call explicitly since selection in table is not changed
@@ -595,7 +596,10 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
             # if not enough columns do not apply sorting from settings since
             # sorting can besaved for score column while scores are still computing
             # tables is filled before scores are computed with document names
-            self.view.horizontalHeader().setSortIndicator(*self.sort_column_order)
+            # PyQt6's SortOrder is Enum (and not IntEnum as in PyQt5),
+            # transform sort_column_order[1], which is int, in Qt.SortOrder Enum
+            sco = (self.sort_column_order[0], Qt.SortOrder(self.sort_column_order[1]))
+            self.view.horizontalHeader().setSortIndicator(*sco)
 
         self._select_rows()
 
