@@ -5,7 +5,7 @@ import warnings
 import zlib
 import sys
 from threading import Thread
-from typing import Any, List, Optional, Callable, Tuple
+from typing import Any, List, Optional, Callable, Tuple, Union
 
 import numpy as np
 from Orange.misc.server_embedder import ServerEmbedderCommunicator
@@ -29,18 +29,20 @@ class SBERT(BaseVectorizer):
         )
 
     def __call__(
-        self, texts: List[str], callback: Callable = dummy_callback
-    ) -> List[Optional[List[float]]]:
+        self, texts: List[Union[str, List[str]]], callback: Callable = dummy_callback
+    ) -> List[Union[Optional[List[float]], List[Optional[List[float]]]]]:
         """Computes embeddings for given documents.
 
         Parameters
         ----------
         texts
-            A list of raw texts.
+            A list of texts or list of text batches (list with text)
 
         Returns
         -------
-        An array of embeddings.
+        List of embeddings for each document. Each item in the list can be either
+        list of numbers (embedding) or a None when embedding fails.
+        When texts is list of batches also responses are returned in batches.
         """
         if len(texts) == 0:
             return []
@@ -49,7 +51,7 @@ class SBERT(BaseVectorizer):
         # at the end and thus add extra time to the complete embedding time
         sorted_texts = sorted(
             enumerate(texts),
-            key=lambda x: len(x[1][0]) if x[1] is not None else 0,
+            key=lambda x: len(x[1]) if x[1] is not None else 0,
             reverse=True,
         )
         indices, sorted_texts = zip(*sorted_texts)
@@ -111,6 +113,44 @@ class SBERT(BaseVectorizer):
 
         return new_corpus, skipped_corpus
 
+    def embed_batches(
+        self,
+        documents: List[str],
+        batch_size: int,
+        *,
+        callback: Callable = dummy_callback
+    ) -> List[Optional[List[float]]]:
+        """
+        Embed documents by sending batches of documents to the server instead of
+        sending one document per request. Using this method is suggested when
+        documents are words or extra short documents. Since they embed fast, the
+        bottleneck is sending requests to the server, and for those, it is
+        faster to send them in batches. In the case of documents with at least a
+        few sentences, the bottleneck is embedding itself. In this case, sending
+        them in separate requests can speed up embedding since the embedding
+        process can be more redistributed between workers.
+
+        Parameters
+        ----------
+        documents
+            List of document that will be sent to the server
+        batch_size
+            Number of documents in one batch sent to the server
+        callback
+            Callback for reporting the progress
+
+        Returns
+        -------
+        List of embeddings for each document. Each item in the list can be either
+        list of numbers (embedding) or a None when embedding fails.
+        """
+        batches = [
+            documents[ndx : ndx + batch_size]
+            for ndx in range(0, len(documents), batch_size)
+        ]
+        embeddings_batches = self(batches)
+        return [emb for batch in embeddings_batches for emb in batch]
+
     def report(self) -> Tuple[Tuple[str, str], ...]:
         """Reports on current parameters of DocumentEmbedder.
 
@@ -164,10 +204,20 @@ class _ServerCommunicator(ServerEmbedderCommunicator):
         else:
             return asyncio.run(self.embedd_batch(data, callback=callback))
 
-    async def _encode_data_instance(self, data_instance: Any) -> Optional[bytes]:
-        data = base64.b64encode(
-            zlib.compress(data_instance.encode("utf-8", "replace"), level=-1)
-        ).decode("utf-8", "replace")
+    async def _encode_data_instance(
+        self, data_instance: Union[str, List[str]]
+    ) -> Optional[bytes]:
+        def compress_text(text):
+            return base64.b64encode(
+                zlib.compress(text.encode("utf-8", "replace"), level=-1)
+            ).decode("utf-8", "replace")
+
+        if isinstance(data_instance, str):
+            # single document in request
+            data = compress_text(data_instance)
+        else:
+            # request is batch (list of documents)
+            data = [compress_text(text) for text in data_instance]
         if sys.getsizeof(data) > 500000:
             # Document in corpus is too large. Size limit is 500 KB
             # (after compression). - document skipped
