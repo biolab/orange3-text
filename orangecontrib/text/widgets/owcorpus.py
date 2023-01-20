@@ -289,7 +289,7 @@ class OWCorpus(OWWidget, ConcurrentWidgetMixin):
                 break
 
             # otherwise uniqueness and length counts
-            column_values = self.corpus.get_column_view(variable)[0]
+            column_values = self.corpus.get_column(variable)
             average_text_length = v_len(column_values).mean()
             uniqueness = len(np.unique(column_values))
 

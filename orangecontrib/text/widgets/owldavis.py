@@ -306,7 +306,7 @@ class OWLDAvis(OWWidget):
         Compute how likely is the term in each topic
         Term-topic column is multiplied by marginal topic probability
         """
-        topic_frequency = data.get_column_view("Marginal Topic Probability")[0]
+        topic_frequency = data.get_column("Marginal Topic Probability")
         return data.X * topic_frequency[:, None].astype(float)
 
     def on_params_change(self):

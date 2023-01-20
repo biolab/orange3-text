@@ -804,7 +804,7 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
         if words:
             if WORDS_COLUMN_NAME in words.domain and words.domain[
                     WORDS_COLUMN_NAME].attributes.get("type") == "words":
-                for word in words.get_column_view(WORDS_COLUMN_NAME)[0]:
+                for word in words.get_column(WORDS_COLUMN_NAME):
                     self.__input_model.appendRow(QStandardItem(word))
             else:
                 self.Warning.no_words_column()

@@ -385,7 +385,7 @@ span.selected {color:red !important}
         if data and data.W.any():
             weights = data.W[:]
         elif data and "weights" in data.domain:
-            weights = data.get_column_view(data.domain["weights"])[0]
+            weights = data.get_column(data.domain["weights"])
         else:
             weights = np.ones(len(words))
 

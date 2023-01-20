@@ -296,7 +296,7 @@ class OWSemanticViewer(OWWidget, ConcurrentWidgetMixin):
         if words:
             if WORDS_COLUMN_NAME in words.domain and words.domain[
                     WORDS_COLUMN_NAME].attributes.get("type") == "words":
-                self.words = list(words.get_column_view(WORDS_COLUMN_NAME)[0])
+                self.words = list(words.get_column(WORDS_COLUMN_NAME))
             else:
                 self.Warning.no_words_column()
 

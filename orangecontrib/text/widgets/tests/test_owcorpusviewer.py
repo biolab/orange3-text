@@ -4,7 +4,6 @@ from unittest import TestCase
 import numpy as np
 from AnyQt.QtCore import QItemSelectionModel, Qt
 from AnyQt.QtTest import QSignalSpy
-from orangewidget.settings import Context
 
 from Orange.data import StringVariable, Domain
 from Orange.widgets.tests.base import WidgetTest
@@ -187,7 +186,7 @@ class TestCorpusViewerWidget(WidgetTest):
         mathing = self.get_output(self.widget.Outputs.matching_docs)
         self.assertEqual(1, len(mathing))
         self.assertEqual(
-            mathing.get_column_view("Text")[0][0],
+            mathing.get_column("Text")[0],
             "The generation of random binary unordered trees",
         )
         self.assertEqual(8, len(self.get_output(self.widget.Outputs.other_docs)))
@@ -202,7 +201,7 @@ class TestCorpusViewerWidget(WidgetTest):
         output = self.get_output(self.widget.Outputs.corpus)
         self.assertEqual(
             len(self.get_output(self.widget.Outputs.matching_docs)),
-            sum(output.get_column_view("Selected")[0]),
+            sum(output.get_column("Selected")),
         )
 
         self.widget.regexp_filter = "human"
@@ -212,12 +211,12 @@ class TestCorpusViewerWidget(WidgetTest):
         mathing = self.get_output(self.widget.Outputs.matching_docs)
         self.assertEqual(1, len(mathing))
         self.assertEqual(
-            mathing.get_column_view("Text")[0][0],
+            mathing.get_column("Text")[0],
             "Human machine interface for lab abc computer applications",
         )
         self.assertEqual(8, len(self.get_output(self.widget.Outputs.other_docs)))
         output = self.get_output(self.widget.Outputs.corpus)
-        self.assertEqual(1, sum(output.get_column_view("Selected")[0]))
+        self.assertEqual(1, sum(output.get_column("Selected")))
 
         self.widget.doc_list.selectAll()
         self.assertEqual(5, len(self.get_output(self.widget.Outputs.matching_docs)))
@@ -225,7 +224,7 @@ class TestCorpusViewerWidget(WidgetTest):
         output = self.get_output(self.widget.Outputs.corpus)
         self.assertEqual(
             len(self.get_output(self.widget.Outputs.matching_docs)),
-            sum(output.get_column_view("Selected")[0]),
+            sum(output.get_column("Selected")),
         )
 
         self.send_signal(self.widget.Inputs.corpus, None)
@@ -293,7 +292,7 @@ class TestCorpusViewerWidget(WidgetTest):
         # filter_conent must include only values from the text column
         self.assertListEqual(
             self.widget.doc_list_model.get_filter_content(),
-            self.corpus.get_column_view("Text")[0].tolist(),
+            self.corpus.get_column("Text").tolist(),
         )
         # only "Text" used for filtering (shown documents with "graph" in Text)
         doc_model = self.widget.doc_list.model()
@@ -357,7 +356,6 @@ class TestCorpusViewerWidget(WidgetTest):
         domain = self.corpus.domain
         self.assertListEqual(self.widget.display_features, [domain["Category"]])
         self.assertListEqual(self.widget.search_features, [domain["Text"]])
-
 
 
 if __name__ == "__main__":
