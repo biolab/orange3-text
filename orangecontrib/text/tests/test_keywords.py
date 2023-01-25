@@ -1,13 +1,23 @@
 # pylint: disable=missing-docstring
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, call, ANY
 
 import numpy as np
 from Orange.data import Domain, StringVariable
 
 from orangecontrib.text import Corpus
-from orangecontrib.text.keywords import tfidf_keywords, yake_keywords, \
-    rake_keywords, AggregationMethods, embedding_keywords
+from orangecontrib.text.keywords import (
+    tfidf_keywords,
+    yake_keywords,
+    rake_keywords,
+    AggregationMethods,
+)
+from orangecontrib.text.keywords.mbert import (
+    _split_key_phrases,
+    _deduplicate,
+    mbert_keywords,
+    _BertServerCommunicator,
+)
 
 
 def corpus_mock(tokens):
@@ -94,39 +104,103 @@ class TestRake(unittest.TestCase):
         self.assertEqual(len(keywords[2]), 0)
 
 
-def mock_embedding(_, tokens, __):
-    emb_dict = {"foo": [1, 2, 3], "bar": [2, 3, 4], "baz": [4, 4, 4], "fobar": [1, 2, 3], "a": [1, 2, 3], "b": [4, 5, 6]}
-    emb = [np.mean([emb_dict.get(t, [1, 1, 1]) for t in tt], axis=0).tolist() if tt else [0, 0, 0] for tt in tokens]
-    return emb
+KEYWORDS = [
+    [("kw1", 0.5), ("kw2 kw3", 0.3), ("kw2", 0.6)],
+    [("kw5 kw8 kw7", 0.2), ("kw8", 0.1)],
+]
 
 
-@patch("orangecontrib.text.vectorization.document_embedder.DocumentEmbedder.transform", mock_embedding)
-class TestEmbedding(unittest.TestCase):
-    def test_extractor(self):
-        corpus = corpus_mock([["foo", "bar", "baz", "baz"], ["foobar"], [" "]])
-        keywords = embedding_keywords(corpus)
-        self.assertEqual(len(keywords), 3)
-        self.assertEqual(len(keywords[0]), 3)
-        self.assertEqual(len(keywords[1]), 1)
-        self.assertEqual(len(keywords[2]), 0)
+class TestMBERT(unittest.TestCase):
+    def test_split_phrases(self):
+        # length 1
+        self.assertEqual([KEYWORDS[0][0]], _split_key_phrases(KEYWORDS[0][0], 1))
+        self.assertEqual(
+            [("kw2", 0.3), ("kw3", 0.3)], _split_key_phrases(KEYWORDS[0][1], 1)
+        )
+        self.assertEqual(
+            [("kw5", 0.2), ("kw8", 0.2), ("kw7", 0.2)],
+            _split_key_phrases(KEYWORDS[1][0], 1),
+        )
 
-        self.assertEqual(keywords[0][0][0], "baz")
-        np.testing.assert_almost_equal(keywords[0][0][1], 0.00780, decimal=4)
+        # length 2
+        self.assertEqual([KEYWORDS[0][0]], _split_key_phrases(KEYWORDS[0][0], 2))
+        self.assertEqual([("kw2 kw3", 0.3)], _split_key_phrases(KEYWORDS[0][1], 2))
+        self.assertEqual(
+            [("kw5 kw8", 0.2), ("kw8 kw7", 0.2)],
+            _split_key_phrases(KEYWORDS[1][0], 2),
+        )
 
-        self.assertEqual(keywords[0][1][0], "bar")
-        self.assertEqual(keywords[0][2][0], "foo")
+        # length 3
+        self.assertEqual([KEYWORDS[0][0]], _split_key_phrases(KEYWORDS[0][0], 3))
+        self.assertEqual([("kw2 kw3", 0.3)], _split_key_phrases(KEYWORDS[0][1], 3))
+        self.assertEqual([("kw5 kw8 kw7", 0.2)], _split_key_phrases(KEYWORDS[1][0], 3))
 
-        self.assertEqual(keywords[1][0][0], "foobar")
+    def test_deduplicate(self):
+        # no duplicates just sort
+        self.assertEqual(
+            [("kw4", 0.5), ("kw2", 0.3), ("kw1", 0.2)],
+            _deduplicate([("kw1", 0.2), ("kw2", 0.3), ("kw4", 0.5)]),
+        )
+        # remove duplicates and sort
+        self.assertEqual(
+            [("kw4", 0.5), ("kw1", 0.3)],
+            _deduplicate([("kw1", 0.2), ("kw1", 0.3), ("kw4", 0.5)]),
+        )
+        self.assertEqual(
+            [("kw1", 0.5), ("kw2", 0.3)],
+            _deduplicate([("kw1", 0.2), ("kw2", 0.3), ("kw1", 0.5)]),
+        )
 
-    def test_empty_tokens(self):
-        keywords = embedding_keywords(corpus_mock([[" "]]))
-        self.assertEqual(1, len(keywords))
-        self.assertEqual(0, len(keywords[0]))
+    @patch(
+        "orangecontrib.text.keywords.mbert._BertServerCommunicator.embedd_data",
+        return_value=KEYWORDS,
+    )
+    def test_mbert_keywords(self, _):
+        # max len 3 - no postprocessing
+        res = mbert_keywords(["Text 1", "Text 2"], max_len=3)
+        expected = [
+            [("kw2", 0.6), ("kw1", 0.5), ("kw2 kw3", 0.3)],
+            [("kw5 kw8 kw7", 0.2), ("kw8", 0.1)],
+        ]
+        self.assertListEqual(expected, res)
 
-    def test_single_letter_tokens(self):
-        keywords = embedding_keywords(corpus_mock([["a", "b", "b"]]))
-        self.assertEqual(keywords[0][0][0], "b")
-        self.assertEqual(keywords[0][1][0], "a")
+        # max len 2 - some words split
+        res = mbert_keywords(["Text 1", "Text 2"], max_len=2)
+        expected = [
+            [("kw2", 0.6), ("kw1", 0.5), ("kw2 kw3", 0.3)],
+            [("kw5 kw8", 0.2), ("kw8 kw7", 0.2), ("kw8", 0.1)],
+        ]
+        self.assertListEqual(expected, res)
+
+        # max len 1 - all words split and duplicates removed
+        res = mbert_keywords(["Text 1", "Text 2"], max_len=1)
+        expected = [
+            [("kw2", 0.6), ("kw1", 0.5), ("kw3", 0.3)],
+            [("kw5", 0.2), ("kw8", 0.2), ("kw7", 0.2)],
+        ]
+        self.assertListEqual(expected, res)
+
+
+@patch(
+    "orangecontrib.text.keywords.mbert._BertServerCommunicator._send_request",
+    return_value=[("kw1", 0.1), ("kw2", 0.2)],
+)
+class TestBertServerCommunicator(unittest.TestCase):
+    def test_data_encoding(self, mock):
+        embedder = _BertServerCommunicator(
+            model_name="mbert-keywords",
+            max_parallel_requests=1,
+            server_url="https://api.garaza.io",
+            embedder_type="text",
+        )
+        embedder.clear_cache()
+        embedder.embedd_data(["Text1", "Text2"])
+        mock.assert_has_awaits(
+            [
+                call(ANY, b"eNoLSa0oMQQABb4B1w==", ANY),
+                call(ANY, b"eNoLSa0oMQIABb8B2A==", ANY),
+            ]
+        )
 
 
 class TestAggregationMethods(unittest.TestCase):
