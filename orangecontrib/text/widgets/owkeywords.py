@@ -316,12 +316,6 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
                 del self.__cached_keywords[ScoringMethods.RAKE]
             self.update_scores()
 
-    def __on_emb_lang_changed(self):
-        if ScoringMethods.EMBEDDING in self.selected_scoring_methods:
-            if ScoringMethods.EMBEDDING in self.__cached_keywords:
-                del self.__cached_keywords[ScoringMethods.EMBEDDING]
-            self.update_scores()
-
     def __on_filter_changed(self):
         model = self.view.model()
         model.setFilterFixedString(self.__filter_line_edit.text().strip())
@@ -381,10 +375,7 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
             },
             ScoringMethods.RAKE: {
                 "language": RAKE_LANGUAGES[self.rake_lang_index],
-                "max_len": self.corpus.ngram_range[1] if self.corpus else 1
-            },
-            ScoringMethods.EMBEDDING: {
-                "language": EMBEDDING_LANGUAGES[self.embedding_lang_index],
+                "max_len": self.corpus.ngram_range[1] if self.corpus else 1,
             },
         }
         self.start(run, self.corpus, self.words, self.__cached_keywords,

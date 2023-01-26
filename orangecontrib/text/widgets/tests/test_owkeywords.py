@@ -1,5 +1,4 @@
 # pylint: disable=missing-docstring
-from typing import List
 import unittest
 from unittest.mock import Mock, patch
 
@@ -174,15 +173,17 @@ class TestOWKeywords(WidgetTest):
 
     def test_scoring_methods(self):
         # speed-up the test execution
-        def dummy_embedding(tokens, language, progress_callback=None):
-            return tfidf_keywords(tokens, progress_callback)
+        def dummy_mbert(tokens, progress_callback=None):
+            return [[("kw1", 0.2), ("kw2", 0.3)] * len(tokens)]
 
-        methods = [("TF-IDF", Mock(wraps=tfidf_keywords)),
-                   ("YAKE!", Mock(wraps=yake_keywords)),
-                   ("Rake", Mock(wraps=rake_keywords)),
-                   ("Embedding", Mock(side_effect=dummy_embedding))]
+        methods = [
+            ("TF-IDF", Mock(wraps=tfidf_keywords)),
+            ("YAKE!", Mock(wraps=yake_keywords)),
+            ("Rake", Mock(wraps=rake_keywords)),
+            ("MBERT", Mock(side_effect=dummy_mbert)),
+        ]
         with patch.object(ScoringMethods, "ITEMS", methods) as m:
-            scores = {"TF-IDF", "YAKE!", "Rake", "Embedding"}
+            scores = {"TF-IDF", "YAKE!", "Rake", "MBERT"}
             settings = {"selected_scoring_methods": scores}
             widget = self.create_widget(OWKeywords, stored_settings=settings)
 
@@ -190,8 +191,6 @@ class TestOWKeywords(WidgetTest):
             simulate.combobox_activate_item(cb, "Arabic")
             cb = widget.controls.rake_lang_index
             simulate.combobox_activate_item(cb, "Finnish")
-            cb = widget.controls.embedding_lang_index
-            simulate.combobox_activate_item(cb, "Kazakh")
 
             self.send_signal(widget.Inputs.corpus, self.corpus, widget=widget)
             self.wait_until_finished(widget=widget, timeout=10000)
@@ -204,7 +203,6 @@ class TestOWKeywords(WidgetTest):
             m[3][1].assert_called_once()
             self.assertEqual(m[1][1].call_args[1]["language"], "Arabic")
             self.assertEqual(m[2][1].call_args[1]["language"], "Finnish")
-            self.assertEqual(m[3][1].call_args[1]["language"], "Kazakh")
 
     def test_send_report(self):
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
