@@ -29,29 +29,29 @@ class TestOWCreateCorpus(WidgetTest):
         self.assertEqual(5, len(self.widget.texts))
         self.assertListEqual([("", "")] * 5, self.widget.texts)
 
-        # click any button in editor_vbox - there are only buttons for removing
-        self.widget.editor_vbox.findChild(QPushButton).click()
+        # click x button for first editor
+        self.widget.editors[0].findChild(QPushButton).click()
         self.assertEqual(4, len(self.widget.editors))
         self.assertEqual(4, len(self.widget.texts))
         self.assertListEqual([("", "")] * 4, self.widget.texts)
 
-        self.widget.editor_vbox.findChild(QPushButton).click()
+        self.widget.editors[0].findChild(QPushButton).click()
         self.assertEqual(3, len(self.widget.editors))
         self.assertEqual(3, len(self.widget.texts))
         self.assertListEqual([("", "")] * 3, self.widget.texts)
 
-        self.widget.editor_vbox.findChild(QPushButton).click()
+        self.widget.editors[0].findChild(QPushButton).click()
         self.assertEqual(2, len(self.widget.editors))
         self.assertEqual(2, len(self.widget.texts))
         self.assertListEqual([("", "")] * 2, self.widget.texts)
 
-        self.widget.editor_vbox.findChild(QPushButton).click()
+        self.widget.editors[0].findChild(QPushButton).click()
         self.assertEqual(1, len(self.widget.editors))
         self.assertEqual(1, len(self.widget.texts))
         self.assertListEqual([("", "")], self.widget.texts)
 
         # last editor cannot be removed
-        self.widget.editor_vbox.findChild(QPushButton).click()
+        self.widget.editors[0].findChild(QPushButton).click()
         self.assertEqual(1, len(self.widget.editors))
         self.assertEqual(1, len(self.widget.texts))
         self.assertListEqual([("", "")], self.widget.texts)
