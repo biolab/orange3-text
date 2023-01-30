@@ -4,6 +4,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 import numpy as np
+from AnyQt.QtWidgets import QCheckBox
 
 from Orange.data import Table
 from Orange.widgets.tests.base import WidgetTest, simulate
@@ -205,6 +206,20 @@ class TestOWKeywords(WidgetTest):
             self.assertEqual(m[1][1].call_args[1]["language"], "Arabic")
             self.assertEqual(m[2][1].call_args[1]["language"], "Finnish")
             self.assertEqual(m[3][1].call_args[1]["language"], "Kazakh")
+
+    def test_method_change(self):
+        """Test method change by clicking"""
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        out = self.get_output(self.widget.Outputs.words)
+        self.assertEqual({"TF-IDF"}, {a.name for a in out.domain.attributes})
+
+        self.widget.controlArea.findChildren(QCheckBox)[1].click()  # yake cb
+        out = self.get_output(self.widget.Outputs.words)
+        self.assertEqual({"TF-IDF", "YAKE!"}, {a.name for a in out.domain.attributes})
+
+        self.widget.controlArea.findChildren(QCheckBox)[1].click()
+        out = self.get_output(self.widget.Outputs.words)
+        self.assertEqual({"TF-IDF"}, {a.name for a in out.domain.attributes})
 
     def test_send_report(self):
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
