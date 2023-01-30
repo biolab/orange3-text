@@ -1,6 +1,6 @@
 import re
 from types import SimpleNamespace
-from typing import Optional, Any, List, Tuple
+from typing import Optional, Any, List, Tuple, Union
 
 import numpy as np
 
@@ -8,7 +8,7 @@ from AnyQt.QtCore import Qt, QUrl, QItemSelection, QItemSelectionModel, \
     QModelIndex
 from AnyQt.QtWidgets import QTableView, QSplitter, QApplication
 
-from Orange.data import Table, Domain, StringVariable
+from Orange.data import Table
 from Orange.widgets import gui
 from Orange.widgets.settings import Setting
 from Orange.widgets.utils.annotated_data import create_annotated_table
@@ -303,6 +303,8 @@ class OWSemanticViewer(OWWidget, ConcurrentWidgetMixin):
     def handleNewSignals(self):
         self._clear()
         self.update_scores()
+        if self.corpus is not None:
+            self._list_documents()
 
     def update_scores(self):
         self.start(run, self.corpus, self.words)
@@ -321,20 +323,31 @@ class OWSemanticViewer(OWWidget, ConcurrentWidgetMixin):
         if not self._results or not self.corpus or not self.words:
             self.commit()
             return
+        self._list_documents()
 
+    def _list_documents(self):
         model = self._list_view.model()
         model.setHorizontalHeaderLabels(["Match", "Score", "Document"])
 
-        def get_avg_score(result: List) -> float:
-            return "NA" if result is None else np.mean([r[1] for r in result])
+        def get_avg_score(i: int) -> Union[float, str]:
+            if self._results is not None:
+                result = self._results[i]
+                return "NA" if result is None else np.mean([r[1] for r in result])
+            else:
+                return ""
 
         def get_n_matches(ngram):
-            return sum(ngram.count(word) for word in self.words)
+            if self.words is not None:
+                return sum(ngram.count(word) for word in self.words)
+            else:
+                return ""
 
-        data = [[get_n_matches(ngram), get_avg_score(res), title]
-                for res, title, ngram in zip(self._results,
-                                             self.corpus.titles.tolist(),
-                                             self.corpus.ngrams)]
+        data = [
+            [get_n_matches(ngram), get_avg_score(i), title]
+            for i, (title, ngram) in enumerate(
+                zip(self.corpus.titles.tolist(), self.corpus.ngrams)
+            )
+        ]
         model.wrap(data)
         for i in range(len(data)):
             model.setData(model.index(i, 0), i, role=IndexRole)
@@ -370,7 +383,7 @@ class OWSemanticViewer(OWWidget, ConcurrentWidgetMixin):
         )
 
     def _show_documents(self):
-        if self.corpus is None or self._results is None:
+        if self.corpus is None:
             return
 
         documents = self.corpus.documents
@@ -378,8 +391,10 @@ class OWSemanticViewer(OWWidget, ConcurrentWidgetMixin):
         htmls = []
         for doc_index in self.selection:
             text = documents[doc_index]
-            matches = [ind for ind, score in self._results[doc_index] or []
-                       if score >= self.threshold]
+            matches = []
+            if self._results:
+                matches = [ind for ind, score in self._results[doc_index] or []
+                           if score >= self.threshold]
             text = parser(text, matches)
             text = text.replace("\n", "<br/>")
             html = f"<p>{text}</p>"
