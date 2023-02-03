@@ -29,6 +29,8 @@ Scores documents based on word appearance.
 4. If *Send Automatically*, changes are communicated automatically. Alternatively press *Send*.
 5. Filter documents based on the document title in the first column. Below is the table with the document titles in the first column and scores in other columns.
 
+**Note**: Score Documents will apply preprocessing from the input Corpus to words before scoring.
+
 Example
 -------
 

@@ -291,6 +291,7 @@ class TestOWScoreDocuments(WidgetTest):
             preprocess.StripAccentsTransformer(),
             preprocess.UrlRemover(),
             preprocess.HtmlTransformer(),
+            preprocess.RegexpTokenizer()
         ]
         for p in pp_list:
             corpus = p(corpus)
@@ -451,6 +452,55 @@ class TestOWScoreDocuments(WidgetTest):
         self.assertEqual(
             "The Little Match-Seller test", self.widget.view.model().index(0, 0).data()
         )
+
+    def test_n_grams(self):
+        texts = [
+            "Lorem ipsum dolor sit ipsum consectetur adipiscing elit dolor sit eu",
+            "Sed eu sollicitudin velit lorem.",
+            "lorem ipsum eu",
+        ]
+        # try n-gram range 2, 2
+        corpus = self.create_corpus(texts)
+        pp_list = [
+            preprocess.LowercaseTransformer(),
+            preprocess.RegexpTokenizer(),
+            # skipped in corpus but not among words, since filter ignored for words
+            preprocess.RegexpFilter("sed"),
+            # for corpus, ignored in
+            preprocess.NGrams(ngrams_range=(2, 2)),
+        ]
+        for p in pp_list:
+            corpus = p(corpus)
+        words = create_words_table(["lorem ipsum", "dolor sit", "eu", "sed eu"])
+        # just test that word preprocessing didn't consider Filter and Ngrams
+        self.assertListEqual(
+            ["lorem ipsum", "dolor sit", "eu", "sed eu"],
+            _preprocess_words(
+                corpus, ["lorem ipsum", "dolor sit", "eu", "sed eu"], dummy_callback
+            ),
+        )
+        self.send_signal(self.widget.Inputs.corpus, corpus)
+        self.send_signal(self.widget.Inputs.words, words)
+        self.widget.controls.word_appearance.click()
+        self.wait_until_finished()
+        # fist text: 1 lorem ipsum, 2 dolor sit, eu not in corpus's bi-grams
+        # second text: none of them present
+        # second text: only lorem ipsum
+        self.assertListEqual([x[1] for x in self.widget.model], [3 / 4, 0, 1 / 4])
+        self.assertListEqual([x[2] for x in self.widget.model], [2 / 4, 0, 1 / 4])
+
+        # try n-gram range 1, 2, seed not ignored this time
+        corpus = self.create_corpus(texts)
+        pp_list = [preprocess.NGrams(ngrams_range=(1, 2))]
+        for p in pp_list:
+            corpus = p(corpus)
+        self.send_signal(self.widget.Inputs.corpus, corpus)
+        self.wait_until_finished()
+        # fist: 1 lorem ipsum, 2 dolor sit, 1 eu
+        # second: 0 lorem ipsum, 0 dolor sit, 1 eu
+        # third: 1 lorem ipsum, 0 dolor sit, 1 eu
+        self.assertListEqual([x[1] for x in self.widget.model], [4 / 4, 2 / 4, 2 / 4])
+        self.assertListEqual([x[2] for x in self.widget.model], [3 / 4, 2 / 4, 2 / 4])
 
 
 if __name__ == "__main__":
