@@ -19,6 +19,7 @@ from AnyQt.QtWidgets import (
     QRadioButton,
     QTableView,
 )
+
 from Orange.data import ContinuousVariable, Domain, StringVariable, Table
 from Orange.data.util import get_unique_names
 from Orange.util import wrap_callback
@@ -33,20 +34,21 @@ from pandas import isnull
 from sklearn.metrics.pairwise import cosine_similarity
 
 from orangecontrib.text import Corpus
-from orangecontrib.text.preprocess import BaseNormalizer, BaseTransformer
+from orangecontrib.text.preprocess import BaseNormalizer, NGrams, BaseTokenFilter
 from orangecontrib.text.vectorization.document_embedder import (
     LANGS_TO_ISO,
     DocumentEmbedder,
 )
 from orangecontrib.text.widgets.utils.words import create_words_table
 
+
 def _word_frequency(corpus: Corpus, words: List[str], callback: Callable) -> np.ndarray:
     res = []
-    tokens = corpus.tokens
+    tokens = corpus.ngrams
     for i, t in enumerate(tokens):
         counts = Counter(t)
         res.append([counts.get(w, 0) for w in words])
-        callback((i + 1) / len(tokens))
+        callback((i + 1) / len(corpus))
     return np.array(res)
 
 
@@ -54,11 +56,11 @@ def _word_appearance(
     corpus: Corpus, words: List[str], callback: Callable
 ) -> np.ndarray:
     res = []
-    tokens = corpus.tokens
+    tokens = corpus.ngrams
     for i, t in enumerate(tokens):
         t = set(t)
         res.append([w in t for w in words])
-        callback((i + 1) / len(tokens))
+        callback((i + 1) / len(corpus))
     return np.array(res).astype(float)
 
 
@@ -122,10 +124,9 @@ def _preprocess_words(
 ) -> List[str]:
     """
     Corpus's tokens can be preprocessed. Since they will not match correctly
-    with words preprocessors that change words (e.g. normalization) must
-    be applied to words too.
+    with words, same preprocessors that preprocess words in corpus
+    (e.g. normalization) must be applied to words too.
     """
-    # workaround to preprocess words
     # TODO: currently preprocessors work only on corpus, when there will be more
     #  cases like this think about implementation of preprocessors for a list
     #  of strings
@@ -136,16 +137,16 @@ def _preprocess_words(
         metas=np.array([[w] for w in words]),
         text_features=[words_feature],
     )
-    # only transformers and normalizers preprocess on the word level
-    pps = [
-        pp
-        for pp in corpus.used_preprocessor.preprocessors
-        if isinstance(pp, (BaseTransformer, BaseNormalizer))
-    ]
+    # apply all corpus preprocessors except Filter and NGrams, which change terms
+    # filter removes words from the term, and NGrams split the term in grams.
+    # If a user decided to score with a particular term, he meant this term
+    # and not derivations of it
+    pps = corpus.used_preprocessor.preprocessors
     for i, pp in enumerate(pps):
-        words_c = pp(words_c)
-        callback((i + 1) / len(pps))
-    return [w[0] for w in words_c.tokens if len(w)]
+        if not isinstance(pp, (BaseTokenFilter, NGrams)):
+            words_c = pp(words_c)
+            callback((i + 1) / len(pps))
+    return [Corpus.NGRAMS_SEPARATOR.join(ngs) for ngs in words_c.tokens if len(ngs)]
 
 
 def _run(

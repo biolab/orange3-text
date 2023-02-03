@@ -53,6 +53,7 @@ def _check_arrays(*arrays):
 
 class Corpus(Table):
     """Internal class for storing a corpus."""
+    NGRAMS_SEPARATOR = " "
 
     def __new__(cls, *args, **kwargs):
         if args and isinstance(args[0], Domain) or "domain" in kwargs:
@@ -435,7 +436,7 @@ class Corpus(Table):
     def pos_tags(self, pos_tags):
         self._pos_tags = pos_tags
 
-    def ngrams_iterator(self, join_with=' ', include_postags=False):
+    def ngrams_iterator(self, join_with=NGRAMS_SEPARATOR, include_postags=False):
         if self.pos_tags is None:
             include_postags = False
 
@@ -459,7 +460,7 @@ class Corpus(Table):
     @property
     def ngrams(self):
         """generator: Ngram representations of documents."""
-        return self.ngrams_iterator(join_with=' ')
+        return self.ngrams_iterator(join_with=self.NGRAMS_SEPARATOR)
 
     def copy(self):
         """Return a copy of the table."""
