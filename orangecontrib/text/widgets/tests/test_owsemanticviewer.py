@@ -339,6 +339,25 @@ class TestOWSemanticViewer(WidgetTest):
             for j in range(model.columnCount()):
                 self.assertEqual(model.data(model.index(i, j)), table[i][j])
 
+    def test_table_no_words(self):
+        """When no words on the input still show documents but no scores"""
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.wait_until_finished()
+
+        model = self.widget._list_view.model()
+        table = [["", "", "Document 1"],
+                 ["", "", "Document 2"],
+                 ["", "", "Document 3"],
+                 ["", "", "Document 4"],
+                 ["", "", "Document 5"],
+                 ["", "", "Document 6"],
+                 ["", "", "Document 7"],
+                 ["", "", "Document 8"],
+                 ["", "", "Document 9"]]
+        for i in range(len(self.corpus)):
+            for j in range(model.columnCount()):
+                self.assertEqual(model.data(model.index(i, j)), table[i][j])
+
     def test_webview(self):
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
         self.send_signal(self.widget.Inputs.words, self.words)
@@ -398,10 +417,18 @@ class TestOWSemanticViewer(WidgetTest):
         self.send_signal(self.widget.Inputs.words, None)
         self.wait_until_finished()
 
-        self.assertEqual(self.widget.selection, [])
-        self.assertIsNone(self.get_output(self.widget.Outputs.matching_docs))
+        self.assertEqual(self.widget.selection, [0])
+        self.assertIsNotNone(self.get_output(self.widget.Outputs.matching_docs))
         self.assertIsNotNone(self.get_output(self.widget.Outputs.other_docs))
         self.assertIsNotNone(self.get_output(self.widget.Outputs.corpus))
+
+        self.send_signal(self.widget.Inputs.corpus, None)
+        self.wait_until_finished()
+
+        self.assertEqual(self.widget.selection, [])
+        self.assertIsNone(self.get_output(self.widget.Outputs.matching_docs))
+        self.assertIsNone(self.get_output(self.widget.Outputs.other_docs))
+        self.assertIsNone(self.get_output(self.widget.Outputs.corpus))
 
     def test_sorted_table_selection(self):
         self.widget.controls.threshold.setValue(1)
