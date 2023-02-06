@@ -6,11 +6,8 @@ from datetime import datetime
 import numpy as np
 from Bio import Entrez
 from Bio import Medline
+from Orange.misc import environ
 
-try:
-    from Orange.misc import environ
-except ImportError:
-    from Orange.canvas.utils import environ
 
 from Orange.data import StringVariable, DiscreteVariable, TimeVariable, Domain
 from orangecontrib.text.corpus import Corpus
@@ -164,8 +161,10 @@ def _corpus_from_records(records, includes_metadata):
 
     Y = np.array([class_vars[0].to_val(cv) for cv in class_values])[:, None]
 
+    # as documented here https://www.nlm.nih.gov/bsd/mms/medlineelements.html#ab
+    # all abstracts are in English - setting language to English
     return Corpus.from_numpy(
-        domain=domain, X=np.empty((len(Y), 0)), Y=Y, metas=meta_values
+        domain=domain, X=np.empty((len(Y), 0)), Y=Y, metas=meta_values, language="en"
     )
 
 
