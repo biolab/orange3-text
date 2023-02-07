@@ -129,6 +129,22 @@ class TestOWDocumentEmbedding(WidgetTest):
         self.assertTupleEqual(self.corpus.domain.metas, result.domain.metas)
         self.assertEqual(384, len(result.domain.attributes))
 
+    @patch(PATCH_METHOD, make_dummy_post(b'{"embedding": [1.3, 1]}'))
+    def test_corpus_name_preserved(self):
+        # test on fasttext
+        self.send_signal("Corpus", self.corpus)
+        # just to make sure corpus already has a name
+        self.assertEqual("deerwester", self.corpus.name)
+        result = self.get_output(self.widget.Outputs.corpus)
+        self.assertIsNotNone(result)
+        self.assertEqual("deerwester", result.name)
+
+        # test on sbert
+        self.widget.findChildren(QRadioButton)[0].click()
+        result = self.get_output(self.widget.Outputs.corpus)
+        self.assertIsNotNone(result)
+        self.assertEqual("deerwester", result.name)
+
 
 if __name__ == "__main__":
     unittest.main()
