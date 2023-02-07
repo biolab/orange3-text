@@ -107,7 +107,7 @@ class Corpus(Table):
 
     @property
     def used_preprocessor(self):
-        return self.__used_preprocessor  # type: PreprocessorList
+        return self.__used_preprocessor
 
     @used_preprocessor.setter
     def used_preprocessor(self, pp):
@@ -261,7 +261,7 @@ class Corpus(Table):
     def extend_attributes(
             self, X, feature_names, feature_values=None, compute_values=None,
             var_attrs=None, sparse=False, rename_existing=False
-        ):
+    ):
         """
         Append features to corpus. If `feature_values` argument is present,
         features will be Discrete else Continuous.
@@ -308,9 +308,7 @@ class Corpus(Table):
             feature_values = [None] * X.shape[1]
 
         # rename existing variables if required
-        curr_attributes, curr_class_var, curr_metas = _rename_features(
-            feature_names
-        )
+        curr_attributes, curr_class_var, curr_metas = _rename_features(feature_names)
         if not rename_existing:
             # rename new feature names if required
             feature_names = get_unique_names(
@@ -341,6 +339,7 @@ class Corpus(Table):
             self.W.copy(),
             text_features=copy(self.text_features),
         )
+        c.name = self.name  # keep corpus's name
         Corpus.retain_preprocessing(self, c)
         return c
 
