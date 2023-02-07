@@ -203,6 +203,16 @@ class CorpusTests(unittest.TestCase):
         self.assertEqual(new_c.ngram_range, c.ngram_range)
         self.assertEqual(new_c.attributes, c.attributes)
 
+    def test_extend_attributes_keep_name(self):
+        """
+        Test if corpus's name is kept after corpus's extension
+        """
+        c = Corpus.from_file('book-excerpts')
+        self.assertEqual("book-excerpts", c.name)
+        x = np.random.random((len(c), 3))
+        new_c = c.extend_attributes(x, ['1', '2', '3'])
+        self.assertEqual("book-excerpts", new_c.name)
+
     def test_from_table(self):
         t = Table.from_file('brown-selected')
         self.assertIsInstance(t, Table)
