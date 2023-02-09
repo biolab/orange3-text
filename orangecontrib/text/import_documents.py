@@ -561,7 +561,7 @@ class ImportDocuments:
         if len(df.index.drop_duplicates()) != len(df.index):
             df = df[~df.index.duplicated(keep='first')]
         filtered = df.reindex(path_column)
-        for name, column in filtered.iteritems():
+        for name, column in filtered.items():
             data = column.astype(str).values
             val_map, vals, var_type = guess_data_type(data)
             values, variable = sanitize_variable(val_map, vals, data,
