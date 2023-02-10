@@ -1,7 +1,7 @@
 recursive-include orangecontrib/text/datasets *.tab *.txt *.metadata
 recursive-include orangecontrib/text/models *.ftz
 recursive-include orangecontrib/text/sentiment *.txt
-recursive-include orangecontrib/text/tests *.txt *.json *.pkl
+recursive-include orangecontrib/text/tests *.txt *.json *.pkl *.udpipe
 recursive-include orangecontrib/text/tutorials *.ows
 recursive-include orangecontrib/text/widgets/icons *.svg *.png *.ai
 recursive-include orangecontrib/text/widgets/resources *.js *.css *.html
