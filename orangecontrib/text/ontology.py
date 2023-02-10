@@ -250,17 +250,11 @@ class OntologyHandler:
         )
         return Tree.from_prufer_sequence(ontology, words, root).to_dict(), skipped
 
-    def insert(
-        self,
-        tree: Dict,
-        words: List[str],
-        callback: Callable = dummy_callback
-    ) -> Tuple[Dict, int]:
-        tree = Tree.from_dict(tree)
-        ticks = iter(np.linspace(0.3, 0.9, len(words)))
+    def insert_in_tree(
+        self, tree: Tree, words: List[str], callback: Callable
+    ) -> Tuple[Tree, int]:
         skipped = 0
-
-        for word in words:
+        for iw, word in enumerate(words, start=1):
             tree.adj_list.append(set())
             tree.labels.append(word)
             embeddings = self.embedder(tree.labels)
@@ -282,9 +276,28 @@ class OntologyHandler:
             best = np.argmax(scores)
             tree.adj_list[best].add(idx)
             tree.adj_list[idx].add(best)
-            callback(next(ticks))
+            callback(iw / len(words))
+        return tree, skipped
 
-        return tree.to_dict(), skipped
+    __TEMP_ROOT = "<R-O-O-T>"  # root different from any word
+
+    def insert(
+        self, tree: Dict, words: List[str], callback: Callable = dummy_callback
+    ) -> Tuple[Dict, int]:
+        dummy_root_used = False
+        if len(tree) > 1:
+            # if ontology has multiple roots insert temporary root
+            tree = {self.__TEMP_ROOT: tree}
+            dummy_root_used = True
+
+        tree = Tree.from_dict(tree)
+        tree, skipped = self.insert_in_tree(tree, words, callback)
+        tree = tree.to_dict()
+
+        if dummy_root_used:
+            # if temporary root inserted remove it
+            tree = tree[self.__TEMP_ROOT]
+        return tree, skipped
 
     def score(self, tree: Dict, callback: Callable = dummy_callback) -> float:
         if not tree:
