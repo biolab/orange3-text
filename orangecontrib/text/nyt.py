@@ -101,7 +101,6 @@ class NYT:
         if max_docs is None or max_docs > MAX_DOCS:
             max_docs = MAX_DOCS
 
-        # TODO create corpus on the fly and extend, so it stops faster.
         records = []
         data, go_sleep = self._fetch_page(query, date_from, date_to, 0)
         if data is None:

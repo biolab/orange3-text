@@ -104,6 +104,7 @@ class NYTTests(unittest.TestCase):
             self.assertGreaterEqual(date, from_date)
             self.assertLessEqual(date, to_date)
 
+    @patch("orangecontrib.text.nyt.sleep", Mock())
     def test_nyt_query_max_records(self):
         c = self.nyt.search('slovenia', max_docs=25)
         self.assertEqual(len(c), 25)
@@ -122,12 +123,16 @@ class NYTTests(unittest.TestCase):
         _, go_sleep = self.nyt._fetch_page('slovenia', None, None, 0)
         self.assertFalse(go_sleep)
 
-    def test_nyt_sleep(self):
+    @patch("orangecontrib.text.nyt.sleep")
+    def test_nyt_sleep(self, sleep_mock):
         self.nyt.search('slovenia', max_docs=25)
-        with patch('time.sleep', Mock()) as sleep:
-            self.nyt.search('slovenia', max_docs=25)
-            self.assertEqual(sleep.call_count, 0)
+        self.assertEqual(sleep_mock.call_count, 2)
+        sleep_mock.reset_mock()
+        self.nyt.search("slovenia", max_docs=25)
+        # no sleep since everything loaded from cache
+        self.assertEqual(sleep_mock.call_count, 0)
 
+    @patch("orangecontrib.text.nyt.sleep", Mock())
     def test_on_progress(self):
         n_calls = 0
 
@@ -241,6 +246,11 @@ class Test403(unittest.TestCase):
     @patch('urllib.request.urlopen',
            Mock(side_effect=HTTPError('', 403, None, None, None)))
     def test_nyt_http_error_403(self):
-        data, go_sleep = self.nyt._fetch_page('slovenia', None, None, 1)
-        self.assertEqual(len(data['response']['docs']), 0)
+        with self.assertWarns(UserWarning):
+            data, go_sleep = self.nyt._fetch_page("slovenia", None, None, 1)
+        self.assertEqual(len(data["response"]["docs"]), 0)
         self.assertTrue(go_sleep)
+
+
+if __name__ == "__main__":
+    unittest.main()
