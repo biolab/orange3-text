@@ -18,6 +18,9 @@ from orangecontrib.text.widgets.owontology import OWOntology, _run, \
 from orangecontrib.text.widgets.utils.words import create_words_table
 
 
+SBERT_PATCH_METHOD = "orangecontrib.text.ontology.SBERT.__call__"
+
+
 class TestUtils(unittest.TestCase):
     def test_tree_to_html(self):
         tree = {"foo": {"bar": {},
@@ -133,6 +136,7 @@ class TestEditableTreeView(WidgetTest):
 
 
 class TestOWOntology(WidgetTest):
+    @patch(SBERT_PATCH_METHOD, Mock(return_value=[np.ones(300)] * 3))
     def setUp(self):
         self._ontology_1 = {"foo1": {"bar1": {}, "baz1": {}}}
         self._ontology_2 = {"foo2": {"bar2": {}, "baz2": {}}}
@@ -146,7 +150,8 @@ class TestOWOntology(WidgetTest):
         }
         self.widget = self.create_widget(OWOntology, stored_settings=settings)
 
-    def test_input_words(self):
+    @patch(SBERT_PATCH_METHOD, return_value=[np.ones(300)] * 3)
+    def test_input_words(self, _):
         get_ontology_data = self.widget._OWOntology__ontology_view.get_data
 
         words = create_words_table(["foo"])
@@ -188,14 +193,16 @@ class TestOWOntology(WidgetTest):
         output = self.get_output(self.widget.Outputs.words)
         self.assert_table_equal(words, output)
 
-    def test_library_sel_changed(self):
+    @patch(SBERT_PATCH_METHOD, return_value=[np.ones(300)] * 3)
+    def test_library_sel_changed(self, _):
         get_ontology_data = self.widget._OWOntology__ontology_view.get_data
         self.assertEqual(get_ontology_data(), self._ontology_1)
         self.widget._OWOntology__set_selected_row(1)
         self.assertEqual(self.widget._OWOntology__get_selected_row(), 1)
         self.assertEqual(get_ontology_data(), self._ontology_2)
 
-    def test_library_add(self):
+    @patch(SBERT_PATCH_METHOD, return_value=[np.ones(300)] * 3)
+    def test_library_add(self, _):
         get_ontology_data = self.widget._OWOntology__ontology_view.get_data
 
         self.widget._OWOntology__on_add()
@@ -205,7 +212,8 @@ class TestOWOntology(WidgetTest):
         self.widget._OWOntology__set_selected_row(1)
         self.assertEqual(get_ontology_data(), self._ontology_2)
 
-    def test_library_remove(self):
+    @patch(SBERT_PATCH_METHOD, return_value=[np.ones(300)] * 3)
+    def test_library_remove(self, _):
         get_ontology_data = self.widget._OWOntology__ontology_view.get_data
 
         self.widget._OWOntology__on_remove()
@@ -218,7 +226,8 @@ class TestOWOntology(WidgetTest):
         self.assertEqual(get_ontology_data(), self._ontology_2)
         self.assertIsNone(self.widget._OWOntology__get_selected_row())
 
-    def test_library_update(self):
+    @patch(SBERT_PATCH_METHOD, return_value=[np.ones(300)] * 3)
+    def test_library_update(self, _):
         self.assertEqual(self.widget._OWOntology__get_selected_row(), 0)
         model = self.widget._OWOntology__ontology_view._EditableTreeView__model
         model.setData(model.index(0, 0), "foo3", role=Qt.EditRole)
@@ -232,7 +241,8 @@ class TestOWOntology(WidgetTest):
         self.assertEqual(settings["ontology_library"][0]["ontology"],
                          {"foo3": {"bar1": {}, "baz1": {}}})
 
-    def test_library_import(self):
+    @patch(SBERT_PATCH_METHOD, return_value=[np.ones(300)] * 3)
+    def test_library_import(self, _):
         ontology = {"foo3": {"bar3": {}, "baz3": {}}}
         get_ontology_data = self.widget._OWOntology__ontology_view.get_data
 
@@ -271,10 +281,7 @@ class TestOWOntology(WidgetTest):
         self.assertDictEqual(get_ontology_data(), {"foo1": {"bar1": {}, "baz1": {}}})
 
         # generate with embedding error - two skipped
-        with patch(
-            "orangecontrib.text.vectorization.sbert.SBERT.__call__",
-            return_value=[np.ones(300), None, None],
-        ):
+        with patch(SBERT_PATCH_METHOD, return_value=[np.ones(300), None, None]):
             self.widget._OWOntology__run_button.click()
             self.wait_until_finished()
             self.assertDictEqual(get_ontology_data(), {"foo1": {}})
@@ -285,10 +292,7 @@ class TestOWOntology(WidgetTest):
             )
 
         # generate without embedding error
-        with patch(
-            "orangecontrib.text.vectorization.sbert.SBERT.__call__",
-            return_value=[np.ones(300)],
-        ):
+        with patch(SBERT_PATCH_METHOD, return_value=[np.ones(300)]):
             self.widget._OWOntology__run_button.click()
             self.wait_until_finished()
             self.assertDictEqual(get_ontology_data(), {"foo1": {}})
@@ -304,7 +308,7 @@ class TestOWOntology(WidgetTest):
 
         # insert with an embedding error
         with patch(
-            "orangecontrib.text.vectorization.sbert.SBERT.__call__",
+            SBERT_PATCH_METHOD,
             side_effect=[
                 [np.ones(300), np.ones(300), np.ones(300), None],
                 [np.ones(300), np.ones(300), np.ones(300)],
@@ -330,10 +334,7 @@ class TestOWOntology(WidgetTest):
             )
 
         # insert without embedding error
-        with patch(
-            "orangecontrib.text.vectorization.sbert.SBERT.__call__",
-            return_value=[np.ones(300)] * 4,
-        ):
+        with patch(SBERT_PATCH_METHOD, return_value=[np.ones(300)] * 4):
             self.widget._OWOntology__inc_button.click()
             self.wait_until_finished()
             self.assertDictEqual(
