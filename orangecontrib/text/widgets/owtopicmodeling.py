@@ -266,8 +266,16 @@ class OWTopicModeling(OWWidget, ConcurrentWidgetMixin):
         if self.model.name == "Latent Dirichlet Allocation":
             bound = self.model.model.log_perplexity(infer_ngrams_corpus(corpus))
             self.perplexity = "{:.5f}".format(np.exp2(-bound))
+        # for small corpora it is slower to use more processes
+        # there is no good estimation when multiprocessing is helpful, but it is
+        # definitely not helpful for corpora smaller than 100
+        processes = 1 if len(corpus) < 100 else -1
         cm = CoherenceModel(
-            model=self.model.model, texts=corpus.tokens, corpus=corpus, coherence="c_v"
+            model=self.model.model,
+            texts=corpus.tokens,
+            corpus=corpus,
+            coherence="c_v",
+            processes=processes,
         )
         coherence = cm.get_coherence()
         self.coherence = "{:.5f}".format(coherence)
@@ -416,11 +424,5 @@ class HTMLDelegate(QStyledItemDelegate):
 
 
 if __name__ == '__main__':
-    from AnyQt.QtWidgets import QApplication
-
-    app = QApplication([])
-    widget = OWTopicModeling()
-    # widget.set_data(Corpus.from_file('book-excerpts'))
-    widget.set_data(Corpus.from_file('deerwester'))
-    widget.show()
-    app.exec()
+    from orangewidget.utils.widgetpreview import WidgetPreview
+    WidgetPreview(OWTopicModeling).run(Corpus.from_file('deerwester'))
