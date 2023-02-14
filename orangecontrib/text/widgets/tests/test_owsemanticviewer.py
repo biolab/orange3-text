@@ -11,17 +11,32 @@ from Orange.widgets.tests.base import WidgetTest
 
 from orangecontrib.text import Corpus
 from orangecontrib.text.semantic_search import SemanticSearch
-from orangecontrib.text.widgets.owsemanticviewer import OWSemanticViewer, \
-    run, DisplayDocument, DocumentsModel, SemanticListView
+from orangecontrib.text.tests.test_semantic_search import (
+    PATCH_METHOD,
+    make_dummy_post,
+    RESPONSE,
+)
+from orangecontrib.text.widgets.owsemanticviewer import (
+    OWSemanticViewer,
+    run,
+    DisplayDocument,
+    DocumentsModel,
+    SemanticListView,
+)
 from orangecontrib.text.widgets.utils.words import create_words_table
 
 
 class TestRunner(unittest.TestCase):
     def setUp(self):
+        SemanticSearch().clear_cache()
         self.corpus = Corpus.from_file("book-excerpts")
         self.state = Mock()
         self.state.is_interruption_requested = Mock(return_value=False)
 
+    def tearDown(self):
+        SemanticSearch().clear_cache()
+
+    @patch(PATCH_METHOD, make_dummy_post(iter(RESPONSE * 16)))
     def test_run(self):
         words = ["foo", "graph", "minors", "trees"]
         results = run(self.corpus, words, self.state)
