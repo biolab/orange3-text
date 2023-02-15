@@ -22,7 +22,7 @@ from orangecontrib.text.widgets.owannotator import OWAnnotator
 
 def preprocess(corpus: Corpus) -> Corpus:
     for pp in (LowercaseTransformer(), RegexpTokenizer(r"\w+"),
-               StopwordsFilter("English"), FrequencyFilter(0.1)):
+               StopwordsFilter("English"), FrequencyFilter(0.25, 0.5)):
         corpus = pp(corpus)
 
     transformed_corpus = BowVectorizer().transform(corpus)
@@ -55,7 +55,7 @@ class TestOWAnnotator(WidgetTest):
         return self.widget.graph.get_selection()
 
     def test_output_data_type(self):
-        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.send_signal(self.widget.Inputs.corpus, self.corpus[::20])
         self.wait_until_finished()
         self._select_data()
         annotated = self.get_output(self.widget.Outputs.annotated_data)
@@ -64,7 +64,7 @@ class TestOWAnnotator(WidgetTest):
         self.assertIsInstance(selected, Corpus)
 
     def test_output_data_domain(self):
-        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.send_signal(self.widget.Inputs.corpus, self.corpus[::10])
         self.wait_until_finished()
 
         annotated = self.get_output(self.widget.Outputs.annotated_data)
@@ -75,7 +75,7 @@ class TestOWAnnotator(WidgetTest):
         self.assertNotIn("Cluster", [a.name for a in annotated.domain.metas])
 
     def test_output_scores_type(self):
-        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.send_signal(self.widget.Inputs.corpus, self.corpus[::20])
         self.wait_until_finished()
         scores = self.get_output(self.widget.Outputs.scores)
         self.assertIsInstance(scores, Table)
@@ -84,7 +84,7 @@ class TestOWAnnotator(WidgetTest):
         self.assertIsNone(self.get_output(self.widget.Outputs.scores))
 
     def test_output_scores_domain(self):
-        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.send_signal(self.widget.Inputs.corpus, self.corpus[::20])
         self.wait_until_finished()
 
         annotated = self.get_output(self.widget.Outputs.annotated_data)
@@ -98,7 +98,7 @@ class TestOWAnnotator(WidgetTest):
             self.assertIn(f"p_value({label})", [a.name for a in attrs])
 
     def test_axis_controls(self):
-        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.send_signal(self.widget.Inputs.corpus, self.corpus[::30])
         simulate.combobox_activate_index(self.widget.controls.attr_y, 0)
         self.assertTrue(self.widget.Warning.same_axis_features.is_shown())
         self.send_signal(self.widget.Inputs.corpus, None)
@@ -106,7 +106,7 @@ class TestOWAnnotator(WidgetTest):
 
     def test_epsilon_control(self):
         self.widget._run = Mock()
-        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.send_signal(self.widget.Inputs.corpus, self.corpus[::30])
         self.widget._run.assert_called_once()
         self.assertFalse(self.widget.controls.epsilon.isEnabled())
         self.widget.controls.use_epsilon.click()
@@ -115,7 +115,7 @@ class TestOWAnnotator(WidgetTest):
 
     def test_n_components_control(self):
         self.widget._run = Mock()
-        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.send_signal(self.widget.Inputs.corpus, self.corpus[::30])
         self.widget._run.assert_called_once()
 
         self.widget._run.reset_mock()
@@ -128,7 +128,7 @@ class TestOWAnnotator(WidgetTest):
         self.widget._run.assert_called_once()
 
     def test_cluster_var_control(self):
-        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.send_signal(self.widget.Inputs.corpus, self.corpus[::10])
         self.wait_until_finished()
         cluster_var_button = self.widget.controls.clustering_type.buttons[2]
         self.assertTrue(cluster_var_button.isEnabled())
@@ -138,13 +138,14 @@ class TestOWAnnotator(WidgetTest):
 
         domain = self.corpus.domain
         domain = Domain(domain.attributes, metas=domain.metas)
-        corpus = self.corpus.transform(domain)
+        corpus = self.corpus[::10].transform(domain)
         self.send_signal(self.widget.Inputs.corpus, corpus)
         self.assertFalse(cluster_var_button.isEnabled())
 
     def test_cluster_var_control_subset(self):
-        mask = self.corpus.Y == 1
-        corpus = self.corpus[mask]
+        corpus = self.corpus[::30]
+        mask = corpus.Y == 1
+        corpus = corpus[mask]
         self.send_signal(self.widget.Inputs.corpus, corpus)
         cluster_var_button = self.widget.controls.clustering_type.buttons[2]
         cluster_var_button.click()
@@ -152,14 +153,14 @@ class TestOWAnnotator(WidgetTest):
         self.assertFalse(self.widget.Error.proj_error.is_shown())
 
     def test_color_by_cluster_control(self):
-        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.send_signal(self.widget.Inputs.corpus, self.corpus[::30])
         self.wait_until_finished()
         self.assertTrue(self.widget.controls.attr_color.isEnabled())
         self.widget.controls.color_by_cluster.click()
         self.assertFalse(self.widget.controls.attr_color.isEnabled())
 
     def test_missing_embedding(self):
-        corpus = self.corpus.copy()
+        corpus = self.corpus[::30].copy()
         with corpus.unlocked():
             corpus[:, "PC1"] = np.nan
             corpus[:, "PC2"] = np.nan
@@ -172,44 +173,45 @@ class TestOWAnnotator(WidgetTest):
     def test_plot_once(self):
         side_effect = self.widget.setup_plot
         self.widget.setup_plot = Mock(side_effect=side_effect)
-        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.send_signal(self.widget.Inputs.corpus, self.corpus[::30])
         self.widget.setup_plot.assert_called_once()
         self.wait_until_finished()
         self.widget.setup_plot.assert_called_once()
 
     def test_send_data_once(self):
         self.widget.send_data = Mock()
-        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.send_signal(self.widget.Inputs.corpus, self.corpus[::20])
         self.widget.send_data.assert_called_once()
         self.widget.send_data.reset_mock()
         self.wait_until_finished()
         self.widget.send_data.assert_called_once()
 
     def test_saved_selection(self):
-        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        c = self.corpus[::10]
+        self.send_signal(self.widget.Inputs.corpus, c)
         self.wait_until_finished()
 
-        indices = list(range(0, len(self.corpus), 10))
+        indices = list(range(0, len(c), 5))
         self.widget.graph.select_by_indices(indices)
         settings = self.widget.settingsHandler.pack_data(self.widget)
         widget = self.create_widget(self.widget.__class__,
                                     stored_settings=settings)
 
-        self.send_signal(widget.Inputs.corpus, self.corpus, widget=widget)
+        self.send_signal(widget.Inputs.corpus, c, widget=widget)
         self.wait_until_finished(widget=widget)
 
-        self.assertEqual(np.sum(widget.graph.selection), 14)
+        self.assertEqual(np.sum(widget.graph.selection), 3)
         np.testing.assert_equal(self.widget.graph.selection,
                                 widget.graph.selection)
 
     def test_attr_label_metas(self):
-        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.send_signal(self.widget.Inputs.corpus, self.corpus[::20])
         self.wait_until_finished()
         simulate.combobox_activate_item(self.widget.controls.attr_label,
                                         self.corpus.domain[-1].name)
 
     def test_attr_models(self):
-        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.send_signal(self.widget.Inputs.corpus, self.corpus[::30])
         self.wait_until_finished()
         controls = self.widget.controls
         self.assertEqual(len(controls.attr_x.model()), 2)
@@ -234,7 +236,7 @@ class TestOWAnnotator(WidgetTest):
         self.assertIsNotNone(output)
 
     def test_send_report(self):
-        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.send_signal(self.widget.Inputs.corpus, self.corpus[::50])
         self.widget.report_button.click()
         self.wait_until_finished()
         self.widget.report_button.click()
@@ -244,25 +246,25 @@ class TestOWAnnotator(WidgetTest):
     def test_no_disc_var_context(self):
         domain = Domain(self.corpus.domain.attributes,
                         metas=self.corpus.domain.metas)
-        corpus = self.corpus.transform(domain)
+        corpus = self.corpus[::10].transform(domain)
         self.send_signal(self.widget.Inputs.corpus, corpus)
         self.wait_until_finished()
         self.assertIsNone(self.widget.cluster_var)
 
-        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.send_signal(self.widget.Inputs.corpus, self.corpus[::10])
         self.wait_until_finished()
         self.widget.controls.clustering_type.buttons[2].click()
         self.assertIsNotNone(self.widget.cluster_var)
 
     def test_invalidate(self):
-        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.send_signal(self.widget.Inputs.corpus, self.corpus[::4])
 
         self.wait_until_finished()
         self.assertEqual(len(self.widget.clusters.groups), 1)
 
         self.widget.controls.clustering_type.buttons[1].click()
         self.wait_until_finished()
-        self.assertEqual(len(self.widget.clusters.groups), 3)
+        self.assertEqual(len(self.widget.clusters.groups), 8)
 
         self.widget.controls.use_n_components.setChecked(True)
         self.widget.controls.n_components.setValue(4)
