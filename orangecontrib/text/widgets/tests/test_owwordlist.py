@@ -6,6 +6,7 @@ import os
 
 from AnyQt.QtCore import Qt
 from AnyQt.QtWidgets import QGroupBox, QFileDialog
+from AnyQt.QtTest import QTest
 
 from Orange.data import Table, StringVariable, Domain
 from Orange.widgets.tests.base import WidgetTest
@@ -237,6 +238,26 @@ class TestOWWordList(WidgetTest):
 
         self.widget._OWWordList__on_remove_word()
         self.widget._OWWordList__on_remove_word()
+        self.assertIsNone(self.get_output(self.widget.Outputs.words))
+
+    def test_remove_word_del_key(self):
+        self.widget._set_selected_words([0])
+        QTest.keyClick(self.widget, Qt.Key_Delete)
+        output = self.get_output(self.widget.Outputs.words)
+        self.assertListEqual(list(output.metas[:, 0]), ["bar", "baz"])
+
+        QTest.keyClick(self.widget, Qt.Key_Delete)
+        QTest.keyClick(self.widget, Qt.Key_Delete)
+        self.assertIsNone(self.get_output(self.widget.Outputs.words))
+
+    def test_remove_word_backspace_key(self):
+        self.widget._set_selected_words([0])
+        QTest.keyClick(self.widget, Qt.Key_Backspace)
+        output = self.get_output(self.widget.Outputs.words)
+        self.assertListEqual(list(output.metas[:, 0]), ["bar", "baz"])
+
+        QTest.keyClick(self.widget, Qt.Key_Backspace)
+        QTest.keyClick(self.widget, Qt.Key_Backspace)
         self.assertIsNone(self.get_output(self.widget.Outputs.words))
 
     def test_remove_word_commit_invoked_once(self):
