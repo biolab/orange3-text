@@ -8,7 +8,8 @@ from unittest.mock import Mock, patch
 import numpy as np
 from AnyQt.QtCore import Qt, QItemSelectionModel, QItemSelection, \
     QItemSelectionRange
-from AnyQt.QtWidgets import QFileDialog, QPushButton
+from AnyQt.QtWidgets import QFileDialog
+from AnyQt.QtTest import QTest
 
 from Orange.data import Table
 from Orange.widgets.tests.base import WidgetTest
@@ -98,6 +99,27 @@ class TestEditableTreeView(WidgetTest):
         self.assertEqual(self.view.get_data(), {"foo": {"bar": {}, "baz": {}}})
         self.view._EditableTreeView__on_remove_recursive()
         self.assertEqual(self.view.get_data(), {})
+
+    def test_on_remove_with_delete_key(self):
+        # test with delete button
+        self.view.set_data(self.data)
+        model = self.view._EditableTreeView__model
+        sel_model = self.view._EditableTreeView__tree.selectionModel()
+        sel_model.select(model.index(0, 0), QItemSelectionModel.ClearAndSelect)
+
+        self.assertEqual(self.view.get_data(), {"foo": {"bar": {}, "baz": {}}})
+        QTest.keyClick(self.view, Qt.Key_Delete)
+        self.assertDictEqual({}, self.view.get_data())
+
+    def test_on_remove_with_backspace_key(self):
+        self.view.set_data(self.data)
+        model = self.view._EditableTreeView__model
+        sel_model = self.view._EditableTreeView__tree.selectionModel()
+        sel_model.select(model.index(0, 0), QItemSelectionModel.ClearAndSelect)
+
+        self.assertEqual(self.view.get_data(), {"foo": {"bar": {}, "baz": {}}})
+        QTest.keyClick(self.view, Qt.Key_Backspace)
+        self.assertDictEqual({}, self.view.get_data())
 
     def test_get_words(self):
         self.view.set_data(self.data)

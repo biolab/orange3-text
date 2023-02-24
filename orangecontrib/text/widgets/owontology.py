@@ -10,7 +10,7 @@ import requests
 from AnyQt.QtCore import Qt, QModelIndex, QItemSelection, Signal, \
     QItemSelectionModel
 from AnyQt.QtGui import QDropEvent, QStandardItemModel, QStandardItem, \
-    QPainter, QColor, QPalette, QDragEnterEvent, QDragLeaveEvent
+    QPainter, QColor, QPalette, QDragEnterEvent, QDragLeaveEvent, QKeyEvent
 from AnyQt.QtWidgets import QWidget, QAction, QVBoxLayout, QTreeView, QMenu, \
     QToolButton, QGroupBox, QListView, QSizePolicy, QStyledItemDelegate, \
     QStyleOptionViewItem, QLineEdit, QFileDialog, QApplication, QDialog, \
@@ -355,6 +355,13 @@ class EditableTreeView(QWidget):
         self._set_data(self.__stack[self.__stack_index])
         self._enable_undo_redo()
         self.dataChanged.emit()
+
+    def keyPressEvent(self, event: QKeyEvent):
+        """Delete element with delete or backspace key"""
+        if event.key() == Qt.Key_Delete or event.key() == Qt.Key_Backspace:
+            self.__on_remove_recursive()
+        else:
+            super().keyPressEvent(event)
 
 
 class Ontology:

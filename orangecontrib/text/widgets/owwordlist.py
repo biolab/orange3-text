@@ -7,7 +7,7 @@ import numpy as np
 
 from AnyQt.QtCore import Qt, QModelIndex, QItemSelectionModel, \
     QItemSelection, QItemSelectionRange, Signal
-from AnyQt.QtGui import QKeySequence, QPalette, QColor, QPainter
+from AnyQt.QtGui import QKeySequence, QPalette, QColor, QPainter, QKeyEvent
 from AnyQt.QtWidgets import QListView, QSizePolicy, QGridLayout, QLineEdit, \
     QRadioButton, QGroupBox, QToolButton, QMenu, QAction, QFileDialog, \
     QStyledItemDelegate, QStyleOptionViewItem, QWidget
@@ -572,6 +572,13 @@ class OWWordList(OWWidget):
     def _save_state(self):
         self.word_list_library = [s.as_dict() for s in self.library_model]
         self.words = self.words_model[:]
+
+    def keyPressEvent(self, event: QKeyEvent):
+        """Delete word with delete or backspace key"""
+        if event.key() == Qt.Key_Delete or event.key() == Qt.Key_Backspace:
+            self.__on_remove_word()
+        else:
+            super().keyPressEvent(event)
 
     def send_report(self):
         library = self.library_model[self.word_list_index].name \
