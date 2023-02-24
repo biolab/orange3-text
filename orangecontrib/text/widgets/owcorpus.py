@@ -321,21 +321,27 @@ class OWCorpus(OWWidget, ConcurrentWidgetMixin):
             return unique
 
         if self.corpus is not None:
-            self.corpus.set_text_features(
-                remove_duplicates(self.used_attrs_model))
+            # corpus must be copied that original properties are preserved
+            # example: if user selects different text features set_text_features
+            # would reset preprocessing inplace but when user select initial
+            # features again we want to have preprocessing preserved
+            corpus = self.corpus.copy()
+            corpus.set_text_features(remove_duplicates(self.used_attrs_model))
             self.used_attrs = list(self.used_attrs_model)
 
-            if len(self.unused_attrs_model) > 0 and not self.corpus.text_features:
+            if len(self.unused_attrs_model) > 0 and not corpus.text_features:
                 self.Error.no_text_features_used()
 
-            self.corpus.set_title_variable(self.title_variable)
-            self.corpus.attributes["language"] = LANG2ISO[self.language]
+            corpus.set_title_variable(self.title_variable)
+            corpus.attributes["language"] = LANG2ISO[self.language]
             # prevent sending "empty" corpora
-            dom = self.corpus.domain
-            empty = not (dom.variables or dom.metas) \
-                or len(self.corpus) == 0 \
-                or not self.corpus.text_features
-            self.Outputs.corpus.send(self.corpus if not empty else None)
+            dom = corpus.domain
+            empty = (
+                not (dom.variables or dom.metas)
+                or len(corpus) == 0
+                or not corpus.text_features
+            )
+            self.Outputs.corpus.send(corpus if not empty else None)
 
     def send_report(self):
         def describe(features):
