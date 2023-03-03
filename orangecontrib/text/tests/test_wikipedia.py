@@ -59,12 +59,19 @@ class WikipediaTests(unittest.TestCase):
         self.assertListEqual(
             [["Article 1"], ["Article 2"]], result[:, "Title"].metas.tolist()
         )
+        self.assertEqual("en", result.language)
 
         self.assertEqual(on_progress.call_count, 2)
         progress = 0
         for arg in on_progress.call_args_list:
             self.assertGreater(arg[0][0], progress)
             progress = arg[0][0]
+
+        # if searched in it language Corpus's language should be it
+        result = api.search(
+            "it", ["Clinton"], articles_per_query=2, on_progress=on_progress
+        )
+        self.assertEqual("it", result.language)
 
     @patch(
         "orangecontrib.text.wikipedia_api.wikipedia.search",

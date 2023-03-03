@@ -69,8 +69,15 @@ class WikipediaAPI:
             if callable(should_break) and should_break():
                 break
 
-        return Corpus.from_documents(results, 'Wikipedia', self.attributes,
-                                     self.class_vars, self.metas, title_indices=[-1])
+        return Corpus.from_documents(
+            results,
+            "Wikipedia",
+            self.attributes,
+            self.class_vars,
+            self.metas,
+            title_indices=[-1],
+            language=lang,
+        )
 
     def _get(self, article, query, should_break, recursive=True):
         try:
