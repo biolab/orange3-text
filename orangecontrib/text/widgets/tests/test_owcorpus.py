@@ -1,4 +1,5 @@
 import os
+import tempfile
 import unittest
 
 import numpy as np
@@ -7,6 +8,7 @@ from Orange.widgets.tests.base import WidgetTest
 from Orange.widgets.tests.utils import simulate
 
 from orangecontrib.text import Corpus
+from orangecontrib.text.preprocess import RegexpTokenizer
 from orangecontrib.text.widgets.owcorpus import OWCorpus
 
 
@@ -334,6 +336,50 @@ class TestOWCorpus(WidgetTest):
         self.send_signal(self.widget.Inputs.data, corpus)
         self.wait_until_finished()
         self.assertEqual(self.widget.language, "English")
+
+    def test_preserve_preprocessing(self):
+        """When preprocessed corpus on input preprocessing should be retained"""
+        corpus = Corpus.from_file("andersen")
+        corpus = RegexpTokenizer()(corpus)
+
+        # preprocessing should be maintained
+        self.send_signal(self.widget.Inputs.data, corpus)
+        res = self.get_output(self.widget.Outputs.corpus)
+        self.assertTrue(res.has_tokens())
+
+        # add additional text feature - preprocessing should be reset
+        self.widget.used_attrs_model.append(corpus.domain.metas[0])
+        res = self.get_output(self.widget.Outputs.corpus)
+        self.assertFalse(res.has_tokens())
+
+        # remove previously added feature - preprocessing should be kept again
+        self.widget.used_attrs_model.remove(corpus.domain.metas[0])
+        res = self.get_output(self.widget.Outputs.corpus)
+        self.assertTrue(res.has_tokens())
+
+    def test_preserve_preprocessing_from_file(self):
+        """When preprocessed corpus loaded preprocessing should be retained"""
+        corpus = Corpus.from_file("andersen")
+        corpus = RegexpTokenizer()(corpus)
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            file = os.path.join(tmp_dir, "andersen.pkl")
+            corpus.save(file)
+            self.widget.file_widget.open_file(file)
+
+            # preprocessing should be maintained
+            self.send_signal(self.widget.Inputs.data, corpus)
+            res = self.get_output(self.widget.Outputs.corpus)
+            self.assertTrue(res.has_tokens())
+
+            # add additional text feature - preprocessing should be reset
+            self.widget.used_attrs_model.append(corpus.domain.metas[0])
+            res = self.get_output(self.widget.Outputs.corpus)
+            self.assertFalse(res.has_tokens())
+
+            # remove previously added feature - preprocessing should be kept again
+            self.widget.used_attrs_model.remove(corpus.domain.metas[0])
+            res = self.get_output(self.widget.Outputs.corpus)
+            self.assertTrue(res.has_tokens())
 
 
 if __name__ == "__main__":
