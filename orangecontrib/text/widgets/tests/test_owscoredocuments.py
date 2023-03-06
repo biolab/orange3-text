@@ -13,7 +13,7 @@ from Orange.widgets.tests.base import WidgetTest
 from Orange.widgets.tests.utils import simulate
 
 from orangecontrib.text import Corpus, preprocess
-from orangecontrib.text.vectorization.document_embedder import _ServerEmbedder
+from orangecontrib.text.vectorization.sbert import SBERT
 from orangecontrib.text.widgets.owscoredocuments import (
     OWScoreDocuments,
     SelectionMethods,
@@ -22,8 +22,12 @@ from orangecontrib.text.widgets.owscoredocuments import (
 from orangecontrib.text.widgets.utils.words import create_words_table
 
 
-def embedding_mock(_, data, callback=None):
-    return np.ones((len(data), 10))
+def embedding_mock(_, data, batch_size=None, callback=None):
+    return np.ones((len(data), 10)).tolist()
+
+
+def embedding_mock_none(_, data, batch_size=None, callback=None):
+    return np.ones((len(data) - 1, 10)).tolist() + [None]
 
 
 class TestOWScoreDocuments(WidgetTest):
@@ -117,7 +121,8 @@ class TestOWScoreDocuments(WidgetTest):
         self.send_signal(self.widget.Inputs.words, None)
         self.assertIsNone(self.widget.words)
 
-    @patch.object(_ServerEmbedder, "embedd_data", new=embedding_mock)
+    @patch.object(SBERT, "embed_batches", new=embedding_mock)
+    @patch.object(SBERT, "__call__", new=embedding_mock)
     def test_change_scorer(self):
         model = self.widget.model
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
@@ -155,6 +160,7 @@ class TestOWScoreDocuments(WidgetTest):
             X=np.empty((len(texts), 0)),
             metas=np.array(texts).reshape(-1, 1),
             text_features=[text_var],
+            language="en"
         )
         return preprocess.LowercaseTransformer()(c)
 
@@ -229,7 +235,8 @@ class TestOWScoreDocuments(WidgetTest):
         self.assertTrue(all(isinstance(s, float) for s in scores))
         self.assertListEqual(scores, [0, 0])
 
-    @patch.object(_ServerEmbedder, "embedd_data", new=embedding_mock)
+    @patch.object(SBERT, "embed_batches", new=embedding_mock)
+    @patch.object(SBERT, "__call__", new=embedding_mock)
     def test_embedding_similarity(self):
         corpus = self.create_corpus(
             [
@@ -452,6 +459,106 @@ class TestOWScoreDocuments(WidgetTest):
         self.assertEqual(
             "The Little Match-Seller test", self.widget.view.model().index(0, 0).data()
         )
+
+    @patch.object(SBERT, "embed_batches", new=embedding_mock)
+    @patch.object(SBERT, "__call__")
+    def test_warning_unsuccessful_scoring(self, emb_mock):
+        """Test when embedding for at least one document is not successful"""
+        emb_mock.return_value = np.ones((len(self.corpus) - 1, 10)).tolist() + [None]
+
+        model = self.widget.model
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.send_signal(self.widget.Inputs.words, self.words)
+        self.wait_until_finished()
+
+        # scoring fails
+        self.widget.controls.embedding_similarity.click()
+        self.wait_until_finished()
+        self.assertEqual(2, model.columnCount())  # name and word count, no similarity
+        self.assertEqual(model.headerData(1, Qt.Horizontal), "Word count")
+        self.assertTrue(self.widget.Warning.scoring_warning.is_shown())
+        self.assertEqual(
+            "Similarity failed: Some documents not embedded; try to rerun scoring",
+            str(self.widget.Warning.scoring_warning),
+        )
+
+        # rerun without falling scoring
+        self.widget.controls.embedding_similarity.click()
+        self.wait_until_finished()
+        self.assertEqual(2, model.columnCount())
+        self.assertEqual(model.headerData(1, Qt.Horizontal), "Word count")
+        self.assertFalse(self.widget.Warning.scoring_warning.is_shown())
+
+        # run failing scoring again
+        self.widget.controls.embedding_similarity.click()
+        self.wait_until_finished()
+        self.assertEqual(2, model.columnCount())  # name and word count, no similarity
+        self.assertEqual(model.headerData(1, Qt.Horizontal), "Word count")
+        self.assertTrue(self.widget.Warning.scoring_warning.is_shown())
+        self.assertEqual(
+            "Similarity failed: Some documents not embedded; try to rerun scoring",
+            str(self.widget.Warning.scoring_warning),
+        )
+
+        # run scoring again, this time does not fail, warning should disapper
+        emb_mock.return_value = np.ones((len(self.corpus), 10)).tolist()
+        self.widget.controls.embedding_similarity.click()
+        self.widget.controls.embedding_similarity.click()
+        self.wait_until_finished()
+        self.assertEqual(3, model.columnCount())  # name and word count, no similarity
+        self.assertEqual(model.headerData(1, Qt.Horizontal), "Word count")
+        self.assertEqual(model.headerData(2, Qt.Horizontal), "Similarity")
+        self.assertFalse(self.widget.Warning.scoring_warning.is_shown())
+
+    @patch.object(SBERT, "embed_batches")
+    @patch.object(SBERT, "__call__", new=embedding_mock)
+    def test_warning_unsuccessful_scoring_words(self, emb_mock):
+        """Test when words embedding for at least one word is not successful"""
+        emb_mock.return_value = np.ones((len(self.words), 10)).tolist() + [None]
+
+        model = self.widget.model
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.send_signal(self.widget.Inputs.words, self.words)
+        self.wait_until_finished()
+
+        # scoring fails
+        self.widget.controls.embedding_similarity.click()
+        self.wait_until_finished()
+        self.assertEqual(2, model.columnCount())  # name and word count, no similarity
+        self.assertEqual(model.headerData(1, Qt.Horizontal), "Word count")
+        self.assertTrue(self.widget.Warning.scoring_warning.is_shown())
+        self.assertEqual(
+            "Similarity failed: Some words not embedded; try to rerun scoring",
+            str(self.widget.Warning.scoring_warning),
+        )
+
+        # rerun without falling scoring
+        self.widget.controls.embedding_similarity.click()
+        self.wait_until_finished()
+        self.assertEqual(2, model.columnCount())
+        self.assertEqual(model.headerData(1, Qt.Horizontal), "Word count")
+        self.assertFalse(self.widget.Warning.scoring_warning.is_shown())
+
+        # run failing scoring again
+        self.widget.controls.embedding_similarity.click()
+        self.wait_until_finished()
+        self.assertEqual(2, model.columnCount())  # name and word count, no similarity
+        self.assertEqual(model.headerData(1, Qt.Horizontal), "Word count")
+        self.assertTrue(self.widget.Warning.scoring_warning.is_shown())
+        self.assertEqual(
+            "Similarity failed: Some words not embedded; try to rerun scoring",
+            str(self.widget.Warning.scoring_warning),
+        )
+
+        # run scoring again, this time does not fail, warning should disapper
+        emb_mock.return_value = np.ones((len(self.words), 10)).tolist()
+        self.widget.controls.embedding_similarity.click()
+        self.widget.controls.embedding_similarity.click()
+        self.wait_until_finished()
+        self.assertEqual(3, model.columnCount())  # name and word count, no similarity
+        self.assertEqual(model.headerData(1, Qt.Horizontal), "Word count")
+        self.assertEqual(model.headerData(2, Qt.Horizontal), "Similarity")
+        self.assertFalse(self.widget.Warning.scoring_warning.is_shown())
 
     def test_n_grams(self):
         texts = [
