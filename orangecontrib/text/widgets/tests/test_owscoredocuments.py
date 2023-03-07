@@ -160,7 +160,6 @@ class TestOWScoreDocuments(WidgetTest):
             X=np.empty((len(texts), 0)),
             metas=np.array(texts).reshape(-1, 1),
             text_features=[text_var],
-            language="en"
         )
         return preprocess.LowercaseTransformer()(c)
 
