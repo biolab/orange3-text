@@ -10,6 +10,7 @@ from AnyQt.QtCore import Qt, QItemSelectionModel, QItemSelection, \
     QItemSelectionRange
 from AnyQt.QtWidgets import QFileDialog
 from AnyQt.QtTest import QTest
+from owlready2 import get_ontology, Thing, types
 
 from Orange.data import Table
 from Orange.widgets.tests.base import WidgetTest
@@ -278,6 +279,34 @@ class TestOWOntology(WidgetTest):
             self.assertEqual(self.widget._OWOntology__model[2].name,
                              os.path.basename(f.name))
             self.assertEqual(get_ontology_data(), ontology)
+
+    def test_library_import_owl(self):
+        # create ontology
+        onto = get_ontology("http://test.org/onto.owl")
+        with onto:
+            # foo3 will be missing the label attribute - widget display name
+            foo3 = types.new_class("foo3", (Thing,))
+            # other two classes will have label attribute - widget display label
+            for c, label in (("bar3", "Bar 3"), ("baz3", "Baz 3")):
+                thing = types.new_class(c, (foo3,))
+                thing.label = label
+
+        get_ontology_data = self.widget._OWOntology__ontology_view.get_data
+        with tempfile.TemporaryDirectory() as tmp_dir_name:
+            # safe to file
+            path = os.path.join(tmp_dir_name, "onto.owl")
+            onto.save(file=path, format="rdfxml")
+
+            # open with widget
+            with patch.object(
+                QFileDialog, "getOpenFileName", Mock(return_value=(path, None))
+            ):
+                self.widget._OWOntology__on_import_file()
+                self.assertEqual(self.widget._OWOntology__get_selected_row(), 2)
+                name = self.widget._OWOntology__model[2].name
+                self.assertEqual(name, os.path.basename(path))
+                expected = {"foo3": {"Bar 3": {}, "Baz 3": {}}}
+                self.assertEqual(get_ontology_data(), expected)
 
     def test_library_save(self):
         with tempfile.NamedTemporaryFile(mode="w", suffix=".pkl",

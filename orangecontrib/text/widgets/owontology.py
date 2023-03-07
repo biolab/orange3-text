@@ -104,7 +104,8 @@ def _tree_to_html(tree: Dict) -> str:
 def _onto_to_tree(thing: Thing, world: World) -> Dict:
     tree = {}
     for cl in list(thing.subclasses(world=world)):
-        tree[cl.name] = _onto_to_tree(cl, world)
+        label = (cl.label.first() or cl.name).replace("\n", " ").strip()
+        tree[label] = _onto_to_tree(cl, world)
     return tree
 
 
