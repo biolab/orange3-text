@@ -14,16 +14,21 @@ Then create :class:`TheGuardianAPI` object and use it for searching:
     10
 
 """
-
-import requests
 import math
 import json
 import os
+from functools import partial
 
-from Orange import data
+import requests
+from Orange.data import (
+    StringVariable,
+    DiscreteVariable,
+    ContinuousVariable,
+    TimeVariable,
+)
+from dateutil.parser import isoparse
 
-from orangecontrib.text.corpus import Corpus
-
+from orangecontrib.text.util import create_corpus
 
 BASE_URL = 'http://content.guardianapis.com/search'
 ARTICLES_PER_PAGE = 10
@@ -53,29 +58,33 @@ class TheGuardianCredentials:
 
 
 class TheGuardianAPI:
-    attributes = []
-
     class_vars = [
-        (data.DiscreteVariable('Section'), lambda doc: doc['sectionName']),
+        (partial(DiscreteVariable, "Section"), lambda doc: doc["sectionName"]),
     ]
 
-    tv = data.TimeVariable('Publication Date')
     metas = [
-        (data.StringVariable('Headline'), lambda doc: doc['fields']['headline']),
-        (data.StringVariable('Content'), lambda doc: doc['fields']['bodyText']),
-        (data.StringVariable('Trail Text'), lambda doc: doc['fields']['trailText']),
-        (data.StringVariable('HTML'), lambda doc: doc['fields']['body']),
-        (tv, lambda doc: TheGuardianAPI.tv.parse(doc['webPublicationDate'])),
-        (data.DiscreteVariable('Type'), lambda doc: doc['type']),
-        (data.DiscreteVariable('Language'), lambda doc: doc['fields']['lang']),
-        (data.StringVariable('Tags'),
-            lambda doc: ', '.join(tag['webTitle'] for tag in doc['tags'])),
-        (data.StringVariable('URL'), lambda doc: doc['webUrl']),
-        (data.ContinuousVariable('Word Count', number_of_decimals=0),
-            lambda doc: doc['fields']['wordcount']),
+        (partial(StringVariable, "Headline"), lambda doc: doc["fields"]["headline"]),
+        (partial(StringVariable, "Content"), lambda doc: doc["fields"]["bodyText"]),
+        (partial(StringVariable, "Trail Text"), lambda doc: doc["fields"]["trailText"]),
+        (partial(StringVariable, "HTML"), lambda doc: doc["fields"]["body"]),
+        (
+            partial(TimeVariable, "Publication Date", have_time=1, have_date=1),
+            lambda doc: isoparse(doc["webPublicationDate"]).timestamp(),
+        ),
+        (partial(DiscreteVariable, "Type"), lambda doc: doc["type"]),
+        (partial(DiscreteVariable, "Language"), lambda doc: doc["fields"]["lang"]),
+        (
+            partial(StringVariable, "Tags"),
+            lambda doc: ", ".join(tag["webTitle"] for tag in doc["tags"]),
+        ),
+        (partial(StringVariable, "URL"), lambda doc: doc["webUrl"]),
+        (
+            partial(ContinuousVariable, "Word Count", number_of_decimals=0),
+            lambda doc: doc["fields"]["wordcount"],
+        ),
     ]
 
-    text_features = [metas[0][0], metas[1][0]]  # Headline + Content
+    text_features = ["Headline", "Content"]  #
     title_indices = [-1]    # Headline
 
     def __init__(self, credentials, on_progress=None, should_break=None):
@@ -156,11 +165,16 @@ class TheGuardianAPI:
             self._search(query, from_date, to_date, p)
             self.on_progress(p*self.per_page, pages * self.per_page)
 
-        c = Corpus.from_documents(
-            self.results, 'The Guardian', self.attributes, self.class_vars,
-            self.metas, title_indices=self.title_indices)
-        c.text_features = self.text_features
-        return c
+        return create_corpus(
+            self.results,
+            [],
+            self.class_vars,
+            self.metas,
+            self.title_indices,
+            self.text_features,
+            "The Guardian",
+            "Language",
+        )
 
 
 if __name__ == '__main__':

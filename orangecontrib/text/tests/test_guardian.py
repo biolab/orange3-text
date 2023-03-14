@@ -3,11 +3,70 @@ import os
 
 from datetime import date, datetime
 from unittest import mock
+from unittest.mock import Mock
 
 from orangecontrib.text import guardian
 
 
-API_KEY = os.getenv('THE_GUARDIAN_API_KEY', 'test')
+API_KEY = os.getenv("THE_GUARDIAN_API_KEY", "test")
+responses = [
+    """
+{
+  "response": {
+    "pages": 2,
+    "results": [
+      {
+        "type": "article",
+        "sectionName": "World news",
+        "webPublicationDate": "2018-07-05T23:27:25Z",
+        "webUrl": "https://www.theguardian.com/world/2018/jul/06",
+        "fields": {
+          "headline": "Rohingya refugees reject UN-Myanmar repatriati",
+          "trailText": "Leaders say agreement does not address concer",
+          "body": "<p><strong><strong><strong></strong></strong></str",
+          "wordcount": "512",
+          "lang": "en",
+          "bodyText": "Rohingya community leaders have rejected an."
+        },
+        "tags": [
+          {
+            "webTitle": "Myanmar"
+          }
+        ]
+      }
+    ]
+  }
+}
+""",
+    """
+{
+  "response": {
+    "pages": 2,
+    "results": [
+      {
+        "type": "article",
+        "sectionName": "World news",
+        "webPublicationDate": "2018-07-05T23:27:25Z",
+        "webUrl": "https://www.theguardian.com/world/2018/jul/06",
+        "fields": {
+          "headline": "Rohingya refugees reject UN-Myanmar repatriati",
+          "trailText": "Leaders say agreement does not address concer",
+          "body": "<p><strong><strong><strong></strong></strong></str",
+          "wordcount": "512",
+          "lang": "fr",
+          "bodyText": "Rohingya community leaders have rejected an."
+        },
+        "tags": [
+          {
+            "webTitle": "Myanmar"
+          }
+        ]
+      }
+    ]
+  }
+}
+""",
+]
 
 
 class TestCredentials(unittest.TestCase):
@@ -79,33 +138,31 @@ class TestGuardian(unittest.TestCase):
 
     @mock.patch('requests.get')
     def test_search_mock_data(self, mock_get):
-        mock_get().text = """
-        {
-          "response": {
-            "pages": 2,
-            "results": [
-              {
-                "type": "article",
-                "sectionName": "World news",
-                "webPublicationDate": "2018-07-05T23:27:25Z",
-                "webUrl": "https://www.theguardian.com/world/2018/jul/06",
-                "fields": {
-                  "headline": "Rohingya refugees reject UN-Myanmar repatriati",
-                  "trailText": "Leaders say agreement does not address concer",
-                  "body": "<p><strong><strong><strong></strong></strong></str",
-                  "wordcount": "512",
-                  "lang": "en",
-                  "bodyText": "Rohingya community leaders have rejected an."
-                },
-                "tags": [
-                  {
-                    "webTitle": "Myanmar"
-                  }
-                ]
-              }
-            ]
-          }
-        }
-        """
+        mock_get.return_value.text = responses[0]
         corp = self.api.search('Slovenia')
         self.assertEqual(len(corp), 2)
+
+    @mock.patch("requests.get")
+    def test_tweets_language(self, mock_get):
+        mms = []
+        for r in responses:
+            mms.append(Mock())
+            mms[-1].text = r
+
+        mock_get.side_effect = mms
+        # language should be None returned articles have different languages
+        corpus = self.api.search("Slovenia")
+        self.assertIsNone(corpus.language)
+
+        mock_get.side_effect = [mms[0], mms[0]]
+        # corpus language should be set since articles have same language
+        corpus = self.api.search("Slovenia")
+        self.assertEqual("en", corpus.language)
+
+        mock_get.side_effect = [mms[1], mms[1]]
+        corpus = self.api.search("Slovenia")
+        self.assertEqual("fr", corpus.language)
+
+
+if __name__ == "__main__":
+    unittest.main()
