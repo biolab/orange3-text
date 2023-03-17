@@ -669,7 +669,7 @@ if summarize:
     # summarize is not available in older versions of orange-widget-base
     # skip if not available
     @summarize.register(Corpus)
-    def summarize_(corpus: Corpus) -> PartialSummary:
+    def summarize_corpus(corpus: Corpus) -> PartialSummary:
         """
         Provides automated input and output summaries for Corpus
         """
