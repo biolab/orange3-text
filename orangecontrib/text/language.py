@@ -97,6 +97,7 @@ ISO2LANG = {
     "ur": "Urdu",
     "vi": "Vietnamese",
     "zh": "Chinese",
+    "zh_char": "Chinese - Chinese Characters",
     None: None,
 }
 LANG2ISO = {lang: code for code, lang in ISO2LANG.items()}
