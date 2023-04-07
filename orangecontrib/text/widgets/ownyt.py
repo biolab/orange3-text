@@ -79,7 +79,7 @@ class OWNYT(OWWidget):
     date_to = Setting(datetime.now().date())
 
     attributes = [feat.name for feat, _ in NYT.metas if isinstance(feat, StringVariable)]
-    text_includes = Setting([feat.name for feat in NYT.text_features])
+    text_includes = Setting([NYT.text_features])
 
     class Warning(OWWidget.Warning):
         no_text_fields = Msg('Text features are inferred when none are selected.')

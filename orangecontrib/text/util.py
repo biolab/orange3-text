@@ -1,6 +1,6 @@
 from functools import wraps
 from math import ceil
-from typing import Union, List, Callable, Any, Tuple
+from typing import Union, List, Callable, Any, Tuple, Optional
 
 import numpy as np
 import scipy.sparse as sp
@@ -102,10 +102,10 @@ def create_corpus(
     title_indices: List[int],
     text_features: List[str],
     name: str,
-    language_attribute: str,
+    language_attribute: Optional[str] = None,
 ):
     """
-    Create a corpus from list of features/documents produced by modelu such as
+    Create a corpus from list of features/documents produced by model such as
     Guardian/NYT
 
     Parameters
@@ -160,7 +160,9 @@ def create_corpus(
     Y = np.array(Y, dtype=np.float64)
     metas = np.array(metas, dtype=object)
 
-    language = infer_language_from_variable(domain[language_attribute])
+    language = None
+    if language_attribute is not None:
+        language = infer_language_from_variable(domain[language_attribute])
     corpus = Corpus.from_numpy(
         domain=domain,
         X=X,
