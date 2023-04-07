@@ -57,7 +57,7 @@ class OWDocumentEmbedding(OWBaseVectorizer):
         unsuccessful_embeddings = Msg("Some embeddings were unsuccessful.")
 
     method: int = Setting(default=0)
-    language: str = Setting(default=DEFAULT_LANGUAGE, shema_only=True)
+    language: str = Setting(default=DEFAULT_LANGUAGE, schema_only=True)
     aggregator: str = Setting(default="Mean")
 
     def __init__(self):
@@ -165,8 +165,10 @@ class OWDocumentEmbedding(OWBaseVectorizer):
         if version is None or version < 2:
             # before version 2 settings were indexes now they are strings
             # with language name and selected aggregator name
-            settings["language"] = LANGUAGES[settings["language"]]
-            settings["aggregator"] = AGGREGATORS[settings["aggregator"]]
+            if "language" in settings:
+                settings["language"] = LANGUAGES[settings["language"]]
+            if "aggregator" in settings:
+                settings["aggregator"] = AGGREGATORS[settings["aggregator"]]
 
 
 if __name__ == "__main__":
