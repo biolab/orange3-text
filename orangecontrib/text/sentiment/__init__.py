@@ -55,6 +55,23 @@ class Sentiment:
         corpus = corpus.extend_attributes(X, self.sentiments, compute_values=cv)
         return corpus
 
+    @staticmethod
+    def check_language(language: str) -> bool:
+        """
+        Check whether the language of the corpus is supported by the method.
+        It should override this method if it has limited set of supported languages.
+
+        Parameters
+        ----------
+        language
+            Language to check in ISO standard
+
+        Returns
+        -------
+        True if language is supported by method False otherwise
+        """
+        return True  # for methods which does not limit language support
+
 
 class LiuHuSentiment(Sentiment):
     sentiments = ('sentiment',)  # output column names
@@ -75,8 +92,7 @@ class LiuHuSentiment(Sentiment):
                              'resources/negative_words_Slolex.txt')
             return read_file(f)
 
-    methods = {'English': opinion_lexicon,
-               'Slovenian': SloSentiment}
+    methods = {"en": opinion_lexicon, "sl": SloSentiment}
 
     @wait_nltk_data
     def __init__(self, language):
@@ -87,10 +103,14 @@ class LiuHuSentiment(Sentiment):
     def get_scores(self, corpus):
         return compute_from_dict(corpus.tokens, self.positive, self.negative)
 
+    @staticmethod
+    def check_language(language: str) -> bool:
+        return language in LiuHuSentiment.methods
+
 
 class VaderSentiment(Sentiment):
-    sentiments = ('pos', 'neg', 'neu', 'compound') # output column names
-    name = 'Vader'
+    sentiments = ("pos", "neg", "neu", "compound")  # output column names
+    name = "Vader"
 
     @wait_nltk_data
     def __init__(self):
@@ -102,6 +122,10 @@ class VaderSentiment(Sentiment):
             pol_sc = self.vader.polarity_scores(text)
             scores.append([pol_sc[x] for x in self.sentiments])
         return scores
+
+    @staticmethod
+    def check_language(language: str) -> bool:
+        return language == "en"
 
 
 class SentimentDictionaries:
@@ -168,36 +192,24 @@ class MultiSentiment(Sentiment):
     sentiments = ('sentiment',)
     name = 'Multilingual Sentiment'
 
-    # mapping for nicer language labels
-    LANGS = {'Afrikaans': 'af', 'Arabic': 'ar', 'Azerbaijani': 'az',
-             'Belarusian': 'be', 'Bulgarian': 'bg',
-             'Bosnian': 'bs', 'Catalan': 'ca', 'Czech': 'cs',
-             'Danish': 'da', 'German': 'de', 'Greek': 'el',
-             'Spanish': 'es', 'Estonian': 'et', 'English': 'en',
-             'Farsi': 'fa', 'Finnish': 'fi', 'French': 'fr', 'Gaelic': 'ga',
-             'Hebrew': 'he', 'Hindi': 'hi', 'Croatian': 'hr', 'Hungarian': 'hu',
-             'Indonesian': 'id', 'Italian': 'it', 'Japanese': 'ja',
-             'Korean': 'ko', 'Latin': 'la', 'Lithuanian': 'lt', 'Latvian': 'lv',
-             'Macedonian': 'mk', 'Dutch': 'nl', 'Norwegian Nynorsk': 'nn',
-             'Norwegian': 'no', 'Polish': 'pl', 'Portuguese': 'pt',
-             'Romanian': 'ro', 'Russian': 'ru', 'Slovak': 'sk', 'Slovene': 'sl',
-             'Serbian': 'sr', 'Swedish': 'sv', 'Turkish': 'tr',
-             'Ukrainian': 'uk', 'Chinese': 'zh',
-             'Chinese Characters': 'zhw'}
+    # fmt: off
+    LANGS = {
+        'af', 'ar', 'az', 'be',  'bg', 'bs',  'ca',  'cs', 'da',  'de', 'el',
+        'es', 'et',  'en', 'fa',  'fi',  'fr', 'ga', 'he', 'hi',  'hr',  'hu',
+        'id', 'it', 'ja', 'ko', 'la',  'lt', 'lv', 'mk', 'nl',  'nn', 'no', 'pl',
+        'pt', 'ro', 'ru', 'sk', 'sl', 'sr', 'sv', 'tr', 'uk', 'zh', 'zhw'
+    }
+    # fmt: on
 
-    def __init__(self, language='English'):
-        self.language = language
-        code = self.LANGS[self.language]
-        self.positive, self.negative = MultisentimentDictionaries()[code]
+    def __init__(self, language="en"):
+        self.positive, self.negative = MultisentimentDictionaries()[language]
 
     def get_scores(self, corpus):
         return compute_from_dict(corpus.tokens, self.positive, self.negative)
 
-    def __getstate__(self):
-        return {'language': self.language}
-
-    def __setstate__(self, state):
-        self.__init__(state['language'])
+    @staticmethod
+    def check_language(language: str) -> bool:
+        return language in MultiSentiment.LANGS
 
 
 class SentiArtDictionaries(SentimentDictionaries):
@@ -226,11 +238,11 @@ class SentiArt(Sentiment):
                   'sadness', 'surprise')
     name = 'SentiArt'
 
-    LANGS = {'English': 'EN', 'German': 'DE'}
+    LANGS = {"en", "de"}
 
-    def __init__(self, language='English'):
+    def __init__(self, language="en"):
         self.language = language
-        self.dictionary = SentiArtDictionaries()[self.LANGS[self.language]]
+        self.dictionary = SentiArtDictionaries()[language.upper()]
 
     def get_scores(self, corpus):
         scores = []
@@ -240,6 +252,10 @@ class SentiArt(Sentiment):
             scores.append(score.mean(axis=0) if score.shape[0] > 0
                           else np.zeros(len(self.sentiments)))
         return scores
+
+    @staticmethod
+    def check_language(language: str) -> bool:
+        return language in SentiArt.LANGS
 
 
 class LilahDictionaries(SentimentDictionaries):
@@ -268,11 +284,11 @@ class LilahSentiment(Sentiment):
                   'Fear', 'Joy', 'Sadness', 'Surprise', 'Trust')
     name = 'LiLaH Sentiment'
 
-    LANGS = {'Slovenian': 'SL', 'Croatian': 'HR', 'Dutch': 'NL'}
+    LANGS = {"sl", "hr", "nl"}
 
-    def __init__(self, language='Slovenian'):
+    def __init__(self, language="sl"):
         self.language = language
-        self.dictionary = LilahDictionaries()[self.LANGS[self.language]]
+        self.dictionary = LilahDictionaries()[language.upper()]
 
     def get_scores(self, corpus):
         scores = []
@@ -282,6 +298,10 @@ class LilahSentiment(Sentiment):
             scores.append(score.mean(axis=0) if score.shape[0] > 0
                           else np.zeros(len(self.sentiments)))
         return scores
+
+    @staticmethod
+    def check_language(language: str) -> bool:
+        return language in LilahSentiment.LANGS
 
 
 class CustomDictionaries(Sentiment):
@@ -298,6 +318,6 @@ class CustomDictionaries(Sentiment):
 
 
 if __name__ == "__main__":
-    c = Corpus.from_file('deerwester')
-    liu = LiuHuSentiment('Slovenian')
+    c = Corpus.from_file("deerwester")
+    liu = LiuHuSentiment("sl")
     c2 = liu.transform(c[:5])

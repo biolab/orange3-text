@@ -10,6 +10,7 @@ from Orange.misc.environ import data_dir
 from Orange.util import wrap_callback, dummy_callback
 
 from orangecontrib.text import Corpus
+from orangecontrib.text.language import ISO2LANG
 from orangecontrib.text.misc import wait_nltk_data
 from orangecontrib.text.preprocess import Preprocessor, TokenizedPreprocessor
 
@@ -31,9 +32,21 @@ class BaseNormalizer(TokenizedPreprocessor):
     def __call__(self, corpus: Corpus, callback: Callable = None) -> Corpus:
         if callback is None:
             callback = dummy_callback
+        if corpus.language is None or not self._language_supported(corpus.language):
+            raise ValueError(
+                f"{self.name} does not support the Corpus's language. "
+            )
+        self.load_model(corpus.language)
         corpus = super().__call__(corpus, wrap_callback(callback, end=0.2))
         callback(0.2, "Normalizing...")
         return self._store_tokens(corpus, wrap_callback(callback, start=0.2))
+
+    def load_model(self, iso_language: str):
+        """
+        Some normalizers load model when called since language information is
+        packed in Corpus
+        """
+        pass
 
     def _preprocess(self, string: str) -> str:
         """ Normalizes token to canonical form. """
@@ -54,6 +67,9 @@ class BaseNormalizer(TokenizedPreprocessor):
         # _normalization_cache
         self._normalization_cache = {}
 
+    def _language_supported(self, iso_language: str) -> bool:
+        raise NotImplementedError
+
 
 class WordNetLemmatizer(BaseNormalizer):
     name = 'WordNet Lemmatizer'
@@ -63,20 +79,26 @@ class WordNetLemmatizer(BaseNormalizer):
     def __init__(self):
         super().__init__()
 
+    def _language_supported(self, iso_language: str) -> bool:
+        return iso_language == "en"
+
 
 class PorterStemmer(BaseNormalizer):
     name = 'Porter Stemmer'
     normalizer = stem.PorterStemmer().stem
 
+    def _language_supported(self, iso_language: str) -> bool:
+        return iso_language == "en"
+
 
 class SnowballStemmer(BaseNormalizer):
     name = 'Snowball Stemmer'
-    supported_languages = [l.capitalize() for l in
-                           stem.SnowballStemmer.languages]
 
-    def __init__(self, language='English'):
-        super().__init__()
-        self.normalizer = stem.SnowballStemmer(language.lower()).stem
+    def load_model(self, iso_language: str):
+        self.normalizer = stem.SnowballStemmer(ISO2LANG[iso_language].lower()).stem
+
+    def _language_supported(self, iso_language: str) -> bool:
+        return ISO2LANG[iso_language].lower() in stem.SnowballStemmer.languages
 
 
 def language_to_name(language):
@@ -95,6 +117,11 @@ def file_to_language(file):
 class UDPipeModels:
     server_url = "https://file.biolab.si/files/udpipe/"
 
+    # some languages differ between udpipe and iso standard
+    lang2upipe = {
+        "Norwegian Bokmål": "Norwegian Bokmaal"
+    }
+
     def __init__(self):
         self.local_data = os.path.join(data_dir(versioned=False), 'udpipe/')
         self.serverfiles = serverfiles.ServerFiles(self.server_url)
@@ -102,7 +129,9 @@ class UDPipeModels:
                                                  serverfiles=self.serverfiles)
 
     def __getitem__(self, language):
-        file_name = self._find_file(language_to_name(language))
+        file_name = self._find_file(
+            language_to_name(self.lang2upipe.get(language, language))
+        )
         return self.localfiles.localpath_download(file_name)
 
     @property
@@ -120,6 +149,12 @@ class UDPipeModels:
     def supported_languages(self):
         return list(map(lambda f: file_to_language(f[0]), self.model_files))
 
+    def language_supported(self, iso_language):
+        # capitalization in iso2lang and UDPIPE is different - compare lowercase
+        sup_languages = {x.lower() for x in self.supported_languages}
+        language = ISO2LANG[iso_language]
+        return self.lang2upipe.get(language, language).lower() in sup_languages
+
     @property
     def online(self):
         try:
@@ -136,9 +171,8 @@ class UDPipeStopIteration(StopIteration):
 class UDPipeLemmatizer(BaseNormalizer):
     name = 'UDPipe Lemmatizer'
 
-    def __init__(self, language='English', use_tokenizer=False):
+    def __init__(self, use_tokenizer=False):
         super().__init__()
-        self.__language = language
         self.__use_tokenizer = use_tokenizer
         self.models = UDPipeModels()
         self.__model = None
@@ -153,8 +187,12 @@ class UDPipeLemmatizer(BaseNormalizer):
             else self.__normalize_token
 
     def __call__(self, corpus: Corpus, callback: Callable = None) -> Corpus:
+        if corpus.language is None or not self._language_supported(corpus.language):
+            raise ValueError(
+                f"{self.name} does not support the Corpus's language. "
+            )
         try:
-            self.__model = udpipe.Model.load(self.models[self.__language])
+            self.__model = udpipe.Model.load(self.models[ISO2LANG[corpus.language]])
         except StopIteration:
             raise UDPipeStopIteration
 
@@ -210,42 +248,19 @@ class UDPipeLemmatizer(BaseNormalizer):
         super().__setstate__(state)
         self.models = UDPipeModels()
 
+    def _language_supported(self, iso_language: str) -> bool:
+        return self.models.language_supported(iso_language)
+
 
 class LemmagenLemmatizer(BaseNormalizer):
     name = 'Lemmagen Lemmatizer'
-    lemmagen_languages = {
-        "Bulgarian": "bg",
-        "Croatian": "hr",
-        "Czech": "cs",
-        "English": "en",
-        "Estonian": "et",
-        "Farsi/Persian": "fa",
-        "French": "fr",
-        "German": "de",
-        "Hungarian": "hu",
-        "Italian": "it",
-        "Macedonian": "mk",
-        "Polish": "pl",
-        "Romanian": "ro",
-        "Russian": "ru",
-        "Serbian": "sr",
-        "Slovak": "sk",
-        "Slovenian": "sl",
-        "Spanish": "es",
-        "Ukrainian": "uk"
-    }
 
-    def __init__(self, language='English'):
+    def __init__(self):
         super().__init__()
-        self.language = language
         self.lemmatizer = None
 
-    def __call__(self, corpus: Corpus, callback: Callable = None) -> Corpus:
-        # lemmagen3 lemmatizer is not picklable, define it on call and discard it afterward
-        self.lemmatizer = Lemmatizer(self.lemmagen_languages[self.language])
-        output_corpus = super().__call__(corpus, callback)
-        self.lemmatizer = None
-        return output_corpus
+    def load_model(self, iso_language: str):
+        self.lemmatizer = Lemmatizer(iso_language)
 
     def normalizer(self, token):
         assert self.lemmatizer is not None
@@ -253,3 +268,17 @@ class LemmagenLemmatizer(BaseNormalizer):
         # sometimes Lemmagen returns an empty string, return original tokens
         # in this case
         return t if t else token
+
+    def _language_supported(self, iso_language: str) -> bool:
+        return iso_language in Lemmatizer.list_supported_languages()
+
+    def __getstate__(self):
+        """
+        This function remove udpipe.Model that cannot be pickled and models that
+        include absolute paths on computer -- so it is not transferable between
+        computers.
+        """
+        state = super().__getstate__()
+        # lemmagen3 lemmatizer is not picklable
+        state['lemmatizer'] = None
+        return state

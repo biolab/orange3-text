@@ -5,7 +5,6 @@ import unittest
 
 from orangecontrib.text import tag
 from orangecontrib.text.corpus import Corpus
-from orangecontrib.text.tag.pos import StanfordPOSTaggerError
 
 
 class POSTaggerTests(unittest.TestCase):
@@ -18,15 +17,6 @@ class POSTaggerTests(unittest.TestCase):
         self.assertTrue(hasattr(result, 'pos_tags'))
         for tokens, tags in zip(result.tokens, result.pos_tags):
             self.assertEqual(len(tokens), len(tags))
-
-    def test_Stanford_check(self):
-        model = tempfile.NamedTemporaryFile()
-        resource = tempfile.NamedTemporaryFile()
-        with self.assertRaises(StanfordPOSTaggerError):
-            tag.StanfordPOSTagger.check(model.name, resource.name)
-
-        with self.assertRaises(StanfordPOSTaggerError):
-            tag.StanfordPOSTagger.check('model', resource.name)
 
     def test_str(self):
         self.assertEqual('Averaged Perceptron Tagger', str(self.tagger))
@@ -45,6 +35,31 @@ class POSTaggerTests(unittest.TestCase):
         loaded = pickle.loads(pickle.dumps(self.tagger))
         self.assertTrue(all(
             loaded(self.corpus).pos_tags == self.tagger(self.corpus).pos_tags))
+
+    def test_languages(self):
+        taggers = [tag.AveragedPerceptronTagger(), tag.MaxEntTagger()]
+
+        # english is supported by all
+        for pp in taggers:
+            self.assertIsInstance(pp(self.corpus), Corpus)
+
+        # None supported by none
+        self.corpus.attributes["language"] = None
+        for pp in taggers:
+            with self.assertRaises(ValueError) as cm:
+                pp(self.corpus)
+            self.assertEqual(
+                str(cm.exception), f"{pp.name} does not support the Corpus's language."
+            )
+
+        # set to the exotic language that is not supported either
+        self.corpus.attributes["language"] = "az"
+        for pp in taggers:
+            with self.assertRaises(ValueError) as cm:
+                pp(self.corpus)
+            self.assertEqual(
+                str(cm.exception), f"{pp.name} does not support the Corpus's language."
+            )
 
 
 if __name__ == "__main__":

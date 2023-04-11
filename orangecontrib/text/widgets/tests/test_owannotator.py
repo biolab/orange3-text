@@ -22,7 +22,7 @@ from orangecontrib.text.widgets.owannotator import OWAnnotator
 
 def preprocess(corpus: Corpus) -> Corpus:
     for pp in (LowercaseTransformer(), RegexpTokenizer(r"\w+"),
-               StopwordsFilter("English"), FrequencyFilter(0.25, 0.5)):
+               StopwordsFilter(), FrequencyFilter(0.25, 0.5)):
         corpus = pp(corpus)
 
     transformed_corpus = BowVectorizer().transform(corpus)

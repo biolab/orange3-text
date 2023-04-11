@@ -188,22 +188,19 @@ class TestOWKeywords(WidgetTest):
             settings = {"selected_scoring_methods": scores}
             widget = self.create_widget(OWKeywords, stored_settings=settings)
 
-            cb = widget.controls.yake_lang_index
-            simulate.combobox_activate_item(cb, "Arabic")
-            cb = widget.controls.rake_lang_index
-            simulate.combobox_activate_item(cb, "Finnish")
+            for language in ("ar", "fi", "de"):
+                self.corpus.attributes["language"] = language
+                self.send_signal(widget.Inputs.corpus, self.corpus, widget=widget)
+                self.wait_until_finished(widget=widget, timeout=10000)
+                out = self.get_output(widget.Outputs.words, widget=widget)
+                self.assertEqual(scores, {a.name for a in out.domain.attributes})
 
-            self.send_signal(widget.Inputs.corpus, self.corpus, widget=widget)
-            self.wait_until_finished(widget=widget, timeout=10000)
-            out = self.get_output(widget.Outputs.words, widget=widget)
-            self.assertEqual(scores, {a.name for a in out.domain.attributes})
-
-            m[0][1].assert_called_once()
-            m[1][1].assert_called_once()
-            m[2][1].assert_called_once()
-            m[3][1].assert_called_once()
-            self.assertEqual(m[1][1].call_args[1]["language"], "Arabic")
-            self.assertEqual(m[2][1].call_args[1]["language"], "Finnish")
+                m[0][1].assert_called_once()
+                m[1][1].assert_called_once()
+                m[2][1].assert_called_once()
+                m[3][1].assert_called_once()
+                for mo in m:
+                    mo[1].reset_mock()
 
     def test_method_change(self):
         """Test method change by clicking"""

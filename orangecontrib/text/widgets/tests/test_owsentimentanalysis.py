@@ -1,12 +1,11 @@
 import os
 import unittest
-from unittest import mock
+from unittest import mock, skip
 from unittest.mock import patch
 
 import numpy as np
-from numpy import array_equal
+from AnyQt.QtWidgets import QRadioButton
 from Orange.widgets.tests.base import WidgetTest
-from Orange.widgets.tests.utils import simulate
 
 from orangecontrib.text import preprocess
 from orangecontrib.text.corpus import Corpus
@@ -61,14 +60,14 @@ class TestSentimentWidget(WidgetTest):
         )
 
         # test multisentiment
-        self.widget.multi_sent.click()
+        self.widget.findChildren(QRadioButton)[2].click()  # multi senti
         out_corpus = self.get_output(self.widget.Outputs.corpus)
         self.assertEqual(
             len(out_corpus.domain.variables), len(self.corpus.domain.variables) + 1
         )
 
         # test SentiArt
-        self.widget.senti_art.click()
+        self.widget.findChildren(QRadioButton)[3].click()  # senti art
         out_corpus = self.get_output(self.widget.Outputs.corpus)
         self.assertEqual(
             len(out_corpus.domain.variables), len(self.corpus.domain.variables) + 7
@@ -82,7 +81,7 @@ class TestSentimentWidget(WidgetTest):
         )
 
         # test liu hu
-        self.widget.liu_hu.click()
+        self.widget.findChildren(QRadioButton)[0].click()  # liu hu
         out_corpus = self.get_output(self.widget.Outputs.corpus)
         self.assertEqual(
             len(out_corpus.domain.variables), len(self.corpus.domain.variables) + 1
@@ -95,7 +94,7 @@ class TestSentimentWidget(WidgetTest):
         self.widget.neg_file = os.path.join(
             os.path.dirname(__file__), "data/sentiment/neg.txt"
         )
-        self.widget.custom_list.click()
+        self.widget.findChildren(QRadioButton)[5].click()  # custom dictionary
         out_corpus = self.get_output(self.widget.Outputs.corpus)
         self.assertEqual(
             len(out_corpus.domain.variables), len(self.corpus.domain.variables) + 1
@@ -115,19 +114,14 @@ class TestSentimentWidget(WidgetTest):
         )
         np.testing.assert_array_almost_equal(out_corpus.X, res, decimal=8)
 
-    def test_language_changed(self):
-        """Test if output changes on language change"""
+        # test Lilah sentiment
+        self.corpus.attributes["language"] = "sl"
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
-        self.assertEqual(self.widget.multi_box.count(), 5)
-
-        # default for Liu Hu should be English
-        self.widget.liu_hu.click()
-        simulate.combobox_activate_item(self.widget.liu_lang, "English")
-        output_eng = self.get_output(self.widget.Outputs.corpus)
-
-        simulate.combobox_activate_item(self.widget.liu_lang, "Slovenian")
-        output_slo = self.get_output(self.widget.Outputs.corpus)
-        self.assertFalse(array_equal(output_eng.X, output_slo.X))
+        self.widget.findChildren(QRadioButton)[4].click()  # Lilah
+        out_corpus = self.get_output(self.widget.Outputs.corpus)
+        self.assertEqual(
+            len(out_corpus.domain.variables), len(self.corpus.domain.variables) + 10
+        )
 
     def test_sentiment_offline(self):
         """Test if sentiment works with offline lexicons"""
@@ -145,7 +139,7 @@ class TestSentimentWidget(WidgetTest):
         widget = self.create_widget(OWSentimentAnalysis)
         self.send_signal(widget.Inputs.corpus, self.corpus)
         self.assertFalse(widget.Warning.no_dicts_loaded.is_shown())
-        widget.custom_list.click()
+        widget.findChildren(QRadioButton)[5].click()  # custom dictionary
         self.assertTrue(widget.Warning.no_dicts_loaded.is_shown())
         widget.pos_file = os.path.join(
             os.path.dirname(__file__), "data/sentiment/pos.txt"
@@ -159,7 +153,7 @@ class TestSentimentWidget(WidgetTest):
         widget.commit.now()
         self.assertFalse(widget.Warning.one_dict_only.is_shown())
         self.assertFalse(widget.Warning.no_dicts_loaded.is_shown())
-        widget.vader.click()
+        widget.findChildren(QRadioButton)[1].click()  # vader
         self.assertFalse(widget.Warning.one_dict_only.is_shown())
         self.assertFalse(widget.Warning.no_dicts_loaded.is_shown())
 
@@ -180,8 +174,7 @@ class TestSentimentWidget(WidgetTest):
             corpus = pp(corpus)
         self.send_signal(widget.Inputs.corpus, corpus)
         self.assertTrue(widget.pp_corpus)
-        widget.liu_hu.click()
-        simulate.combobox_activate_item(widget.liu_lang, "English")
+        widget.findChildren(QRadioButton)[0].click()  # vader
         self.assertTrue(widget.pp_corpus)
         self.send_signal(widget.Inputs.corpus, None)
         self.assertIsNone(widget.pp_corpus)

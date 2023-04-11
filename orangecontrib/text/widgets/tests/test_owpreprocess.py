@@ -165,8 +165,7 @@ class TestOWPreprocessMigrateSettings(WidgetTest):
                                    "udpipe_tokenizer": True}}
         widget = self.create_widget(OWPreprocess, stored_settings=settings)
         params = [("preprocess.normalize",
-                   {"method": 2, "snowball_language": "French",
-                    "udpipe_language": "German", "udpipe_tokenizer": True})]
+                   {"method": 2, "udpipe_tokenizer": True})]
         self.assertEqual(widget.storedsettings["preprocessors"], params)
 
     def test_migrate_settings_filter(self):
@@ -180,7 +179,7 @@ class TestOWPreprocessMigrateSettings(WidgetTest):
                                 "use_df": False, "use_keep_n": False}}
         widget = self.create_widget(OWPreprocess, stored_settings=settings)
         params = [("preprocess.filter",
-                   {"methods": [0, 2, 4], "language": "Finnish",
+                   {"methods": [0, 2, 4],
                     "sw_path": None, "sw_list": [],
                     "lx_path": None, "lx_list": [],
                     "pattern": "foo", "rel_start": 0.3,
@@ -365,29 +364,18 @@ class TestNormalizationModule(WidgetTest):
         self.assertTrue(self.buttons[0].isChecked())
         for i in range(1, 4):
             self.assertFalse(self.buttons[i].isChecked())
-        self.assertEqual(self.combo_sbl.currentText(), "English")
-        self.assertEqual(self.combo_udl.currentText(), "English")
         self.assertFalse(self.check_use.isChecked())
 
     def test_parameters(self):
         params = {"method": NormalizationModule.Porter,
-                  "snowball_language": "English",
-                  "udpipe_language": "English",
-                  "lemmagen_language": "English",
                   "udpipe_tokenizer": False}
         self.assertDictEqual(self.editor.parameters(), params)
 
     def test_set_parameters(self):
         params = {"method": NormalizationModule.UDPipe,
-                  "snowball_language": "Dutch",
-                  "udpipe_language": "Slovenian",
-                  "lemmagen_language": "Bulgarian",
                   "udpipe_tokenizer": True}
         self.editor.setParameters(params)
         self.assertDictEqual(self.editor.parameters(), params)
-        self.assertEqual(self.combo_sbl.currentText(), "Dutch")
-        self.assertEqual(self.combo_udl.currentText(), "Slovenian")
-        self.assertEqual(self.combo_lemm.currentText(), "Bulgarian")
         self.assertTrue(self.check_use.isChecked())
 
     def test_createinstance(self):
@@ -397,20 +385,11 @@ class TestNormalizationModule(WidgetTest):
         params = {"method": NormalizationModule.Snowball}
         pp = self.editor.createinstance(params)
         self.assertIsInstance(pp, SnowballStemmer)
-        self.assertIn("<EnglishStemmer>", str(pp.normalizer))
-
-        params = {"method": NormalizationModule.Snowball,
-                  "snowball_language": "Dutch"}
-        pp = self.editor.createinstance(params)
-        self.assertIsInstance(pp, SnowballStemmer)
-        self.assertIn("<DutchStemmer>", str(pp.normalizer))
 
         params = {"method": NormalizationModule.UDPipe,
-                  "udpipe_language": "Finnish",
                   "udpipe_tokenizer": True}
         pp = self.editor.createinstance(params)
         self.assertIsInstance(pp, UDPipeLemmatizer)
-        self.assertEqual(pp._UDPipeLemmatizer__language, "Finnish")
         self.assertEqual(pp._UDPipeLemmatizer__use_tokenizer, True)
 
     def test_repr(self):
@@ -424,8 +403,6 @@ class TestNormalizationModule(WidgetTest):
         editor = NormalizationModule()
         button = editor._SingleMethodModule__group.button(editor.UDPipe)
         self.assertFalse(button.isEnabled())
-        combo = editor._NormalizationModule__combo_udl
-        self.assertFalse(combo.isEnabled())
         check = editor._NormalizationModule__check_use
         self.assertFalse(check.isEnabled())
 
@@ -437,10 +414,6 @@ class TestFilterModule(WidgetTest):
     @property
     def check_boxes(self):
         return [cb for i, cb in self.editor._MultipleMethodModule__cbs]
-
-    @property
-    def combo(self):
-        return self.editor._FilteringModule__combo
 
     @property
     def sw_combo(self):
@@ -477,7 +450,6 @@ class TestFilterModule(WidgetTest):
         for i in range(1, len(check_boxes)):
             self.assertFalse(check_boxes[i].isChecked())
             self.assertGreater(len(check_boxes[i].toolTip()), 0)
-        self.assertEqual(self.combo.currentText(), "English")
         self.assertEqual(self.sw_combo.currentText(), "(none)")
         self.assertEqual(self.lx_combo.currentText(), "(none)")
         self.assertEqual(self.line_edit.text(), FilteringModule.DEFAULT_PATTERN)
@@ -490,32 +462,47 @@ class TestFilterModule(WidgetTest):
         self.assertEqual(self.spin.value(), 100)
 
     def test_parameters(self):
-        params = {"methods": [FilteringModule.Stopwords],
-                  "language": "English", "sw_path": None, "lx_path": None,
-                  "sw_list": [], "lx_list": [],
-                  "incl_num": False,
-                  "pattern": FilteringModule.DEFAULT_PATTERN,
-                  "freq_type": 0,
-                  "rel_start": 0.1, "rel_end": 0.9,
-                  "abs_start": 1, "abs_end": 10,
-                  "n_tokens": 100, "pos_tags": "NOUN,VERB",
-                  "invalidated": False}
+        params = {
+            "methods": [FilteringModule.Stopwords],
+            "sw_path": None,
+            "lx_path": None,
+            "use_default_sw": True,
+            "sw_list": [],
+            "lx_list": [],
+            "incl_num": False,
+            "pattern": FilteringModule.DEFAULT_PATTERN,
+            "freq_type": 0,
+            "rel_start": 0.1,
+            "rel_end": 0.9,
+            "abs_start": 1,
+            "abs_end": 10,
+            "n_tokens": 100,
+            "pos_tags": "NOUN,VERB",
+            "invalidated": False,
+        }
         self.assertDictEqual(self.editor.parameters(), params)
 
     def test_set_parameters(self):
         sw_path = RecentPath.create("Foo", [])
         lx_path = RecentPath.create("Bar", [])
-        params = {"methods": [FilteringModule.Lexicon, FilteringModule.Regexp],
-                  "language": "Finnish",
-                  "sw_path": sw_path, "lx_path": lx_path,
-                  "sw_list": [sw_path], "lx_list": [lx_path],
-                  "incl_num": False,
-                  "pattern": "foo",
-                  "freq_type": 1,
-                  "rel_start": 0.2, "rel_end": 0.7,
-                  "abs_start": 2, "abs_end": 15,
-                  "n_tokens": 10,  "pos_tags": "JJ",
-                  "invalidated": False}
+        params = {
+            "methods": [FilteringModule.Lexicon, FilteringModule.Regexp],
+            "use_default_sw": True,
+            "sw_path": sw_path,
+            "lx_path": lx_path,
+            "sw_list": [sw_path],
+            "lx_list": [lx_path],
+            "incl_num": False,
+            "pattern": "foo",
+            "freq_type": 1,
+            "rel_start": 0.2,
+            "rel_end": 0.7,
+            "abs_start": 2,
+            "abs_end": 15,
+            "n_tokens": 10,
+            "pos_tags": "JJ",
+            "invalidated": False,
+        }
         self.editor.setParameters(params)
         self.assertDictEqual(self.editor.parameters(), params)
 
@@ -527,7 +514,6 @@ class TestFilterModule(WidgetTest):
         self.assertFalse(check_boxes[4].isChecked())
         self.assertFalse(check_boxes[5].isChecked())
 
-        self.assertEqual(self.combo.currentText(), "Finnish")
         self.assertEqual(self.sw_combo.currentText(), "Foo")
         self.assertEqual(self.lx_combo.currentText(), "Bar")
         self.assertEqual(self.line_edit.text(), "foo")
@@ -550,10 +536,10 @@ class TestFilterModule(WidgetTest):
         self.assertIsInstance(pp[1], MostFrequentTokensFilter)
 
     def test_repr(self):
-        self.assertEqual(str(self.editor),
-                         "Stopwords (Language: English, File: None)")
-        params = {"methods": [FilteringModule.Lexicon,
-                              FilteringModule.Regexp]}
+        self.assertEqual(
+            str(self.editor), "Stopwords (Use default stopwords: Yes, File: None)"
+        )
+        params = {"methods": [FilteringModule.Lexicon, FilteringModule.Regexp]}
         self.editor.setParameters(params)
         self.assertEqual(
             str(self.editor),
@@ -645,10 +631,6 @@ class TestPOSTaggerModule(WidgetTest):
 
         pp = self.editor.createinstance({"method": POSTaggingModule.MaxEnt})
         self.assertIsInstance(pp, MaxEntTagger)
-
-        # TODO - implement StanfordPOSTagger
-        # pp = self.editor.createinstance({"method": POSTaggingModule.Stanford})
-        # self.assertIsInstance(pp, StanfordPOSTagger)
 
     def test_repr(self):
         self.assertEqual(str(self.editor), "Averaged Perceptron Tagger")
