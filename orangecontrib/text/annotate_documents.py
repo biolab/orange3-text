@@ -289,7 +289,7 @@ if __name__ == "__main__":
 
     corpus_ = Corpus.from_file("book-excerpts")
     for pp in (LowercaseTransformer(), RegexpTokenizer(r"\w+"),
-               StopwordsFilter("English"), FrequencyFilter(0.1)):
+               StopwordsFilter("en"), FrequencyFilter(0.1)):
         corpus_ = pp(corpus_)
 
     transformed_corpus = BowVectorizer().transform(corpus_)

@@ -1,5 +1,5 @@
 from itertools import compress
-from typing import List, Callable
+from typing import List, Callable, Optional, Set
 import os
 import re
 
@@ -11,6 +11,7 @@ from Orange.data.io import detect_encoding
 from Orange.util import wrap_callback, dummy_callback
 
 from orangecontrib.text import Corpus
+from orangecontrib.text.language import ISO2LANG, LANG2ISO
 from orangecontrib.text.misc import wait_nltk_data
 from orangecontrib.text.preprocess import TokenizedPreprocessor
 
@@ -71,27 +72,69 @@ class StopwordsFilter(BaseTokenFilter, FileWordListMixin):
     """ Remove tokens present in NLTK's language specific lists or a file. """
     name = 'Stopwords'
 
-    @wait_nltk_data
-    def __init__(self, language='English', path: str = None):
+    # nltk uses different language nams for some languages
+    LANG2NLTK = {"Slovenian": "Slovene"}
+    NLTK2LANG = {v: k for k, v in LANG2NLTK.items()}
+
+    def __init__(
+        self,
+        language: Optional[str] = "en",
+        path: Optional[str] = None,
+    ):
+        """
+        Parameters
+        ----------
+        language
+            The language code in ISO format for NLTK stopwords selection.
+            If None, only words from file are used (NLTK stopwords are not used).
+        path
+            The path to the file with its stopwords will be used if present.
+            The file must contain a newline-separated list of words.
+        """
         super().__init__()
         FileWordListMixin.__init__(self, path)
-        self.__stopwords = set(x.strip() for x in
-                               stopwords.words(language.lower())) \
-            if language else []
+        self.__stopwords = set()
+        if language:
+            # transform iso code to NLTK's language name
+            language = ISO2LANG[language]
+            language = self.LANG2NLTK.get(language, language).lower()
+            self.__stopwords = set(x.strip() for x in stopwords.words(language))
+
+    @staticmethod
+    def lang_to_iso(language: str) -> str:
+        """
+        Returns the ISO language code for the NLTK language. NLTK have a different name
+        for Slovenian. This function takes it into account while transforming to ISO.
+
+        Parameters
+        ----------
+        language
+            NLTK language name
+
+        Returns
+        -------
+        ISO language code for input language
+        """
+        return LANG2ISO[StopwordsFilter.NLTK2LANG.get(language, language)]
 
     @staticmethod
     @wait_nltk_data
-    def supported_languages():
-        # get NLTK list of stopwords
-        stopwords_listdir = []
-        try:
-            stopwords_listdir = [file for file in
-                                 os.listdir(stopwords._get_root())
-                                 if file.islower()]
-        except LookupError:  # when no NLTK data is available
-            pass
+    def supported_languages() -> Set[str]:
+        """
+        List all languages supported by NLTK
 
-        return sorted(file.capitalize() for file in stopwords_listdir)
+        Returns
+        -------
+        Set of all languages supported by NLTK
+        """
+        try:
+            return {
+                StopwordsFilter.lang_to_iso(file.title())
+                for file in os.listdir(stopwords._get_root())
+                if file.islower()
+            }
+        except LookupError:  # when no NLTK data is available
+            return set()
 
     def _check(self, token):
         return token not in self.__stopwords and token not in self._lexicon
