@@ -41,7 +41,7 @@ ISO2LANG = {
     "ga": "Irish",
     "gl": "Galician",
     "got": "Gothic",
-    "grc": "Ancient greek",
+    "grc": "Ancient Greek",
     "gu": "Gujarati",
     "he": "Hebrew",
     "hi": "Hindi",
