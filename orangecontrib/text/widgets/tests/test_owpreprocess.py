@@ -180,6 +180,70 @@ class TestOWPreprocess(WidgetTest):
         self.wait_until_finished()
         self.assertFalse(self.widget.Warning.no_token_left.is_shown())
 
+    def test_language_from_corpus(self):
+        """Languege from corpus is set correctly"""
+        initial = {
+            "name": "",
+            "preprocessors": [
+                ("preprocess.transform", {}),
+                ("preprocess.tokenize", {}),
+                ("preprocess.normalize", {}),
+                ("preprocess.filter", {}),
+            ],
+        }
+        self.widget.storedsettings = initial
+        self.widget._initialize()
+        self.assertDictEqual(initial, self.widget.storedsettings)
+
+        self.corpus.attributes["language"] = None
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        # nothing should change since language is missing in corpus
+        self.assertDictEqual(initial, self.widget.storedsettings)
+
+        self.corpus.attributes["language"] = "en"
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        normalize_settings = self.widget.storedsettings["preprocessors"][2][1]
+        filter_settings = self.widget.storedsettings["preprocessors"][3][1]
+        self.assertEqual("en", normalize_settings["lemmagen_language"])
+        self.assertEqual("en", normalize_settings["snowball_language"])
+        self.assertEqual("en", normalize_settings["udpipe_language"])
+        self.assertEqual("en", filter_settings["language"])
+
+        # language not supported by all preprocessors
+        self.corpus.attributes["language"] = "nl"
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        normalize_settings = self.widget.storedsettings["preprocessors"][2][1]
+        filter_settings = self.widget.storedsettings["preprocessors"][3][1]
+        self.assertEqual("en", normalize_settings["lemmagen_language"])
+        self.assertEqual("nl", normalize_settings["snowball_language"])
+        self.assertEqual("en", normalize_settings["udpipe_language"])
+        self.assertEqual("nl", filter_settings["language"])
+
+    def test_language_from_schema(self):
+        """Test language from schema/workflow is retained"""
+        initial = {
+            "name": "",
+            "preprocessors": [
+                ("preprocess.transform", {}),
+                ("preprocess.tokenize", {}),
+                (
+                    "preprocess.normalize",
+                    {
+                        "lemmagen_language": "sl",
+                        "snowball_language": "nl",
+                        "udpipe_language": "lt",
+                    },
+                ),
+                ("preprocess.filter", {"language": "nl"}),
+            ],
+        }
+        self.widget.storedsettings = initial
+
+        settings = self.widget.settingsHandler.pack_data(self.widget)
+        widget = self.create_widget(OWPreprocess, stored_settings=settings)
+        self.send_signal(widget.Inputs.corpus, self.corpus, widget=widget)
+        self.assertDictEqual(initial, widget.storedsettings)
+
 
 @patch(SF_LIST, new=Mock(return_value=SERVER_FILES))
 class TestOWPreprocessMigrateSettings(WidgetTest):

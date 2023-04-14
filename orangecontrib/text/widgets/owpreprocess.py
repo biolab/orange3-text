@@ -12,6 +12,8 @@ from AnyQt.QtWidgets import QWidget, QPushButton, QSizePolicy, QStyle
 from AnyQt.QtGui import QBrush, QValidator
 
 from Orange.util import wrap_callback
+from orangecanvas.gui.utils import disconnected
+from orangewidget.settings import SettingsHandler
 from orangewidget.utils.filedialogs import RecentPath
 
 import Orange.widgets.data.owpreprocess
@@ -146,6 +148,9 @@ class UDPipeComboBox(LanguageComboBox):
             self.clear()
             self.add_items(None, False, self.itemData(self.currentIndex()))
         super().showPopup()
+
+    def set_current_language(self, iso_language: str):
+        self.setCurrentText(UDPipeModels.iso_to_language(iso_language))
 
 
 class RangeSpins(QHBoxLayout):
@@ -1045,6 +1050,21 @@ class POSTaggingModule(SingleMethodModule):
         return POSTaggingModule.Methods[method]()
 
 
+class PreprocessSettingsHandler(SettingsHandler):
+    """
+    A bit modified settings handler, that makes all language settings, which are
+    a part of common preprocess settings, schema_only. It removes them when
+    settings are not loaded from schema but from common settings.
+    """
+    def _remove_schema_only(self, settings_dict):
+        super()._remove_schema_only(settings_dict)
+        for setting, data, _ in self.provider.traverse_settings(data=settings_dict):
+            for pp_name, settings in data["storedsettings"]["preprocessors"]:
+                for key in list(settings):
+                    if "language" in key:
+                        settings.pop(key)
+
+
 PREPROCESS_ACTIONS = [
     PreprocessAction(
         "Transformation", "preprocess.transform", "",
@@ -1128,12 +1148,14 @@ class OWPreprocess(Orange.widgets.data.owpreprocess.OWPreprocess,
                                     ("preprocess.tokenize", {}),
                                     ("preprocess.filter", {})]
                   }  # type: Dict[str, List[Tuple[str, Dict]]]
+    settingsHandler = PreprocessSettingsHandler()
     storedsettings = Setting(DEFAULT_PP)
     buttons_area_orientation = Qt.Vertical
 
     def __init__(self):
         ConcurrentWidgetMixin.__init__(self)
         Orange.widgets.data.owpreprocess.OWPreprocess.__init__(self)
+        self.__store_pending_languages()
 
         box = gui.vBox(self.controlArea, "Preview")
         self.preview = ""
@@ -1150,6 +1172,12 @@ class OWPreprocess(Orange.widgets.data.owpreprocess.OWPreprocess,
                 self.__update_filtering_params(params)
                 saved["preprocessors"][i] = (name, params)
         return super().load(saved)
+
+    def set_model(self, pmodel):
+        if pmodel:
+            pmodel.rowsInserted.connect(self.__on_item_inserted)
+        super().set_model(pmodel)
+
 
     def __update_filtering_params(self, params: Dict):
         params["sw_path"] = self.__relocate_file(params.get("sw_path"))
@@ -1176,10 +1204,56 @@ class OWPreprocess(Orange.widgets.data.owpreprocess.OWPreprocess,
                                      search_paths, **kwargs)
         return path
 
+    def __on_item_inserted(self, _, first: int, last: int):
+        assert first == last
+        self.__set_languages_single_item(first)
+        self.storedsettings = self.save(self.preprocessormodel)
+
     @Inputs.corpus
     def set_data(self, data: Corpus):
         self.cancel()
         self.data = data
+        self.__set_languages()
+
+    LANG_PARAMS = {
+        "preprocess.normalize": [
+            ("snowball_language", NormalizationModule.SNOWBALL_LANGUAGES),
+            ("udpipe_language", UDPipeLemmatizer().models.supported_languages_iso),
+            ("lemmagen_language", NormalizationModule.LEMMAGEN_LANGUAGES),
+        ],
+        "preprocess.filter": [("language", FilteringModule.STOP_WORDS_LANGUAGES)],
+    }
+
+    def __store_pending_languages(self):
+        self.__pending_languages = defaultdict(dict)
+        for pp_name, params in self.storedsettings["preprocessors"]:
+            for p, _ in self.LANG_PARAMS.get(pp_name, []):
+                if p in params:
+                    self.__pending_languages[pp_name][p] = params[p]
+
+    def __set_languages(self):
+        if self.data is not None:
+            for i in range(self.preprocessormodel.rowCount()):
+                self.__set_languages_single_item(i)
+            self.__pending_languages = {}
+            self.storedsettings = self.save(self.preprocessormodel)
+
+    def __set_languages_single_item(self, item_index: int):
+        item = self.preprocessormodel.item(item_index)
+        pp_name = item.data(DescriptionRole).qualname
+        params = item.data(ParametersRole)
+        pending = self.__pending_languages.get(pp_name, {})
+        for param, sup_lang in self.LANG_PARAMS.get(pp_name, []):
+            if param in pending:
+                params[param] = pending[param]
+            else:
+                sup_lang = sup_lang() if callable(sup_lang) else sup_lang
+                if self.data.language and self.data.language in sup_lang:
+                    params[param] = self.data.language
+        with disconnected(self.preprocessormodel.dataChanged, self.__on_modelchanged):
+            # dataChange must be disconnected to prevent double apply call
+            # both calls of this method call apply after
+            item.setData(params, ParametersRole)
 
     def buildpreproc(self) -> PreprocessorList:
         plist = []
