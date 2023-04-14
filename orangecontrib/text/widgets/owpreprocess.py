@@ -11,6 +11,8 @@ from AnyQt.QtWidgets import QWidget, QPushButton, QSizePolicy, QStyle
 from AnyQt.QtGui import QBrush, QValidator
 
 from Orange.util import wrap_callback
+from orangecanvas.gui.utils import disconnected
+from orangewidget.settings import SettingsHandler
 from orangewidget.utils.filedialogs import RecentPath
 
 import Orange.widgets.data.owpreprocess
@@ -112,7 +114,8 @@ class LanguageComboBox(QComboBox):
             The ISO language code of element to be selected.
         """
         index = self.findData(iso_language)
-        self.setCurrentIndex(index)
+        if index >= 0:
+            self.setCurrentIndex(index)
 
 
 class UDPipeComboBox(LanguageComboBox):
@@ -130,15 +133,9 @@ class UDPipeComboBox(LanguageComboBox):
     def add_items(self, _, include_none: bool, language: str):
         self.__items = self.items
         super().add_items(self.__items, include_none, language)
-
-    def set_current_language(self, iso_language: Optional[str]):
         iso_items = {iso for _, iso in self.__items}
-        if iso_language in iso_items:
-            super().set_current_language(iso_language)
-        elif self.__default_lang in iso_items:
+        if language not in iso_items and self.__default_lang in iso_items:
             super().set_current_language(self.__default_lang)
-        elif self.__items:
-            self.setCurrentIndex(0)
 
     def showPopup(self):
         if self.__items != self.items:
@@ -657,7 +654,7 @@ class FilteringModule(MultipleMethodModule):
 
         self.__combo = LanguageComboBox(
             self,
-            StopwordsFilter.supported_languages(),
+            StopwordsFilter.supported_languages,
             self.__sw_lang,
             True,
             self.__set_language,
@@ -1044,6 +1041,21 @@ class POSTaggingModule(SingleMethodModule):
         return POSTaggingModule.Methods[method]()
 
 
+class PreprocessSettingsHandler(SettingsHandler):
+    """
+    Settings handler, that makes all language settings, which are
+    a part of common preprocess settings, schema_only. It removes them when
+    settings are not loaded from schema but from common settings.
+    """
+    def _remove_schema_only(self, settings_dict):
+        super()._remove_schema_only(settings_dict)
+        for setting, data, _ in self.provider.traverse_settings(data=settings_dict):
+            for pp_name, settings in data["storedsettings"]["preprocessors"]:
+                for key in list(settings):
+                    if "language" in key:
+                        settings.pop(key)
+
+
 PREPROCESS_ACTIONS = [
     PreprocessAction(
         "Transformation", "preprocess.transform", "",
@@ -1127,12 +1139,14 @@ class OWPreprocess(Orange.widgets.data.owpreprocess.OWPreprocess,
                                     ("preprocess.tokenize", {}),
                                     ("preprocess.filter", {})]
                   }  # type: Dict[str, List[Tuple[str, Dict]]]
+    settingsHandler = PreprocessSettingsHandler()
     storedsettings = Setting(DEFAULT_PP)
     buttons_area_orientation = Qt.Vertical
 
     def __init__(self):
         ConcurrentWidgetMixin.__init__(self)
         Orange.widgets.data.owpreprocess.OWPreprocess.__init__(self)
+        self.__store_pending_languages()
 
         box = gui.vBox(self.controlArea, "Preview")
         self.preview = ""
@@ -1149,6 +1163,16 @@ class OWPreprocess(Orange.widgets.data.owpreprocess.OWPreprocess,
                 self.__update_filtering_params(params)
                 saved["preprocessors"][i] = (name, params)
         return super().load(saved)
+
+    def set_model(self, pmodel):
+        """Connect signal which handle setting language from corpus"""
+        super().set_model(pmodel)
+        if pmodel:
+            pmodel.rowsInserted.connect(self.__on_item_inserted)
+
+    def __on_item_inserted(self, _, first: int, last: int):
+        assert first == last
+        self.__set_languages_single_editor(first)
 
     def __update_filtering_params(self, params: Dict):
         params["sw_path"] = self.__relocate_file(params.get("sw_path"))
@@ -1179,6 +1203,49 @@ class OWPreprocess(Orange.widgets.data.owpreprocess.OWPreprocess,
     def set_data(self, data: Corpus):
         self.cancel()
         self.data = data
+        self.__set_languages()
+
+    LANG_PARAMS = {
+        "preprocess.normalize": [
+            ("snowball_language", SnowballStemmer.supported_languages),
+            ("udpipe_language", UDPipeModels().supported_languages_iso),
+            ("lemmagen_language", LemmagenLemmatizer.supported_languages),
+        ],
+        "preprocess.filter": [("language", StopwordsFilter.supported_languages)],
+    }
+
+    def __store_pending_languages(self):
+        settings = self.storedsettings["preprocessors"]
+        self.__pending_languages = {
+            pp_name: {p for p in par if "language" in p} for pp_name, par in settings
+        }
+
+    def __set_languages(self):
+        if self.data is not None:
+            for i in range(self.preprocessormodel.rowCount()):
+                self.__set_languages_single_editor(i)
+            self.__pending_languages = {}
+
+    def __set_languages_single_editor(self, item_index: int):
+        """
+        Set language from corpus for single editor/module,
+        keep language unchanged if it comes from schema (pending).
+        """
+        if self.data and self.data.language:
+            model = self.preprocessormodel
+            item = model.item(item_index)
+            pp_name = item.data(DescriptionRole).qualname
+            params = item.data(ParametersRole)
+            pending = self.__pending_languages.get(pp_name, set())
+            for param, available_langs in self.LANG_PARAMS.get(pp_name, []):
+                if param not in pending and self.data.language in available_langs:
+                    # set language if not pending from schema - should not be changed
+                    # and if available for the method
+                    params[param] = self.data.language
+            with disconnected(model.dataChanged, self.__on_modelchanged):
+                # disconnection prevent double apply call, it is already called
+                # on new data and when row inserted, both caller of this method
+                item.setData(params, ParametersRole)
 
     def buildpreproc(self) -> PreprocessorList:
         plist = []

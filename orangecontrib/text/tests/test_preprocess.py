@@ -486,7 +486,7 @@ class FilteringTests(unittest.TestCase):
         self.assertEqual(len(corpus.used_preprocessor.preprocessors), 2)
 
     def test_supported_languages(self):
-        langs = preprocess.StopwordsFilter.supported_languages()
+        langs = preprocess.StopwordsFilter.supported_languages
         self.assertIsInstance(langs, set)
         # just testing few of most important languages since I want for test to be
         # resistant for any potentially newly introduced languages by NLTK

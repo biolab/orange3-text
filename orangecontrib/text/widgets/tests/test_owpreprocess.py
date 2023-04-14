@@ -2,7 +2,9 @@ import unittest
 from unittest.mock import patch, PropertyMock, MagicMock, Mock
 
 import numpy as np
+from AnyQt.QtGui import QStandardItem, QIcon
 from Orange.data import Domain, StringVariable
+from Orange.widgets.data.utils.preprocess import DescriptionRole, ParametersRole
 from orangewidget.utils.filedialogs import RecentPath
 from Orange.widgets.tests.base import WidgetTest
 from Orange.widgets.tests.utils import simulate
@@ -179,6 +181,153 @@ class TestOWPreprocess(WidgetTest):
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
         self.wait_until_finished()
         self.assertFalse(self.widget.Warning.no_token_left.is_shown())
+
+    def test_language_from_corpus(self):
+        """Test language from corpus is set correctly"""
+        initial = {
+            "name": "",
+            "preprocessors": [("preprocess.normalize", {}), ("preprocess.filter", {})],
+        }
+        self.widget.storedsettings = initial
+        self.widget._initialize()
+        self.assertDictEqual(initial, self.widget.storedsettings)
+        combos = self.widget.mainArea.findChildren(LanguageComboBox)
+        self.assertEqual(
+            ["English", "English", "English", "English"],
+            [c.currentText() for c in combos]
+        )
+
+        # test with Slovenian - language should set for all preprocessors except
+        # Snowball that doesn't support Slovenian
+        self.corpus.attributes["language"] = "sl"
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.assertEqual(
+            ["English", "Slovenian", "Slovenian", "Slovenian"],
+            [c.currentText() for c in combos]
+        )
+        settings = self.widget.storedsettings["preprocessors"]
+        self.assertEqual("sl", settings[0][1]["udpipe_language"])
+        self.assertEqual("sl", settings[0][1]["lemmagen_language"])
+        self.assertEqual("sl", settings[1][1]["language"])
+
+        # test with Lithuanian that is support by one preprocessors
+        self.corpus.attributes["language"] = "lt"
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.assertEqual(
+            ["English", "Lithuanian", "Slovenian", "Slovenian"],
+            [c.currentText() for c in combos]
+        )
+        settings = self.widget.storedsettings["preprocessors"]
+        self.assertEqual("lt", settings[0][1]["udpipe_language"])
+        self.assertEqual("sl", settings[0][1]["lemmagen_language"])
+        self.assertEqual("sl", settings[1][1]["language"])
+
+        self.corpus.attributes["language"] = "pt"
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.assertEqual(
+            ["Portuguese", "Portuguese", "Slovenian", "Portuguese"],
+            [c.currentText() for c in combos]
+        )
+        settings = self.widget.storedsettings["preprocessors"]
+        self.assertEqual("pt", settings[0][1]["snowball_language"])
+        self.assertEqual("pt", settings[0][1]["udpipe_language"])
+        self.assertEqual("sl", settings[0][1]["lemmagen_language"])
+        self.assertEqual("pt", settings[1][1]["language"])
+
+        # language not supported by any preprocessor - language shouldn't change
+        self.corpus.attributes["language"] = "bo"
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.assertEqual(
+            ["Portuguese", "Portuguese", "Slovenian", "Portuguese"],
+            [c.currentText() for c in combos]
+        )
+        settings = self.widget.storedsettings["preprocessors"]
+        self.assertEqual("pt", settings[0][1]["snowball_language"])
+        self.assertEqual("pt", settings[0][1]["udpipe_language"])
+        self.assertEqual("sl", settings[0][1]["lemmagen_language"])
+        self.assertEqual("pt", settings[1][1]["language"])
+
+        # test with missing language - language shouldn't change
+        self.corpus.attributes["language"] = None
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.assertEqual(
+            ["Portuguese", "Portuguese", "Slovenian", "Portuguese"],
+            [c.currentText() for c in combos]
+        )
+        settings = self.widget.storedsettings["preprocessors"]
+        self.assertEqual("pt", settings[0][1]["snowball_language"])
+        self.assertEqual("pt", settings[0][1]["udpipe_language"])
+        self.assertEqual("sl", settings[0][1]["lemmagen_language"])
+        self.assertEqual("pt", settings[1][1]["language"])
+
+    def test_language_from_schema(self):
+        """Test language from schema/workflow is retained"""
+        initial = {
+            "name": "",
+            "preprocessors": [
+                (
+                    "preprocess.normalize",
+                    {
+                        "lemmagen_language": "sl",
+                        "snowball_language": "nl",
+                        "udpipe_language": "lt",
+                    },
+                ),
+                ("preprocess.filter", {"language": "nl"}),
+            ],
+        }
+        self.widget.storedsettings = initial
+
+        settings = self.widget.settingsHandler.pack_data(self.widget)
+        widget = self.create_widget(OWPreprocess, stored_settings=settings)
+        self.send_signal(widget.Inputs.corpus, self.corpus, widget=widget)
+        self.assertDictEqual(initial, widget.storedsettings)
+        combos = widget.mainArea.findChildren(LanguageComboBox)
+        self.assertEqual(
+            ["Dutch", "Lithuanian", "Slovenian", "Dutch"],
+            [c.currentText() for c in combos]
+        )
+
+    def test_language_from_corpus_editor_inserted(self):
+        """Test language from corpus is set to new editor too"""
+        initial = {
+            "name": "",
+            "preprocessors": [("preprocess.filter", {})],
+        }
+        self.widget.storedsettings = initial
+        self.widget._initialize()
+        self.assertDictEqual(initial, self.widget.storedsettings)
+        combos = self.widget.mainArea.findChildren(LanguageComboBox)
+        self.assertEqual(
+            ["English"],
+            [c.currentText() for c in combos]
+        )
+
+        # insert data - language of stopwords combo should change to italian
+        self.corpus.attributes["language"] = "sl"
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.assertEqual(
+            ["Slovenian"],
+            [c.currentText() for c in combos]
+        )
+
+        # insert new editor - all languages except snowball should be set to Slovenian
+        pp_def = self.widget._qname2ppdef["preprocess.normalize"]
+        description = pp_def.description
+        item = QStandardItem(description.title)
+        icon = QIcon(description.icon)
+        item.setIcon(icon)
+        item.setToolTip(description.summary)
+        item.setData(pp_def, DescriptionRole)
+        item.setData({}, ParametersRole)
+        self.widget.preprocessormodel.insertRow(0, [item])
+        self.wait_until_finished()
+
+        combos = self.widget.mainArea.findChildren(LanguageComboBox)
+        self.assertEqual(
+            ['Slovenian', 'English', 'Slovenian', 'Slovenian'],
+            [c.currentText() for c in combos]
+        )
 
 
 @patch(SF_LIST, new=Mock(return_value=SERVER_FILES))
@@ -983,14 +1132,20 @@ class TestUDPipeComboBox(WidgetTest):
         self.assertEqual("Portuguese", cb.currentText())
         cb.set_current_language("sl")
         self.assertEqual("Slovenian", cb.currentText())
-        cb.set_current_language("abc")  # should set to default
-        self.assertEqual("English", cb.currentText())
+        cb.set_current_language("abc")  # language not in list - keep current seleciton
+        self.assertEqual("Slovenian", cb.currentText())
+
+    def test_set_language_to_default(self):
+        """In case current item not in dropdown anymore set language to default"""
+        mock = Mock()
+        cb = UDPipeComboBox(None, "pt", "en", mock)
+        self.assertEqual("Portuguese", cb.currentText())
         # when no default language in the dropdown set to first
         cb.removeItem(0)
         x = cb._UDPipeComboBox__items
         cb._UDPipeComboBox__items = x[:3] + x[4:]
-        cb.set_current_language("abc")
-        self.assertEqual("English (lines)", cb.currentText())
+        cb.showPopup()
+        self.assertEqual("English", cb.currentText())
 
     def test_change_item(self):
         mock = Mock()

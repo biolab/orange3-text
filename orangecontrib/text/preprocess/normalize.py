@@ -123,6 +123,10 @@ class UDPipeModels:
         return [(name, iso) for iso, (name, _) in self.model_files.items()]
 
     @property
+    def supported_languages_iso(self) -> List[Tuple[str, str]]:
+        return {iso for _, iso in self.supported_languages}
+
+    @property
     def online(self) -> bool:
         try:
             self.serverfiles.listfiles()
