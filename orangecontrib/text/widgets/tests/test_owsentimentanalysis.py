@@ -1,15 +1,18 @@
 import os
 import unittest
-from unittest import mock
 from unittest.mock import patch
 
 import numpy as np
+from AnyQt.QtWidgets import QRadioButton
 from numpy import array_equal
+
 from Orange.widgets.tests.base import WidgetTest
 from Orange.widgets.tests.utils import simulate
 
 from orangecontrib.text import preprocess
 from orangecontrib.text.corpus import Corpus
+from orangecontrib.text.language import ISO2LANG
+from orangecontrib.text.sentiment import DictionaryNotFound
 from orangecontrib.text.widgets.owsentimentanalysis import OWSentimentAnalysis
 
 MS_FILES = [
@@ -32,6 +35,7 @@ LISTFILES = {
     "http://file.biolab.si/files/sentiment-lilah/": LILAH_FILES,
 }
 MOCK_FUN = "orangecontrib.text.sentiment.serverfiles.ServerFiles.listfiles"
+
 
 def dummy_listfiles(sf):
     return LISTFILES[sf.server]
@@ -118,7 +122,7 @@ class TestSentimentWidget(WidgetTest):
     def test_language_changed(self):
         """Test if output changes on language change"""
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
-        self.assertEqual(self.widget.multi_box.count(), 5)
+        self.assertEqual(self.widget.multi_box.count(), 45)
 
         # default for Liu Hu should be English
         self.widget.liu_hu.click()
@@ -128,18 +132,6 @@ class TestSentimentWidget(WidgetTest):
         simulate.combobox_activate_item(self.widget.liu_lang, "Slovenian")
         output_slo = self.get_output(self.widget.Outputs.corpus)
         self.assertFalse(array_equal(output_eng.X, output_slo.X))
-
-    def test_sentiment_offline(self):
-        """Test if sentiment works with offline lexicons"""
-        with patch(
-            "orangecontrib.text.sentiment.SentimentDictionaries.online",
-            new_callable=mock.PropertyMock,
-            return_value=False,
-        ):
-            widget = self.create_widget(OWSentimentAnalysis)
-            self.send_signal(widget.Inputs.corpus, self.corpus)
-            widget.multi_sent.click()
-            self.assertTrue(widget.Warning.senti_offline.is_shown())
 
     def test_no_file_warnings(self):
         widget = self.create_widget(OWSentimentAnalysis)
@@ -185,6 +177,70 @@ class TestSentimentWidget(WidgetTest):
         self.assertTrue(widget.pp_corpus)
         self.send_signal(widget.Inputs.corpus, None)
         self.assertIsNone(widget.pp_corpus)
+
+    def test_language_from_corpus(self):
+        # models order: ["Liu Hu", "Vader", "Multilingual", "SentiArt", "Lilah"]
+        # supported and not supported languages for each model
+        w = self.widget
+        settings = [
+            w.liu_language,
+            "English",
+            w.multi_language,
+            w.senti_language,
+            w.lilah_language,
+        ]
+        supported = ["en", "en", "en", "en", "sl"]
+        unsupported = ["am", "sl", "am", "sl", "am"]
+
+        for i, (sett, s, ns) in enumerate(zip(settings, supported, unsupported)):
+            # try with supported language
+            self.corpus.attributes["language"] = s
+            self.send_signal(self.widget.Inputs.corpus, self.corpus)
+            self.widget.findChildren(QRadioButton)[i].click()
+            self.assertIsNotNone(self.get_output(self.widget.Outputs.corpus))
+            self.assertEqual(ISO2LANG[s], sett)
+
+            # try with unsupported language - use default language istead
+            self.corpus.attributes["language"] = ns
+            self.send_signal(self.widget.Inputs.corpus, self.corpus)
+            self.assertIsNotNone(self.get_output(self.widget.Outputs.corpus))
+            self.assertEqual(s, "en" if i != 4 else "sl")
+
+    def test_language_from_settings(self):
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        simulate.combobox_activate_item(self.widget.liu_lang, "Slovenian")
+        simulate.combobox_activate_item(self.widget.multi_box, "Spanish")
+        simulate.combobox_activate_item(self.widget.senti_box, "German")
+        simulate.combobox_activate_item(self.widget.lilah_box, "Croatian")
+
+        self.assertEqual("Slovenian", self.widget.liu_language)
+        self.assertEqual("Spanish", self.widget.multi_language)
+        self.assertEqual("German", self.widget.senti_language)
+        self.assertEqual("Croatian", self.widget.lilah_language)
+        settings = self.widget.settingsHandler.pack_data(self.widget)
+
+        widget = self.create_widget(OWSentimentAnalysis, stored_settings=settings)
+        self.send_signal(widget.Inputs.corpus, self.corpus, widget=widget)
+        self.assertEqual("Slovenian", widget.liu_language)
+        self.assertEqual("Spanish", widget.multi_language)
+        self.assertEqual("German", widget.senti_language)
+        self.assertEqual("Croatian", widget.lilah_language)
+
+    def test_dictionary_offline(self):
+        """Test case when offline and dictionary not found locally"""
+        with patch(
+            "orangecontrib.text.sentiment.MultisentimentDictionaries.__getitem__",
+            side_effect=DictionaryNotFound,
+        ):
+            self.send_signal(self.widget.Inputs.corpus, self.corpus)
+            self.widget.multi_sent.click()
+            simulate.combobox_activate_item(self.widget.multi_box, "Afrikaans")
+            self.assertIsNone(self.get_output(self.widget.Outputs.corpus))
+            self.assertTrue(self.widget.Error.offline.is_shown())
+
+        simulate.combobox_activate_item(self.widget.multi_box, "English")
+        self.assertIsNotNone(self.get_output(self.widget.Outputs.corpus))
+        self.assertFalse(self.widget.Error.offline.is_shown())
 
 
 if __name__ == "__main__":
