@@ -1,4 +1,6 @@
+import hashlib
 import os
+from typing import List
 
 import numpy as np
 from AnyQt.QtCore import Qt
@@ -51,7 +53,7 @@ class CorpusContextHandler(DomainContextHandler):
     def new_context(self, corpus, attributes, metas):
         """Adding hash of documents to the context"""
         context = super().new_context(corpus, attributes, metas)
-        context.documents_hash = hash(tuple(corpus.documents))
+        context.documents_hash = self.__compute_hash(corpus.documents)
         context.language = corpus.language
         return context
 
@@ -62,7 +64,7 @@ class CorpusContextHandler(DomainContextHandler):
         """
         if (
             hasattr(context, "documents_hash")
-            and context.documents_hash != hash(tuple(corpus.documents))
+            and context.documents_hash != self.__compute_hash(corpus.documents)
             or hasattr(context, "language")
             and context.language != corpus.language
         ):
@@ -72,6 +74,11 @@ class CorpusContextHandler(DomainContextHandler):
     def decode_setting(self, setting, value, corpus=None, *args):
         """Modifying decode setting to work with Corpus instead of domain"""
         return super().decode_setting(setting, value, corpus.domain, *args)
+
+    @staticmethod
+    def __compute_hash(texts: List[str]) -> int:
+        texts = " ".join(texts)
+        return int(hashlib.md5(texts.encode("utf-8")).hexdigest(), 16)
 
 
 class OWCorpus(OWWidget, ConcurrentWidgetMixin):
