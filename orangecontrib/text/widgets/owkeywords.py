@@ -263,7 +263,7 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
             button.setChecked(method == self.sel_method)
             grid.addWidget(button, method, 0)
             self.__sel_method_buttons.addButton(button, method)
-        self.__sel_method_buttons.buttonClicked.connect(self._set_selection_method)
+        self.__sel_method_buttons.idClicked.connect(self._set_selection_method)
 
         spin = gui.spin(
             box, self, "n_selected", 1, 999, addToLayout=False,
@@ -389,9 +389,9 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
         self.start(run, self.corpus, self.words, self.__cached_keywords,
                    self.selected_scoring_methods, kwargs, self.agg_method)
 
-    def _set_selection_method(self):
-        self.sel_method = self.__sel_method_buttons.checkedId()
-        self.__sel_method_buttons.button(self.sel_method).setChecked(True)
+    def _set_selection_method(self, method: int):
+        self.sel_method = method
+        self.__sel_method_buttons.button(method).setChecked(True)
         self._select_rows()
 
     def _select_rows(self):
