@@ -3,6 +3,8 @@ import unittest
 from unittest.mock import patch, Mock
 
 from Orange.widgets.tests.base import WidgetTest
+from Orange.widgets.tests.utils import simulate
+
 from orangecontrib.text.widgets.owimportdocuments import OWImportDocuments
 
 
@@ -29,14 +31,14 @@ class TestOWImportDocuments(WidgetTest):
         output = self.get_output(self.widget.Outputs.data)
         self.assertEqual(4, len(output))
         self.assertEqual(3, len(output.domain.metas))
-        names = output.get_column_view("name")[0]
+        names = output.get_column("name")
         self.assertListEqual(
             # ž in sample_text_ž must be unicode char 0x17E not decomposed
             # 0x7A + 0x30C as it is in file name
             ["sample_docx", "sample_odt", "sample_pdf", "sample_txt_ž"],
             sorted(names.tolist()),
         )
-        texts = output.get_column_view("content")[0]
+        texts = output.get_column("content")
         self.assertListEqual(
             # ž in sample_text_ž must be unicode char 0x17E not decomposed
             # 0x7A + 0x30C as it is in file name
@@ -51,7 +53,7 @@ class TestOWImportDocuments(WidgetTest):
         skipped_output = self.get_output(self.widget.Outputs.skipped_documents)
         self.assertEqual(1, len(skipped_output))
         self.assertEqual(2, len(skipped_output.domain.metas))
-        names = skipped_output.get_column_view("name")[0]
+        names = skipped_output.get_column("name")
         self.assertListEqual(
             ["sample_pdf_corrupted.pdf"],
             sorted(names.tolist()),
@@ -116,6 +118,37 @@ class TestOWImportDocuments(WidgetTest):
         widget.reload()
         self.wait_until_finished(widget=widget)
         self.assertIsNone(self.get_output(widget.Outputs.data))
+
+    def tests_context(self):
+        self.widget: OWImportDocuments = self.create_widget(OWImportDocuments)
+        # change default to something else to see if language is changed
+        self.widget.language = "Slovenian"
+
+        path = os.path.join(os.path.dirname(__file__), "data/documents", "good")
+        self.widget.setCurrentPath(path)
+        self.widget.reload()
+        self.wait_until_finished()
+
+        # english is recognized for selected documents
+        self.assertEqual(self.widget.language, "English")
+        self.assertEqual("en", self.get_output(self.widget.Outputs.data).language)
+        simulate.combobox_activate_item(self.widget.controls.language, "Dutch")
+
+        self.assertEqual(self.widget.language, "Dutch")
+        self.assertEqual("nl", self.get_output(self.widget.Outputs.data).language)
+
+        # read something else
+        path1 = os.path.join(os.path.dirname(__file__), "data/conllu")
+        self.widget.setCurrentPath(path1)
+        self.widget.reload()
+        self.wait_until_finished()
+
+        # read same data again and observe if context is restored
+        self.widget.setCurrentPath(path)
+        self.widget.reload()
+        self.wait_until_finished()
+        self.assertEqual(self.widget.language, "Dutch")
+        self.assertEqual("nl", self.get_output(self.widget.Outputs.data).language)
 
 
 if __name__ == "__main__":

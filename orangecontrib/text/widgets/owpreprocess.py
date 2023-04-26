@@ -9,7 +9,7 @@ from AnyQt.QtWidgets import QComboBox, QButtonGroup, QLabel, QCheckBox, \
     QRadioButton, QGridLayout, QLineEdit, QSpinBox, QFormLayout, QHBoxLayout, \
     QDoubleSpinBox, QFileDialog, QAbstractSpinBox
 from AnyQt.QtWidgets import QWidget, QPushButton, QSizePolicy, QStyle
-from AnyQt.QtGui import QBrush
+from AnyQt.QtGui import QBrush, QValidator
 
 from Orange.util import wrap_callback
 from orangewidget.utils.filedialogs import RecentPath
@@ -137,8 +137,10 @@ class RangeSpecialValueSpins(RangeSpins):
     class SpinBox(QSpinBox):
         def validate(self, *args):
             # accept empty input
+            st = QValidator.State
             valid, text, pos = super().validate(*args)
-            return 2 if valid else 0, text, pos
+            new_state = st.Acceptable if valid != st.Invalid else st.Invalid
+            return new_state, text, pos
 
         def valueFromText(self, text: str) -> int:
             return max(int(text) if text else self.minimum(), self.minimum())
@@ -242,8 +244,7 @@ class FileLoader(QWidget):
             self.file_combo.addItem(recent.basename)
             self.file_combo.model().item(i).setToolTip(recent.abspath)
             if not os.path.exists(recent.abspath):
-                self.file_combo.setItemData(i, QBrush(Qt.red),
-                                            Qt.TextColorRole)
+                self.file_combo.setItemData(i, QBrush(Qt.red), Qt.ForegroundRole)
         self.file_combo.addItem(_DEFAULT_NONE)
 
     def last_path(self) -> Optional[str]:

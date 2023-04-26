@@ -8,18 +8,17 @@ from Orange.widgets.settings import Setting
 from Orange.widgets.widget import Msg, Output, OWWidget
 
 from orangecontrib.text.corpus import Corpus
+from orangecontrib.text.language import ISO2LANG, LANG2ISO
 from orangecontrib.text.vectorization.document_embedder import (
     AGGREGATORS,
-    LANGS_TO_ISO,
     DocumentEmbedder,
+    LANGUAGES,
 )
 from orangecontrib.text.vectorization.sbert import SBERT
 from orangecontrib.text.widgets.utils.owbasevectorizer import (
     OWBaseVectorizer,
     Vectorizer,
 )
-
-LANGUAGES = sorted(list(LANGS_TO_ISO.keys()))
 
 
 class EmbeddingVectorizer(Vectorizer):
@@ -42,6 +41,7 @@ class OWDocumentEmbedding(OWBaseVectorizer):
     settings_version = 2
 
     Methods = [SBERT, DocumentEmbedder]
+    DEFAULT_LANGUAGE = "English"
 
     class Outputs(OWBaseVectorizer.Outputs):
         skipped = Output("Skipped documents", Corpus)
@@ -57,7 +57,7 @@ class OWDocumentEmbedding(OWBaseVectorizer):
         unsuccessful_embeddings = Msg("Some embeddings were unsuccessful.")
 
     method: int = Setting(default=0)
-    language: str = Setting(default="English")
+    language: str = Setting(default=DEFAULT_LANGUAGE, schema_only=True)
     aggregator: str = Setting(default="Mean")
 
     def __init__(self):
@@ -68,6 +68,8 @@ class OWDocumentEmbedding(OWBaseVectorizer):
         self.cancel_button.clicked.connect(self.cancel)
         self.buttonsArea.layout().addWidget(self.cancel_button)
         self.cancel_button.setDisabled(True)
+        # it should be only set when setting loaded from schema/workflow
+        self.__pending_language = self.language
 
     def create_configuration_layout(self):
         layout = QVBoxLayout()
@@ -81,7 +83,7 @@ class OWDocumentEmbedding(OWBaseVectorizer):
             ibox,
             self,
             "language",
-            items=LANGUAGES,
+            items=[ISO2LANG[lg] for lg in LANGUAGES],
             label="Language:",
             sendSelectedValue=True,  # value is actual string not index
             orientation=Qt.Horizontal,
@@ -92,15 +94,30 @@ class OWDocumentEmbedding(OWBaseVectorizer):
             ibox,
             self,
             "aggregator",
-            items=AGGREGATORS,
+            items=[a.capitalize() for a in AGGREGATORS],
             label="Aggregator:",
             sendSelectedValue=True,  # value is actual string not index
             orientation=Qt.Horizontal,
             callback=self.on_change,
             searchable=True,
         )
-
         return layout
+
+    @OWBaseVectorizer.Inputs.corpus
+    def set_data(self, corpus):
+        # set language from corpus as selected language
+        if corpus and corpus.language in LANGUAGES:
+            self.language = ISO2LANG[corpus.language]
+        else:
+            # if Corpus's language not supported use default language
+            self.language = self.DEFAULT_LANGUAGE
+
+        # when workflow loaded use language saved in workflow
+        if self.__pending_language is not None:
+            self.language = self.__pending_language
+            self.__pending_language = None
+
+        super().set_data(corpus)
 
     def update_method(self):
         disabled = self.method == 0
@@ -109,7 +126,9 @@ class OWDocumentEmbedding(OWBaseVectorizer):
         self.vectorizer = EmbeddingVectorizer(self.init_method(), self.corpus)
 
     def init_method(self):
-        params = dict(language=LANGS_TO_ISO[self.language], aggregator=self.aggregator)
+        params = dict(
+            language=LANG2ISO[self.language], aggregator=self.aggregator.lower()
+        )
         kwargs = ({}, params)[self.method]
         return self.Methods[self.method](**kwargs)
 
@@ -133,7 +152,7 @@ class OWDocumentEmbedding(OWBaseVectorizer):
         if isinstance(ex, EmbeddingConnectionError):
             self.Error.no_connection()
         else:
-            self.Error.unexpected_error(type(ex).__name__)
+            self.Error.unexpected_error(str(ex))
         self.cancel()
 
     def cancel(self):
@@ -146,8 +165,10 @@ class OWDocumentEmbedding(OWBaseVectorizer):
         if version is None or version < 2:
             # before version 2 settings were indexes now they are strings
             # with language name and selected aggregator name
-            settings["language"] = LANGUAGES[settings["language"]]
-            settings["aggregator"] = AGGREGATORS[settings["aggregator"]]
+            if "language" in settings:
+                settings["language"] = LANGUAGES[settings["language"]]
+            if "aggregator" in settings:
+                settings["aggregator"] = AGGREGATORS[settings["aggregator"]]
 
 
 if __name__ == "__main__":

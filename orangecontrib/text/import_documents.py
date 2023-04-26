@@ -551,17 +551,17 @@ class ImportDocuments:
 
         if self.is_conllu:
             df = self._meta_data.set_index(self.CONLLU_META_DATA)
-            path_column = corpus.get_column_view("utterance")[0]
+            path_column = corpus.get_column("utterance")
         else:
             df = self._meta_data.set_index(
                 self.startdir + self._meta_data[self.META_DATA_FILE_KEY].apply(quote_url)
             )
-            path_column = corpus.get_column_view("path")[0]
+            path_column = corpus.get_column("path")
 
         if len(df.index.drop_duplicates()) != len(df.index):
             df = df[~df.index.duplicated(keep='first')]
         filtered = df.reindex(path_column)
-        for name, column in filtered.iteritems():
+        for name, column in filtered.items():
             data = column.astype(str).values
             val_map, vals, var_type = guess_data_type(data)
             values, variable = sanitize_variable(val_map, vals, data,

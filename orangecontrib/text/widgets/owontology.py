@@ -10,7 +10,7 @@ import requests
 from AnyQt.QtCore import Qt, QModelIndex, QItemSelection, Signal, \
     QItemSelectionModel
 from AnyQt.QtGui import QDropEvent, QStandardItemModel, QStandardItem, \
-    QPainter, QColor, QPalette, QDragEnterEvent, QDragLeaveEvent
+    QPainter, QColor, QPalette, QDragEnterEvent, QDragLeaveEvent, QKeyEvent
 from AnyQt.QtWidgets import QWidget, QAction, QVBoxLayout, QTreeView, QMenu, \
     QToolButton, QGroupBox, QListView, QSizePolicy, QStyledItemDelegate, \
     QStyleOptionViewItem, QLineEdit, QFileDialog, QApplication, QDialog, \
@@ -104,7 +104,8 @@ def _tree_to_html(tree: Dict) -> str:
 def _onto_to_tree(thing: Thing, world: World) -> Dict:
     tree = {}
     for cl in list(thing.subclasses(world=world)):
-        tree[cl.name] = _onto_to_tree(cl, world)
+        label = (cl.label.first() or cl.name).replace("\n", " ").strip()
+        tree[label] = _onto_to_tree(cl, world)
     return tree
 
 
@@ -355,6 +356,13 @@ class EditableTreeView(QWidget):
         self._set_data(self.__stack[self.__stack_index])
         self._enable_undo_redo()
         self.dataChanged.emit()
+
+    def keyPressEvent(self, event: QKeyEvent):
+        """Delete element with delete or backspace key"""
+        if event.key() == Qt.Key_Delete or event.key() == Qt.Key_Backspace:
+            self.__on_remove_recursive()
+        else:
+            super().keyPressEvent(event)
 
 
 class Ontology:
@@ -804,7 +812,7 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
         if words:
             if WORDS_COLUMN_NAME in words.domain and words.domain[
                     WORDS_COLUMN_NAME].attributes.get("type") == "words":
-                for word in words.get_column_view(WORDS_COLUMN_NAME)[0]:
+                for word in words.get_column(WORDS_COLUMN_NAME):
                     self.__input_model.appendRow(QStandardItem(word))
             else:
                 self.Warning.no_words_column()

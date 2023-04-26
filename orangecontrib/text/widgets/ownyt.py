@@ -4,6 +4,7 @@ from AnyQt.QtCore import Qt
 from AnyQt.QtWidgets import QApplication, QFormLayout
 
 from Orange.data import StringVariable
+from Orange.widgets import gui
 from Orange.widgets.credentials import CredentialManager
 from Orange.widgets.settings import Setting
 from Orange.widgets.widget import OWWidget, Msg, Output
@@ -11,11 +12,6 @@ from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.nyt import NYT, MIN_DATE
 from orangecontrib.text.widgets.utils import CheckListLayout, DatePickerInterval, QueryBox, \
     gui_require, asynchronous
-
-try:
-    from orangewidget import gui
-except ImportError:
-    from Orange.widgets import gui
 
 
 class OWNYT(OWWidget):
@@ -83,7 +79,7 @@ class OWNYT(OWWidget):
     date_to = Setting(datetime.now().date())
 
     attributes = [feat.name for feat, _ in NYT.metas if isinstance(feat, StringVariable)]
-    text_includes = Setting([feat.name for feat in NYT.text_features])
+    text_includes = Setting([NYT.text_features])
 
     class Warning(OWWidget.Warning):
         no_text_fields = Msg('Text features are inferred when none are selected.')
@@ -213,7 +209,5 @@ class OWNYT(OWWidget):
 
 
 if __name__ == '__main__':
-    app = QApplication([])
-    widget = OWNYT()
-    widget.show()
-    app.exec()
+    from orangewidget.utils.widgetpreview import WidgetPreview
+    WidgetPreview(OWNYT).run()

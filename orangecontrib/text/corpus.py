@@ -1,10 +1,10 @@
 import os
 import warnings
 from collections import Counter, defaultdict
-from copy import copy
+from copy import copy, deepcopy
 from numbers import Integral
 from itertools import chain
-from typing import Union, Optional, List, Tuple
+from typing import Union, Optional, List, Tuple, Dict
 from warnings import warn
 
 import nltk
@@ -23,6 +23,8 @@ from Orange.data import (
 )
 from Orange.preprocess.transformation import Identity
 from Orange.data.util import get_unique_names
+
+from orangecontrib.text.language import ISO2LANG
 
 try:
     from orangewidget.utils.signals import summarize, PartialSummary
@@ -53,6 +55,7 @@ def _check_arrays(*arrays):
 
 class Corpus(Table):
     """Internal class for storing a corpus."""
+    NGRAMS_SEPARATOR = " "
 
     def __new__(cls, *args, **kwargs):
         if args and isinstance(args[0], Domain) or "domain" in kwargs:
@@ -87,7 +90,6 @@ class Corpus(Table):
         self._tokens = None
         self._dictionary = None
         self.ngram_range = (1, 1)
-        self.attributes = {}
         self._pos_tags = None
         from orangecontrib.text.preprocess import PreprocessorList
         self.__used_preprocessor = PreprocessorList([])   # required for compute values
@@ -100,10 +102,12 @@ class Corpus(Table):
             self.set_text_features(text_features)
 
         self._set_unique_titles()
+        if "language" not in self.attributes:
+            self.attributes["language"] = None
 
     @property
     def used_preprocessor(self):
-        return self.__used_preprocessor  # type: PreprocessorList
+        return self.__used_preprocessor
 
     @used_preprocessor.setter
     def used_preprocessor(self, pp):
@@ -257,7 +261,7 @@ class Corpus(Table):
     def extend_attributes(
             self, X, feature_names, feature_values=None, compute_values=None,
             var_attrs=None, sparse=False, rename_existing=False
-        ):
+    ):
         """
         Append features to corpus. If `feature_values` argument is present,
         features will be Discrete else Continuous.
@@ -304,9 +308,7 @@ class Corpus(Table):
             feature_values = [None] * X.shape[1]
 
         # rename existing variables if required
-        curr_attributes, curr_class_var, curr_metas = _rename_features(
-            feature_names
-        )
+        curr_attributes, curr_class_var, curr_metas = _rename_features(feature_names)
         if not rename_existing:
             # rename new feature names if required
             feature_names = get_unique_names(
@@ -337,6 +339,7 @@ class Corpus(Table):
             self.W.copy(),
             text_features=copy(self.text_features),
         )
+        c.name = self.name  # keep corpus's name
         Corpus.retain_preprocessing(self, c)
         return c
 
@@ -360,6 +363,15 @@ class Corpus(Table):
         """ Returns a list of titles. """
         assert self._titles is not None
         return self._titles
+
+    @property
+    def language(self):
+        return self.attributes["language"]
+
+    def __setstate__(self, state: Dict):
+        super().__setstate__(state)
+        if "language" not in self.attributes:
+            self.attributes["language"] = None
 
     def documents_from_features(self, feats):
         """
@@ -435,7 +447,7 @@ class Corpus(Table):
     def pos_tags(self, pos_tags):
         self._pos_tags = pos_tags
 
-    def ngrams_iterator(self, join_with=' ', include_postags=False):
+    def ngrams_iterator(self, join_with=NGRAMS_SEPARATOR, include_postags=False):
         if self.pos_tags is None:
             include_postags = False
 
@@ -459,13 +471,13 @@ class Corpus(Table):
     @property
     def ngrams(self):
         """generator: Ngram representations of documents."""
-        return self.ngrams_iterator(join_with=' ')
+        return self.ngrams_iterator(join_with=self.NGRAMS_SEPARATOR)
 
     def copy(self):
         """Return a copy of the table."""
         c = super().copy()
         # since tokens and dictionary are considered immutable copies are not needed
-        c._setup_corpus(copy(self.text_features))
+        c._setup_corpus(text_features=copy(self.text_features))
         c._tokens = self._tokens
         c._dictionary = self._dictionary
         c.ngram_range = self.ngram_range
@@ -478,7 +490,7 @@ class Corpus(Table):
 
     @staticmethod
     def from_documents(documents, name, attributes=None, class_vars=None, metas=None,
-                       title_indices=None):
+                       title_indices=None, language=None):
         """
         Create corpus from documents.
 
@@ -490,6 +502,7 @@ class Corpus(Table):
             metas (list): List of tuples (Variable, getter) for metas.
             title_indices (list): List of indices into domain corresponding to features which will
                 be used as titles.
+            language (str): Resulting corpus's language
 
         Returns:
             Corpus.
@@ -527,6 +540,7 @@ class Corpus(Table):
             domain=domain, X=X, Y=Y, metas=metas, text_features=[]
         )
         corpus.name = name
+        corpus.attributes["language"] = language
         return corpus
 
     def __getitem__(self, key):
@@ -540,6 +554,8 @@ class Corpus(Table):
         c = super().from_table(domain, source, row_indices)
         c._setup_corpus()
         Corpus.retain_preprocessing(source, c, row_indices)
+        # temp fix: remove when oldest Orange >= 3.34
+        c.attributes = deepcopy(c.attributes)
         return c
 
     @classmethod
@@ -553,19 +569,24 @@ class Corpus(Table):
         attributes=None,
         ids=None,
         text_features=None,
+        language=None
     ):
         t = super().from_numpy(
             domain, X, Y=Y, metas=metas, W=W, attributes=attributes, ids=ids
         )
         # t is corpus but corpus specific attributes were not set yet
         t._setup_corpus(text_features=text_features)
+        # language can be already set in attributes if they provided
+        if language is not None or "language" not in t.attributes:
+            t.attributes["language"] = language
         return t
 
     @classmethod
-    def from_list(cls, domain, rows, weights=None):
+    def from_list(cls, domain, rows, weights=None, language=None):
         t = super().from_list(domain, rows, weights)
         # t is corpus but corpus specific attributes were not set yet
         t._setup_corpus()
+        t.attributes["language"] = language
         return t
 
     @classmethod
@@ -576,10 +597,12 @@ class Corpus(Table):
         if hasattr(source, "_titles"):
             # covering case when from_table_rows called by from_table
             c._titles = source._titles[row_indices]
+        # temp fix: remove when oldest Orange >= 3.34
+        c.attributes = deepcopy(c.attributes)
         return c
 
     @classmethod
-    def from_file(cls, filename):
+    def from_file(cls, filename, sheet=None):
         if not os.path.exists(filename):  # check the default location
             abs_path = os.path.join(get_sample_corpora_dir(), filename)
             if not abs_path.endswith('.tab'):
@@ -587,7 +610,7 @@ class Corpus(Table):
             if os.path.exists(abs_path):
                 filename = abs_path
 
-        table = super().from_file(filename)
+        table = super().from_file(filename, sheet=sheet)
         if not isinstance(table, Corpus):
             # when loading regular file result of super().from_file is Table - need
             # to be transformed to Corpus, when loading pickle it is Corpus already
@@ -646,7 +669,7 @@ if summarize:
     # summarize is not available in older versions of orange-widget-base
     # skip if not available
     @summarize.register(Corpus)
-    def summarize_(corpus: Corpus) -> PartialSummary:
+    def summarize_corpus(corpus: Corpus) -> PartialSummary:
         """
         Provides automated input and output summaries for Corpus
         """
@@ -659,4 +682,6 @@ if summarize:
             if corpus.has_tokens()
             else "<br/><nobr>Corpus is not preprocessed</nobr>"
         )
+        language = ISO2LANG[corpus.language] if corpus.language else "not set"
+        extras += f"<br/><nobr>Language: {language}</nobr>"
         return PartialSummary(table_summary.summary, table_summary.details + extras)

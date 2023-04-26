@@ -8,7 +8,9 @@ from unittest.mock import Mock, patch
 import numpy as np
 from AnyQt.QtCore import Qt, QItemSelectionModel, QItemSelection, \
     QItemSelectionRange
-from AnyQt.QtWidgets import QFileDialog, QPushButton
+from AnyQt.QtWidgets import QFileDialog
+from AnyQt.QtTest import QTest
+from owlready2 import get_ontology, Thing, types
 
 from Orange.data import Table
 from Orange.widgets.tests.base import WidgetTest
@@ -16,6 +18,9 @@ from orangecontrib.text.ontology import OntologyHandler
 from orangecontrib.text.widgets.owontology import OWOntology, _run, \
     EditableTreeView, _tree_to_html
 from orangecontrib.text.widgets.utils.words import create_words_table
+
+
+SBERT_PATCH_METHOD = "orangecontrib.text.ontology.SBERT.__call__"
 
 
 class TestUtils(unittest.TestCase):
@@ -96,6 +101,27 @@ class TestEditableTreeView(WidgetTest):
         self.view._EditableTreeView__on_remove_recursive()
         self.assertEqual(self.view.get_data(), {})
 
+    def test_on_remove_with_delete_key(self):
+        # test with delete button
+        self.view.set_data(self.data)
+        model = self.view._EditableTreeView__model
+        sel_model = self.view._EditableTreeView__tree.selectionModel()
+        sel_model.select(model.index(0, 0), QItemSelectionModel.ClearAndSelect)
+
+        self.assertEqual(self.view.get_data(), {"foo": {"bar": {}, "baz": {}}})
+        QTest.keyClick(self.view, Qt.Key_Delete)
+        self.assertDictEqual({}, self.view.get_data())
+
+    def test_on_remove_with_backspace_key(self):
+        self.view.set_data(self.data)
+        model = self.view._EditableTreeView__model
+        sel_model = self.view._EditableTreeView__tree.selectionModel()
+        sel_model.select(model.index(0, 0), QItemSelectionModel.ClearAndSelect)
+
+        self.assertEqual(self.view.get_data(), {"foo": {"bar": {}, "baz": {}}})
+        QTest.keyClick(self.view, Qt.Key_Backspace)
+        self.assertDictEqual({}, self.view.get_data())
+
     def test_get_words(self):
         self.view.set_data(self.data)
         self.assertEqual(self.view.get_words(), ["foo", "bar", "baz"])
@@ -133,6 +159,7 @@ class TestEditableTreeView(WidgetTest):
 
 
 class TestOWOntology(WidgetTest):
+    @patch(SBERT_PATCH_METHOD, Mock(return_value=[np.ones(300)] * 3))
     def setUp(self):
         self._ontology_1 = {"foo1": {"bar1": {}, "baz1": {}}}
         self._ontology_2 = {"foo2": {"bar2": {}, "baz2": {}}}
@@ -146,7 +173,8 @@ class TestOWOntology(WidgetTest):
         }
         self.widget = self.create_widget(OWOntology, stored_settings=settings)
 
-    def test_input_words(self):
+    @patch(SBERT_PATCH_METHOD, return_value=[np.ones(300)] * 3)
+    def test_input_words(self, _):
         get_ontology_data = self.widget._OWOntology__ontology_view.get_data
 
         words = create_words_table(["foo"])
@@ -188,14 +216,16 @@ class TestOWOntology(WidgetTest):
         output = self.get_output(self.widget.Outputs.words)
         self.assert_table_equal(words, output)
 
-    def test_library_sel_changed(self):
+    @patch(SBERT_PATCH_METHOD, return_value=[np.ones(300)] * 3)
+    def test_library_sel_changed(self, _):
         get_ontology_data = self.widget._OWOntology__ontology_view.get_data
         self.assertEqual(get_ontology_data(), self._ontology_1)
         self.widget._OWOntology__set_selected_row(1)
         self.assertEqual(self.widget._OWOntology__get_selected_row(), 1)
         self.assertEqual(get_ontology_data(), self._ontology_2)
 
-    def test_library_add(self):
+    @patch(SBERT_PATCH_METHOD, return_value=[np.ones(300)] * 3)
+    def test_library_add(self, _):
         get_ontology_data = self.widget._OWOntology__ontology_view.get_data
 
         self.widget._OWOntology__on_add()
@@ -205,7 +235,8 @@ class TestOWOntology(WidgetTest):
         self.widget._OWOntology__set_selected_row(1)
         self.assertEqual(get_ontology_data(), self._ontology_2)
 
-    def test_library_remove(self):
+    @patch(SBERT_PATCH_METHOD, return_value=[np.ones(300)] * 3)
+    def test_library_remove(self, _):
         get_ontology_data = self.widget._OWOntology__ontology_view.get_data
 
         self.widget._OWOntology__on_remove()
@@ -218,7 +249,8 @@ class TestOWOntology(WidgetTest):
         self.assertEqual(get_ontology_data(), self._ontology_2)
         self.assertIsNone(self.widget._OWOntology__get_selected_row())
 
-    def test_library_update(self):
+    @patch(SBERT_PATCH_METHOD, return_value=[np.ones(300)] * 3)
+    def test_library_update(self, _):
         self.assertEqual(self.widget._OWOntology__get_selected_row(), 0)
         model = self.widget._OWOntology__ontology_view._EditableTreeView__model
         model.setData(model.index(0, 0), "foo3", role=Qt.EditRole)
@@ -232,7 +264,8 @@ class TestOWOntology(WidgetTest):
         self.assertEqual(settings["ontology_library"][0]["ontology"],
                          {"foo3": {"bar1": {}, "baz1": {}}})
 
-    def test_library_import(self):
+    @patch(SBERT_PATCH_METHOD, return_value=[np.ones(300)] * 3)
+    def test_library_import(self, _):
         ontology = {"foo3": {"bar3": {}, "baz3": {}}}
         get_ontology_data = self.widget._OWOntology__ontology_view.get_data
 
@@ -246,6 +279,34 @@ class TestOWOntology(WidgetTest):
             self.assertEqual(self.widget._OWOntology__model[2].name,
                              os.path.basename(f.name))
             self.assertEqual(get_ontology_data(), ontology)
+
+    def test_library_import_owl(self):
+        # create ontology
+        onto = get_ontology("http://test.org/onto.owl")
+        with onto:
+            # foo3 will be missing the label attribute - widget display name
+            foo3 = types.new_class("foo3", (Thing,))
+            # other two classes will have label attribute - widget display label
+            for c, label in (("bar3", "Bar 3"), ("baz3", "Baz 3")):
+                thing = types.new_class(c, (foo3,))
+                thing.label = label
+
+        get_ontology_data = self.widget._OWOntology__ontology_view.get_data
+        with tempfile.TemporaryDirectory() as tmp_dir_name:
+            # safe to file
+            path = os.path.join(tmp_dir_name, "onto.owl")
+            onto.save(file=path, format="rdfxml")
+
+            # open with widget
+            with patch.object(
+                QFileDialog, "getOpenFileName", Mock(return_value=(path, None))
+            ):
+                self.widget._OWOntology__on_import_file()
+                self.assertEqual(self.widget._OWOntology__get_selected_row(), 2)
+                name = self.widget._OWOntology__model[2].name
+                self.assertEqual(name, os.path.basename(path))
+                expected = {"foo3": {"Bar 3": {}, "Baz 3": {}}}
+                self.assertEqual(get_ontology_data(), expected)
 
     def test_library_save(self):
         with tempfile.NamedTemporaryFile(mode="w", suffix=".pkl",
@@ -271,10 +332,7 @@ class TestOWOntology(WidgetTest):
         self.assertDictEqual(get_ontology_data(), {"foo1": {"bar1": {}, "baz1": {}}})
 
         # generate with embedding error - two skipped
-        with patch(
-            "orangecontrib.text.vectorization.sbert.SBERT.__call__",
-            return_value=[np.ones(300), None, None],
-        ):
+        with patch(SBERT_PATCH_METHOD, return_value=[np.ones(300), None, None]):
             self.widget._OWOntology__run_button.click()
             self.wait_until_finished()
             self.assertDictEqual(get_ontology_data(), {"foo1": {}})
@@ -285,10 +343,7 @@ class TestOWOntology(WidgetTest):
             )
 
         # generate without embedding error
-        with patch(
-            "orangecontrib.text.vectorization.sbert.SBERT.__call__",
-            return_value=[np.ones(300)],
-        ):
+        with patch(SBERT_PATCH_METHOD, return_value=[np.ones(300)]):
             self.widget._OWOntology__run_button.click()
             self.wait_until_finished()
             self.assertDictEqual(get_ontology_data(), {"foo1": {}})
@@ -304,7 +359,7 @@ class TestOWOntology(WidgetTest):
 
         # insert with an embedding error
         with patch(
-            "orangecontrib.text.vectorization.sbert.SBERT.__call__",
+            SBERT_PATCH_METHOD,
             side_effect=[
                 [np.ones(300), np.ones(300), np.ones(300), None],
                 [np.ones(300), np.ones(300), np.ones(300)],
@@ -330,10 +385,7 @@ class TestOWOntology(WidgetTest):
             )
 
         # insert without embedding error
-        with patch(
-            "orangecontrib.text.vectorization.sbert.SBERT.__call__",
-            return_value=[np.ones(300)] * 4,
-        ):
+        with patch(SBERT_PATCH_METHOD, return_value=[np.ones(300)] * 4):
             self.widget._OWOntology__inc_button.click()
             self.wait_until_finished()
             self.assertDictEqual(

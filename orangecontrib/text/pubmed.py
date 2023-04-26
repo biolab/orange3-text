@@ -4,15 +4,10 @@ import warnings
 from datetime import datetime
 
 import numpy as np
-from Bio import Entrez
-from Bio import Medline
+from Bio import Entrez, Medline
+from Orange.data import DiscreteVariable, Domain, StringVariable, TimeVariable
+from Orange.misc import environ
 
-try:
-    from Orange.misc import environ
-except ImportError:
-    from Orange.canvas.utils import environ
-
-from Orange.data import StringVariable, DiscreteVariable, TimeVariable, Domain
 from orangecontrib.text.corpus import Corpus
 
 BASE_ENTRY_URL = 'http://www.ncbi.nlm.nih.gov/pubmed/?term='
@@ -164,8 +159,10 @@ def _corpus_from_records(records, includes_metadata):
 
     Y = np.array([class_vars[0].to_val(cv) for cv in class_values])[:, None]
 
+    # as documented here https://www.nlm.nih.gov/bsd/mms/medlineelements.html#ab
+    # all abstracts are in English - setting language to English
     return Corpus.from_numpy(
-        domain=domain, X=np.empty((len(Y), 0)), Y=Y, metas=meta_values
+        domain=domain, X=np.empty((len(Y), 0)), Y=Y, metas=meta_values, language="en"
     )
 
 
@@ -186,7 +183,6 @@ class Pubmed:
         self.error_callback = error_callback
         self.stop_signal = False
 
-        self.cache_path = None
         cache_folder = os.path.join(environ.cache_dir(), 'pubmedcache')
 
         if not os.path.exists(cache_folder):
@@ -324,7 +320,6 @@ class Pubmed:
             `orangecontrib.text.corpus.Corpus`: The retrieved PubMed records
                 as a corpus.
         """
-        corpus = None
         batch_size = min(self.MAX_BATCH_SIZE, num_records)
         cached_data = []  # Later on, construct the corpus from this.
         new_records = []  # Must download.
@@ -354,10 +349,8 @@ class Pubmed:
             # Advance the callback accordingly.
             self.progress_callback(int(cached_data_size/batch_size))
 
-            # Create a starting corpus.
-            corpus = _corpus_from_records(cached_data, includes_metadata)
-
         # --- Retrieve missing/new ---
+        records = []
         if len(new_records) > 0:
             try:
                 post_handle = Entrez.epost('pubmed', id=','.join(new_records))
@@ -404,18 +397,8 @@ class Pubmed:
                 if self.progress_callback:
                     self.progress_callback()
 
-                if corpus is None:
-                    corpus = _corpus_from_records(records, includes_metadata)
-                else:  # Update the corpus.
-                    time_var = corpus.domain[PUBMED_FIELD_DATE]
-                    meta_values, class_values = _records_to_corpus_entries(
-                        records,
-                        includes_metadata=includes_metadata,
-                        time_var=time_var,
-                    )
-
-                    corpus.extend_corpus(meta_values, class_values)
-
+        data = cached_data + records
+        corpus = _corpus_from_records(data, includes_metadata) if len(data) else None
         return corpus
 
     def download_records(self, terms=[], authors=[],

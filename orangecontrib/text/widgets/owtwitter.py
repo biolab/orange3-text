@@ -12,7 +12,7 @@ from Orange.widgets.utils.concurrent import TaskState, ConcurrentWidgetMixin
 
 from orangecontrib.text import twitter
 from orangecontrib.text.corpus import Corpus
-from orangecontrib.text.language_codes import code2lang
+from orangecontrib.text.language import ISO2LANG
 from orangecontrib.text.twitter import TwitterAPI, SUPPORTED_LANGUAGES, NoAuthorError
 from orangecontrib.text.widgets.utils import ComboBox, ListEdit, gui_require
 
@@ -171,7 +171,7 @@ class OWTwitter(OWWidget, ConcurrentWidgetMixin):
         )
 
         # Language
-        langs = (("Any", None),) + tuple((code2lang[l], l) for l in SUPPORTED_LANGUAGES)
+        langs = (("Any", None),) + tuple((ISO2LANG[l], l) for l in SUPPORTED_LANGUAGES)
         self.language_combo = ComboBox(self, "language", items=langs)
         add_row("Language:", self.language_combo)
 
@@ -217,7 +217,7 @@ class OWTwitter(OWWidget, ConcurrentWidgetMixin):
     def mode_toggle(self):
         if self.mode == self.AUTHOR:
             self.language_combo.setCurrentIndex(0)
-            self.retweets_checkbox.setCheckState(False)
+            self.retweets_checkbox.setCheckState(Qt.Unchecked)
         self.retweets_checkbox.setEnabled(self.mode == self.CONTENT)
         self.language_combo.setEnabled(self.mode == self.CONTENT)
 

@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import patch, PropertyMock, MagicMock
+from unittest.mock import patch, PropertyMock, MagicMock, Mock
 
 from orangewidget.utils.filedialogs import RecentPath
 from Orange.widgets.tests.base import WidgetTest
@@ -8,13 +8,14 @@ from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.preprocess import RegexpTokenizer, WhitespaceTokenizer, \
     LowercaseTransformer, HtmlTransformer, PorterStemmer, SnowballStemmer, \
     UDPipeLemmatizer, StopwordsFilter, MostFrequentTokensFilter, NGrams
-from orangecontrib.text.tag import AveragedPerceptronTagger, StanfordPOSTagger, \
-    MaxEntTagger
+from orangecontrib.text.tag import AveragedPerceptronTagger, MaxEntTagger
+from orangecontrib.text.tests.test_preprocess import SF_LIST, SERVER_FILES
 from orangecontrib.text.widgets.owpreprocess import OWPreprocess, \
     TransformationModule, TokenizerModule, NormalizationModule, \
     FilteringModule, NgramsModule, POSTaggingModule
 
 
+@patch(SF_LIST, new=Mock(return_value=SERVER_FILES))
 class TestOWPreprocess(WidgetTest):
     def setUp(self):
         self.widget = self.create_widget(OWPreprocess)
@@ -70,6 +71,7 @@ class TestOWPreprocess(WidgetTest):
                                   {"method": NormalizationModule.UDPipe,
                                    "udpipe_tokenizer": True})]
            }))
+    @patch("orangecontrib.text.widgets.owpreprocess.OWPreprocess.start", Mock())
     def test_tokenizer_ignored(self):
         widget = self.create_widget(OWPreprocess)
         self.send_signal(widget.Inputs.corpus, self.corpus)
@@ -84,6 +86,7 @@ class TestOWPreprocess(WidgetTest):
                                   {"method": NormalizationModule.UDPipe,
                                    "udpipe_tokenizer": True})]
            }))
+    @patch("orangecontrib.text.widgets.owpreprocess.OWPreprocess.start", Mock())
     def test_filtering_ignored(self):
         widget = self.create_widget(OWPreprocess)
         self.send_signal(widget.Inputs.corpus, self.corpus)
@@ -97,8 +100,7 @@ class TestOWPreprocess(WidgetTest):
            }))
     @patch("orangecontrib.text.preprocess.normalize.UDPipeModels.online",
            PropertyMock(return_value=False))
-    @patch("orangecontrib.text.preprocess.normalize.UDPipeModels.model_files",
-           PropertyMock(return_value=["English"]))
+    @patch("orangecontrib.text.widgets.owpreprocess.OWPreprocess.start", Mock())
     def test_udpipe_offline(self):
         widget = self.create_widget(OWPreprocess)
         self.send_signal(widget.Inputs.corpus, self.corpus)
@@ -115,6 +117,7 @@ class TestOWPreprocess(WidgetTest):
            PropertyMock(return_value=False))
     @patch("orangecontrib.text.preprocess.normalize.UDPipeModels.model_files",
            PropertyMock(return_value=[]))
+    @patch("orangecontrib.text.widgets.owpreprocess.OWPreprocess.start", Mock())
     def test_udpipe_no_models(self):
         widget = self.create_widget(OWPreprocess)
         self.send_signal(widget.Inputs.corpus, self.corpus)
@@ -136,18 +139,8 @@ class TestOWPreprocess(WidgetTest):
         widget = self.create_widget(OWPreprocess)
         self.assertTrue(widget.Error.invalid_encoding.is_shown())
 
-    # TODO - implement StanfordPOSTagger
-    # @patch("orangecontrib.text.widgets.owpreprocess.OWPreprocess."
-    #        "storedsettings",
-    #        PropertyMock(return_value={
-    #            "preprocessors": [("tag.pos",
-    #                               {"method": POSTaggingModule.Stanford})]
-    #        }))
-    # def test_stanford_tagger_error(self):
-    #     widget = self.create_widget(OWPreprocess)
-    #     self.assertTrue(widget.Error.stanford_tagger.is_shown())
 
-
+@patch(SF_LIST, new=Mock(return_value=SERVER_FILES))
 class TestOWPreprocessMigrateSettings(WidgetTest):
     def test_migrate_settings_transform(self):
         settings = {"__version__": 1,
@@ -342,7 +335,9 @@ class TestTokenizerModule(WidgetTest):
         self.assertEqual(str(self.editor), "Regexp (\\w+)")
 
 
+@patch(SF_LIST, new=Mock(return_value=SERVER_FILES))
 class TestNormalizationModule(WidgetTest):
+    @patch(SF_LIST, new=Mock(return_value=SERVER_FILES))
     def setUp(self):
         self.editor = NormalizationModule()
 
@@ -385,13 +380,13 @@ class TestNormalizationModule(WidgetTest):
     def test_set_parameters(self):
         params = {"method": NormalizationModule.UDPipe,
                   "snowball_language": "Dutch",
-                  "udpipe_language": "Finnish",
+                  "udpipe_language": "Slovenian",
                   "lemmagen_language": "Bulgarian",
                   "udpipe_tokenizer": True}
         self.editor.setParameters(params)
         self.assertDictEqual(self.editor.parameters(), params)
         self.assertEqual(self.combo_sbl.currentText(), "Dutch")
-        self.assertEqual(self.combo_udl.currentText(), "Finnish")
+        self.assertEqual(self.combo_udl.currentText(), "Slovenian")
         self.assertEqual(self.combo_lemm.currentText(), "Bulgarian")
         self.assertTrue(self.check_use.isChecked())
 

@@ -5,6 +5,37 @@ Change Log
 ------------
 * ...
 
+[1.13.0] - 2023-04-26
+--------------------
+##### Enhancements
+* Sentiment Analysis - Language from corpus ([#954](../../pull/954))
+* NYTimes - add language to corpus ([#926](../../pull/926))
+* Document embedding - Use language from the corpus ([#953](../../pull/953))
+* Guardian - infer language and add to corpus ([#925](../../pull/925))
+* Score Documents - Use SBERT embedding instead of FastText ([#930](../../pull/930))
+* Wikipedia - add language to corpus ([#928](../../pull/928))
+* Keywords - replace embedding with MBERT ([#932](../../pull/932))
+* Remove elements with delete/backspace key ([#948](../../pull/948))
+* Semantic Viewer - show document when no words at the input ([#933](../../pull/933))
+* PubMed - add language to corpus ([#927](../../pull/927))
+* Score Documents - enable matching n-grams ([#935](../../pull/935))
+* Create Corpus - add language to corpus ([#924](../../pull/924))
+* Twitter - add language to corpus ([#921](../../pull/921))
+* Import documents - language dialog and language guessing ([#918](../../pull/918))
+* Add language to corpus ([#916](../../pull/916))
+
+##### Bugfixes
+* Corpus - Fix contexts to be compatible between sessions ([#966](../../pull/966))
+* Keywords: Fix selection and use idClicked instead of buttonClicked ([#965](../../pull/965))
+* Ontology - Show labels instead of names for imported ontolgies ([#936](../../pull/936))
+* Corpus widget - preserve corpus's preprocessing ([#950](../../pull/950))
+* Pubmed - replace deprecated extend_corpus ([#949](../../pull/949))
+* Corpus - preserve name in extend_attributes ([#937](../../pull/937))
+* Make widgets PyQt6 compatible ([#929](../../pull/929))
+* Corpus: Unpickle corpus without language ([#919](../../pull/919))
+* Score Documents - cast bool scores to float ([#913](../../pull/913))
+* Annotator: Invalidate clusters on setting change ([#910](../../pull/910))
+
 [1.12.0] - 2022-10-06
 --------------------
 ##### Bugfixes
@@ -397,7 +428,8 @@ Change Log
 --------------------
 
 
-[next]: https://github.com/biolab/orange3-text/compare/1.12.0...HEAD
+[next]: https://github.com/biolab/orange3-text/compare/1.13.0...HEAD
+[1.13.0]: https://github.com/biolab/orange3-text/compare/1.12.0...1.13.0
 [1.12.0]: https://github.com/biolab/orange3-text/compare/1.11.0...1.12.0
 [1.11.0]: https://github.com/biolab/orange3-text/compare/1.10.0...1.11.0
 [1.10.0]: https://github.com/biolab/orange3-text/compare/1.9.0...1.10.0

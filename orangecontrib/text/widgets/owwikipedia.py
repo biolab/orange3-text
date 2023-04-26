@@ -5,7 +5,7 @@ from Orange.widgets import gui
 from Orange.widgets import settings
 from Orange.widgets.widget import OWWidget, Msg, Output
 from orangecontrib.text.corpus import Corpus
-from orangecontrib.text.language_codes import lang2code, code2lang
+from orangecontrib.text.language import LANG2ISO, ISO2LANG
 from orangecontrib.text.widgets.utils import ComboBox, ListEdit, CheckListLayout, asynchronous
 from orangecontrib.text.wikipedia_api import WikipediaAPI
 
@@ -61,7 +61,8 @@ class OWWikipedia(OWWidget):
 
         # Language
         row += 1
-        language_edit = ComboBox(self, 'language', tuple(sorted(lang2code.items())))
+        languages = sorted(set(LANG2ISO.items()) - {(None, None)})
+        language_edit = ComboBox(self, 'language', languages)
         layout.addWidget(QLabel('Language:'), row, 0, 1, self.label_width)
         layout.addWidget(language_edit, row, self.label_width, 1, self.widgets_width)
 
@@ -133,7 +134,7 @@ class OWWikipedia(OWWidget):
 
     def send_report(self):
         if self.result:
-            items = (('Language', code2lang[self.language]),
+            items = (('Language', ISO2LANG[self.language]),
                      ('Query', self.query_edit.toPlainText()),
                      ('Articles count', len(self.result)))
             self.report_items('Query', items)

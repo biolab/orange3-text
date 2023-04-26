@@ -8,7 +8,8 @@ from Orange.widgets.tests.utils import simulate
 from Orange.misc.utils.embedder_utils import EmbeddingConnectionError
 
 from orangecontrib.text.tests.test_documentembedder import PATCH_METHOD, make_dummy_post
-from orangecontrib.text.vectorization.sbert import EMB_DIM
+from orangecontrib.text.vectorization.document_embedder import DocumentEmbedder
+from orangecontrib.text.vectorization.sbert import EMB_DIM, SBERT
 from orangecontrib.text.widgets.owdocumentembedding import OWDocumentEmbedding
 from orangecontrib.text import Corpus
 
@@ -28,10 +29,14 @@ class TestOWDocumentEmbedding(WidgetTest):
 
         # test on fastText, except for tests that change the setting
         self.widget.findChildren(QRadioButton)[1].click()
-        self.widget.vectorizer.method.clear_cache()
+        SBERT().clear_cache()
+        DocumentEmbedder.clear_cache("en")
+        DocumentEmbedder.clear_cache("sl")
 
     def tearDown(self):
-        self.widget.vectorizer.method.clear_cache()
+        SBERT().clear_cache()
+        DocumentEmbedder.clear_cache("en")
+        DocumentEmbedder.clear_cache("sl")
 
     def test_input(self):
         set_data = self.widget.set_data = Mock()
@@ -57,10 +62,11 @@ class TestOWDocumentEmbedding(WidgetTest):
     @patch(PATCH_METHOD, make_dummy_post(b''))
     def test_some_failed(self):
         simulate.combobox_activate_index(
-            self.widget.controlArea.findChildren(QComboBox)[1], 1
+            self.widget.controlArea.findChildren(QComboBox)[0], 1
         )
-        self.send_signal("Corpus", self.corpus)
-        self.wait_until_finished()
+        with self.assertWarns(RuntimeWarning):  # avoid warnings in test logs
+            self.send_signal("Corpus", self.corpus)
+            self.wait_until_finished()
         result = self.get_output(self.widget.Outputs.corpus)
         skipped = self.get_output(self.widget.Outputs.skipped)
         self.assertIsNone(result)
@@ -111,8 +117,9 @@ class TestOWDocumentEmbedding(WidgetTest):
     @patch('orangecontrib.text.vectorization.document_embedder' +
            '._ServerEmbedder._encode_data_instance', none_method)
     def test_skipped_documents(self):
-        self.send_signal("Corpus", self.corpus)
-        self.wait_until_finished()
+        with self.assertWarns(RuntimeWarning):  # avoid warnings in test logs
+            self.send_signal("Corpus", self.corpus)
+            self.wait_until_finished()
         self.assertIsNone(self.get_output(self.widget.Outputs.corpus))
         self.assertEqual(len(self.get_output(self.widget.Outputs.skipped)), len(self.corpus))
         self.assertTrue(self.widget.Warning.unsuccessful_embeddings.is_shown())
@@ -120,7 +127,7 @@ class TestOWDocumentEmbedding(WidgetTest):
     @patch(PATCH_METHOD, make_dummy_post(SBERT_RESPONSE))
     def test_sbert(self):
         self.widget.findChildren(QRadioButton)[0].click()
-        self.widget.vectorizer.method.clear_cache()
+        SBERT().clear_cache()
 
         self.send_signal("Corpus", self.corpus)
         result = self.get_output(self.widget.Outputs.corpus)
@@ -128,6 +135,84 @@ class TestOWDocumentEmbedding(WidgetTest):
         self.assertEqual(len(self.corpus), len(result))
         self.assertTupleEqual(self.corpus.domain.metas, result.domain.metas)
         self.assertEqual(384, len(result.domain.attributes))
+
+    @patch(PATCH_METHOD, make_dummy_post(b'{"embedding": [1.3, 1]}'))
+    def test_corpus_name_preserved(self):
+        # test on fasttext
+        self.send_signal("Corpus", self.corpus)
+        # just to make sure corpus already has a name
+        self.assertEqual("deerwester", self.corpus.name)
+        result = self.get_output(self.widget.Outputs.corpus)
+        self.assertIsNotNone(result)
+        self.assertEqual("deerwester", result.name)
+
+        # test on sbert
+        self.widget.findChildren(QRadioButton)[0].click()
+        result = self.get_output(self.widget.Outputs.corpus)
+        self.assertIsNotNone(result)
+        self.assertEqual("deerwester", result.name)
+
+    @patch(PATCH_METHOD, make_dummy_post(b'{"embedding": [1.3, 1]}'))
+    def test_fasttext_language(self):
+        # english corpus
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.assertEqual("English", self.widget.language)
+        result = self.get_output(self.widget.Outputs.corpus)
+        self.assertEqual(9, len(result))
+
+        # slovenian corpus
+        self.corpus.attributes["language"] = "sl"
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.assertEqual("Slovenian", self.widget.language)
+        result = self.get_output(self.widget.Outputs.corpus)
+        self.assertEqual(9, len(result))
+
+        # language none
+        self.corpus.attributes["language"] = None
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        # use widgets default language English
+        self.assertEqual(self.widget.DEFAULT_LANGUAGE, self.widget.language)
+        result = self.get_output(self.widget.Outputs.corpus)
+        self.assertEqual(9, len(result))
+
+        # language not supported
+        self.corpus.attributes["language"] = "be"
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        # use widgets default language English
+        self.assertEqual(self.widget.DEFAULT_LANGUAGE, self.widget.language)
+        result = self.get_output(self.widget.Outputs.corpus)
+        self.assertEqual(9, len(result))
+
+        # language english
+        self.corpus.attributes["language"] = "en"
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.assertEqual("English", self.widget.language)
+        result = self.get_output(self.widget.Outputs.corpus)
+        self.assertEqual(9, len(result))
+
+        # manually set language
+        simulate.combobox_activate_item(
+            self.widget.controlArea.findChildren(QComboBox)[0], "French"
+        )
+        self.assertEqual("French", self.widget.language)
+        result = self.get_output(self.widget.Outputs.corpus)
+        self.assertEqual(9, len(result))
+
+        # providing new corpus should reset language
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.assertEqual("English", self.widget.language)
+
+    def test_language_from_settings(self):
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        simulate.combobox_activate_item(
+            self.widget.controlArea.findChildren(QComboBox)[0], "French"
+        )
+        self.assertEqual("French", self.widget.language)
+        settings = self.widget.settingsHandler.pack_data(self.widget)
+
+        widget = self.create_widget(OWDocumentEmbedding, stored_settings=settings)
+        self.send_signal(widget.Inputs.corpus, self.corpus, widget=widget)
+        self.assertEqual("French", widget.language)
 
 
 if __name__ == "__main__":

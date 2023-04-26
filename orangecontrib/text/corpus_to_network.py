@@ -32,10 +32,7 @@ class CorpusToNetwork:
         self.document_network = None
         self.word2ind = None
         self.word_freqs = None
-        self.document_items = Table(corpus.domain,
-                                    corpus.X,
-                                    corpus.Y,
-                                    corpus.metas)
+        self.document_items = corpus.copy()
         self.word_items = None
         self.num_ngrams = 0
         self.last_called_nodes = True

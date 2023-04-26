@@ -4,19 +4,24 @@ import os
 import shelve
 import warnings
 from datetime import date
-from time import sleep
-from urllib import request, parse
+from functools import partial
 from http.client import HTTPException
+from time import sleep
+from urllib import parse, request
 from urllib.error import HTTPError, URLError
 
+import numpy as np
+from dateutil.parser import isoparse
+from Orange.data import (
+    ContinuousVariable,
+    DiscreteVariable,
+    StringVariable,
+    TimeVariable,
+)
+from Orange.misc import environ
 
-from Orange import data
 from orangecontrib.text.corpus import Corpus
-
-try:
-    from Orange.misc import environ
-except ImportError:
-    from Orange.canvas.utils import environ
+from orangecontrib.text.util import create_corpus
 
 SLEEP = 1
 TIMEOUT = 10
@@ -26,39 +31,70 @@ MIN_DATE = date(1851, 1, 1)
 BASE_URL = 'http://api.nytimes.com/svc/search/v2/articlesearch.json'
 
 
+def keywords(doc, name):
+    kws = doc.get("keywords", [])
+    return ", ".join([kw.get("value") for kw in kws if kw["name"] == name])
+
+
+def parse_date(doc):
+    date = doc.get("pub_date")
+    return isoparse(date).timestamp() if date is not None else np.nan
+
+
 class NYT:
     """ Class for fetching records from the NYT API. """
 
-    @staticmethod
-    def keywords(doc, name):
-        return ', '.join([kw.get('value')
-                          for kw in doc.get('keywords', [])
-                          if kw['name'] == name])
-
-    attributes = []
-
     class_vars = [
-        (data.DiscreteVariable('Section'), lambda doc: doc.get('section_name', None)),
+        (
+            partial(DiscreteVariable, "Section"),
+            lambda doc: doc.get("section_name", None),
+        ),
     ]
 
-    tv = data.TimeVariable('Publication Date')
     metas = [
-        (data.StringVariable('Headline'), lambda doc: doc.get('headline', {}).get('main') or ''),
-        (data.StringVariable('Abstract'), lambda doc: doc.get('abstract') or ''),
-        (data.StringVariable('Snippet'), lambda doc: doc.get('snippet') or ''),
-        (data.StringVariable('Lead Paragraph'), lambda doc: doc.get('lead_paragraph') or ''),
-        (data.StringVariable('Subject Keywords'), lambda doc: NYT.keywords(doc, 'subject')),
-        (data.StringVariable('URL'), lambda doc: doc.get('web_url') or ''),
-        (data.StringVariable('Locations'), lambda doc: NYT.keywords(doc, 'glocations')),
-        (data.StringVariable('Persons'), lambda doc: NYT.keywords(doc, 'persons')),
-        (data.StringVariable('Organizations'), lambda doc: NYT.keywords(doc, 'organizations')),
-        (data.StringVariable('Creative Works'), lambda doc: NYT.keywords(doc, 'creative_works')),
-        (tv, lambda doc: NYT.tv.parse(doc.get('pub_date'))),
-        (data.DiscreteVariable('Article Type'), lambda doc: doc.get('type_of_material', None)),
-        (data.ContinuousVariable('Word Count', number_of_decimals=0), lambda doc: doc.get('word_count', None)),
+        (
+            partial(StringVariable, "Headline"),
+            lambda doc: doc.get("headline", {}).get("main") or "",
+        ),
+        (partial(StringVariable, "Abstract"), lambda doc: doc.get("abstract") or ""),
+        (partial(StringVariable, "Snippet"), lambda doc: doc.get("snippet") or ""),
+        (
+            partial(StringVariable, "Lead Paragraph"),
+            lambda doc: doc.get("lead_paragraph") or "",
+        ),
+        (
+            partial(StringVariable, "Subject Keywords"),
+            partial(keywords, name="subject"),
+        ),
+        (partial(StringVariable, "URL"), lambda doc: doc.get("web_url") or ""),
+        (
+            partial(StringVariable, "Locations"),
+            partial(keywords, name="glocations"),
+        ),
+        (partial(StringVariable, "Persons"), partial(keywords, name="persons")),
+        (
+            partial(StringVariable, "Organizations"),
+            partial(keywords, name="organizations"),
+        ),
+        (
+            partial(StringVariable, "Creative Works"),
+            partial(keywords, name="creative_works"),
+        ),
+        (
+            partial(TimeVariable, "Publication Date", have_time=1, have_date=1),
+            parse_date,
+        ),
+        (
+            partial(DiscreteVariable, "Article Type"),
+            lambda doc: doc.get("type_of_material", None),
+        ),
+        (
+            partial(ContinuousVariable, "Word Count", number_of_decimals=0),
+            lambda doc: doc.get("word_count", None),
+        ),
     ]
 
-    text_features = [metas[0][0], metas[1][0]]  # headline + abstract
+    text_features = ["Headline", "Abstract"]
 
     def __init__(self, api_key):
         """
@@ -101,7 +137,6 @@ class NYT:
         if max_docs is None or max_docs > MAX_DOCS:
             max_docs = MAX_DOCS
 
-        # TODO create corpus on the fly and extend, so it stops faster.
         records = []
         data, go_sleep = self._fetch_page(query, date_from, date_to, 0)
         if data is None:
@@ -130,8 +165,17 @@ class NYT:
         if len(records) > max_docs:
             records = records[:max_docs]
 
-        return Corpus.from_documents(records, 'NY Times', self.attributes,
-                                     self.class_vars, self.metas, title_indices=[-1])
+        corpus = create_corpus(
+            documents=records,
+            attributes=[],
+            class_vars=self.class_vars,
+            metas=self.metas,
+            title_indices=[-1],
+            text_features=self.text_features,
+            name="NY Times",
+        )
+        corpus.attributes["language"] = "en"  # NYT publishes only in English
+        return corpus
 
     def _cache_init(self):
         """ Initialize cache in Orange environment buffer dir. """

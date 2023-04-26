@@ -10,47 +10,20 @@ from typing import Any, Optional, Tuple
 
 import numpy as np
 from Orange.misc.server_embedder import ServerEmbedderCommunicator
+from Orange.misc.utils.embedder_utils import EmbedderCache
 from Orange.util import dummy_callback
 
 from orangecontrib.text import Corpus
 from orangecontrib.text.vectorization.base import BaseVectorizer
 
-AGGREGATORS = ['Mean', 'Sum', 'Max', 'Min']
-AGGREGATORS_L = ['mean', 'sum', 'max', 'min']
-LANGS_TO_ISO = {
-    'English': 'en',
-    'Slovenian': 'sl',
-    'German': 'de',
-    'Arabic': 'ar',
-    'Azerbaijani': 'az',
-    'Bengali': 'bn',
-    'Chinese': 'zh',
-    'Danish': 'da',
-    'Dutch': 'nl',
-    'Finnish': 'fi',
-    'French': 'fr',
-    'Greek': 'el',
-    'Hebrew': 'he',
-    'Hindi': 'hi',
-    'Hungarian': 'hu',
-    'Indonesian': 'id',
-    'Italian': 'it',
-    'Japanese': 'ja',
-    'Kazakh': 'kk',
-    'Korean': 'ko',
-    'Nepali': 'ne',
-    'Norwegian (Bokm\u00e5l)': 'no',
-    'Norwegian (Nynorsk)': 'nn',
-    'Polish': 'pl',
-    'Portuguese': 'pt',
-    'Romanian': 'ro',
-    'Russian': 'ru',
-    'Spanish': 'es',
-    'Swedish': 'sv',
-    'Tajik': 'tg',
-    'Turkish': 'tr'
-}
-LANGUAGES = list(LANGS_TO_ISO.values())
+AGGREGATORS = ["mean", "sum", "max", "min"]
+# fmt: off
+LANGUAGES = [
+    'en', 'sl', 'de', 'ar', 'az', 'bn', 'zh', 'da', 'nl', 'fi', 'fr', 'el',
+    'he', 'hi', 'hu', 'id', 'it', 'ja', 'kk', 'ko', 'ne', 'no', 'nn', 'pl',
+    'pt', 'ro', 'ru', 'es', 'sv', 'tg', 'tr'
+]
+# fmt: on
 
 
 class DocumentEmbedder(BaseVectorizer):
@@ -62,10 +35,7 @@ class DocumentEmbedder(BaseVectorizer):
     Evaluation, 2018.
 
     Embedding is performed on server so the internet connection is a
-    prerequisite for using the class. Currently supported languages are:
-        - English (en)
-        - Slovenian (sl)
-        - German (de)
+    prerequisite for using the class.
 
     Attributes
     ----------
@@ -74,25 +44,18 @@ class DocumentEmbedder(BaseVectorizer):
     aggregator : str
         Aggregator which creates document embedding (single
         vector) from word embeddings (multiple vectors).
-        Allowed values are Mean, Sum, Max, Min.
+        Allowed values are mean, sum, max, min.
     """
 
-    def __init__(self, language: str = 'en',
-                 aggregator: str = 'Mean') -> None:
-        lang_error = '{} is not a valid language. Allowed values: {}'
-        agg_error = '{} is not a valid aggregator. Allowed values: {}'
-        if language.lower() not in LANGUAGES:
-            raise ValueError(lang_error.format(language, ', '.join(LANGUAGES)))
-        self.language = language.lower()
-        if aggregator.lower() not in AGGREGATORS_L:
-            raise ValueError(agg_error.format(aggregator, ', '.join(AGGREGATORS)))
-        self.aggregator = aggregator.lower()
-
-        self._embedder = _ServerEmbedder(self.aggregator,
-                                         model_name='fasttext-'+self.language,
-                                         max_parallel_requests=100,
-                                         server_url='https://api.garaza.io',
-                                         embedder_type='text')
+    def __init__(
+        self, language: Optional[str] = None, aggregator: str = "mean"
+    ) -> None:
+        assert (
+            language is None or language in LANGUAGES
+        ), f"Language should be one of: {LANGUAGES}"
+        assert aggregator in AGGREGATORS, f"Aggregator should be one of: {AGGREGATORS}"
+        self.aggregator = aggregator
+        self.language = language
 
     def _transform(
         self, corpus: Corpus, _, callback=dummy_callback
@@ -111,7 +74,19 @@ class DocumentEmbedder(BaseVectorizer):
         Skipped documents
             Corpus of documents that were not embedded
         """
-        embs = self._embedder.embedd_data(
+        language = self.language if self.language else corpus.language
+        if language not in LANGUAGES:
+            raise ValueError(
+                "The FastText embedding does not support the Corpus's language."
+            )
+        embedder = _ServerEmbedder(
+            self.aggregator,
+            model_name="fasttext-" + language,
+            max_parallel_requests=100,
+            server_url="https://api.garaza.io",
+            embedder_type="text",
+        )
+        embs = embedder.embedd_data(
             list(corpus.ngrams) if isinstance(corpus, Corpus) else corpus,
             callback=callback,
         )
@@ -171,10 +146,10 @@ class DocumentEmbedder(BaseVectorizer):
             ("Aggregator", self.aggregator),
         )
 
-    def clear_cache(self):
+    @staticmethod
+    def clear_cache(language):
         """Clears embedder cache"""
-        if self._embedder:
-            self._embedder.clear_cache()
+        EmbedderCache(f"fasttext-{language}").clear_cache()
 
 
 class _ServerEmbedder(ServerEmbedderCommunicator):

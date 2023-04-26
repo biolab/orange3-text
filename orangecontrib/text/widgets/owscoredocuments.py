@@ -19,11 +19,12 @@ from AnyQt.QtWidgets import (
     QRadioButton,
     QTableView,
 )
+
 from Orange.data import ContinuousVariable, Domain, StringVariable, Table
 from Orange.data.util import get_unique_names
 from Orange.util import wrap_callback
 from Orange.widgets.settings import ContextSetting, PerfectDomainContextHandler, Setting
-from Orange.widgets.utils.annotated_data import create_annotated_table
+from Orange.widgets.utils.annotated_data import create_annotated_table, add_columns
 from Orange.widgets.utils.concurrent import ConcurrentWidgetMixin, TaskState
 from Orange.widgets.utils.itemmodels import PyTableModel, TableModel
 from Orange.widgets.widget import Input, Msg, Output, OWWidget
@@ -33,20 +34,20 @@ from pandas import isnull
 from sklearn.metrics.pairwise import cosine_similarity
 
 from orangecontrib.text import Corpus
-from orangecontrib.text.preprocess import BaseNormalizer, BaseTransformer
-from orangecontrib.text.vectorization.document_embedder import (
-    LANGS_TO_ISO,
-    DocumentEmbedder,
-)
+from orangecontrib.text.preprocess import BaseNormalizer, NGrams, BaseTokenFilter
+from orangecontrib.text.vectorization.sbert import SBERT
+from orangecontrib.text.widgets.utils import enum2int
+
 from orangecontrib.text.widgets.utils.words import create_words_table
+
 
 def _word_frequency(corpus: Corpus, words: List[str], callback: Callable) -> np.ndarray:
     res = []
-    tokens = corpus.tokens
+    tokens = corpus.ngrams
     for i, t in enumerate(tokens):
         counts = Counter(t)
         res.append([counts.get(w, 0) for w in words])
-        callback((i + 1) / len(tokens))
+        callback((i + 1) / len(corpus))
     return np.array(res)
 
 
@@ -54,36 +55,41 @@ def _word_appearance(
     corpus: Corpus, words: List[str], callback: Callable
 ) -> np.ndarray:
     res = []
-    tokens = corpus.tokens
+    tokens = corpus.ngrams
     for i, t in enumerate(tokens):
         t = set(t)
         res.append([w in t for w in words])
-        callback((i + 1) / len(tokens))
-    return np.array(res)
+        callback((i + 1) / len(corpus))
+    return np.array(res).astype(float)
 
 
 def _embedding_similarity(
     corpus: Corpus,
     words: List[str],
     callback: Callable,
-    embedding_language: str,
 ) -> np.ndarray:
-    language = LANGS_TO_ISO[embedding_language]
     # make sure there will be only embeddings in X after calling the embedder
     corpus = Corpus.from_table(Domain([], metas=corpus.domain.metas), corpus)
-    emb = DocumentEmbedder(language)
+    emb = SBERT()
 
     cb_part = len(corpus) / (len(corpus) + len(words))
     documet_embeddings, skipped = emb.transform(
         corpus, wrap_callback(callback, 0, cb_part)
     )
-    assert skipped is None
+    if skipped:
+        # raise when any embedding failed. It could be also done that distances
+        # are computed only for valid embeddings, but it doesn't make sense
+        # since cases when part of documents do not embed are extremely rare
+        # usually when a network error happen embedding of all documents fail
+        raise ValueError("Some documents not embedded; try to rerun scoring")
 
-    words = [[w] for w in words]
-    word_embeddings = np.array(
-        emb.transform(words, wrap_callback(callback, cb_part, 1 - cb_part))
-    )
-    return cosine_similarity(documet_embeddings.X, word_embeddings)
+    # document embedding need corpus - changing list of words to corpus
+    w_emb = emb.embed_batches(words, batch_size=50)
+    if any(x is None for x in w_emb):
+        # raise when some words not embedded, using only valid word embedding
+        # would cause wrong results
+        raise ValueError("Some words not embedded; try to rerun scoring")
+    return cosine_similarity(documet_embeddings.X, np.array(w_emb))
 
 
 SCORING_METHODS = {
@@ -105,9 +111,7 @@ SCORING_METHODS = {
     ),
 }
 
-ADDITIONAL_OPTIONS = {
-    "embedding_similarity": ("embedding_language", list(LANGS_TO_ISO.keys()))
-}
+ADDITIONAL_OPTIONS = {}
 
 AGGREGATIONS = {
     "Mean": np.mean,
@@ -122,10 +126,9 @@ def _preprocess_words(
 ) -> List[str]:
     """
     Corpus's tokens can be preprocessed. Since they will not match correctly
-    with words preprocessors that change words (e.g. normalization) must
-    be applied to words too.
+    with words, same preprocessors that preprocess words in corpus
+    (e.g. normalization) must be applied to words too.
     """
-    # workaround to preprocess words
     # TODO: currently preprocessors work only on corpus, when there will be more
     #  cases like this think about implementation of preprocessors for a list
     #  of strings
@@ -135,17 +138,18 @@ def _preprocess_words(
         np.empty((len(words), 0)),
         metas=np.array([[w] for w in words]),
         text_features=[words_feature],
+        language=corpus.language
     )
-    # only transformers and normalizers preprocess on the word level
-    pps = [
-        pp
-        for pp in corpus.used_preprocessor.preprocessors
-        if isinstance(pp, (BaseTransformer, BaseNormalizer))
-    ]
+    # apply all corpus preprocessors except Filter and NGrams, which change terms
+    # filter removes words from the term, and NGrams split the term in grams.
+    # If a user decided to score with a particular term, he meant this term
+    # and not derivations of it
+    pps = corpus.used_preprocessor.preprocessors
     for i, pp in enumerate(pps):
-        words_c = pp(words_c)
-        callback((i + 1) / len(pps))
-    return [w[0] for w in words_c.tokens if len(w)]
+        if not isinstance(pp, (BaseTokenFilter, NGrams)):
+            words_c = pp(words_c)
+            callback((i + 1) / len(pps))
+    return [Corpus.NGRAMS_SEPARATOR.join(ngs) for ngs in words_c.tokens if len(ngs)]
 
 
 def _run(
@@ -191,12 +195,16 @@ def _run(
         scoring_method = SCORING_METHODS[sm][1]
         sig = signature(scoring_method)
         add_params = {k: v for k, v in additional_params.items() if k in sig.parameters}
-        scs = scoring_method(
-            corpus,
-            words,
-            wrap_callback(callback, start=(i + 1) * cb_part, end=(i + 2) * cb_part),
-            **add_params
-        )
+        try:
+            scs = scoring_method(
+                corpus,
+                words,
+                wrap_callback(callback, start=(i + 1) * cb_part, end=(i + 2) * cb_part),
+                **add_params
+            )
+        except ValueError as ex:
+            state.set_partial_result((sm, aggregation, str(ex)))
+            continue
         scs = AGGREGATIONS[aggregation](scs, axis=1)
         state.set_partial_result((sm, aggregation, scs))
 
@@ -291,7 +299,7 @@ class ScoreDocumentsTableModel(PyTableModel):
                 # in document title column remove newline characters from titles
                 dat = self.simplify(dat)
             return dat
-        if role == Qt.BackgroundColorRole and index.column() == 0:
+        if role == Qt.BackgroundRole and index.column() == 0:
             return TableModel.ColorForRole[TableModel.Meta]
         return super().data(index, role)
 
@@ -317,7 +325,7 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
     buttons_area_orientation = Qt.Vertical
 
     # default order - table sorted in input order
-    DEFAULT_SORTING = (-1, Qt.AscendingOrder)
+    DEFAULT_SORTING = (-1, enum2int(Qt.AscendingOrder))
 
     settingsHandler = PerfectDomainContextHandler()
     auto_commit: bool = Setting(True)
@@ -326,7 +334,6 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
     word_frequency: bool = Setting(True)
     word_appearance: bool = Setting(False)
     embedding_similarity: bool = Setting(False)
-    embedding_language: int = Setting(0)
 
     sort_column_order: Tuple[int, int] = Setting(DEFAULT_SORTING)
     selected_rows: List[int] = ContextSetting([], schema_only=True)
@@ -343,6 +350,7 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
 
     class Warning(OWWidget.Warning):
         corpus_not_normalized = Msg("Use Preprocess Text to normalize corpus.")
+        scoring_warning = Msg("{}")
 
     class Error(OWWidget.Error):
         custom_err = Msg("{}")
@@ -401,7 +409,7 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
             button.setChecked(method == self.sel_method)
             grid.addWidget(button, method, 0)
             self._sel_method_buttons.addButton(button, method)
-        self._sel_method_buttons.buttonClicked[int].connect(self.__set_selection_method)
+        self._sel_method_buttons.buttonClicked.connect(self.__on_method_change)
 
         spin = gui.spin(
             box,
@@ -440,7 +448,7 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
 
         proxy_model = ScoreDocumentsProxyModel()
         proxy_model.setFilterKeyColumn(0)
-        proxy_model.setFilterCaseSensitivity(False)
+        proxy_model.setFilterCaseSensitivity(Qt.CaseInsensitive)
         view.setModel(proxy_model)
         view.model().setSourceModel(self.model)
         self.view.selectionModel().selectionChanged.connect(self.__on_selection_change)
@@ -451,7 +459,7 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
 
     def __on_horizontal_header_clicked(self, index: int):
         header = self.view.horizontalHeader()
-        self.sort_column_order = (index, header.sortIndicatorOrder())
+        self.sort_column_order = (index, enum2int(header.sortIndicatorOrder()))
         self._select_rows()
         # when sorting change output table must consider the new order
         # call explicitly since selection in table is not changed
@@ -467,6 +475,9 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
     def __on_selection_change(self):
         self.selected_rows = self.get_selected_indices()
         self._send_output()
+
+    def __on_method_change(self):
+        self.__set_selection_method(self._sel_method_buttons.checkedId())
 
     def __set_selection_method(self, method: int):
         self.sel_method = method
@@ -502,16 +513,16 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
             (a for a in attrs if a.attributes.get("type", "") == "words"), None
         )
         if words_attr:
-            return words.get_column_view(words_attr)[0].tolist()
+            return words.get_column(words_attr).tolist()
         else:
             # find the most suitable attribute - one with lowest average text
             # length - counted as a number of words
             def avg_len(attr):
-                array_ = words.get_column_view(attr)[0]
+                array_ = words.get_column(attr)
                 array_ = array_[~isnull(array_)]
                 return sum(len(a.split()) for a in array_) / len(array_)
             attr = sorted(attrs, key=avg_len)[0]
-            return words.get_column_view(attr)[0].tolist()
+            return words.get_column(attr).tolist()
 
     @Inputs.words
     def set_words(self, words: Table) -> None:
@@ -554,19 +565,11 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
         scores, labels = self._gather_scores()
         if labels:
             d = self.corpus.domain
-            domain = Domain(
-                d.attributes,
-                d.class_var,
-                metas=d.metas + tuple(ContinuousVariable(get_unique_names(d, l))
-                                      for l in labels),
-            )
-            out_corpus = Corpus.from_numpy(
-                domain,
-                self.corpus.X,
-                self.corpus.Y,
-                np.hstack([self.corpus.metas, scores]),
-            )
-            Corpus.retain_preprocessing(self.corpus, out_corpus)
+            new_vars = tuple(ContinuousVariable(get_unique_names(d, l)) for l in labels)
+            new_domain = add_columns(d, metas=new_vars)
+            out_corpus = Corpus.from_table(new_domain, self.corpus)
+            with out_corpus.unlocked(out_corpus.metas):
+                out_corpus[:, new_vars] = scores
         else:
             out_corpus = self.corpus
 
@@ -600,7 +603,10 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
             # if not enough columns do not apply sorting from settings since
             # sorting can besaved for score column while scores are still computing
             # tables is filled before scores are computed with document names
-            self.view.horizontalHeader().setSortIndicator(*self.sort_column_order)
+            # PyQt6's SortOrder is Enum (and not IntEnum as in PyQt5),
+            # transform sort_column_order[1], which is int, in Qt.SortOrder Enum
+            sco = (self.sort_column_order[0], Qt.SortOrder(self.sort_column_order[1]))
+            self.view.horizontalHeader().setSortIndicator(*sco)
 
         self._select_rows()
 
@@ -622,6 +628,7 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
     @gui.deferred
     def commit(self) -> None:
         self.Error.custom_err.clear()
+        self.Warning.scoring_warning.clear()
         self.cancel()
         if self.corpus is not None and self.words is not None:
             scorers = self._get_active_scorers()
@@ -645,10 +652,19 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
     def on_done(self, _: None) -> None:
         self._send_output()
 
-    def on_partial_result(self, result: Tuple[str, str, np.ndarray]) -> None:
+    def on_partial_result(
+        self, result: Tuple[str, str, Union[np.ndarray, str]]
+    ) -> None:
         sc_method, aggregation, scores = result
-        self.scores[(sc_method, aggregation)] = scores
-        self._fill_table()
+        if isinstance(scores, str):
+            # scoring failed with error in scores variable
+            self.Warning.scoring_warning(
+                f"{SCORING_METHODS[sc_method][0]} failed: {scores}"
+            )
+        else:
+            # scoring successful
+            self.scores[(sc_method, aggregation)] = scores
+            self._fill_table()
 
     def on_exception(self, ex: Exception) -> None:
         self.Error.custom_err(ex)

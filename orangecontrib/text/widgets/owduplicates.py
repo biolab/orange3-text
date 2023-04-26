@@ -194,7 +194,7 @@ class OWDuplicates(widget.OWWidget):
             corpus = self.corpus.transform(domain)
             # corpus.metas is unlockable since we added new column to metas
             with corpus.unlocked(corpus.metas):
-                corpus.get_column_view(cluster_var)[0][:] = self.clustering_mask
+                corpus.get_column(cluster_var)[:] = self.clustering_mask
             self.Outputs.corpus.send(corpus)
         else:
             self.Outputs.corpus.send(None)

@@ -3,18 +3,24 @@ import re
 from datetime import date
 
 from AnyQt.QtCore import QDate, Qt
-from AnyQt.QtWidgets import (QApplication, QComboBox, QDateEdit, QTextEdit,
-                             QFrame, QDialog, QCalendarWidget, QVBoxLayout,
-                             QFormLayout)
-
+from AnyQt.QtWidgets import (
+    QCalendarWidget,
+    QComboBox,
+    QDateEdit,
+    QDialog,
+    QFormLayout,
+    QFrame,
+    QTextEdit,
+    QVBoxLayout,
+)
 from Orange.widgets import gui
 from Orange.widgets.credentials import CredentialManager
 from Orange.widgets.settings import Setting
-from Orange.widgets.widget import OWWidget, Msg
+from Orange.widgets.widget import Msg, OWWidget
+from orangewidget.utils.signals import Output
+
 from orangecontrib.text.corpus import Corpus
-from orangecontrib.text.pubmed import (
-    Pubmed, PUBMED_TEXT_FIELDS
-)
+from orangecontrib.text.pubmed import PUBMED_TEXT_FIELDS, Pubmed
 
 
 def _i(name, icon_path='icons'):
@@ -27,10 +33,6 @@ EMAIL_REGEX = re.compile(r"[^@]+@[^@]+\.[^@]+")
 
 def validate_email(email):
     return EMAIL_REGEX.match(email)
-
-
-class Output:
-    CORPUS = 'Corpus'
 
 
 class OWPubmed(OWWidget):
@@ -92,7 +94,6 @@ class OWPubmed(OWWidget):
     icon = 'icons/Pubmed.svg'
     priority = 140
 
-    outputs = [(Output.CORPUS, Corpus)]
     want_main_area = False
     resizing_enabled = False
 
@@ -116,6 +117,9 @@ class OWPubmed(OWWidget):
     includes_url = Setting(True)
 
     email = None
+
+    class Outputs:
+        corpus = Output("Corpus", Corpus)
 
     class Warning(OWWidget.Warning):
         no_query = Msg('Please specify the keywords for this query.')
@@ -401,7 +405,7 @@ class OWPubmed(OWWidget):
         self.retrieve_records_button.setText('Retrieve records')
         self.download_running = False
 
-        self.send(Output.CORPUS, self.output_corpus)
+        self.Outputs.corpus.send(self.output_corpus)
         self.update_retrieval_info()
         self.run_search_button.setEnabled(True)
 
@@ -531,7 +535,6 @@ class CalendarDialog(QDialog):
 
 
 if __name__ == '__main__':
-    app = QApplication([])
-    widget = OWPubmed()
-    widget.show()
-    app.exec()
+    from orangewidget.utils.widgetpreview import WidgetPreview
+
+    WidgetPreview(OWPubmed).run()

@@ -18,7 +18,6 @@ from orangecontrib.text.corpus import get_sample_corpora_dir
 
 class ListEdit(QTextEdit):
     PLACEHOLDER_COLOR = QColor(128, 128, 128)
-    USER_TEXT_COLOR = QColor(0, 0, 0)
 
     def __init__(self, master=None, attr=None, placeholder_text=None,
                  fixed_height=None, *args):
@@ -55,7 +54,6 @@ class ListEdit(QTextEdit):
         if self.toPlainText() == '':
             self.clear()
             self.setFontItalic(False)
-            self.setTextColor(self.USER_TEXT_COLOR)
 
     def focusOutEvent(self, event):
         self.set_placeholder()

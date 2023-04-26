@@ -1,10 +1,14 @@
+import os
+import tempfile
 import unittest
 
 import numpy as np
 from Orange.data import Table, Domain, StringVariable, ContinuousVariable
 from Orange.widgets.tests.base import WidgetTest
+from Orange.widgets.tests.utils import simulate
 
 from orangecontrib.text import Corpus
+from orangecontrib.text.preprocess import RegexpTokenizer
 from orangecontrib.text.widgets.owcorpus import OWCorpus
 
 
@@ -248,6 +252,134 @@ class TestOWCorpus(WidgetTest):
         self.assertTrue(
             self.widget.Error.corpus_without_text_features.is_shown()
         )
+
+    def test_context(self):
+        data = Table(Corpus.from_file("book-excerpts"))
+        data.attributes["language"] = "sl"
+        self.send_signal(self.widget.Inputs.data, data)
+        self.wait_until_finished()
+        self.assertEqual("Slovenian", self.widget.language)
+        self.assertEqual("sl", self.get_output(self.widget.Outputs.corpus).language)
+
+        # change language to see if context work later when reopened
+        simulate.combobox_activate_item(self.widget.controls.language, "Dutch")
+        self.assertEqual("Dutch", self.widget.language)
+        self.assertEqual("nl", self.get_output(self.widget.Outputs.corpus).language)
+
+        data1 = Table(Corpus.from_file("deerwester"))
+        self.send_signal(self.widget.Inputs.data, data1)
+        self.wait_until_finished()
+        self.assertEqual("English", self.widget.language)
+        self.assertEqual("en", self.get_output(self.widget.Outputs.corpus).language)
+
+        self.send_signal(self.widget.Inputs.data, data)
+        self.wait_until_finished()
+        self.assertEqual("Dutch", self.widget.language)
+        self.assertEqual("nl", self.get_output(self.widget.Outputs.corpus).language)
+
+        # when corpus on input in different language do not match
+        data.attributes["language"] = "sk"
+        self.send_signal(self.widget.Inputs.data, data)
+        self.wait_until_finished()
+        self.assertEqual("Slovak", self.widget.language)
+        self.assertEqual("sk", self.get_output(self.widget.Outputs.corpus).language)
+
+        # different documents in corpus (should not match the context)
+        data2 = data[:10]
+        data2.attributes["language"] = "sl"
+        self.send_signal(self.widget.Inputs.data, data2)
+        self.wait_until_finished()
+        self.assertEqual("Slovenian", self.widget.language)
+        self.assertEqual("sl", self.get_output(self.widget.Outputs.corpus).language)
+
+    def test_guess_language(self):
+        data = Table(Corpus.from_file("book-excerpts"))
+        # since Table is made from Corpus language attribute is in attributes
+        # drop it
+        data.attributes = {}
+        # change default to something that is not corpus's language
+        self.widget.language = "Slovenian"
+        self.send_signal(self.widget.Inputs.data, data)
+        self.wait_until_finished()
+        self.assertEqual("English", self.widget.language)
+        self.assertEqual("en", self.get_output(self.widget.Outputs.corpus).language)
+
+        # change language to see if context work later when reopened
+        simulate.combobox_activate_item(self.widget.controls.language, "Dutch")
+        self.assertEqual("Dutch", self.widget.language)
+        self.assertEqual("nl", self.get_output(self.widget.Outputs.corpus).language)
+
+        data1 = Table(Corpus.from_file("deerwester"))
+        self.send_signal(self.widget.Inputs.data, data1)
+        self.wait_until_finished()
+        self.assertEqual("English", self.widget.language)
+        self.assertEqual("en", self.get_output(self.widget.Outputs.corpus).language)
+
+        self.send_signal(self.widget.Inputs.data, data)
+        self.wait_until_finished()
+        self.assertEqual("Dutch", self.widget.language)
+        self.assertEqual("nl", self.get_output(self.widget.Outputs.corpus).language)
+
+        # different documents in corpus (should not match the context)
+        data2 = data[:10]
+        data2.attributes["language"] = None
+        self.send_signal(self.widget.Inputs.data, data2)
+        self.wait_until_finished()
+        self.assertEqual("English", self.widget.language)
+        self.assertEqual("en", self.get_output(self.widget.Outputs.corpus).language)
+
+    def test_language_unpickle(self):
+        path = os.path.dirname(__file__)
+        file = os.path.abspath(os.path.join(path, "..", "..", "tests",
+                                            "data", "book-excerpts.pkl"))
+        corpus = Corpus.from_file(file)
+        self.send_signal(self.widget.Inputs.data, corpus)
+        self.wait_until_finished()
+        self.assertEqual(self.widget.language, "English")
+
+    def test_preserve_preprocessing(self):
+        """When preprocessed corpus on input preprocessing should be retained"""
+        corpus = Corpus.from_file("andersen")
+        corpus = RegexpTokenizer()(corpus)
+
+        # preprocessing should be maintained
+        self.send_signal(self.widget.Inputs.data, corpus)
+        res = self.get_output(self.widget.Outputs.corpus)
+        self.assertTrue(res.has_tokens())
+
+        # add additional text feature - preprocessing should be reset
+        self.widget.used_attrs_model.append(corpus.domain.metas[0])
+        res = self.get_output(self.widget.Outputs.corpus)
+        self.assertFalse(res.has_tokens())
+
+        # remove previously added feature - preprocessing should be kept again
+        self.widget.used_attrs_model.remove(corpus.domain.metas[0])
+        res = self.get_output(self.widget.Outputs.corpus)
+        self.assertTrue(res.has_tokens())
+
+    def test_preserve_preprocessing_from_file(self):
+        """When preprocessed corpus loaded preprocessing should be retained"""
+        corpus = Corpus.from_file("andersen")
+        corpus = RegexpTokenizer()(corpus)
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            file = os.path.join(tmp_dir, "andersen.pkl")
+            corpus.save(file)
+            self.widget.file_widget.open_file(file)
+
+            # preprocessing should be maintained
+            self.send_signal(self.widget.Inputs.data, corpus)
+            res = self.get_output(self.widget.Outputs.corpus)
+            self.assertTrue(res.has_tokens())
+
+            # add additional text feature - preprocessing should be reset
+            self.widget.used_attrs_model.append(corpus.domain.metas[0])
+            res = self.get_output(self.widget.Outputs.corpus)
+            self.assertFalse(res.has_tokens())
+
+            # remove previously added feature - preprocessing should be kept again
+            self.widget.used_attrs_model.remove(corpus.domain.metas[0])
+            res = self.get_output(self.widget.Outputs.corpus)
+            self.assertTrue(res.has_tokens())
 
 
 if __name__ == "__main__":

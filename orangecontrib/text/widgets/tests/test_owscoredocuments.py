@@ -13,7 +13,7 @@ from Orange.widgets.tests.base import WidgetTest
 from Orange.widgets.tests.utils import simulate
 
 from orangecontrib.text import Corpus, preprocess
-from orangecontrib.text.vectorization.document_embedder import _ServerEmbedder
+from orangecontrib.text.vectorization.sbert import SBERT
 from orangecontrib.text.widgets.owscoredocuments import (
     OWScoreDocuments,
     SelectionMethods,
@@ -22,8 +22,12 @@ from orangecontrib.text.widgets.owscoredocuments import (
 from orangecontrib.text.widgets.utils.words import create_words_table
 
 
-def embedding_mock(_, data, callback=None):
-    return np.ones((len(data), 10))
+def embedding_mock(_, data, batch_size=None, callback=None):
+    return np.ones((len(data), 10)).tolist()
+
+
+def embedding_mock_none(_, data, batch_size=None, callback=None):
+    return np.ones((len(data) - 1, 10)).tolist() + [None]
 
 
 class TestOWScoreDocuments(WidgetTest):
@@ -117,7 +121,8 @@ class TestOWScoreDocuments(WidgetTest):
         self.send_signal(self.widget.Inputs.words, None)
         self.assertIsNone(self.widget.words)
 
-    @patch.object(_ServerEmbedder, "embedd_data", new=embedding_mock)
+    @patch.object(SBERT, "embed_batches", new=embedding_mock)
+    @patch.object(SBERT, "__call__", new=embedding_mock)
     def test_change_scorer(self):
         model = self.widget.model
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
@@ -155,6 +160,7 @@ class TestOWScoreDocuments(WidgetTest):
             X=np.empty((len(texts), 0)),
             metas=np.array(texts).reshape(-1, 1),
             text_features=[text_var],
+            language="en"
         )
         return preprocess.LowercaseTransformer()(c)
 
@@ -215,7 +221,22 @@ class TestOWScoreDocuments(WidgetTest):
         self.wait_until_finished()
         self.assertListEqual([x[1] for x in self.widget.model], [1, 1, 1])
 
-    @patch.object(_ServerEmbedder, "embedd_data", new=embedding_mock)
+        # test case where all values are 0
+        corpus = self.create_corpus(
+            [
+                "Lorem ipsum dolor sit ipsum, consectetur adipiscing elit.",
+                "Sed eu sollicitudin velit lorem.",
+            ]
+        )
+        self.send_signal(self.widget.Inputs.corpus, corpus)
+        simulate.combobox_activate_item(cb_aggregation, "Min")
+        self.wait_until_finished()
+        scores = [x[1] for x in self.widget.model]
+        self.assertTrue(all(isinstance(s, float) for s in scores))
+        self.assertListEqual(scores, [0, 0])
+
+    @patch.object(SBERT, "embed_batches", new=embedding_mock)
+    @patch.object(SBERT, "__call__", new=embedding_mock)
     def test_embedding_similarity(self):
         corpus = self.create_corpus(
             [
@@ -277,6 +298,7 @@ class TestOWScoreDocuments(WidgetTest):
             preprocess.StripAccentsTransformer(),
             preprocess.UrlRemover(),
             preprocess.HtmlTransformer(),
+            preprocess.RegexpTokenizer()
         ]
         for p in pp_list:
             corpus = p(corpus)
@@ -416,6 +438,18 @@ class TestOWScoreDocuments(WidgetTest):
         output = self.get_output(self.widget.Outputs.selected_documents)
         self.assertTrue("Word count (1)" in output.domain)
 
+    def test_output_ids(self):
+        corpus = Corpus.from_file("book-excerpts")
+        var = ContinuousVariable("Word count")
+        corpus = corpus.add_column(var, np.array([1 for _ in range(len(
+            corpus))]))
+        words = create_words_table(["doctor", "rum", "house"])
+        self.send_signal(self.widget.Inputs.corpus, corpus)
+        self.send_signal(self.widget.Inputs.words, words)
+        self.wait_until_finished()
+        output = self.get_output(self.widget.Outputs.selected_documents)
+        self.assertTrue(all([i in corpus.ids for i in output.ids]))
+
     def test_titles_no_newline(self):
         corpus = Corpus.from_file("andersen")
         with corpus.unlocked():
@@ -425,6 +459,155 @@ class TestOWScoreDocuments(WidgetTest):
         self.assertEqual(
             "The Little Match-Seller test", self.widget.view.model().index(0, 0).data()
         )
+
+    @patch.object(SBERT, "embed_batches", new=embedding_mock)
+    @patch.object(SBERT, "__call__")
+    def test_warning_unsuccessful_scoring(self, emb_mock):
+        """Test when embedding for at least one document is not successful"""
+        emb_mock.return_value = np.ones((len(self.corpus) - 1, 10)).tolist() + [None]
+
+        model = self.widget.model
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.send_signal(self.widget.Inputs.words, self.words)
+        self.wait_until_finished()
+
+        # scoring fails
+        self.widget.controls.embedding_similarity.click()
+        self.wait_until_finished()
+        self.assertEqual(2, model.columnCount())  # name and word count, no similarity
+        self.assertEqual(model.headerData(1, Qt.Horizontal), "Word count")
+        self.assertTrue(self.widget.Warning.scoring_warning.is_shown())
+        self.assertEqual(
+            "Similarity failed: Some documents not embedded; try to rerun scoring",
+            str(self.widget.Warning.scoring_warning),
+        )
+
+        # rerun without falling scoring
+        self.widget.controls.embedding_similarity.click()
+        self.wait_until_finished()
+        self.assertEqual(2, model.columnCount())
+        self.assertEqual(model.headerData(1, Qt.Horizontal), "Word count")
+        self.assertFalse(self.widget.Warning.scoring_warning.is_shown())
+
+        # run failing scoring again
+        self.widget.controls.embedding_similarity.click()
+        self.wait_until_finished()
+        self.assertEqual(2, model.columnCount())  # name and word count, no similarity
+        self.assertEqual(model.headerData(1, Qt.Horizontal), "Word count")
+        self.assertTrue(self.widget.Warning.scoring_warning.is_shown())
+        self.assertEqual(
+            "Similarity failed: Some documents not embedded; try to rerun scoring",
+            str(self.widget.Warning.scoring_warning),
+        )
+
+        # run scoring again, this time does not fail, warning should disapper
+        emb_mock.return_value = np.ones((len(self.corpus), 10)).tolist()
+        self.widget.controls.embedding_similarity.click()
+        self.widget.controls.embedding_similarity.click()
+        self.wait_until_finished()
+        self.assertEqual(3, model.columnCount())  # name and word count, no similarity
+        self.assertEqual(model.headerData(1, Qt.Horizontal), "Word count")
+        self.assertEqual(model.headerData(2, Qt.Horizontal), "Similarity")
+        self.assertFalse(self.widget.Warning.scoring_warning.is_shown())
+
+    @patch.object(SBERT, "embed_batches")
+    @patch.object(SBERT, "__call__", new=embedding_mock)
+    def test_warning_unsuccessful_scoring_words(self, emb_mock):
+        """Test when words embedding for at least one word is not successful"""
+        emb_mock.return_value = np.ones((len(self.words), 10)).tolist() + [None]
+
+        model = self.widget.model
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.send_signal(self.widget.Inputs.words, self.words)
+        self.wait_until_finished()
+
+        # scoring fails
+        self.widget.controls.embedding_similarity.click()
+        self.wait_until_finished()
+        self.assertEqual(2, model.columnCount())  # name and word count, no similarity
+        self.assertEqual(model.headerData(1, Qt.Horizontal), "Word count")
+        self.assertTrue(self.widget.Warning.scoring_warning.is_shown())
+        self.assertEqual(
+            "Similarity failed: Some words not embedded; try to rerun scoring",
+            str(self.widget.Warning.scoring_warning),
+        )
+
+        # rerun without falling scoring
+        self.widget.controls.embedding_similarity.click()
+        self.wait_until_finished()
+        self.assertEqual(2, model.columnCount())
+        self.assertEqual(model.headerData(1, Qt.Horizontal), "Word count")
+        self.assertFalse(self.widget.Warning.scoring_warning.is_shown())
+
+        # run failing scoring again
+        self.widget.controls.embedding_similarity.click()
+        self.wait_until_finished()
+        self.assertEqual(2, model.columnCount())  # name and word count, no similarity
+        self.assertEqual(model.headerData(1, Qt.Horizontal), "Word count")
+        self.assertTrue(self.widget.Warning.scoring_warning.is_shown())
+        self.assertEqual(
+            "Similarity failed: Some words not embedded; try to rerun scoring",
+            str(self.widget.Warning.scoring_warning),
+        )
+
+        # run scoring again, this time does not fail, warning should disapper
+        emb_mock.return_value = np.ones((len(self.words), 10)).tolist()
+        self.widget.controls.embedding_similarity.click()
+        self.widget.controls.embedding_similarity.click()
+        self.wait_until_finished()
+        self.assertEqual(3, model.columnCount())  # name and word count, no similarity
+        self.assertEqual(model.headerData(1, Qt.Horizontal), "Word count")
+        self.assertEqual(model.headerData(2, Qt.Horizontal), "Similarity")
+        self.assertFalse(self.widget.Warning.scoring_warning.is_shown())
+
+    def test_n_grams(self):
+        texts = [
+            "Lorem ipsum dolor sit ipsum consectetur adipiscing elit dolor sit eu",
+            "Sed eu sollicitudin velit lorem.",
+            "lorem ipsum eu",
+        ]
+        # try n-gram range 2, 2
+        corpus = self.create_corpus(texts)
+        pp_list = [
+            preprocess.LowercaseTransformer(),
+            preprocess.RegexpTokenizer(),
+            # skipped in corpus but not among words, since filter ignored for words
+            preprocess.RegexpFilter("sed"),
+            # for corpus, ignored in
+            preprocess.NGrams(ngrams_range=(2, 2)),
+        ]
+        for p in pp_list:
+            corpus = p(corpus)
+        words = create_words_table(["lorem ipsum", "dolor sit", "eu", "sed eu"])
+        # just test that word preprocessing didn't consider Filter and Ngrams
+        self.assertListEqual(
+            ["lorem ipsum", "dolor sit", "eu", "sed eu"],
+            _preprocess_words(
+                corpus, ["lorem ipsum", "dolor sit", "eu", "sed eu"], dummy_callback
+            ),
+        )
+        self.send_signal(self.widget.Inputs.corpus, corpus)
+        self.send_signal(self.widget.Inputs.words, words)
+        self.widget.controls.word_appearance.click()
+        self.wait_until_finished()
+        # fist text: 1 lorem ipsum, 2 dolor sit, eu not in corpus's bi-grams
+        # second text: none of them present
+        # second text: only lorem ipsum
+        self.assertListEqual([x[1] for x in self.widget.model], [3 / 4, 0, 1 / 4])
+        self.assertListEqual([x[2] for x in self.widget.model], [2 / 4, 0, 1 / 4])
+
+        # try n-gram range 1, 2, seed not ignored this time
+        corpus = self.create_corpus(texts)
+        pp_list = [preprocess.NGrams(ngrams_range=(1, 2))]
+        for p in pp_list:
+            corpus = p(corpus)
+        self.send_signal(self.widget.Inputs.corpus, corpus)
+        self.wait_until_finished()
+        # fist: 1 lorem ipsum, 2 dolor sit, 1 eu
+        # second: 0 lorem ipsum, 0 dolor sit, 1 eu
+        # third: 1 lorem ipsum, 0 dolor sit, 1 eu
+        self.assertListEqual([x[1] for x in self.widget.model], [4 / 4, 2 / 4, 2 / 4])
+        self.assertListEqual([x[2] for x in self.widget.model], [3 / 4, 2 / 4, 2 / 4])
 
 
 if __name__ == "__main__":

@@ -13,9 +13,8 @@ import numpy as np
 from Orange.util import dummy_callback
 
 from orangecontrib.text import Corpus
+from orangecontrib.text.keywords.mbert import mbert_keywords
 from orangecontrib.text.keywords.rake import Rake
-from orangecontrib.text.keywords.embedding import embedding_keywords, \
-    EMBEDDING_LANGUAGE_MAPPING
 from orangecontrib.text.preprocess import StopwordsFilter
 
 # all available languages for RAKE
@@ -189,14 +188,14 @@ class ScoringMethods:
     """
     Scoring methods enum.
     """
-    TF_IDF, RAKE, YAKE, EMBEDDING = "TF-IDF", "Rake", "YAKE!", "Embedding"
+    TF_IDF, RAKE, YAKE, MBERT = "TF-IDF", "Rake", "YAKE!", "mBERT"
     ITEMS = list(zip(
-        (TF_IDF, YAKE, RAKE, EMBEDDING),
-        (tfidf_keywords, yake_keywords, rake_keywords, embedding_keywords)
+        (TF_IDF, YAKE, RAKE, MBERT),
+        (tfidf_keywords, yake_keywords, rake_keywords, mbert_keywords)
     ))
 
-    TOKEN_METHODS = TF_IDF, EMBEDDING
-    DOCUMENT_METHODS = RAKE, YAKE
+    TOKEN_METHODS = TF_IDF,
+    DOCUMENT_METHODS = RAKE, YAKE, MBERT
 
 
 class AggregationMethods:

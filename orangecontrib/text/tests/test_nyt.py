@@ -7,7 +7,6 @@ from unittest.mock import patch, Mock, MagicMock
 from http.client import HTTPException
 from urllib.error import HTTPError, URLError
 
-from Orange.data import TimeVariable
 from orangecontrib.text import Corpus
 from orangecontrib.text.nyt import NYT, BATCH_SIZE
 
@@ -87,6 +86,7 @@ class NYTTests(unittest.TestCase):
 
     def test_nyt_query_keywords(self):
         c = self.nyt.search('slovenia', max_docs=10)
+        self.assertEqual(c.language, "en")
         self.assertIsInstance(c, Corpus)
         self.assertEqual(len(c), 10)
 
@@ -96,38 +96,48 @@ class NYTTests(unittest.TestCase):
         corpus = self.nyt.search('slovenia', from_date, to_date, max_docs=10)
         self.assertEqual(len(corpus), 10)
 
-        time_index = next(i for i, (var, _) in enumerate(NYT.metas) if isinstance(var, TimeVariable))
-        tv = corpus.domain.metas[time_index]
+        tv = corpus.domain["Publication Date"]
+        time_index = corpus.domain.metas.index(tv)
         for doc in corpus:
             date = tv.repr_val(doc.metas[time_index])
             date = datetime.datetime.strptime(date, '%Y-%m-%d %H:%M:%S').date()
             self.assertGreaterEqual(date, from_date)
             self.assertLessEqual(date, to_date)
 
+    @patch("orangecontrib.text.nyt.sleep", Mock())
     def test_nyt_query_max_records(self):
         c = self.nyt.search('slovenia', max_docs=25)
         self.assertEqual(len(c), 25)
+        self.assertEqual(c.language, "en")
 
     def test_nyt_corpus_domain_generation(self):
         corpus = self.nyt.search('slovenia', max_docs=10)
-        for var, _ in NYT.attributes:
-            self.assertIn(var, corpus.domain.attributes)
-        for var, _ in NYT.class_vars:
-            self.assertIn(var, corpus.domain.class_vars)
-        for var, _ in NYT.metas:
-            self.assertIn(var, corpus.domain.metas)
+        self.assertTupleEqual((), corpus.domain.attributes)
+        self.assertListEqual(
+            [var.args[0] for var, _ in NYT.class_vars],
+            [var.name for var in corpus.domain.class_vars]
+        )
+        self.assertListEqual(
+            [var.args[0] for var, _ in NYT.metas],
+            [var.name for var in corpus.domain.metas]
+        )
+        self.assertEqual(corpus.language, "en")
 
     def test_nyt_result_caching(self):
         self.nyt._fetch_page('slovenia', None, None, 0)     # assure in cache
         _, go_sleep = self.nyt._fetch_page('slovenia', None, None, 0)
         self.assertFalse(go_sleep)
 
-    def test_nyt_sleep(self):
+    @patch("orangecontrib.text.nyt.sleep")
+    def test_nyt_sleep(self, sleep_mock):
         self.nyt.search('slovenia', max_docs=25)
-        with patch('time.sleep', Mock()) as sleep:
-            self.nyt.search('slovenia', max_docs=25)
-            self.assertEqual(sleep.call_count, 0)
+        self.assertEqual(sleep_mock.call_count, 2)
+        sleep_mock.reset_mock()
+        self.nyt.search("slovenia", max_docs=25)
+        # no sleep since everything loaded from cache
+        self.assertEqual(sleep_mock.call_count, 0)
 
+    @patch("orangecontrib.text.nyt.sleep", Mock())
     def test_on_progress(self):
         n_calls = 0
 
@@ -241,6 +251,11 @@ class Test403(unittest.TestCase):
     @patch('urllib.request.urlopen',
            Mock(side_effect=HTTPError('', 403, None, None, None)))
     def test_nyt_http_error_403(self):
-        data, go_sleep = self.nyt._fetch_page('slovenia', None, None, 1)
-        self.assertEqual(len(data['response']['docs']), 0)
+        with self.assertWarns(UserWarning):
+            data, go_sleep = self.nyt._fetch_page("slovenia", None, None, 1)
+        self.assertEqual(len(data["response"]["docs"]), 0)
         self.assertTrue(go_sleep)
+
+
+if __name__ == "__main__":
+    unittest.main()

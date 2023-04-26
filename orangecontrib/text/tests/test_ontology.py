@@ -1,4 +1,5 @@
 import unittest
+from functools import partial
 from typing import List, Union
 from unittest.mock import patch
 from typing import Iterator
@@ -6,8 +7,7 @@ import asyncio
 
 import numpy as np
 
-from orangecontrib.text.ontology import Tree, OntologyHandler
-
+from orangecontrib.text.ontology import Tree, OntologyHandler, generate_ontology
 
 EMB_DIM = 384
 RESPONSE = [
@@ -91,6 +91,7 @@ class TestOntologyHandler(unittest.TestCase):
         self.handler.embedder.clear_cache()
 
     @patch('orangecontrib.text.ontology.generate_ontology')
+    @patch('httpx.AsyncClient.post', make_dummy_post(arrays_to_response(RESPONSE3)))
     def test_small_trees(self, mock):
         for words in [[], ['1', '2'], ['1', '2']]:
             self.handler.generate(words)
@@ -103,12 +104,16 @@ class TestOntologyHandler(unittest.TestCase):
         self.assertEqual(skipped, 0)
 
     @patch('httpx.AsyncClient.post', make_dummy_post(arrays_to_response(RESPONSE3)))
+    # generate_ontology slow because of high number of generations - speed up
+    @patch("orangecontrib.text.ontology.generate_ontology", partial(generate_ontology, num_generations=2))
     def test_generate(self):
         tree, skipped = self.handler.generate(['1', '2', '3', '4'])
         self.assertTrue(isinstance(tree, dict))
         self.assertEqual(skipped, 0)
 
     @patch('httpx.AsyncClient.post', make_dummy_post(iter(RESPONSE)))
+    # generate_ontology slow because of high number of generations - speed up
+    @patch("orangecontrib.text.ontology.generate_ontology", partial(generate_ontology, num_generations=2))
     def test_generate_with_unknown_embeddings(self):
         tree, skipped = self.handler.generate(['1', '2', '3', '4'])
         self.assertTrue(isinstance(tree, dict))
@@ -159,6 +164,8 @@ class TestOntologyHandler(unittest.TestCase):
         # success for generate part and fail for insert part
         iter(list(arrays_to_response(RESPONSE3)) + [b""] * 3)
     ))
+    # generate_ontology slow because of high number of generations - speed up
+    @patch("orangecontrib.text.ontology.generate_ontology", partial(generate_ontology, num_generations=2))
     def test_embedding_fails_insert(self):
         """
         Tests the case when embedding fails for word that is tried to be inserted

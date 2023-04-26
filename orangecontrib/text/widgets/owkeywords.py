@@ -21,13 +21,13 @@ from Orange.widgets.widget import Input, Output, OWWidget, Msg
 
 from orangecontrib.text import Corpus
 from orangecontrib.text.keywords import ScoringMethods, AggregationMethods, \
-    YAKE_LANGUAGE_MAPPING, RAKE_LANGUAGES, EMBEDDING_LANGUAGE_MAPPING
+    YAKE_LANGUAGE_MAPPING, RAKE_LANGUAGES
 from orangecontrib.text.preprocess import BaseNormalizer
+from orangecontrib.text.widgets.utils import enum2int
 from orangecontrib.text.widgets.utils.words import create_words_table, \
     WORDS_COLUMN_NAME
 
 YAKE_LANGUAGES = list(YAKE_LANGUAGE_MAPPING.keys())
-EMBEDDING_LANGUAGES = list(EMBEDDING_LANGUAGE_MAPPING.keys())
 
 
 class Results(SimpleNamespace):
@@ -143,7 +143,7 @@ class KeywordsTableModel(PyTableModel):
     def data(self, index, role=Qt.DisplayRole):
         if role in (gui.BarRatioRole, Qt.DisplayRole):
             return super().data(index, Qt.EditRole)
-        if role == Qt.BackgroundColorRole and index.column() == 0:
+        if role == Qt.BackgroundRole and index.column() == 0:
             return TableModel.ColorForRole[TableModel.Meta]
         return super().data(index, role)
 
@@ -166,10 +166,13 @@ class SortFilterProxyModel(QSortFilterProxyModel):
         right = self.sourceModel().data(right_ind, role=Qt.EditRole)
         if isinstance(right, float) and isinstance(left, float):
             # NaNs always at the end
+            # PyQt5's SortOrder is IntEnum (inherit from int) in PyQt6 it is Enum
+            # this solution is made that way that it works in both cases
+            is_descending = order == Qt.DescendingOrder
             if np.isnan(right):
-                right = 1 - order
+                right = 1 - is_descending
             if np.isnan(left):
-                left = 1 - order
+                left = 1 - is_descending
             return left < right
         return super().lessThan(left_ind, right_ind)
 
@@ -183,13 +186,14 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
 
     buttons_area_orientation = Qt.Vertical
 
-    DEFAULT_SORTING = (1, Qt.DescendingOrder)
+    # Qt.DescendingOrder is IntEnum in PyQt5 and Enum in PyQt6 (both have value attr)
+    # in setting we want to save integer and not Enum object (in case of PyQt6)
+    DEFAULT_SORTING = (1, enum2int(Qt.DescendingOrder))
 
     settingsHandler = DomainContextHandler()
     selected_scoring_methods: Set[str] = Setting({ScoringMethods.TF_IDF})
     yake_lang_index: int = Setting(YAKE_LANGUAGES.index("English"))
     rake_lang_index: int = Setting(RAKE_LANGUAGES.index("English"))
-    embedding_lang_index: int = Setting(EMBEDDING_LANGUAGES.index("English"))
     agg_method: int = Setting(AggregationMethods.MEAN)
     sel_method: int = ContextSetting(SelectionMethods.N_BEST)
     n_selected: int = ContextSetting(3)
@@ -228,10 +232,6 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
             self.controlArea, self, "rake_lang_index", items=RAKE_LANGUAGES,
             callback=self.__on_rake_lang_changed
         )
-        embedding_cb = gui.comboBox(
-            self.controlArea, self, "embedding_lang_index",
-            items=EMBEDDING_LANGUAGES, callback=self.__on_emb_lang_changed
-        )
 
         for i, (method_name, _) in enumerate(ScoringMethods.ITEMS):
             check_box = QCheckBox(method_name, self)
@@ -245,8 +245,6 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
                 box.layout().addWidget(yake_cb, i, 1)
             if method_name == ScoringMethods.RAKE:
                 box.layout().addWidget(rake_cb, i, 1)
-            if method_name == ScoringMethods.EMBEDDING:
-                box.layout().addWidget(embedding_cb, i, 1)
 
         box = gui.vBox(self.controlArea, "Aggregation")
         gui.comboBox(
@@ -265,9 +263,7 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
             button.setChecked(method == self.sel_method)
             grid.addWidget(button, method, 0)
             self.__sel_method_buttons.addButton(button, method)
-        self.__sel_method_buttons.buttonClicked[int].connect(
-            self._set_selection_method
-        )
+        self.__sel_method_buttons.idClicked.connect(self._set_selection_method)
 
         spin = gui.spin(
             box, self, "n_selected", 1, 999, addToLayout=False,
@@ -291,14 +287,16 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
 
         self.view = KeywordsTableView()
         self.view.pressedAny.connect(select_manual)
-        self.view.horizontalHeader().setSortIndicator(*self.DEFAULT_SORTING)
+        self.view.horizontalHeader().setSortIndicator(
+            self.DEFAULT_SORTING[0], Qt.SortOrder(self.DEFAULT_SORTING[1])
+        )
         self.view.horizontalHeader().sectionClicked.connect(
             self.__on_horizontal_header_clicked)
         self.mainArea.layout().addWidget(self.view)
 
         proxy = SortFilterProxyModel()
         proxy.setFilterKeyColumn(0)
-        proxy.setFilterCaseSensitivity(False)
+        proxy.setFilterCaseSensitivity(Qt.CaseInsensitive)
         self.view.setModel(proxy)
         self.view.model().setSourceModel(self.model)
         self.view.selectionModel().selectionChanged.connect(
@@ -306,7 +304,9 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
         )
 
     def __on_scoring_method_state_changed(self, state: int, method_name: str):
-        if state == Qt.Checked:
+        # state is int but Qt.Checked is IntEnum in PyQt5 and Enum in PyQt6
+        # if value is not transformed to CheckState comparison is False in PyQt6
+        if Qt.CheckState(state) == Qt.Checked:
             self.selected_scoring_methods.add(method_name)
         elif method_name in self.selected_scoring_methods:
             self.selected_scoring_methods.remove(method_name)
@@ -324,12 +324,6 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
                 del self.__cached_keywords[ScoringMethods.RAKE]
             self.update_scores()
 
-    def __on_emb_lang_changed(self):
-        if ScoringMethods.EMBEDDING in self.selected_scoring_methods:
-            if ScoringMethods.EMBEDDING in self.__cached_keywords:
-                del self.__cached_keywords[ScoringMethods.EMBEDDING]
-            self.update_scores()
-
     def __on_filter_changed(self):
         model = self.view.model()
         model.setFilterFixedString(self.__filter_line_edit.text().strip())
@@ -337,7 +331,7 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
 
     def __on_horizontal_header_clicked(self, index: int):
         header = self.view.horizontalHeader()
-        self.sort_column_order = (index, header.sortIndicatorOrder())
+        self.sort_column_order = (index, enum2int(header.sortIndicatorOrder()))
         self._select_rows()
         # explicitly call commit, because __on_selection_changed will not be
         # invoked, since selection is actually the same, only order is not
@@ -374,7 +368,7 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
         if words:
             if WORDS_COLUMN_NAME in words.domain and words.domain[
                     WORDS_COLUMN_NAME].attributes.get("type") == "words":
-                self.words = list(words.get_column_view(WORDS_COLUMN_NAME)[0])
+                self.words = list(words.get_column(WORDS_COLUMN_NAME))
             else:
                 self.Warning.no_words_column()
 
@@ -389,10 +383,7 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
             },
             ScoringMethods.RAKE: {
                 "language": RAKE_LANGUAGES[self.rake_lang_index],
-                "max_len": self.corpus.ngram_range[1] if self.corpus else 1
-            },
-            ScoringMethods.EMBEDDING: {
-                "language": EMBEDDING_LANGUAGES[self.embedding_lang_index],
+                "max_len": self.corpus.ngram_range[1] if self.corpus else 1,
             },
         }
         self.start(run, self.corpus, self.words, self.__cached_keywords,
@@ -456,10 +447,12 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
             self.sort_column_order = self.DEFAULT_SORTING
 
         header = self.view.horizontalHeader()
-        current_sorting = (header.sortIndicatorSection(),
-                           header.sortIndicatorOrder())
-        if current_sorting != self.sort_column_order:
-            header.setSortIndicator(*self.sort_column_order)
+        # PyQt6's SortOrder is Enum (and not IntEnum as in PyQt5),
+        # transform sort_column_order[1], which is int, in Qt.SortOrder Enum
+        sco = (self.sort_column_order[0], Qt.SortOrder(self.sort_column_order[1]))
+        current_sorting = (header.sortIndicatorSection(), header.sortIndicatorOrder())
+        if current_sorting != sco:
+            header.setSortIndicator(*sco)
 
     def onDeleteWidget(self):
         self.shutdown()
@@ -474,7 +467,7 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
             attrs = [ContinuousVariable(model.headerData(i, Qt.Horizontal))
                      for i in range(1, model.columnCount())]
 
-            data = sorted(model, key=lambda a: a[sort_column], reverse=reverse)
+            data = sorted(model, key=lambda a: a[sort_column], reverse=bool(reverse))
             words_data = [s[0] for s in data if s[0] in self.selected_words]
 
             words = create_words_table(words_data)

@@ -1,11 +1,14 @@
 from functools import wraps
 from math import ceil
-from typing import Union, List
+from typing import Union, List, Callable, Any, Tuple, Optional
 
 import numpy as np
 import scipy.sparse as sp
+from Orange.data import Domain, DiscreteVariable
 from gensim.matutils import Sparse2Corpus
-from scipy.sparse import csc_matrix
+
+from orangecontrib.text import Corpus
+from orangecontrib.text.language import infer_language_from_variable
 
 
 def chunks(iterable, chunk_size):
@@ -89,3 +92,84 @@ class Sparse2CorpusSliceable(Sparse2Corpus):
         """
         sparse = self.sparse.__getitem__((slice(None, None, None), key))
         return Sparse2CorpusSliceable(sparse)
+
+
+def create_corpus(
+    documents: List[Any],
+    attributes: List[Tuple[Callable, Callable]],
+    class_vars: List[Tuple[Callable, Callable]],
+    metas: List[Tuple[Callable, Callable]],
+    title_indices: List[int],
+    text_features: List[str],
+    name: str,
+    language_attribute: Optional[str] = None,
+):
+    """
+    Create a corpus from list of features/documents produced by model such as
+    Guardian/NYT
+
+    Parameters
+    ----------
+    documents
+        List with values downloaded from API
+    attributes
+        List of attributes and recipes on how to extract values from documents.
+    class_vars
+        List of class attributes and recipes on how to extract values from documents.
+    metas
+        List of meta and recipes on how to extract values from documents.
+    title_indices
+        The index of the title attribute.
+    text_features
+        Names of text features
+    name
+        The name of the Corpus
+    language_attribute
+        The attribute to infer the language from.
+
+    Returns
+    -------
+    Corpus with documents.
+    """
+    domain = Domain(
+        attributes=[attr() for attr, _ in attributes],
+        class_vars=[attr() for attr, _ in class_vars],
+        metas=[attr() for attr, _ in metas],
+    )
+    for ind in title_indices:
+        domain[ind].attributes["title"] = True
+
+    def to_val(attr, val):
+        if isinstance(attr, DiscreteVariable):
+            attr.val_from_str_add(val)
+        return attr.to_val(val)
+
+    X = [
+        [to_val(a, f(doc)) for a, (_, f) in zip(domain.class_vars, attributes)]
+        for doc in documents
+    ]
+    Y = [
+        [to_val(a, f(doc)) for a, (_, f) in zip(domain.class_vars, class_vars)]
+        for doc in documents
+    ]
+    metas = [
+        [to_val(a, f(doc)) for a, (_, f) in zip(domain.metas, metas)]
+        for doc in documents
+    ]
+    X = np.array(X, dtype=np.float64)
+    Y = np.array(Y, dtype=np.float64)
+    metas = np.array(metas, dtype=object)
+
+    language = None
+    if language_attribute is not None:
+        language = infer_language_from_variable(domain[language_attribute])
+    corpus = Corpus.from_numpy(
+        domain=domain,
+        X=X,
+        Y=Y,
+        metas=metas,
+        text_features=[domain[f] for f in text_features],
+        language=language,
+    )
+    corpus.name = name
+    return corpus
