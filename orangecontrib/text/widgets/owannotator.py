@@ -202,7 +202,7 @@ class OWAnnotator(OWDataProjectionWidget, ConcurrentWidgetMixin):
     description = "Annotates projection clusters."
     icon = "icons/Annotator.svg"
     priority = 1110
-    keywords = ["annotator"]
+    keywords = "annotated corpus map, annotator"
 
     settingsHandler = AnnotatorContextHandler()
     GRAPH_CLASS = OWAnnotatorGraph

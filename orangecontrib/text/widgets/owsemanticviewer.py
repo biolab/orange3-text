@@ -206,7 +206,7 @@ class OWSemanticViewer(OWWidget, ConcurrentWidgetMixin):
     description = "Infers characteristic words from the input corpus."
     icon = "icons/SemanticViewer.svg"
     priority = 1120
-    keywords = ["search"]
+    keywords = "semantic viewer, search"
 
     class Inputs:
         corpus = Input("Corpus", Corpus, default=True)

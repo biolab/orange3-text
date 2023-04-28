@@ -71,6 +71,7 @@ class OWCreateCorpus(OWWidget):
     description = "Write/paste documents to create a corpus"
     icon = "icons/CreateCorpus.svg"
     priority = 120
+    keywords = "create corpus, write"
 
     class Outputs:
         corpus = Output("Corpus", Corpus)

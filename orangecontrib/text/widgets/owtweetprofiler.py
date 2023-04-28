@@ -34,7 +34,7 @@ class OWTweetProfiler(OWWidget, ConcurrentWidgetMixin):
                   "emotions in tweets."
     icon = "icons/TweetProfiler.svg"
     priority = 330
-    keywords = ["Twitter"]
+    keywords = "tweet profiler, twitter"
 
     class Inputs:
         corpus = Input("Corpus", Corpus)

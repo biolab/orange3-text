@@ -67,6 +67,7 @@ class OWNYT(OWWidget):
     description = "Fetch articles from the New York Times search API."
     icon = "icons/NYTimes.svg"
     priority = 130
+    keywords = "new york times, ny times, articles"
 
     class Outputs:
         corpus = Output("Corpus", Corpus)

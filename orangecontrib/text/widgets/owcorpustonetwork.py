@@ -45,7 +45,7 @@ def run(
 class OWCorpusToNetwork(OWWidget, ConcurrentWidgetMixin):
     name = "Corpus to Network"
     description = "Constructs network from given corpus."
-    keywords = ["text, network"]
+    keywords = "corpus to network, network"
     icon = "icons/CorpusToNetwork.svg"
     priority = 250
 

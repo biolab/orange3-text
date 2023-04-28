@@ -86,6 +86,7 @@ class OWCorpus(OWWidget, ConcurrentWidgetMixin):
     description = "Load a corpus of text documents."
     icon = "icons/TextFile.svg"
     priority = 100
+    keywords = "corpus, text"
     replaces = ["orangecontrib.text.widgets.owloadcorpus.OWLoadCorpus"]
 
     class Inputs:

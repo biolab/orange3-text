@@ -229,6 +229,7 @@ class OWLDAvis(OWWidget):
     description = "Interactive exploration of LDA topics."
     priority = 410
     icon = "icons/LDAvis.svg"
+    keywords = "ldavis"
 
     selected_topic = Setting(0, schema_only=True)
     relevance = Setting(0.5)

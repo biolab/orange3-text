@@ -475,7 +475,7 @@ def run(corpus: Corpus, statistics: Tuple[int, str], state: TaskState) -> None:
 class OWStatistics(OWWidget, ConcurrentWidgetMixin):
     name = "Statistics"
     description = "Create new statistic variables for documents."
-    keywords = []
+    keywords = "statistics"
     icon = "icons/Statistics.svg"
 
     class Inputs:
