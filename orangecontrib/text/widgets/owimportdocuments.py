@@ -39,6 +39,9 @@ from Orange.widgets.utils.concurrent import (
     ThreadExecutor, FutureWatcher, methodinvoke
 )
 from Orange.widgets.widget import Output
+
+from Orange.widgets.utils.localization import pl
+
 from orangecanvas.preview.previewbrowser import TextLabel
 
 from orangecontrib.text.corpus import Corpus
@@ -410,13 +413,11 @@ class OWImportDocuments(widget.OWWidget):
             ncategories = self.n_text_categories
             n_skipped = len(self.skipped_documents)
             if ncategories < 2:
-                text = "{} document{}".format(nvalid,
-                                              "s" if nvalid != 1 else "")
+                text = f'{nvalid} {pl(nvalid, "document")}'
             else:
-                text = "{} documents / {} categories".format(nvalid,
-                                                             ncategories)
+                text = f'{nvalid} {pl(nvalid, "document")} / {ncategories} {pl(ncategories, "category")}'
             if n_skipped > 0:
-                text = text + ", {} skipped".format(n_skipped)
+                text = text + f', {n_skipped} skipped'
         elif self.__state == State.Cancelled:
             text = "Cancelled"
         elif self.__state == State.Error:
