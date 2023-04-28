@@ -149,6 +149,7 @@ class OWWordList(OWWidget):
     description = "Create a list of words."
     icon = "icons/WordList.svg"
     priority = 1000
+    keywords = "word list"
 
     class Inputs:
         words = Input("Words", Table)

@@ -93,6 +93,7 @@ class OWPubmed(OWWidget):
     description = 'Fetch data from Pubmed.'
     icon = 'icons/Pubmed.svg'
     priority = 140
+    keywords = "pubmed"
 
     want_main_area = False
     resizing_enabled = False

@@ -106,6 +106,7 @@ class OWWordCloud(OWWidget, ConcurrentWidgetMixin):
     name = "Word Cloud"
     priority = 510
     icon = "icons/WordCloud.svg"
+    keywords = "word cloud"
 
     class Inputs:
         corpus = Input("Corpus", Corpus, default=True)

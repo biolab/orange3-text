@@ -7,11 +7,11 @@ from orangecontrib.text.widgets.utils import owbasevectorizer, widgets
 
 
 class OWTBagOfWords(owbasevectorizer.OWBaseVectorizer):
-    name = 'Bag of Words'
+    name = "Bag of Words"
     description = 'Generates a bag of words from the input corpus.'
     icon = 'icons/BagOfWords.svg'
     priority = 300
-    keywords = ["BOW"]
+    keywords = "bag of words, bow"
 
     Method = BowVectorizer
 

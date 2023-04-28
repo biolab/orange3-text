@@ -75,7 +75,7 @@ class TableView(QTableView):
 class OWCollocations(OWWidget):
     name = "Collocations"
     description = "Compute significant bigrams and trigrams."
-    keywords = ["PMI"]
+    keywords = "collocations, pmi"
     icon = "icons/Collocations.svg"
 
     class Inputs:

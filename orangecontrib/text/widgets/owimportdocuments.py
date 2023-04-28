@@ -26,6 +26,7 @@ from AnyQt.QtWidgets import (
     QVBoxLayout, QLabel, QGridLayout, QSizePolicy, QCompleter
 )
 from numpy import array
+
 from orangewidget.settings import ContextHandler, Context
 
 from orangewidget.utils.itemmodels import PyListModel
@@ -113,6 +114,7 @@ class OWImportDocuments(widget.OWWidget):
     description = "Import text documents from folders."
     icon = "icons/ImportDocuments.svg"
     priority = 110
+    keywords = "import documents"
 
     class Outputs:
         data = Output("Corpus", Corpus, default=True)

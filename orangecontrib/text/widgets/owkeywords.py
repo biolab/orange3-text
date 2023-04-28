@@ -182,7 +182,7 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
     description = "Infers characteristic words from the input corpus."
     icon = "icons/Keywords.svg"
     priority = 1100
-    keywords = ["characteristic", "term"]
+    keywords = "extract keywords, characteristic, term"
 
     buttons_area_orientation = Qt.Vertical
 

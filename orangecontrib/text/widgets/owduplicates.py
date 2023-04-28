@@ -19,6 +19,7 @@ class OWDuplicates(widget.OWWidget):
     description = 'Detect & remove duplicates from a corpus.'
     icon = 'icons/Duplicates.svg'
     priority = 700
+    keywords = "duplicate detection, detect, remove"
 
     class Inputs:
         distances = Input("Distances", DistMatrix)

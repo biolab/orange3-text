@@ -290,6 +290,7 @@ class OWCorpusViewer(OWWidget, ConcurrentWidgetMixin):
     description = "Display corpus contents."
     icon = "icons/CorpusViewer.svg"
     priority = 500
+    keywords = "corpus viewer, display"
 
     class Inputs:
         corpus = Input("Corpus", Corpus, replaces=["Data"])
