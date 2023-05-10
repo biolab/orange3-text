@@ -4,39 +4,32 @@ import logging
 import os
 import pathlib
 import re
-
-import httpx
-import yaml
-
-from conllu import parse_incr
-from requests.exceptions import ConnectionError
+import xml.etree.ElementTree as ET
 from collections import namedtuple
 from tempfile import NamedTemporaryFile
 from types import SimpleNamespace as namespace
-from typing import List, Tuple, Callable, Optional
+from typing import Callable, List, Optional, Tuple
 from unicodedata import normalize
 
+import docx2txt
+import httpx
 import numpy as np
 import pandas as pd
-
-import docx2txt
-from odf.opendocument import load
-from odf import text, teletype
-
-from pdfminer.pdfparser import PDFParser, PDFDocument
-from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
-from pdfminer.converter import PDFPageAggregator
-from pdfminer.layout import LAParams, LTTextBox, LTTextLine
-from bs4 import BeautifulSoup
-
 import serverfiles
-
-from Orange.data import DiscreteVariable, Domain, StringVariable, \
-    guess_data_type
+import yaml
+from conllu import parse_incr
+from odf import teletype, text
+from odf.opendocument import load
+from Orange.data import DiscreteVariable, Domain, StringVariable, guess_data_type
 from Orange.data.io import detect_encoding, sanitize_variable
 from Orange.data.util import get_unique_names
-from Orange.util import Registry, dummy_callback
 from Orange.misc.utils.embedder_utils import get_proxies
+from Orange.util import Registry, dummy_callback
+from pdfminer.converter import PDFPageAggregator
+from pdfminer.layout import LAParams, LTTextBox, LTTextLine
+from pdfminer.pdfinterp import PDFPageInterpreter, PDFResourceManager
+from pdfminer.pdfparser import PDFDocument, PDFParser
+from requests.exceptions import ConnectionError
 
 from orangecontrib.text.corpus import Corpus
 
@@ -165,10 +158,8 @@ class XmlReader(Reader):
     ext = [".xml"]
 
     def read_file(self):
-        encoding = detect_encoding(self.path)
-        with open(self.path, encoding=encoding, errors='ignore') as markup:
-            soup = BeautifulSoup(markup.read(), "lxml")
-        self.content = soup.get_text()
+        root = ET.parse(self.path).getroot()
+        self.content = "\n".join(t.strip() for t in root.itertext() if t.strip())
 
 
 class CsvMetaReader(Reader):
