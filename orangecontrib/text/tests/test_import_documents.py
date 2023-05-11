@@ -2,6 +2,7 @@ import asyncio
 import os
 import unittest
 from os.path import join, splitext
+from tempfile import NamedTemporaryFile
 from unittest.mock import patch, MagicMock, call
 
 import numpy as np
@@ -14,6 +15,7 @@ from orangecontrib.text.import_documents import (
     UrlProxyReader,
     TxtReader,
     TextData,
+    XmlReader,
 )
 
 
@@ -252,6 +254,46 @@ class TestImportDocuments(unittest.TestCase):
         corpus, errors, _, _, _, _ = importer.run()
         self.assertIsNone(corpus)
         self.assertGreater(len(errors), 0)
+
+
+XML_EXAMPLE = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<root testAttr="testValue">
+    The Tree
+    <children>
+        <child name="Jack">First</child>
+        <child name="Rose">Second</child>
+        <child name="Blue Ivy">
+            Third
+                <grandchildren>
+                    <data>One</data>
+                    <data>Two</data>
+                    <unique>Twins</unique>
+                </grandchildren>
+            </child>
+        <child name="Jane">Fourth</child>
+    </children>
+    After
+</root>"""
+
+
+class TestXMLReader(unittest.TestCase):
+    def test_file(self):
+        exp = "The Tree\nFirst\nSecond\nThird\nOne\nTwo\nTwins\nFourth\nAfter"
+        with NamedTemporaryFile(mode="w", delete=False) as fp:
+            fp.write(XML_EXAMPLE)
+        reader = XmlReader(fp.name)
+        res = reader.read()[0]
+        self.assertEqual(exp, res.content)
+        os.remove(fp.name)
+
+    def test_error(self):
+        with NamedTemporaryFile(mode="w", delete=False) as fp:
+            fp.write("Test")
+        reader = XmlReader(fp.name)
+        res = reader.read()
+        self.assertIsNone(res[0])
+        self.assertEqual(fp.name.split(os.sep)[-1], res[1])
+        os.remove(fp.name)
 
 
 if __name__ == "__main__":
