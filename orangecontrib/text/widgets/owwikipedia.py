@@ -15,6 +15,7 @@ class OWWikipedia(OWWidget):
     name = 'Wikipedia'
     priority = 160
     icon = 'icons/Wikipedia.svg'
+    keywords = "wikipedia"
 
     class Outputs:
         corpus = Output("Corpus", Corpus)

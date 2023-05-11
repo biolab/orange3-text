@@ -321,6 +321,7 @@ class OWScoreDocuments(OWWidget, ConcurrentWidgetMixin):
     description = ""
     icon = "icons/ScoreDocuments.svg"
     priority = 500
+    keywords = "score documents"
 
     buttons_area_orientation = Qt.Vertical
 

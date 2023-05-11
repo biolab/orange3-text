@@ -54,7 +54,7 @@ class OWTwitter(OWWidget, ConcurrentWidgetMixin):
     name = "Twitter"
     description = "Load tweets from the Twitter API."
     icon = "icons/Twitter.svg"
-    keywords = ["twitter", "tweet"]
+    keywords = "twitter, tweet"
     priority = 150
 
     class Outputs:

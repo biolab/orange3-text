@@ -584,7 +584,7 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
     description = ""
     icon = "icons/Ontology.svg"
     priority = 1110
-    keywords = []
+    keywords = "ontology, hierarchy"
 
     CACHED, LIBRARY = range(2)  # library list modification types
     RUN_BUTTON, INC_BUTTON = "Generate", "Include"

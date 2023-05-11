@@ -1025,7 +1025,7 @@ class OWPreprocess(Orange.widgets.data.owpreprocess.OWPreprocess,
     category=None
     icon = "icons/TextPreprocess.svg"
     priority = 200
-    keywords = []
+    keywords = "preprocess text, text"
 
     settings_version = 3
 

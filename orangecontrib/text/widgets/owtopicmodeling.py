@@ -127,7 +127,7 @@ class OWTopicModeling(OWWidget, ConcurrentWidgetMixin):
     description = "Uncover the hidden thematic structure in a corpus."
     icon = "icons/TopicModeling.svg"
     priority = 400
-    keywords = ["LDA"]
+    keywords = "topic modelling, lda"
 
     settingsHandler = DomainContextHandler()
 

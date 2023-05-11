@@ -5,6 +5,11 @@ Change Log
 ------------
 * ...
 
+[1.13.1] - 2023-05-11
+--------------------
+##### Bugfixes
+* import_documents - replace lxml xml parser with ElementTree ([#973](../../pull/973))
+
 [1.13.0] - 2023-04-26
 --------------------
 ##### Enhancements
@@ -428,7 +433,8 @@ Change Log
 --------------------
 
 
-[next]: https://github.com/biolab/orange3-text/compare/1.13.0...HEAD
+[next]: https://github.com/biolab/orange3-text/compare/1.13.1...HEAD
+[1.13.1]: https://github.com/biolab/orange3-text/compare/1.13.0...1.13.1
 [1.13.0]: https://github.com/biolab/orange3-text/compare/1.12.0...1.13.0
 [1.12.0]: https://github.com/biolab/orange3-text/compare/1.11.0...1.12.0
 [1.11.0]: https://github.com/biolab/orange3-text/compare/1.10.0...1.11.0

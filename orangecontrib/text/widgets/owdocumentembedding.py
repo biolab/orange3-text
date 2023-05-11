@@ -33,7 +33,7 @@ class EmbeddingVectorizer(Vectorizer):
 class OWDocumentEmbedding(OWBaseVectorizer):
     name = "Document Embedding"
     description = "Document embedding using pretrained models."
-    keywords = ["embedding", "document embedding", "text", "fasttext", "bert", "sbert"]
+    keywords = "embedding, document embedding, fasttext, bert, sbert"
     icon = "icons/TextEmbedding.svg"
     priority = 300
 

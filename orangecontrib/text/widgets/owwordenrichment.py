@@ -50,6 +50,7 @@ class OWWordEnrichment(OWWidget, ConcurrentWidgetMixin):
     description = "Word enrichment analysis for selected documents."
     icon = "icons/SetEnrichment.svg"
     priority = 600
+    keywords = "word enrichment"
 
     # Input/output
     class Inputs:
