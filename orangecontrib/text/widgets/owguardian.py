@@ -193,13 +193,15 @@ class OWGuardian(OWWidget):
             self.Outputs.corpus.send(self.corpus)
 
     def send_report(self):
-        self.report_items([
-            ('Query', self.recent_queries[0]),
-            ('Date from', self.date_from),
-            ('Date to', self.date_to),
-            ('Text includes', ', '.join(self.text_includes)),
-            ('Output', self.output_info or 'Nothing'),
-        ])
+        if self.corpus:
+            self.report_items((
+                ('Query', self.recent_queries[0]),
+                ('Date from', self.date_from),
+                ('Date to', self.date_to),
+                ('Text includes', ', '.join(self.text_includes)),
+                ('Output', self.output_info or 'Nothing'),
+            ))
+
 
 if __name__ == '__main__':
     app = QApplication([])
