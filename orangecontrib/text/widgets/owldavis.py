@@ -30,7 +30,6 @@ from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.topics import LdaWrapper
 from orangecontrib.text.topics.topics import Topics
 
-
 N_BEST_PLOTTED = 20
 
 
@@ -132,10 +131,10 @@ class BarPlotGraph(pg.PlotWidget):
         self.legend.hide()
 
     def update_graph(
-        self,
-        words: List[str],
-        term_topic_freq: np.ndarray,
-        marginal_probability: np.ndarray,
+            self,
+            words: List[str],
+            term_topic_freq: np.ndarray,
+            marginal_probability: np.ndarray,
     ) -> None:
         self.clear()
         marginal_probability = marginal_probability[::-1]
@@ -361,13 +360,12 @@ class OWLDAvis(OWWidget):
         self.num_tokens = None
 
     def send_report(self):
-        self.report_items(
-            (
-                ("Relevance", self.relevance),
-                ("Shown topic", self.topic_list[self.selected_topic]),
-            )
-        )
-        self.report_plot()
+        self.report_items((
+            ("Relevance", self.relevance),
+            ("Shown topic", bool(self.topic_list) and self.topic_list[self.selected_topic]),
+        ))
+        if self.topic_list:
+            self.report_plot()
 
 
 if __name__ == "__main__":

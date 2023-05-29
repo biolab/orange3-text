@@ -1,5 +1,6 @@
 import os
 import unittest
+from unittest.mock import patch, Mock
 
 import pandas as pd
 
@@ -96,11 +97,21 @@ class TestOWLDAvis(WidgetTest):
             self._get_graph_labels()[:6],
         )
 
-    def test_report(self):
+    @patch("orangecontrib.text.widgets.owldavis.OWLDAvis.report_items")
+    @patch("orangecontrib.text.widgets.owldavis.OWLDAvis.report_plot")
+    def test_report(self, mocked_plot, mocked_items: Mock):
+        self.send_signal(self.widget.Inputs.topics, None)
+        self.wait_until_finished()
+        self.widget.send_report()
+        mocked_items.assert_called_once()
+        mocked_plot.assert_not_called()
+        mocked_items.reset_mock()
+
         self.send_signal(self.widget.Inputs.topics, self.topics)
         self.wait_until_finished()
-
         self.widget.send_report()
+        mocked_items.assert_called_once()
+        mocked_plot.assert_not_called()
 
 
 if __name__ == "__main__":
