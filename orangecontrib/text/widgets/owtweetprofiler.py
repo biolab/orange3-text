@@ -179,12 +179,12 @@ class OWTweetProfiler(OWWidget, ConcurrentWidgetMixin):
         super().cancel()
 
     def send_report(self):
-        self.report_items([
+        self.report_items((
             ('Attribute', self.strings_attrs[self.tweet_attr]
              if len(self.strings_attrs) > self.tweet_attr else ''),
             ('Emotions', self.model_name),
             ('Output', self.output_mode),
-        ])
+        ))
 
 
 if __name__ == '__main__':

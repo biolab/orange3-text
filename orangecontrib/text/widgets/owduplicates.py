@@ -44,10 +44,10 @@ class OWDuplicates(widget.OWWidget):
 
     def __init__(self):
         super().__init__()
-        self.corpus = None              # corpus taken from distances
-        self.linkage = None             # hierarchical clustering linkage as returned by Orange
-        self.distances = None           # DistMatrix on input
-        self.clustering_mask = None     # 1D array of clusters for self.corpus
+        self.corpus = None  # corpus taken from distances
+        self.linkage = None  # hierarchical clustering linkage as returned by Orange
+        self.distances = None  # DistMatrix on input
+        self.clustering_mask = None  # 1D array of clusters for self.corpus
         self.threshold_spin = None
 
         # Info
@@ -143,7 +143,7 @@ class OWDuplicates(widget.OWWidget):
 
             self.threshold_spin.setSingleStep(step)
             self.threshold = np.clip(self.threshold, low, up)
-            self.histogram.setValues([])    # without this range breaks when changing linkages
+            self.histogram.setValues([])  # without this range breaks when changing linkages
             self.histogram.setValues(vals)
             self.histogram.setRegion(0, self.threshold)
 
@@ -221,15 +221,14 @@ class OWDuplicates(widget.OWWidget):
             c.name = '{} {}'.format(self.Outputs.duplicates.name, cluster)
         self.Outputs.duplicates.send(c)
 
-
     def send_report(self):
-        self.report_items([
+        self.report_items((
             ('Linkage', self.LINKAGE[self.linkage_method]),
             ('Distance threshold', '{:.2f}'.format(self.threshold)),
             ('Documents', self.n_documents),
             ('Unique', self.n_unique),
             ('Duplicates', self.n_duplicates),
-        ])
+        ))
 
 
 class Cluster:
@@ -242,13 +241,13 @@ class Cluster:
     def __lt__(self, other):
         return self.id < other.id
 
+
 # TODO move the code below to a common place.
 # Currently this is a more or less a copy from OWNxFromDistances.py
 
 # Switch to using white background and black foreground
 pg.setConfigOption('background', 'w')
-pg.setConfigOption('foreground', 'k')   # axis lines, numbers etc
-
+pg.setConfigOption('foreground', 'k')  # axis lines, numbers etc
 
 pg_InfiniteLine = pg.InfiniteLine
 
@@ -266,6 +265,7 @@ class InfiniteLine(pg_InfiniteLine):
         p.setPen(self.currentPen)
         p.drawLine(line)
         p.restore()
+
 
 # Patched so that the Histogram's LinearRegionItem works on MacOS
 pg.InfiniteLine = InfiniteLine
