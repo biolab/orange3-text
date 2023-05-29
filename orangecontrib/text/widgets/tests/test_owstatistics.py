@@ -340,7 +340,7 @@ class TestStatisticsWidget(WidgetTest):
         self.widget.apply()
         self.wait_until_finished()
 
-        self.assertListEqual([(1, "")], list(self.widget.result_dict.keys()))
+        self.assertListEqual([(1, None)], list(self.widget.result_dict.keys()))
 
         self.widget.active_rules = [(1, ""), (2, "")]
         self.widget.adjust_n_rule_rows()
@@ -348,7 +348,7 @@ class TestStatisticsWidget(WidgetTest):
         self.wait_until_finished()
 
         self.assertListEqual(
-            [(1, ""), (2, "")], list(self.widget.result_dict.keys())
+            [(1, ""), (2, None)], list(self.widget.result_dict.keys())
         )
 
         self.widget.active_rules = [(2, "")]
@@ -356,7 +356,7 @@ class TestStatisticsWidget(WidgetTest):
         self.widget.apply()
         self.wait_until_finished()
 
-        self.assertListEqual([(2, "")], list(self.widget.result_dict.keys()))
+        self.assertListEqual([(2, None)], list(self.widget.result_dict.keys()))
 
         # dict should empty on new data
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
@@ -364,7 +364,7 @@ class TestStatisticsWidget(WidgetTest):
 
     def test_context(self):
         """ Test whether context correctly restore rules """
-        rules = [(0, ""), (1, ""), (2, "")]
+        rules = [(0, ""), (1, ""), (2, None)]
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
         self.widget.active_rules = rules[:]
 
