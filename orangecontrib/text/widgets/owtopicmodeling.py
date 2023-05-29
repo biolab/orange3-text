@@ -88,7 +88,7 @@ class HdpWidget(TopicWidget):
     gamma = settings.Setting(1)
     alpha = settings.Setting(1)
     eta = settings.Setting(.01)
-    T = settings.Setting(150)
+    T = settings.Setting(20)
     K = settings.Setting(15)
     kappa = settings.Setting(1)
     tau = settings.Setting(64)
