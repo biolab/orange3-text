@@ -620,10 +620,7 @@ class OWStatistics(OWWidget, ConcurrentWidgetMixin):
         edit_index = self.combos.index(combo)
         selected_i = combo.currentIndex()
         default_value = STATISTICS_DEFAULT_VALUE[selected_i]
-        self.active_rules[edit_index] = (
-            selected_i,
-            default_value or self.active_rules[edit_index][1],
-        )
+        self.active_rules[edit_index] = (selected_i, default_value)
         self.adjust_n_rule_rows()
 
     def _sync_edit_line(self) -> None:
