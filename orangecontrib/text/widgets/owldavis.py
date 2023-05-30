@@ -131,10 +131,10 @@ class BarPlotGraph(pg.PlotWidget):
         self.legend.hide()
 
     def update_graph(
-            self,
-            words: List[str],
-            term_topic_freq: np.ndarray,
-            marginal_probability: np.ndarray,
+        self,
+        words: List[str],
+        term_topic_freq: np.ndarray,
+        marginal_probability: np.ndarray,
     ) -> None:
         self.clear()
         marginal_probability = marginal_probability[::-1]
