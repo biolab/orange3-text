@@ -111,7 +111,7 @@ class TestOWLDAvis(WidgetTest):
         self.wait_until_finished()
         self.widget.send_report()
         mocked_items.assert_called_once()
-        mocked_plot.assert_not_called()
+        mocked_plot. assert_called_once()
 
 
 if __name__ == "__main__":
