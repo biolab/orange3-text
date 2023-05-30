@@ -94,8 +94,3 @@ class BowVectorizer(BaseVectorizer):
         corpus = self.add_features(corpus, X, dic, cv, var_attrs={'bow-feature': True})
         callback(1)
         return corpus
-
-    def report(self):
-        return (('Term Frequency', self.wlocal),
-                ('Document Frequency', self.wglobal),
-                ('Regularization', self.norm),)
