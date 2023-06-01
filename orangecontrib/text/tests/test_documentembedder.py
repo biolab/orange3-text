@@ -111,14 +111,14 @@ class DocumentEmbedderTest(unittest.TestCase):
 
     @patch(PATCH_METHOD, make_dummy_post(b'{"embedding": [0.3, 1]}'))
     def test_cache_for_different_aggregators(self):
-        embedder = DocumentEmbedder(aggregator='max')
+        embedder = DocumentEmbedder(aggregator='Max')
         embedder.clear_cache("en")
 
         self.assertEqual(len(EmbedderCache("fasttext-en")._cache_dict), 0)
         embedder.transform(self.corpus[[0]])
         self.assertEqual(len(EmbedderCache("fasttext-en")._cache_dict), 1)
 
-        embedder = DocumentEmbedder(aggregator='min')
+        embedder = DocumentEmbedder(aggregator='Min')
         self.assertEqual(len(EmbedderCache("fasttext-en")._cache_dict), 1)
         embedder.transform(self.corpus[[0]])
         self.assertEqual(len(EmbedderCache("fasttext-en")._cache_dict), 2)

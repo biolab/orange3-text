@@ -11,6 +11,7 @@ from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.language import ISO2LANG, LANG2ISO
 from orangecontrib.text.vectorization.document_embedder import (
     AGGREGATORS,
+    AGGREGATORS_ITEMS,
     DocumentEmbedder,
     LANGUAGES,
 )
@@ -94,7 +95,7 @@ class OWDocumentEmbedding(OWBaseVectorizer):
             ibox,
             self,
             "aggregator",
-            items=[a.capitalize() for a in AGGREGATORS],
+            items=AGGREGATORS_ITEMS,
             label="Aggregator:",
             sendSelectedValue=True,  # value is actual string not index
             orientation=Qt.Horizontal,
@@ -127,7 +128,7 @@ class OWDocumentEmbedding(OWBaseVectorizer):
 
     def init_method(self):
         params = dict(
-            language=LANG2ISO[self.language], aggregator=self.aggregator.lower()
+            language=LANG2ISO[self.language], aggregator=self.aggregator
         )
         kwargs = ({}, params)[self.method]
         return self.Methods[self.method](**kwargs)
@@ -169,6 +170,18 @@ class OWDocumentEmbedding(OWBaseVectorizer):
                 settings["language"] = LANGUAGES[settings["language"]]
             if "aggregator" in settings:
                 settings["aggregator"] = AGGREGATORS[settings["aggregator"]]
+
+    def send_report(self):
+        if self.method == 0:
+            self.report_items((
+                ("Embedder", "Multilingual SBERT"),
+            ))
+        if self.method == 1:
+            self.report_items((
+                ("Embedder", "fastText"),
+                ("Language", self.language),
+                ("Aggregator", self.aggregator),
+            ))
 
 
 if __name__ == "__main__":
