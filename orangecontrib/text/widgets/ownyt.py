@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, date
 
 from AnyQt.QtCore import Qt
-from AnyQt.QtWidgets import QApplication, QFormLayout
+from AnyQt.QtWidgets import QFormLayout
 
 from Orange.data import StringVariable
 from Orange.widgets import gui
@@ -79,7 +79,7 @@ class OWNYT(OWWidget):
     date_from = Setting((datetime.now().date() - timedelta(365)))
     date_to = Setting(datetime.now().date())
 
-    attributes = [feat.name for feat, _ in NYT.metas if isinstance(feat, StringVariable)]
+    attributes = [feat.args[0] for feat, _ in NYT.metas if feat.func is StringVariable]
     text_includes = Setting([NYT.text_features])
 
     class Warning(OWWidget.Warning):
@@ -200,15 +200,17 @@ class OWNYT(OWWidget):
         self.nyt_api.on_no_connection = self.Error.offline
 
     def send_report(self):
-        self.report_items([
-            ('Query', self.recent_queries[0] if self.recent_queries else ''),
-            ('Date from', self.date_from),
-            ('Date to', self.date_to),
-            ('Text includes', ', '.join(self.text_includes)),
-            ('Output', self.output_info or 'Nothing'),
-        ])
+        if self.corpus:
+            self.report_items((
+                ('Query', self.recent_queries[0] if self.recent_queries else ''),
+                ('Date from', self.date_from),
+                ('Date to', self.date_to),
+                ('Text includes', ', '.join(self.text_includes)),
+                ('Output', self.output_info or 'Nothing'),
+            ))
 
 
 if __name__ == '__main__':
     from orangewidget.utils.widgetpreview import WidgetPreview
+
     WidgetPreview(OWNYT).run()
