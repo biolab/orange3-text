@@ -55,6 +55,7 @@ class TestOWDocumentEmbedding(WidgetTest):
 
         self.send_signal("Corpus", self.corpus)
         result = self.get_output(self.widget.Outputs.corpus)
+        self.wait_until_finished()
         self.assertIsNotNone(result)
         self.assertIsInstance(result, Corpus)
         self.assertEqual(len(self.corpus), len(result))
@@ -213,6 +214,22 @@ class TestOWDocumentEmbedding(WidgetTest):
         widget = self.create_widget(OWDocumentEmbedding, stored_settings=settings)
         self.send_signal(widget.Inputs.corpus, self.corpus, widget=widget)
         self.assertEqual("French", widget.language)
+
+    @patch("orangecontrib.text.widgets.owdocumentembedding.OWDocumentEmbedding.report_items")
+    def test_report(self, mocked_items: Mock):
+        self.widget.findChildren(QRadioButton)[0].click()
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.wait_until_finished()
+        self.widget.send_report()
+        mocked_items.assert_called_once()
+        mocked_items.reset_mock()
+
+        self.widget.findChildren(QRadioButton)[1].click()
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.wait_until_finished()
+        self.widget.send_report()
+        mocked_items.assert_called_once()
+        mocked_items.reset_mock()
 
 
 if __name__ == "__main__":
