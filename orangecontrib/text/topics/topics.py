@@ -12,7 +12,6 @@ from Orange.data.table import Table
 from Orange.util import dummy_callback
 
 from orangecontrib.text.corpus import Corpus
-from orangecontrib.text.util import chunkable
 from gensim.matutils import Sparse2Corpus
 from orangecontrib.text.vectorization import BowVectorizer
 
@@ -101,17 +100,12 @@ class GensimWrapper:
         self.tokens = None
         self.actual_topics = None
 
-    def fit(self, corpus, on_progress=dummy_callback, **kwargs):
+    def fit(self, corpus, on_progress=dummy_callback):
         """ Train the model with the corpus.
 
         Args:
             corpus (Corpus): A corpus to learn topics from.
         """
-        if "chunk_number" in kwargs:
-            warn(
-                "chunk_number is deprecated and will be removed in orange3-text 1.7",
-                FutureWarning
-            )
         if not len(corpus.dictionary):
             return None
         model_kwars = self.kwargs
@@ -131,27 +125,6 @@ class GensimWrapper:
 
     def dummy_method(self, *args, **kwargs):
         pass
-
-    def reset_model(self, corpus):
-        warn(
-            "reset_model is deprecated and will be removed in orange3-text 1.7. "
-            "Model resets with calling fit.",
-            FutureWarning)
-        # prevent model from updating
-        _update = self.Model.update
-        self.Model.update = self.dummy_method
-        self.id2word = Dictionary(corpus.ngrams_iterator(include_postags=True),
-                                  prune_at=None)
-        self.model = self.Model(corpus=corpus,
-                                id2word=self.id2word, **self.kwargs)
-        self.Model.update = _update
-
-    @chunkable
-    def update(self, documents):
-        warn(
-            "update is deprecated and will be removed in orange3-text 1.7.",
-            FutureWarning)
-        self.model.update(documents)
 
     def transform(self, corpus):
         """ Create a table with topics representation. """
