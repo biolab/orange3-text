@@ -215,6 +215,7 @@ class TestOWDocumentEmbedding(WidgetTest):
         self.send_signal(widget.Inputs.corpus, self.corpus, widget=widget)
         self.assertEqual("French", widget.language)
 
+    @patch(PATCH_METHOD, make_dummy_post(b'{"embedding": [1.3, 1]}'))
     @patch("orangecontrib.text.widgets.owdocumentembedding.OWDocumentEmbedding.report_items")
     def test_report(self, mocked_items: Mock):
         self.widget.findChildren(QRadioButton)[0].click()
