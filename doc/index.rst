@@ -7,6 +7,7 @@ Widgets
 .. toctree::
    :maxdepth: 1
 
+   widgets/annotator
    widgets/corpus-widget
    widgets/importdocuments
    widgets/createcorpus
