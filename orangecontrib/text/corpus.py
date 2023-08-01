@@ -1,5 +1,4 @@
 import os
-import warnings
 from collections import Counter, defaultdict
 from copy import copy, deepcopy
 from numbers import Integral
@@ -9,9 +8,6 @@ from warnings import warn
 
 import nltk
 import numpy as np
-import scipy.sparse as sp
-from gensim import corpora
-
 from Orange.data import (
     Variable,
     ContinuousVariable,
@@ -23,16 +19,10 @@ from Orange.data import (
 )
 from Orange.preprocess.transformation import Identity
 from Orange.data.util import get_unique_names
+from orangewidget.utils.signals import summarize, PartialSummary
+import scipy.sparse as sp
 
 from orangecontrib.text.language import ISO2LANG
-
-try:
-    from orangewidget.utils.signals import summarize, PartialSummary
-    # import to check if Table summary is available - if summarize_by_name does
-    # not exist Orange (3.28) does not support automated summaries
-    from Orange.widgets.utils.state_summary import summarize_by_name
-except ImportError:
-    summarize, PartialSummary = None, None
 
 
 def get_sample_corpora_dir():
@@ -468,6 +458,16 @@ class Corpus(Table):
                 for n in range(self.ngram_range[0], self.ngram_range[1]+1))))
                 for doc in data)
 
+    def count_tokens(self) -> int:
+        """Count number of all (non-unique) tokens in the corpus"""
+        return sum(map(len, self.tokens))
+
+    def count_unique_tokens(self) -> int:
+        """Count number of all (unique) tokens in the corpus"""
+        # it seems to be fast enough even datasets very large dataset, so I
+        # would avoid caching to prevetnt potential problems connected to that
+        return len({tk for lst in self.tokens for tk in lst})
+
     @property
     def ngrams(self):
         """generator: Ngram representations of documents."""
@@ -665,23 +665,20 @@ class Corpus(Table):
             new._infer_text_features()
 
 
-if summarize:
-    # summarize is not available in older versions of orange-widget-base
-    # skip if not available
-    @summarize.register(Corpus)
-    def summarize_corpus(corpus: Corpus) -> PartialSummary:
-        """
-        Provides automated input and output summaries for Corpus
-        """
-        table_summary = summarize.dispatch(Table)(corpus)
-        extras = (
-            (
-                f"<br/><nobr>Tokens: {sum(map(len, corpus.tokens))}, "
-                f"Types: {len(corpus.dictionary)}</nobr>"
-            )
-            if corpus.has_tokens()
-            else "<br/><nobr>Corpus is not preprocessed</nobr>"
+@summarize.register(Corpus)
+def summarize_corpus(corpus: Corpus) -> PartialSummary:
+    """
+    Provides automated input and output summaries for Corpus
+    """
+    table_summary = summarize.dispatch(Table)(corpus)
+    extras = (
+        (
+            f"<br/><nobr>Tokens: {corpus.count_tokens()}, "
+            f"Types: {corpus.count_unique_tokens()}</nobr>"
         )
-        language = ISO2LANG[corpus.language] if corpus.language else "not set"
-        extras += f"<br/><nobr>Language: {language}</nobr>"
-        return PartialSummary(table_summary.summary, table_summary.details + extras)
+        if corpus.has_tokens()
+        else "<br/><nobr>Corpus is not preprocessed</nobr>"
+    )
+    language = ISO2LANG[corpus.language] if corpus.language else "not set"
+    extras += f"<br/><nobr>Language: {language}</nobr>"
+    return PartialSummary(table_summary.summary, table_summary.details + extras)
