@@ -613,8 +613,8 @@ class OWCorpusViewer(OWWidget, ConcurrentWidgetMixin):
         if self.corpus is not None:
             has_tokens = self.corpus.has_tokens()
             self.n_matching = f"{self.doc_list.model().rowCount()}/{len(self.corpus)}"
-            self.n_tokens = sum(map(len, self.corpus.tokens)) if has_tokens else "n/a"
-            self.n_types = len(self.corpus.dictionary) if has_tokens else "n/a"
+            self.n_tokens = self.corpus.count_tokens() if has_tokens else "n/a"
+            self.n_types = self.corpus.count_unique_tokens() if has_tokens else "n/a"
         else:
             self.n_matching = "n/a"
             self.n_matches = "n/a"
