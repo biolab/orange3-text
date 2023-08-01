@@ -16,6 +16,7 @@ from Orange.data import (
 from orangewidget.utils.signals import summarize
 from scipy.sparse import csr_matrix, issparse
 
+import orangecontrib
 from orangecontrib.text import preprocess
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.preprocess import (
@@ -189,7 +190,6 @@ class CorpusTests(unittest.TestCase):
 
         self.assertEqual(len(new_c._tokens), len(c))
         np.testing.assert_equal(new_c._tokens, new_c._tokens)
-        self.assertEqual(new_c._dictionary, c._dictionary)
         self.assertEqual(new_c.text_features, c.text_features)
         self.assertEqual(new_c.ngram_range, c.ngram_range)
         self.assertEqual(new_c.attributes, c.attributes)
@@ -406,20 +406,17 @@ class CorpusTests(unittest.TestCase):
         self.assertEqual(len(sel), 1)
         self.assertEqual(len(sel._tokens), 1)
         np.testing.assert_equal(sel._tokens, np.array([c._tokens[0]]))
-        self.assertEqual(sel._dictionary, c._dictionary)
 
         sel = c[0:5]
         self.assertEqual(len(sel), 5)
         self.assertEqual(len(sel._tokens), 5)
         np.testing.assert_equal(sel._tokens, c._tokens[0:5])
-        self.assertEqual(sel._dictionary, c._dictionary)
 
         ind = [3, 4, 5, 6]
         sel = c[ind]
         self.assertEqual(len(sel), len(ind))
         self.assertEqual(len(sel._tokens), len(ind))
         np.testing.assert_equal(sel._tokens, c._tokens[ind])
-        self.assertEqual(sel._dictionary, c._dictionary)
         self.assertEqual(sel.text_features, c.text_features)
         self.assertEqual(sel.ngram_range, c.ngram_range)
         self.assertEqual(sel.attributes, c.attributes)
@@ -429,7 +426,6 @@ class CorpusTests(unittest.TestCase):
         self.assertEqual(len(sel), len(ind))
         self.assertEqual(len(sel._tokens), len(ind))
         np.testing.assert_equal(sel._tokens, c._tokens[ind])
-        self.assertEqual(sel._dictionary, c._dictionary)
         self.assertEqual(sel.text_features, c.text_features)
         self.assertEqual(sel.ngram_range, c.ngram_range)
         self.assertEqual(sel.attributes, c.attributes)
@@ -439,7 +435,6 @@ class CorpusTests(unittest.TestCase):
         self.assertEqual(len(sel), len(ind))
         self.assertEqual(len(sel._tokens), len(ind))
         np.testing.assert_equal(sel._tokens, c._tokens[list(ind)])
-        self.assertEqual(sel._dictionary, c._dictionary)
         self.assertEqual(sel.text_features, c.text_features)
         self.assertEqual(sel.ngram_range, c.ngram_range)
         self.assertEqual(sel.attributes, c.attributes)
@@ -448,7 +443,6 @@ class CorpusTests(unittest.TestCase):
         self.assertEqual(len(sel), len(c))
         self.assertEqual(len(sel._tokens), len(c))
         np.testing.assert_equal(sel._tokens, c._tokens)
-        self.assertEqual(sel._dictionary, c._dictionary)
         self.assertEqual(sel.text_features, c.text_features)
         self.assertEqual(sel.ngram_range, c.ngram_range)
         self.assertEqual(sel.attributes, c.attributes)
@@ -457,7 +451,6 @@ class CorpusTests(unittest.TestCase):
         self.assertEqual(len(sel), 5)
         self.assertEqual(len(sel._tokens), 5)
         np.testing.assert_equal(sel._tokens, c._tokens[0:5])
-        self.assertEqual(sel._dictionary, c._dictionary)
 
     def test_set_text_features(self):
         c = Corpus.from_file('friends-transcripts')[:100]
@@ -729,6 +722,15 @@ class CorpusTests(unittest.TestCase):
         # test on Corpus subset
         self.assertEqual(5, corpus[:2].count_unique_tokens())
         self.assertEqual(2, corpus[:1].count_unique_tokens())
+
+    def test_remove_dictionary(self):
+        """
+        When this test starts to fail remove:
+        - this test
+        - dictionary property from Corpus
+        - dictionary argument from Corpus.store_tokens
+        """
+        self.assertFalse(orangecontrib.text.__version__.startswith("1.15"))
 
 
 class TestCorpusSummaries(unittest.TestCase):

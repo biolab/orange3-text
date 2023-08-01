@@ -26,8 +26,7 @@ class BaseTokenFilter(TokenizedPreprocessor):
         corpus = super().__call__(corpus, wrap_callback(callback, end=0.2))
         return self._filter_tokens(corpus, wrap_callback(callback, start=0.2))
 
-    def _filter_tokens(self, corpus: Corpus, callback: Callable,
-                       dictionary=None) -> Corpus:
+    def _filter_tokens(self, corpus: Corpus, callback: Callable) -> Corpus:
         callback(0, "Filtering...")
         filtered_tokens = []
         filtered_tags = []
@@ -37,10 +36,7 @@ class BaseTokenFilter(TokenizedPreprocessor):
             if corpus.pos_tags is not None:
                 filtered_tags.append(list(compress(corpus.pos_tags[i],
                                                    filter_map)))
-        if dictionary is None:
-            corpus.store_tokens(filtered_tokens)
-        else:
-            corpus.store_tokens(filtered_tokens, dictionary)
+        corpus.store_tokens(filtered_tokens)
         if filtered_tags:
             corpus.pos_tags = np.array(filtered_tags, dtype=object)
         return corpus
@@ -178,11 +174,8 @@ class FitDictionaryFilter(BaseTokenFilter):
     def _fit(self, corpus: Corpus):
         raise NotImplemented
 
-    def _filter_tokens(self, corpus: Corpus, callback: Callable,
-                       dictionary=None) -> Corpus:
-        corpus = super()._filter_tokens(corpus, callback,
-                                        dictionary=self._dictionary)
-        return corpus
+    def _filter_tokens(self, corpus: Corpus, callback: Callable) -> Corpus:
+        return super()._filter_tokens(corpus, callback)
 
     def _check(self, token):
         assert self._lexicon is not None

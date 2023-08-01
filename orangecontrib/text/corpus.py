@@ -19,6 +19,7 @@ from Orange.data import (
 )
 from Orange.preprocess.transformation import Identity
 from Orange.data.util import get_unique_names
+from gensim import corpora
 from orangewidget.utils.signals import summarize, PartialSummary
 import scipy.sparse as sp
 
@@ -78,7 +79,6 @@ class Corpus(Table):
         """
         self.text_features = []    # list of text features for mining
         self._tokens = None
-        self._dictionary = None
         self.ngram_range = (1, 1)
         self._pos_tags = None
         from orangecontrib.text.preprocess import PreprocessorList
@@ -387,8 +387,13 @@ class Corpus(Table):
         Args:
             tokens (list): List of lists containing tokens.
         """
+        if dictionary is not None:
+            warn(
+                "dictionary argument is deprecated and doesn't have effect."
+                "It will be removed in future orange3-text 1.15.",
+                FutureWarning,
+            )
         self._tokens = np.array(tokens, dtype=object)
-        self._dictionary = dictionary or corpora.Dictionary(self.tokens)
 
     @property
     def tokens(self):
@@ -397,7 +402,7 @@ class Corpus(Table):
         present, run default preprocessor and return tokens.
         """
         if self._tokens is None:
-            return self._base_tokens()[0]
+            return self._base_tokens()
         return self._tokens
 
     def has_tokens(self):
@@ -409,19 +414,17 @@ class Corpus(Table):
             BASE_TOKENIZER, PreprocessorList
 
         # don't use anything that requires NLTK data to assure async download
-        base_preprocessors = PreprocessorList([BASE_TRANSFORMER,
-                                               BASE_TOKENIZER])
+        base_preprocessors = PreprocessorList([BASE_TRANSFORMER, BASE_TOKENIZER])
         corpus = base_preprocessors(self)
-        return corpus.tokens, corpus.dictionary
+        return corpus.tokens
 
     @property
     def dictionary(self):
-        """
-        corpora.Dictionary: A token to id mapper.
-        """
-        if self._dictionary is None:
-            return self._base_tokens()[1]
-        return self._dictionary
+        warn(
+            "dictionary is deprecated and will be removed in Orange3-text 1.15",
+            FutureWarning,
+        )
+        return corpora.Dictionary(self.tokens)
 
     @property
     def pos_tags(self):
@@ -476,10 +479,9 @@ class Corpus(Table):
     def copy(self):
         """Return a copy of the table."""
         c = super().copy()
-        # since tokens and dictionary are considered immutable copies are not needed
         c._setup_corpus(text_features=copy(self.text_features))
+        # since tokens are considered immutable copies are not needed
         c._tokens = self._tokens
-        c._dictionary = self._dictionary
         c.ngram_range = self.ngram_range
         c.pos_tags = self.pos_tags
         c.name = self.name
@@ -640,7 +642,6 @@ class Corpus(Table):
                     new.pos_tags = orig.pos_tags
                 else:
                     raise TypeError('Indexing by type {} not supported.'.format(type(key)))
-                new._dictionary = orig._dictionary
 
             if isinstance(new, Corpus):
                 # _find_identical_feature returns non when feature not found
