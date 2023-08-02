@@ -28,6 +28,10 @@ from orangecontrib.text.widgets.utils.words import create_words_table, \
     WORDS_COLUMN_NAME
 
 YAKE_LANGUAGES = list(YAKE_LANGUAGE_MAPPING.keys())
+CONNECTION_WARNING = (
+    f"{ScoringMethods.MBERT} could not extract keywords from some "
+    "documents due to connection error. Please rerun keyword extraction."
+)
 
 
 class Results(SimpleNamespace):
@@ -37,6 +41,8 @@ class Results(SimpleNamespace):
     labels: List[str] = []
     # all calculated keywords {method: [[(word1, score1), ...]]}
     all_keywords: Dict[str, List[List[Tuple[str, float]]]] = {}
+    # warnings happening during keyword extraction process
+    warnings: List[str] = []
 
 
 def run(
@@ -48,7 +54,7 @@ def run(
         agg_method: int,
         state: TaskState
 ) -> Results:
-    results = Results(scores=[], labels=[], all_keywords={})
+    results = Results(scores=[], labels=[], all_keywords={}, warnings=[])
     if not corpus:
         return results
 
@@ -70,7 +76,8 @@ def run(
     step = 1 / len(scoring_methods)
     for method_name, func in ScoringMethods.ITEMS:
         if method_name in scoring_methods:
-            if method_name not in results.all_keywords:
+            keywords = results.all_keywords.get(method_name)
+            if keywords is None:
                 i = len(results.labels)
                 cb = wrap_callback(callback, start=i * step,
                                    end=(i + 1) * step)
@@ -79,10 +86,20 @@ def run(
                 kw = {"progress_callback": cb}
                 kw.update(scoring_methods_kwargs.get(method_name, {}))
 
-                keywords = func(corpus if needs_tokens else documents, **kw)
-                results.all_keywords[method_name] = keywords
+                kws = func(corpus if needs_tokens else documents, **kw)
+                # None means that embedding completely failed on document
+                # currently it only happens with mbert when connection fails
+                keywords = [kws for kws in kws if kws is not None]
+                # don't store keywords to all_keywords if any were not computed
+                # due to connection issues; storing them would cause that
+                # missing keywords would not be recomputed on next run
+                # mbert's existing keywords are cached in embedding cache
+                # only missing will be recomputed
+                if len(kws) > len(keywords) and method_name == ScoringMethods.MBERT:
+                    results.warnings.append(CONNECTION_WARNING)
+                else:
+                    results.all_keywords[method_name] = keywords
 
-            keywords = results.all_keywords[method_name]
             scores[method_name] = \
                 dict(AggregationMethods.aggregate(keywords, agg_method))
 
@@ -210,6 +227,7 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
 
     class Warning(OWWidget.Warning):
         no_words_column = Msg("Input is missing 'Words' column.")
+        extraction_warnings = Msg("{}")
 
     def __init__(self):
         OWWidget.__init__(self)
@@ -376,6 +394,7 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
         self.update_scores()
 
     def update_scores(self):
+        self.Warning.extraction_warnings.clear()
         kwargs = {
             ScoringMethods.YAKE: {
                 "language": YAKE_LANGUAGES[self.yake_lang_index],
@@ -441,6 +460,8 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
             self._select_rows()
         else:
             self.__on_selection_changed()
+        if results.warnings:
+            self.Warning.extraction_warnings("\n".join(results.warnings))
 
     def _apply_sorting(self):
         if self.model.columnCount() <= self.sort_column_order[0]:
