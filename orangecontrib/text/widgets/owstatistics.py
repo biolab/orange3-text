@@ -9,7 +9,7 @@ import numpy as np
 from AnyQt.QtWidgets import QComboBox, QGridLayout, QLabel, QLineEdit, QSizePolicy
 
 from Orange.widgets import gui
-from Orange.widgets.settings import ContextSetting
+from Orange.widgets.settings import Setting
 from Orange.widgets.utils.concurrent import ConcurrentWidgetMixin, TaskState
 from Orange.widgets.utils.widgetpreview import WidgetPreview
 from Orange.widgets.widget import Input, Output, OWWidget
@@ -22,8 +22,8 @@ from orangecontrib.text import Corpus
 from orangecontrib.text.preprocess import (
     LowercaseTransformer,
     RegexpTokenizer,
-    PreprocessorList)
-from orangecontrib.text.widgets.utils.context import AlmostPerfectContextHandler
+    PreprocessorList
+)
 
 
 def num_words(document: str, callback: Callable) -> int:
@@ -493,11 +493,10 @@ class OWStatistics(OWWidget, ConcurrentWidgetMixin):
 
     want_main_area = False
     mainArea_width_height_ratio = None
-    settingsHandler = AlmostPerfectContextHandler(0.9)
 
     # settings
     default_rules = [(0, ""), (1, "")]  # rules used to reset the active rules
-    active_rules: List[Tuple[int, str]] = ContextSetting(default_rules[:])
+    active_rules: List[Tuple[int, str]] = Setting(default_rules[:])
     # rules active at time of apply clicked
     applied_rules: Optional[List[Tuple[int, str]]] = None
 
@@ -641,10 +640,7 @@ class OWStatistics(OWWidget, ConcurrentWidgetMixin):
 
     @Inputs.corpus
     def set_data(self, corpus) -> None:
-        self.closeContext()
         self.corpus = corpus
-        self.active_rules = self.default_rules[:]
-        self.openContext(corpus)
         self.adjust_n_rule_rows()
         self.result_dict = {}  # empty computational results when new data
         # reset old output - it also handle case with corpus == None

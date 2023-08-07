@@ -362,17 +362,14 @@ class TestStatisticsWidget(WidgetTest):
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
         self.assertListEqual([], list(self.widget.result_dict.keys()))
 
-    def test_context(self):
+    def test_settings(self):
         """ Test whether context correctly restore rules """
         rules = [(0, ""), (1, ""), (2, None)]
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
         self.widget.active_rules = rules[:]
 
         self.send_signal(self.widget.Inputs.corpus, self.book_data)
-        self.assertListEqual([(0, ""), (1, "")], self.widget.active_rules)
-
-        self.send_signal(self.widget.Inputs.corpus, self.corpus)
-        self.assertListEqual(rules, self.widget.active_rules)
+        self.assertListEqual([(0, ""), (1, ""), (2, None)], self.widget.active_rules)
 
     def test_compute_values(self):
         """ Test compute values on new data """
