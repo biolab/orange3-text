@@ -8,20 +8,25 @@ from Orange.widgets.tests.utils import simulate
 from orangecontrib.text.widgets.owimportdocuments import OWImportDocuments
 
 
+DATA_PATH = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "..", "tests", "data", "documents")
+)
+
+
 class TestOWImportDocuments(WidgetTest):
     def setUp(self) -> None:
         self.widget: OWImportDocuments = self.create_widget(OWImportDocuments)
-        path = os.path.join(os.path.dirname(__file__), "data/documents")
+        path = os.path.join(os.path.dirname(__file__), DATA_PATH)
         self.widget.setCurrentPath(path)
         self.widget.reload()
         self.wait_until_finished()
 
     def test_current_path(self):
-        path = os.path.join(os.path.dirname(__file__), "data/documents")
+        path = os.path.join(os.path.dirname(__file__), DATA_PATH)
         self.assertEqual(path, self.widget.currentPath)
 
     def test_no_skipped(self):
-        path = os.path.join(os.path.dirname(__file__), "data/documents", "good")
+        path = os.path.join(DATA_PATH, "good")
         self.widget.setCurrentPath(path)
         self.widget.reload()
         self.wait_until_finished()
@@ -29,16 +34,23 @@ class TestOWImportDocuments(WidgetTest):
 
     def test_output(self):
         output = self.get_output(self.widget.Outputs.data)
-        self.assertEqual(4, len(output))
+        self.assertEqual(5, len(output))
         self.assertEqual(3, len(output.domain.metas))
         names = output.get_column("name")
         self.assertListEqual(
             # ž in sample_text_ž must be unicode char 0x17E not decomposed
             # 0x7A + 0x30C as it is in file name
-            ["sample_docx", "sample_odt", "sample_pdf", "sample_txt_ž"],
+            [
+                "minimal-document",
+                "sample_docx",
+                "sample_odt",
+                "sample_pdf",
+                "sample_txt_ž",
+            ],
             sorted(names.tolist()),
         )
-        texts = output.get_column("content")
+        # skip first document - it contains different text
+        texts = output.get_column("content")[1:]
         self.assertListEqual(
             # ž in sample_text_ž must be unicode char 0x17E not decomposed
             # 0x7A + 0x30C as it is in file name
@@ -99,9 +111,7 @@ class TestOWImportDocuments(WidgetTest):
         self.assertEqual(len(corpus.domain.metas), 4)
 
     def test_info_box(self):
-        self.assertEqual(
-            "4 documents, 1 skipped", self.widget.info_area.text()
-        )
+        self.assertEqual("5 documents, 1 skipped", self.widget.info_area.text())
 
         # empty widget
         self.widget: OWImportDocuments = self.create_widget(OWImportDocuments)
@@ -124,7 +134,7 @@ class TestOWImportDocuments(WidgetTest):
         # change default to something else to see if language is changed
         self.widget.language = "Slovenian"
 
-        path = os.path.join(os.path.dirname(__file__), "data/documents", "good")
+        path = os.path.join(DATA_PATH, "good")
         self.widget.setCurrentPath(path)
         self.widget.reload()
         self.wait_until_finished()
