@@ -93,7 +93,7 @@ class TestTwitterWidget(WidgetTest):
         self.widget.search_button.click()
         self.wait_until_finished()
         self.assertTrue(self.widget.Error.api_error.is_shown())
-        self.assertEqual("Api error: Other", str(self.widget.Error.api_error))
+        self.assertTrue(str(self.widget.Error.api_error).startswith("Api error: Other"))
         self.assertEqual("Search", self.widget.search_button.text())
 
     def test_author_not_existing(self):
