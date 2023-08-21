@@ -53,15 +53,17 @@ def _model_to_tree(
 ) -> Union[Dict, OntoType]:
     tree = {}
     for i in range(item.rowCount()):
-        tree[item.child(i).text()] = \
-            _model_to_tree(item.child(i), selection, with_selection)
+        if item.child(i) is not None:
+            tree[item.child(i).text()] = \
+                _model_to_tree(item.child(i), selection, with_selection)
     return (tree, item.index() in selection) if with_selection else tree
 
 
 def _model_to_words(item: QStandardItem) -> List:
     words = [item.text()] if item.text() else []
     for i in range(item.rowCount()):
-        words.extend(_model_to_words(item.child(i)))
+        if item.child(i) is not None:
+            words.extend(_model_to_words(item.child(i)))
     return words
 
 
