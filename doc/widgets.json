@@ -248,6 +248,15 @@
     "icon": "../orangecontrib/text/widgets/icons/Statistics.svg",
     "background": "light-blue",
     "keywords": []
+   },
+   {
+    "text": "Annotated Corpus Map",
+    "doc": "widgets/annotatedcorpusmap.md",
+    "icon": "../orangecontrib/text/widgets/icons/Annotator.svg",
+    "background": "light-blue",
+    "keywords": [
+        "annotate"
+    ]
    }
   ]
  ]
