@@ -130,6 +130,18 @@ class TestOntologyHandler(unittest.TestCase):
         )
         self.assertEqual(skipped, 0)
 
+    @patch(
+        "httpx.AsyncClient.post",
+        make_dummy_post(arrays_to_response(RESPONSE2 + RESPONSE2)),
+    )
+    def test_insert_not_tree(self):
+        """Insert should also work when ontology has multiple roots"""
+        tree = {"1": {"2": {}}, "4": {}}
+        new_tree, skipped = self.handler.insert(tree, ["7"])
+        # 7 goes under number 1 since it has the same embedding as 1
+        self.assertDictEqual(new_tree, {"1": {"2": {}, "7": {}}, "4": {}})
+        self.assertEqual(skipped, 0)
+
     @patch('httpx.AsyncClient.post', make_dummy_post(array_to_response(np.zeros(384))))
     def test_score(self):
         tree, skipped = self.handler.generate(['1', '2', '3'])

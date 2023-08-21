@@ -930,7 +930,7 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
     def _enable_include_button(self):
         tree = self.__ontology_view.get_data()
         words = self.__get_selected_input_words()
-        enabled = len(tree) == 1 and len(words) > 0
+        enabled = len(tree) >= 1 and len(words) > 0
         self.__inc_button.setEnabled(enabled)
 
     def send_report(self):
