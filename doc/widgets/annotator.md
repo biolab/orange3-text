@@ -61,7 +61,7 @@ each cluster. Keywords are extracted with the TF-IDF method.
    the cluster labels displays a tooltip with scores and up to ten characteristic words.
 8. Changes are communicated automatically if *Send automatically* is ticked. 
    Alternatively, press *Send*.
-9. Get hel, save the plot, add the plot to the report, set visual settings and get input 
+9. Get help, save the plot, add the plot to the report, set visual settings and get input 
    and output information.
 
 Example
@@ -80,8 +80,8 @@ The [Document Embedding](documentembedding.md) widget embeds documents in the ve
 space for the t-SNE widget to project them in two-dimensional space. 
 
 Annotated Corpus Map plots documents on the two-dimensional space. 
-We select t-SNE projection as the x and y variables. 
-And decide to use Gaussian mixture models for cluster identification. 
+We select t-SNE projection as the x and y variables and decide to use Gaussian 
+mixture models for cluster identification.
 The widget marks clusters with hulls and places keywords on each cluster. 
 
 We got clusters with different topics. In the left purple cluster, 
@@ -89,7 +89,7 @@ we have documents connected to traffic, while the red cluster seems similar but
 more focused on vehicles and registration. The yellow cluster includes documents 
 related to work and students.
 
-We can select a subset of documents of interest and observer them in the 
+We can select a subset of documents of interest and observe them in the 
 [Corpus Viewer](corpusviewer.md) widget connected to the output.
 
 ![](images/Annotator-Example.png)
