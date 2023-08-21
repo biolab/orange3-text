@@ -89,7 +89,7 @@ def run(
                 kws = func(corpus if needs_tokens else documents, **kw)
                 # None means that embedding completely failed on document
                 # currently it only happens with mbert when connection fails
-                keywords = [kws for kws in kws if kws is not None]
+                keywords = [kw for kw in kws if kw is not None]
                 # don't store keywords to all_keywords if any were not computed
                 # due to connection issues; storing them would cause that
                 # missing keywords would not be recomputed on next run
