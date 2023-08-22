@@ -210,7 +210,7 @@
    },
    {
     "text": "Annotated Corpus Map",
-    "doc": null,
+    "doc": "widgets/annotator.md",
     "icon": "../orangecontrib/text/widgets/icons/Annotator.svg",
     "background": "light-blue",
     "keywords": [
