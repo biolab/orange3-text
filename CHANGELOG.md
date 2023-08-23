@@ -5,6 +5,22 @@ Change Log
 ------------
 * ...
 
+[1.14.0] - 2023-08-23
+--------------------
+##### Enhancements
+* Annotator - Add documentation ([#989](../../pull/989))
+* Ontology - Enable insert in ontology with multiple roots ([#940](../../pull/940))
+
+##### Bugfixes
+* Ontology: Fix 'remove word' bug ([#998](../../pull/998))
+* Keywords - Handle connection error ([#992](../../pull/992))
+* Twitter - Add note about plan requirements/changes to the documentation ([#996](../../pull/996))
+* Reimplement concave hull ([#849](../../pull/849))
+* Statistics - Fix settings ([#993](../../pull/993))
+* Word Cloud - Update wordcloud javascript library ([#988](../../pull/988))
+* Small refactoring (found while transtaing) ([#985](../../pull/985))
+* Statistics - Fix layout (hidden + button on Windows) ([#984](../../pull/984))
+
 [1.13.1] - 2023-05-11
 --------------------
 ##### Bugfixes
@@ -433,7 +449,8 @@ Change Log
 --------------------
 
 
-[next]: https://github.com/biolab/orange3-text/compare/1.13.1...HEAD
+[next]: https://github.com/biolab/orange3-text/compare/1.14.0...HEAD
+[1.14.0]: https://github.com/biolab/orange3-text/compare/1.13.1...1.14.0
 [1.13.1]: https://github.com/biolab/orange3-text/compare/1.13.0...1.13.1
 [1.13.0]: https://github.com/biolab/orange3-text/compare/1.12.0...1.13.0
 [1.12.0]: https://github.com/biolab/orange3-text/compare/1.11.0...1.12.0
