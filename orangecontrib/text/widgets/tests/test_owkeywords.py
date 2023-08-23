@@ -13,8 +13,14 @@ from orangecontrib.text import Corpus
 from orangecontrib.text.keywords import tfidf_keywords, yake_keywords, \
     rake_keywords
 from orangecontrib.text.preprocess import *
-from orangecontrib.text.widgets.owkeywords import OWKeywords, run, \
-    AggregationMethods, ScoringMethods, SelectionMethods
+from orangecontrib.text.widgets.owkeywords import (
+    OWKeywords,
+    run,
+    AggregationMethods,
+    ScoringMethods,
+    SelectionMethods,
+    CONNECTION_WARNING,
+)
 from orangecontrib.text.widgets.utils.words import create_words_table
 
 
@@ -110,6 +116,27 @@ class TestRunner(unittest.TestCase):
         self.assertRaises(Exception, run, self.corpus, None, {},
                           {ScoringMethods.TF_IDF}, {},
                           AggregationMethods.MEAN, state)
+
+    def test_run_mbert_fail(self):
+        """Test mbert partially or completely fails due to connection issues"""
+        agg, sc = AggregationMethods.MEAN, {ScoringMethods.MBERT}
+        res = [[("keyword1", 10), ("keyword2", 2)], None, [("keyword1", 5)]]
+        with patch.object(ScoringMethods, "ITEMS", [("mBERT", Mock(return_value=res))]):
+            results = run(self.corpus[:3], None, {}, sc, {}, agg, self.state)
+            self.assertListEqual([["keyword1", 7.5], ["keyword2", 1]], results.scores)
+            self.assertListEqual(["mBERT"], results.labels)
+            # not stored to all_keywords since not all extracted exactly
+            self.assertDictEqual({}, results.all_keywords)
+            self.assertListEqual([CONNECTION_WARNING], results.warnings)
+
+        res = [None] * 3
+        with patch.object(ScoringMethods, "ITEMS", [("mBERT", Mock(return_value=res))]):
+            results = run(self.corpus[:3], None, {}, sc, {}, agg, self.state)
+            self.assertListEqual([], results.scores)
+            self.assertListEqual(["mBERT"], results.labels)
+            # not stored to all_keywords since not all extracted exactly
+            self.assertDictEqual({}, results.all_keywords)
+            self.assertListEqual([CONNECTION_WARNING], results.warnings)
 
     def assertNanEqual(self, table1, table2):
         for list1, list2 in zip(table1, table2):
@@ -273,6 +300,38 @@ class TestOWKeywords(WidgetTest):
         self.widget.controls.n_selected.setValue(5)
         output = self.get_output(self.widget.Outputs.words)
         self.assertEqual(5, len(output))
+
+    def test_connection_error(self):
+        self.widget.controlArea.findChildren(QCheckBox)[0].click()  # unselect tfidf
+        self.widget.controlArea.findChildren(QCheckBox)[3].click()  # unselect mbert
+        res = [[("keyword1", 10), ("keyword2", 2)], None, [("keyword1", 5)]]
+        with patch.object(ScoringMethods, "ITEMS", [("mBERT", Mock(return_value=res))]):
+            self.send_signal(self.widget.Inputs.corpus, self.corpus)
+            output = self.get_output(self.widget.Outputs.words)
+            self.assertEqual(len(output), 2)
+            np.testing.assert_array_equal(output.metas, [["keyword1"], ["keyword2"]])
+            np.testing.assert_array_equal(output.X, [[7.5], [1]])
+            self.assertTrue(self.widget.Warning.extraction_warnings.is_shown())
+            self.assertEqual(
+                CONNECTION_WARNING, str(self.widget.Warning.extraction_warnings)
+            )
+
+        res = [None] * 3  # all failed
+        with patch.object(ScoringMethods, "ITEMS", [("mBERT", Mock(return_value=res))]):
+            self.send_signal(self.widget.Inputs.corpus, self.corpus)
+            self.assertIsNone(self.get_output(self.widget.Outputs.words))
+            self.assertTrue(self.widget.Warning.extraction_warnings.is_shown())
+            self.assertEqual(
+                CONNECTION_WARNING, str(self.widget.Warning.extraction_warnings)
+            )
+
+        res = [[("keyword1", 10), ("keyword2", 2)], [("keyword1", 5)]]
+        with patch.object(ScoringMethods, "ITEMS", [("mBERT", Mock(return_value=res))]):
+            self.send_signal(self.widget.Inputs.corpus, self.corpus)
+            output = self.get_output(self.widget.Outputs.words)
+            np.testing.assert_array_equal(output.metas, [["keyword1"], ["keyword2"]])
+            np.testing.assert_array_equal(output.X, [[7.5], [1]])
+            self.assertFalse(self.widget.Warning.extraction_warnings.is_shown())
 
 
 if __name__ == "__main__":

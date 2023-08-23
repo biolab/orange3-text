@@ -203,7 +203,7 @@ class DisplayDocument:
 
 class OWSemanticViewer(OWWidget, ConcurrentWidgetMixin):
     name = "Semantic Viewer"
-    description = "Infers characteristic words from the input corpus."
+    description = "Find documents and parts of documents semantically similar to input words"
     icon = "icons/SemanticViewer.svg"
     priority = 1120
     keywords = "semantic viewer, search"

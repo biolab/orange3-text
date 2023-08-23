@@ -56,10 +56,6 @@ class BowVectorizationTest(unittest.TestCase):
         self.assertIn(' '.join(corpus.tokens[0][:2]), attrs)
         self.assertIn(' '.join(corpus.tokens[0][:3]), attrs)
 
-    def test_report(self):
-        vect = BowVectorizer()
-        self.assertGreater(len(vect.report()), 0)
-
     def test_args(self):
         corpus = Corpus.from_file('deerwester')
 

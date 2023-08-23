@@ -69,7 +69,10 @@ class OWTwitter(OWWidget, ConcurrentWidgetMixin):
         )
 
     class Error(OWWidget.Error):
-        api_error = Msg("Api error: {}")
+        api_error = Msg(
+            "Api error: {}. Check if your API plan includes Tweets retrieval. "
+            "The free plan doesn't allow Tweets retrieval anymore."
+        )
         empty_query = Msg("Please provide {}.")
         key_missing = Msg("Please provide a valid API token.")
         wrong_author = Msg("Author '{}' does not exist.")
@@ -280,7 +283,7 @@ class OWTwitter(OWWidget, ConcurrentWidgetMixin):
         if isinstance(ex, NoAuthorError):
             self.Error.wrong_author(str(ex))
         else:
-            self.Error.api_error(str(ex))
+            self.Error.api_error(str(ex).replace("\n", " "))
 
     def on_partial_result(self, _):
         pass

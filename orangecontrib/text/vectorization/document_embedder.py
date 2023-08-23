@@ -17,6 +17,7 @@ from orangecontrib.text import Corpus
 from orangecontrib.text.vectorization.base import BaseVectorizer
 
 AGGREGATORS = ["mean", "sum", "max", "min"]
+AGGREGATORS_ITEMS = ['Mean', 'Sum', 'Max', 'Min']
 # fmt: off
 LANGUAGES = [
     'en', 'sl', 'de', 'ar', 'az', 'bn', 'zh', 'da', 'nl', 'fi', 'fr', 'el',
@@ -44,16 +45,16 @@ class DocumentEmbedder(BaseVectorizer):
     aggregator : str
         Aggregator which creates document embedding (single
         vector) from word embeddings (multiple vectors).
-        Allowed values are mean, sum, max, min.
+        Allowed values are Mean, Sum, Max, Min.
     """
 
     def __init__(
-        self, language: Optional[str] = None, aggregator: str = "mean"
+        self, language: Optional[str] = None, aggregator: str = "Mean"
     ) -> None:
         assert (
             language is None or language in LANGUAGES
         ), f"Language should be one of: {LANGUAGES}"
-        assert aggregator in AGGREGATORS, f"Aggregator should be one of: {AGGREGATORS}"
+        assert aggregator in AGGREGATORS_ITEMS, f"Aggregator should be one of: {AGGREGATORS_ITEMS}"
         self.aggregator = aggregator
         self.language = language
 
@@ -80,7 +81,7 @@ class DocumentEmbedder(BaseVectorizer):
                 "The FastText embedding does not support the Corpus's language."
             )
         embedder = _ServerEmbedder(
-            self.aggregator,
+            AGGREGATORS[AGGREGATORS_ITEMS.index(self.aggregator)],
             model_name="fasttext-" + language,
             max_parallel_requests=100,
             server_url="https://api.garaza.io",
@@ -131,20 +132,6 @@ class DocumentEmbedder(BaseVectorizer):
             )
 
         return new_corpus, skipped_corpus
-
-    def report(self) -> Tuple[Tuple[str, str], ...]:
-        """Reports on current parameters of DocumentEmbedder.
-
-        Returns
-        -------
-        tuple
-            Tuple of parameters.
-        """
-        return (
-            ("Embedder", "fastText"),
-            ("Language", self.language),
-            ("Aggregator", self.aggregator),
-        )
 
     @staticmethod
     def clear_cache(language):

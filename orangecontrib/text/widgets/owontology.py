@@ -53,15 +53,17 @@ def _model_to_tree(
 ) -> Union[Dict, OntoType]:
     tree = {}
     for i in range(item.rowCount()):
-        tree[item.child(i).text()] = \
-            _model_to_tree(item.child(i), selection, with_selection)
+        if item.child(i) is not None:
+            tree[item.child(i).text()] = \
+                _model_to_tree(item.child(i), selection, with_selection)
     return (tree, item.index() in selection) if with_selection else tree
 
 
 def _model_to_words(item: QStandardItem) -> List:
     words = [item.text()] if item.text() else []
     for i in range(item.rowCount()):
-        words.extend(_model_to_words(item.child(i)))
+        if item.child(i) is not None:
+            words.extend(_model_to_words(item.child(i)))
     return words
 
 
@@ -930,7 +932,7 @@ class OWOntology(OWWidget, ConcurrentWidgetMixin):
     def _enable_include_button(self):
         tree = self.__ontology_view.get_data()
         words = self.__get_selected_input_words()
-        enabled = len(tree) == 1 and len(words) > 0
+        enabled = len(tree) >= 1 and len(words) > 0
         self.__inc_button.setEnabled(enabled)
 
     def send_report(self):

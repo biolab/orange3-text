@@ -15,6 +15,14 @@ class OWTBagOfWords(owbasevectorizer.OWBaseVectorizer):
 
     Method = BowVectorizer
 
+    tfoptions = list(BowVectorizer.wlocals)
+    dfoptions = list(BowVectorizer.wglobals)
+    roptions = list(BowVectorizer.norms)
+
+    tflabels = ['Count', 'Binary', 'Sublinear']
+    dflabels = ['(None)', 'IDF', 'Smooth IDF']
+    rlabels = ['(None)', 'L1 (Sum of elements)', 'L2 (Euclidean)']
+
     # Settings
     wlocal = settings.Setting(BowVectorizer.COUNT)
     wglobal = settings.Setting(BowVectorizer.NONE)
@@ -25,14 +33,14 @@ class OWTBagOfWords(owbasevectorizer.OWBaseVectorizer):
         layout.setSpacing(10)
         row = 0
         combo = widgets.ComboBox(self, 'wlocal',
-                                 items=tuple(BowVectorizer.wlocals.keys()))
+                                 items=tuple(zip(self.tflabels, self.tfoptions)))
         combo.currentIndexChanged.connect(self.on_change)
         layout.addWidget(QLabel('Term Frequency:'))
         layout.addWidget(combo, row, 1)
 
         row += 1
         combo = widgets.ComboBox(self, 'wglobal',
-                                 items=tuple(BowVectorizer.wglobals.keys()))
+                                 items=tuple(zip(self.dflabels, self.dfoptions)))
 
         combo.currentIndexChanged.connect(self.on_change)
         layout.addWidget(QLabel('Document Frequency:'))
@@ -40,7 +48,7 @@ class OWTBagOfWords(owbasevectorizer.OWBaseVectorizer):
 
         row += 1
         combo = widgets.ComboBox(self, 'normalization',
-                                 items=tuple(BowVectorizer.norms.keys()))
+                                 items=tuple(zip(self.rlabels, self.roptions)))
 
         combo.currentIndexChanged.connect(self.on_change)
         layout.addWidget(QLabel('Regularization:'))
@@ -53,6 +61,12 @@ class OWTBagOfWords(owbasevectorizer.OWBaseVectorizer):
             norm=self.normalization, wlocal=self.wlocal, wglobal=self.wglobal
         )
 
+    def send_report(self):
+        self.report_items((
+            ('Term Frequency', self.tflabels[self.tfoptions.index(self.wlocal)]),
+            ('Document Frequency', self.dflabels[self.dfoptions.index(self.wglobal)]),
+            ('Regularization', self.rlabels[self.roptions.index(self.normalization)]),
+        ))
 
 if __name__ == '__main__':
     from orangewidget.utils.widgetpreview import WidgetPreview

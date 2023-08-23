@@ -5,6 +5,7 @@ from operator import itemgetter
 from typing import Optional, Callable, Tuple, List, Iterable
 
 import numpy as np
+from Orange.misc.utils.embedder_utils import EmbeddingConnectionError
 from nltk import ngrams
 from Orange.misc.server_embedder import ServerEmbedderCommunicator
 from Orange.util import dummy_callback
@@ -68,7 +69,10 @@ def mbert_keywords(
         server_url="https://api.garaza.io",
         embedder_type="text",
     )
-    keywords = emb.embedd_data(documents, callback=progress_callback)
+    try:
+        keywords = emb.embedd_data(documents, callback=progress_callback)
+    except EmbeddingConnectionError:
+        keywords = [None] * len(documents)
     processed_kws = []
     for kws in keywords:
         if kws is not None:

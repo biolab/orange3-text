@@ -4,6 +4,7 @@ from unittest.mock import patch, call, ANY
 
 import numpy as np
 from Orange.data import Domain, StringVariable
+from Orange.misc.utils.embedder_utils import EmbeddingConnectionError
 
 from orangecontrib.text import Corpus
 from orangecontrib.text.keywords import (
@@ -179,6 +180,14 @@ class TestMBERT(unittest.TestCase):
             [("kw5", 0.2), ("kw8", 0.2), ("kw7", 0.2)],
         ]
         self.assertListEqual(expected, res)
+
+    @patch(
+        "orangecontrib.text.keywords.mbert._BertServerCommunicator.embedd_data",
+        side_effect=EmbeddingConnectionError,
+    )
+    def test_mbert_keywords_fail(self, _):
+        res = mbert_keywords(["Text 1", "Text 2"], max_len=3)
+        self.assertListEqual([None, None], res)
 
 
 @patch(

@@ -6,12 +6,10 @@ from string import punctuation
 from typing import Callable, List, Optional, Tuple
 
 import numpy as np
-from AnyQt.QtCore import QSize
-from AnyQt.QtWidgets import QComboBox, QGridLayout, QLabel, QLineEdit, \
-    QSizePolicy
+from AnyQt.QtWidgets import QComboBox, QGridLayout, QLabel, QLineEdit, QSizePolicy
 
 from Orange.widgets import gui
-from Orange.widgets.settings import ContextSetting
+from Orange.widgets.settings import Setting
 from Orange.widgets.utils.concurrent import ConcurrentWidgetMixin, TaskState
 from Orange.widgets.utils.widgetpreview import WidgetPreview
 from Orange.widgets.widget import Input, Output, OWWidget
@@ -24,9 +22,7 @@ from orangecontrib.text import Corpus
 from orangecontrib.text.preprocess import (
     LowercaseTransformer,
     RegexpTokenizer,
-    PreprocessorList)
-from orangecontrib.text.widgets.utils.context import (
-    AlmostPerfectContextHandler,
+    PreprocessorList
 )
 
 
@@ -410,6 +406,12 @@ class ComputeValue:
         # lambda is added as a placeholder for a callback.
         return self.function(data, self.pattern, lambda: True)[0]
 
+    def __eq__(self, other):
+        return self.function == other.function and self.pattern == other.pattern
+
+    def __hash__(self):
+        return hash((self.function, self.pattern))
+
 
 # the definition of all statistics used in this widget, if new statistic
 # is required ad it to this list
@@ -491,11 +493,10 @@ class OWStatistics(OWWidget, ConcurrentWidgetMixin):
 
     want_main_area = False
     mainArea_width_height_ratio = None
-    settingsHandler = AlmostPerfectContextHandler(0.9)
 
     # settings
     default_rules = [(0, ""), (1, "")]  # rules used to reset the active rules
-    active_rules: List[Tuple[int, str]] = ContextSetting(default_rules[:])
+    active_rules: List[Tuple[int, str]] = Setting(default_rules[:])
     # rules active at time of apply clicked
     applied_rules: Optional[List[Tuple[int, str]]] = None
 
@@ -518,11 +519,8 @@ class OWStatistics(OWWidget, ConcurrentWidgetMixin):
     def _init_controls(self) -> None:
         """ Init all controls of the widget """
         self._init_statistics_box()
-        box = gui.hBox(self.controlArea)
-        gui.rubber(box)
 
-        gui.button(self.buttonsArea, self, "Apply",
-                   callback=self.apply)
+        gui.button(self.buttonsArea, self, "Apply", callback=self.apply)
 
     def get_button(self, label, callback):
         return
@@ -532,22 +530,30 @@ class OWStatistics(OWWidget, ConcurrentWidgetMixin):
         Init the statistics box in control area - place where used statistics
         are listed, remove, and added.
         """
-        patternbox = gui.vBox(self.controlArea, box=True)
-        self.rules_box = rules_box = QGridLayout()
-        patternbox.layout().addLayout(self.rules_box)
-        box = gui.hBox(patternbox)
+        box = gui.vBox(self.controlArea, box=True)
+
+        rules_box = gui.vBox(box)
+        self.rules_grid = grid = QGridLayout()
+        rules_box.layout().addLayout(self.rules_grid)
+        grid.setColumnMinimumWidth(1, 100)
+        grid.setColumnMinimumWidth(0, 25)
+        grid.setColumnStretch(0, 1)
+        grid.setColumnStretch(1, 1)
+        grid.setColumnStretch(2, 100)
+        grid.addWidget(QLabel("Feature"), 0, 1)
+        grid.addWidget(QLabel("Pattern"), 0, 2)
+
         gui.button(
-            box, self, "+", callback=self._add_row,
-            addToLayout=False, autoDefault=False, width=34,
-            sizePolicy=(QSizePolicy.Maximum, QSizePolicy.Maximum))
+            box,
+            self,
+            "+",
+            callback=self._add_row,
+            autoDefault=False,
+            width=34,
+            sizePolicy=(QSizePolicy.Maximum, QSizePolicy.Maximum),
+        )
         gui.rubber(box)
-        self.rules_box.setColumnMinimumWidth(1, 70)
-        self.rules_box.setColumnMinimumWidth(0, 10)
-        self.rules_box.setColumnStretch(0, 1)
-        self.rules_box.setColumnStretch(1, 1)
-        self.rules_box.setColumnStretch(2, 100)
-        rules_box.addWidget(QLabel("Feature"), 0, 1)
-        rules_box.addWidget(QLabel("Pattern"), 0, 2)
+
         self.adjust_n_rule_rows()
 
     def adjust_n_rule_rows(self) -> None:
@@ -563,19 +569,19 @@ class OWStatistics(OWWidget, ConcurrentWidgetMixin):
                 None, self, "×", callback=self._remove_row,
                 addToLayout=False, autoDefault=False, width=34,
                 sizePolicy=(QSizePolicy.Maximum, QSizePolicy.Maximum))
-            self.rules_box.addWidget(button, n_lines, 0)
+            self.rules_grid.addWidget(button, n_lines, 0)
             self.remove_buttons.append(button)
 
             # add statistics type dropdown
             combo = QComboBox()
             combo.addItems(STATISTICS_NAMES)
             combo.currentIndexChanged.connect(self._sync_edit_combo)
-            self.rules_box.addWidget(combo, n_lines, 1)
+            self.rules_grid.addWidget(combo, n_lines, 1)
             self.combos.append(combo)
 
             # add line edit for patern
             line_edit = QLineEdit()
-            self.rules_box.addWidget(line_edit, n_lines, 2)
+            self.rules_grid.addWidget(line_edit, n_lines, 2)
             line_edit.textChanged.connect(self._sync_edit_line)
             self.line_edits.append(line_edit)
 
@@ -620,10 +626,7 @@ class OWStatistics(OWWidget, ConcurrentWidgetMixin):
         edit_index = self.combos.index(combo)
         selected_i = combo.currentIndex()
         default_value = STATISTICS_DEFAULT_VALUE[selected_i]
-        self.active_rules[edit_index] = (
-            selected_i,
-            default_value or self.active_rules[edit_index][1],
-        )
+        self.active_rules[edit_index] = (selected_i, default_value)
         self.adjust_n_rule_rows()
 
     def _sync_edit_line(self) -> None:
@@ -637,10 +640,7 @@ class OWStatistics(OWWidget, ConcurrentWidgetMixin):
 
     @Inputs.corpus
     def set_data(self, corpus) -> None:
-        self.closeContext()
         self.corpus = corpus
-        self.active_rules = self.default_rules[:]
-        self.openContext(corpus)
         self.adjust_n_rule_rows()
         self.result_dict = {}  # empty computational results when new data
         # reset old output - it also handle case with corpus == None

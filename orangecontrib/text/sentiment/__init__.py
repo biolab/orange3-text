@@ -102,7 +102,7 @@ class LiuHuSentiment(Sentiment):
 
 
 class VaderSentiment(Sentiment):
-    sentiments = ("pos", "neg", "neu", "compound")  # output column names
+    sentiments = ("positive", "negative", "neutral", "compound")  # output column names
     name = "Vader"
 
     @wait_nltk_data
@@ -116,7 +116,7 @@ class VaderSentiment(Sentiment):
         scores = []
         for i, text in enumerate(corpus.documents):
             pol_sc = self.vader.polarity_scores(text)
-            scores.append([pol_sc[x] for x in self.sentiments])
+            scores.append([pol_sc[x] for x in ("pos", "neg", "neu", "compound")])
             callback((i + 1) / len(corpus))
         return scores
 

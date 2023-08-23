@@ -10,7 +10,6 @@ from Orange.data import (
     Domain,
     StringVariable,
     TimeVariable,
-    Variable,
 )
 from Orange.util import dummy_callback, wrap_callback
 from tweepy import TooManyRequests

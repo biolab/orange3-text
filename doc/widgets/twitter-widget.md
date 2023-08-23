@@ -13,6 +13,9 @@ Fetching data from [The Twitter Search API](https://dev.twitter.com/rest/public/
 
 **Twitter** widget enables querying tweets through Twitter API. You can query by content, author or both and  accumulate results should you wish to create a larger data set. The widget only supports REST API and allows queries for up to two weeks back.
 
+**Note**: After the [API plans changed on March 30, 2023](https://twittercommunity.com/t/announcing-new-access-tiers-for-the-twitter-api/188728
+), Twitter no longer supports free Tweet retrieval with free access. At least Basic access is required.
+
 ![](images/Twitter-stamped.png)
 
 1. To begin your queries, insert Twitter key and secret. They are securely saved in your system keyring service (like Credential Vault, Keychain, KWallet, etc.) and won't be deleted when clearing widget settings. You must first create a [Twitter app](https://apps.twitter.com/) to get API keys.
