@@ -220,7 +220,6 @@ class DatePickerInterval(QWidget):
 class FileWidget(QWidget):
     on_open = pyqtSignal(str)
 
-    # TODO consider removing directory_aliases since it is not used any more
     def __init__(
         self,
         dialog_title="",
@@ -232,7 +231,6 @@ class FileWidget(QWidget):
         reload_button=True,
         reload_label="Reload",
         recent_files=None,
-        directory_aliases=None,
         allow_empty=True,
         empty_file_label="(none)",
     ):
@@ -247,7 +245,6 @@ class FileWidget(QWidget):
             reload_button (bool): Whether to show reload button.
             reload_label (str): The text displayed on the reload button.
             recent_files (List[str]): List of recent files.
-            directory_aliases (dict): An {alias: dir} dictionary for fast directories' access.
             allow_empty (bool): Whether empty path is allowed.
         """
         super().__init__()
@@ -257,7 +254,6 @@ class FileWidget(QWidget):
         # Recent files should also contain `empty_file_label` so
         # when (none) is selected this is stored in settings.
         self.recent_files = recent_files if recent_files is not None else []
-        self.directory_aliases = directory_aliases or {}
         self.allow_empty = allow_empty
         self.empty_file_label = empty_file_label
         if self.empty_file_label not in self.recent_files \
@@ -333,8 +329,6 @@ class FileWidget(QWidget):
             self.recent_files.insert(0, self.empty_file_label)
             self.update_combo()
             self.open_file(self.empty_file_label)
-        elif name in self.directory_aliases:
-            self.browse(self.directory_aliases[name])
         elif n < len(self.recent_files):
             name = self.recent_files[n]
             del self.recent_files[n]
@@ -353,9 +347,6 @@ class FileWidget(QWidget):
                     del self.recent_files[i]
                 else:
                     self.file_combo.addItem(os.path.split(file)[1])
-
-            for alias in self.directory_aliases.keys():
-                self.file_combo.addItem(alias)
 
     def reload(self):
         if self.recent_files:
@@ -380,209 +371,3 @@ class FileWidget(QWidget):
             return self.recent_files[0]
         else:
             return self.empty_file_label
-
-
-class ValidatedLineEdit(QLineEdit):
-    invalid_input_signal = pyqtSignal(str)
-
-    def __init__(self, master, attr, validator, *args):
-        super().__init__(*args)
-        self.master = master
-        self.attr = attr
-        self.validator = validator
-
-        self.setText(getattr(master, attr))
-        self.on_change()
-        self.textChanged.connect(self.on_change)
-
-    def on_change(self):
-        if self.validator(self.text()):
-            self.setStyleSheet("QLineEdit { border : 1px solid gray;}")
-            self.synchronize()
-        else:
-            self.setStyleSheet("QLineEdit { border : 2px solid red;}")
-            self.invalid_input_signal.emit("Invalid '{}' value.".format(self.attr))
-
-    def synchronize(self):
-        setattr(self.master, self.attr, self.text())
-
-
-class AbsoluteRelativeSpinBox(QWidget):
-    editingFinished = pyqtSignal()
-    valueChanged = pyqtSignal()
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args)
-        layout = QStackedLayout(self)
-
-        self.double_spin = QDoubleSpinBox()
-        self.double_spin.valueChanged.connect(self.double_value_changed)
-        self.double_spin.editingFinished.connect(self.double_editing_finished)
-        layout.addWidget(self.double_spin)
-
-        self.int_spin = QSpinBox()
-        self.int_spin.setMaximum(10 ** 4)
-        self.int_spin.valueChanged.connect(self.int_value_changed)
-        self.int_spin.editingFinished.connect(self.int_editing_finished)
-        layout.addWidget(self.int_spin)
-
-        self.setValue(kwargs.get('value', 0.))
-
-    def double_value_changed(self):
-        if self.double_spin.value() > 1:
-            self.layout().setCurrentIndex(1)
-            self.int_spin.setValue(self.double_spin.value())
-
-        self.valueChanged.emit()
-
-    def double_editing_finished(self):
-        if self.double_spin.value() <= 1.:
-            self.editingFinished.emit()
-
-    def int_value_changed(self):
-        if self.int_spin.value() == 0:
-            self.layout().setCurrentIndex(0)
-            self.double_spin.setValue(1. - self.double_spin.singleStep())
-            # There is no need to emit valueChanged signal.
-
-    def int_editing_finished(self):
-        if self.int_spin.value() > 0:
-            self.editingFinished.emit()
-
-    def value(self):
-        return self.int_spin.value() or self.double_spin.value()
-
-    def setValue(self, value):
-        if isinstance(value, int):
-            self.layout().setCurrentIndex(1)
-            self.int_spin.setValue(value)
-        else:
-            self.layout().setCurrentIndex(0)
-            self.double_spin.setValue(value)
-
-    def setSingleStep(self, step):
-        if isinstance(step, float):
-            self.double_spin.setSingleStep(step)
-        else:
-            self.int_spin.setSingleStep(step)
-
-
-class RangeWidget(QWidget):
-    valueChanged = pyqtSignal()
-    editingFinished = pyqtSignal()
-
-    def __init__(self, widget, master, attribute, minimum=0., maximum=1., step=.05,
-                 min_label=None, max_label=None, allow_absolute=False, dtype=float,
-                 callback=None, *args):
-        super().__init__(*args)
-        if widget:
-            widget.layout().addWidget(self)
-        self.allow_absolute_values = allow_absolute
-        self.master = master
-        self.attribute = attribute
-        self.min = minimum
-        self.max = maximum
-        self.step = step
-
-        self.min_label = min_label
-        self.max_label = max_label
-        a, b = self.master_value()
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-
-        if self.allow_absolute_values:
-            SpinBox = AbsoluteRelativeSpinBox
-        else:
-            if dtype == float:
-                SpinBox = QDoubleSpinBox
-            else:
-                SpinBox = QSpinBox
-
-        if self.min_label:
-            layout.addWidget(QLabel(self.min_label))
-
-        self.min_spin = SpinBox(value=a)
-        self.min_spin.setSingleStep(self.step)
-        layout.addWidget(self.min_spin)
-
-        if self.max_label:
-            layout.addWidget(QLabel(self.max_label))
-
-        self.max_spin = SpinBox(value=b)
-        self.max_spin.setSingleStep(self.step)
-        layout.addWidget(self.max_spin)
-
-        self.set_range()
-        self.min_spin.editingFinished.connect(self._editing_finished)
-        self.max_spin.editingFinished.connect(self._editing_finished)
-        if callback:
-            self.valueChanged.connect(callback)
-
-    def synchronize(self):
-        a, b = self.value()
-        if isinstance(self.attribute, str):
-            setattr(self.master, self.attribute, (a, b))
-        else:
-            setattr(self.master, self.attribute[0], a)
-            setattr(self.master, self.attribute[1], b)
-        self.set_range()
-
-    def _editing_finished(self):
-        value_before = self.master_value()
-        self.synchronize()
-        if value_before != self.master_value():
-            self.editingFinished.emit()
-
-    def master_value(self):
-        if isinstance(self.attribute, str):
-            return getattr(self.master, self.attribute)
-        return (getattr(self.master, self.attribute[0]),
-                getattr(self.master, self.attribute[1]))
-
-    def value(self):
-        return self.min_spin.value(), self.max_spin.value()
-
-    def set_range(self):
-        if not self.allow_absolute_values:
-            a, b = self.value()
-            self.min_spin.setRange(self.min, b)
-            self.max_spin.setRange(a, self.max)
-
-
-class ResourceLoader(QWidget, OWComponent):
-    valueChanged = pyqtSignal(str, str)
-
-    recent_files = settings.Setting([])
-    recent_provider = settings.Setting([])
-    resource_path = settings.Setting('')
-
-    def __init__(self, widget, model_format, provider_format,
-                 model_button_label='Model', provider_button_label='Provider'):
-        QWidget.__init__(self)
-        OWComponent.__init__(self, widget)
-
-        self.model_path = None
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-
-        self.model_widget = FileWidget(recent_files=self.recent_files, dialog_title='Load model',
-                                       dialog_format=model_format, start_dir=None,
-                                       on_open=self.load_model, allow_empty=False,
-                                       reload_button=False, browse_label=model_button_label)
-        self.model_path = self.recent_files[0] if self.recent_files else None
-
-        layout.addWidget(self.model_widget)
-
-        self.provider_widget = FileWidget(recent_files=self.recent_provider, dialog_title='Load provider',
-                                          dialog_format=provider_format, start_dir=None,
-                                          on_open=self.load_provider, allow_empty=False,
-                                          reload_button=False, browse_label=provider_button_label)
-        layout.addWidget(self.provider_widget)
-
-    def load_model(self, path_to_file):
-        self.model_path = path_to_file
-        self.valueChanged.emit(self.model_path, self.resource_path)
-
-    def load_provider(self, path_to_file):
-        self.resource_path = path_to_file
-        self.valueChanged.emit(self.model_path, self.resource_path)
