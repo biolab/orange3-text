@@ -221,20 +221,27 @@ class FileWidget(QWidget):
     on_open = pyqtSignal(str)
 
     # TODO consider removing directory_aliases since it is not used any more
-    def __init__(self, dialog_title='', dialog_format='',
-                 start_dir=os.path.expanduser('~/'),
-                 icon_size=(12, 20), minimal_width=200,
-                 browse_label='Browse', on_open=None,
-                 reload_button=True, reload_label='Reload',
-                 recent_files=None, directory_aliases=None,
-                 allow_empty=True, empty_file_label='(none)'):
-        """ Creates a widget with a button for file loading and
+    def __init__(
+        self,
+        dialog_title="",
+        dialog_format="",
+        icon_size=(12, 20),
+        minimal_width=200,
+        browse_label="Browse",
+        on_open=None,
+        reload_button=True,
+        reload_label="Reload",
+        recent_files=None,
+        directory_aliases=None,
+        allow_empty=True,
+        empty_file_label="(none)",
+    ):
+        """Creates a widget with a button for file loading and
         an optional combo box for recent files and reload buttons.
 
         Args:
             dialog_title (str): The title of the dialog.
             dialog_format (str): Formats for the dialog.
-            start_dir (str): A directory to start from.
             icon_size (int, int): The size of buttons' icons.
             on_open (callable): A callback function that accepts filepath as the only argument.
             reload_button (bool): Whether to show reload button.
@@ -246,7 +253,6 @@ class FileWidget(QWidget):
         super().__init__()
         self.dialog_title = dialog_title
         self.dialog_format = dialog_format
-        self.start_dir = start_dir
 
         # Recent files should also contain `empty_file_label` so
         # when (none) is selected this is stored in settings.
@@ -259,7 +265,8 @@ class FileWidget(QWidget):
             self.recent_files.append(self.empty_file_label)
 
         self.check_existence()
-        self.on_open.connect(on_open)
+        if on_open:
+            self.on_open.connect(on_open)
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -290,8 +297,23 @@ class FileWidget(QWidget):
             self.reload_button.setIconSize(QSize(*icon_size))
             layout.addWidget(self.reload_button)
 
+    def __start_dir(self):
+        """Extract start dir form recent path or return home"""
+        if self.recent_files and self.recent_files[-1] != self.empty_file_label:
+            recent = self.recent_files[0]  # latest path
+            if not os.path.isabs(recent):
+                # if not absolute path it is just filename of file in sample
+                # corpora dir - attach the path
+                recent = os.path.join(get_sample_corpora_dir(), recent)
+            recent = os.path.dirname(recent)
+            if os.path.exists(recent):
+                return recent
+
+        return "~/"
+
     def browse(self, start_dir=None):
-        start_dir = start_dir or self.start_dir
+        if not start_dir:
+            start_dir = self.__start_dir()
         path, _ = QFileDialog().getOpenFileName(self, self.dialog_title,
                                                 start_dir, self.dialog_format)
 
