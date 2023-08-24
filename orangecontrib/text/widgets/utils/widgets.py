@@ -220,7 +220,6 @@ class DatePickerInterval(QWidget):
 class FileWidget(QWidget):
     on_open = pyqtSignal(str)
 
-    # TODO consider removing directory_aliases since it is not used any more
     def __init__(
         self,
         dialog_title="",
@@ -232,7 +231,6 @@ class FileWidget(QWidget):
         reload_button=True,
         reload_label="Reload",
         recent_files=None,
-        directory_aliases=None,
         allow_empty=True,
         empty_file_label="(none)",
     ):
@@ -247,7 +245,6 @@ class FileWidget(QWidget):
             reload_button (bool): Whether to show reload button.
             reload_label (str): The text displayed on the reload button.
             recent_files (List[str]): List of recent files.
-            directory_aliases (dict): An {alias: dir} dictionary for fast directories' access.
             allow_empty (bool): Whether empty path is allowed.
         """
         super().__init__()
@@ -257,7 +254,6 @@ class FileWidget(QWidget):
         # Recent files should also contain `empty_file_label` so
         # when (none) is selected this is stored in settings.
         self.recent_files = recent_files if recent_files is not None else []
-        self.directory_aliases = directory_aliases or {}
         self.allow_empty = allow_empty
         self.empty_file_label = empty_file_label
         if self.empty_file_label not in self.recent_files \
@@ -333,8 +329,6 @@ class FileWidget(QWidget):
             self.recent_files.insert(0, self.empty_file_label)
             self.update_combo()
             self.open_file(self.empty_file_label)
-        elif name in self.directory_aliases:
-            self.browse(self.directory_aliases[name])
         elif n < len(self.recent_files):
             name = self.recent_files[n]
             del self.recent_files[n]
@@ -353,9 +347,6 @@ class FileWidget(QWidget):
                     del self.recent_files[i]
                 else:
                     self.file_combo.addItem(os.path.split(file)[1])
-
-            for alias in self.directory_aliases.keys():
-                self.file_combo.addItem(alias)
 
     def reload(self):
         if self.recent_files:
