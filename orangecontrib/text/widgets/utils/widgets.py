@@ -372,32 +372,6 @@ class FileWidget(QWidget):
         else:
             return self.empty_file_label
 
-
-class ValidatedLineEdit(QLineEdit):
-    invalid_input_signal = pyqtSignal(str)
-
-    def __init__(self, master, attr, validator, *args):
-        super().__init__(*args)
-        self.master = master
-        self.attr = attr
-        self.validator = validator
-
-        self.setText(getattr(master, attr))
-        self.on_change()
-        self.textChanged.connect(self.on_change)
-
-    def on_change(self):
-        if self.validator(self.text()):
-            self.setStyleSheet("QLineEdit { border : 1px solid gray;}")
-            self.synchronize()
-        else:
-            self.setStyleSheet("QLineEdit { border : 2px solid red;}")
-            self.invalid_input_signal.emit("Invalid '{}' value.".format(self.attr))
-
-    def synchronize(self):
-        setattr(self.master, self.attr, self.text())
-
-
 class AbsoluteRelativeSpinBox(QWidget):
     editingFinished = pyqtSignal()
     valueChanged = pyqtSignal()
