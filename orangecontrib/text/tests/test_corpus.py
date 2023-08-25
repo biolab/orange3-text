@@ -730,7 +730,7 @@ class CorpusTests(unittest.TestCase):
         - dictionary property from Corpus
         - dictionary argument from Corpus.store_tokens
         """
-        self.assertFalse(orangecontrib.text.__version__.startswith("1.15"))
+        self.assertFalse(orangecontrib.text.__version__.startswith("1.16"))
 
 
 class TestCorpusSummaries(unittest.TestCase):
