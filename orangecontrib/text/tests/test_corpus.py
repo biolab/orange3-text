@@ -783,9 +783,11 @@ class TestCorpusSummaries(unittest.TestCase):
             language="en",
         )
         corpus = RegexpTokenizer()(corpus)
+        corpus.name = "Test corpus"
 
         details = (
-            f"<nobr>{len(corpus)} instances, 1 variable</nobr><br/>"
+            f"<nobr><b><u>Test corpus</u></b>: "
+            f"{len(corpus)} instances, 1 variable</nobr><br/>"
             f"<nobr>Metas: string</nobr><br/>"
             f"<nobr>Tokens: 10, Types: 6</nobr><br/>"
             f"<nobr>Language: English</nobr>"
@@ -796,7 +798,8 @@ class TestCorpusSummaries(unittest.TestCase):
 
         corpus = corpus[:1]
         details = (
-            f"<nobr>{len(corpus)} instance, 1 variable</nobr><br/>"
+            f"<nobr><b><u>Test corpus</u></b>: "
+            f"{len(corpus)} instance, 1 variable</nobr><br/>"
             f"<nobr>Metas: string</nobr><br/>"
             f"<nobr>Tokens: 5, Types: 5</nobr><br/>"
             f"<nobr>Language: English</nobr>"
