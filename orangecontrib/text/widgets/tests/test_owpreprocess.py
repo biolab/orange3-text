@@ -1,6 +1,8 @@
 import unittest
 from unittest.mock import patch, PropertyMock, MagicMock, Mock
 
+import numpy as np
+from Orange.data import Domain, StringVariable
 from orangewidget.utils.filedialogs import RecentPath
 from Orange.widgets.tests.base import WidgetTest
 
@@ -31,8 +33,8 @@ class TestOWPreprocess(WidgetTest):
     def test_previews(self):
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
         self.wait_until_finished()
-        self.assertTrue(self.widget.preview)
-        self.assertTrue(self.widget.output_info)
+        self.assertEqual("human, machine, interface, lab, abc", self.widget.preview)
+        self.assertEqual("Tokens: 52\nTypes: 35", self.widget.output_info)
         self.send_signal(self.widget.Inputs.corpus, None)
         self.wait_until_finished()
         self.assertFalse(self.widget.preview)
@@ -138,6 +140,35 @@ class TestOWPreprocess(WidgetTest):
         from_file.side_effect = fun
         widget = self.create_widget(OWPreprocess)
         self.assertTrue(widget.Error.invalid_encoding.is_shown())
+
+    @patch(
+        "orangecontrib.text.widgets.owpreprocess.OWPreprocess.storedsettings",
+        PropertyMock(
+            return_value={
+                "preprocessors": [
+                    ("preprocess.tokenize", {"method": TokenizerModule.Word}),
+                    ("preprocess.filter", {"method": FilteringModule.Stopwords}),
+                ]
+            }
+        ),
+    )
+    def test_no_tokens_left(self):
+        # make corpus with only stop words to get no_token_left warning
+        domain = Domain([], metas=[StringVariable("Text")])
+        corpus = Corpus.from_numpy(
+            domain,
+            np.empty((2, 0)),
+            metas=np.array([["is are"], ["been"]]),
+            text_features=domain.metas,
+            language="en",
+        )
+        self.send_signal(self.widget.Inputs.corpus, corpus)
+        self.wait_until_finished()
+        self.assertTrue(self.widget.Warning.no_token_left.is_shown())
+
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.wait_until_finished()
+        self.assertFalse(self.widget.Warning.no_token_left.is_shown())
 
 
 @patch(SF_LIST, new=Mock(return_value=SERVER_FILES))

@@ -1,5 +1,4 @@
 import os
-import warnings
 from collections import Counter, defaultdict
 from copy import copy, deepcopy
 from numbers import Integral
@@ -9,9 +8,6 @@ from warnings import warn
 
 import nltk
 import numpy as np
-import scipy.sparse as sp
-from gensim import corpora
-
 from Orange.data import (
     Variable,
     ContinuousVariable,
@@ -23,16 +19,11 @@ from Orange.data import (
 )
 from Orange.preprocess.transformation import Identity
 from Orange.data.util import get_unique_names
+from gensim import corpora
+from orangewidget.utils.signals import summarize, PartialSummary
+import scipy.sparse as sp
 
 from orangecontrib.text.language import ISO2LANG
-
-try:
-    from orangewidget.utils.signals import summarize, PartialSummary
-    # import to check if Table summary is available - if summarize_by_name does
-    # not exist Orange (3.28) does not support automated summaries
-    from Orange.widgets.utils.state_summary import summarize_by_name
-except ImportError:
-    summarize, PartialSummary = None, None
 
 
 def get_sample_corpora_dir():
@@ -88,7 +79,6 @@ class Corpus(Table):
         """
         self.text_features = []    # list of text features for mining
         self._tokens = None
-        self._dictionary = None
         self.ngram_range = (1, 1)
         self._pos_tags = None
         from orangecontrib.text.preprocess import PreprocessorList
@@ -397,8 +387,13 @@ class Corpus(Table):
         Args:
             tokens (list): List of lists containing tokens.
         """
+        if dictionary is not None:
+            warn(
+                "dictionary argument is deprecated and doesn't have effect."
+                "It will be removed in future orange3-text 1.15.",
+                FutureWarning,
+            )
         self._tokens = np.array(tokens, dtype=object)
-        self._dictionary = dictionary or corpora.Dictionary(self.tokens)
 
     @property
     def tokens(self):
@@ -407,7 +402,7 @@ class Corpus(Table):
         present, run default preprocessor and return tokens.
         """
         if self._tokens is None:
-            return self._base_tokens()[0]
+            return self._base_tokens()
         return self._tokens
 
     def has_tokens(self):
@@ -419,19 +414,17 @@ class Corpus(Table):
             BASE_TOKENIZER, PreprocessorList
 
         # don't use anything that requires NLTK data to assure async download
-        base_preprocessors = PreprocessorList([BASE_TRANSFORMER,
-                                               BASE_TOKENIZER])
+        base_preprocessors = PreprocessorList([BASE_TRANSFORMER, BASE_TOKENIZER])
         corpus = base_preprocessors(self)
-        return corpus.tokens, corpus.dictionary
+        return corpus.tokens
 
     @property
     def dictionary(self):
-        """
-        corpora.Dictionary: A token to id mapper.
-        """
-        if self._dictionary is None:
-            return self._base_tokens()[1]
-        return self._dictionary
+        warn(
+            "dictionary is deprecated and will be removed in Orange3-text 1.15",
+            FutureWarning,
+        )
+        return corpora.Dictionary(self.tokens)
 
     @property
     def pos_tags(self):
@@ -468,6 +461,16 @@ class Corpus(Table):
                 for n in range(self.ngram_range[0], self.ngram_range[1]+1))))
                 for doc in data)
 
+    def count_tokens(self) -> int:
+        """Count number of all (non-unique) tokens in the corpus"""
+        return sum(map(len, self.tokens))
+
+    def count_unique_tokens(self) -> int:
+        """Count number of all (unique) tokens in the corpus"""
+        # it seems to be fast enough even datasets very large dataset, so I
+        # would avoid caching to prevetnt potential problems connected to that
+        return len({tk for lst in self.tokens for tk in lst})
+
     @property
     def ngrams(self):
         """generator: Ngram representations of documents."""
@@ -476,10 +479,9 @@ class Corpus(Table):
     def copy(self):
         """Return a copy of the table."""
         c = super().copy()
-        # since tokens and dictionary are considered immutable copies are not needed
         c._setup_corpus(text_features=copy(self.text_features))
+        # since tokens are considered immutable copies are not needed
         c._tokens = self._tokens
-        c._dictionary = self._dictionary
         c.ngram_range = self.ngram_range
         c.pos_tags = self.pos_tags
         c.name = self.name
@@ -640,7 +642,6 @@ class Corpus(Table):
                     new.pos_tags = orig.pos_tags
                 else:
                     raise TypeError('Indexing by type {} not supported.'.format(type(key)))
-                new._dictionary = orig._dictionary
 
             if isinstance(new, Corpus):
                 # _find_identical_feature returns non when feature not found
@@ -665,23 +666,20 @@ class Corpus(Table):
             new._infer_text_features()
 
 
-if summarize:
-    # summarize is not available in older versions of orange-widget-base
-    # skip if not available
-    @summarize.register(Corpus)
-    def summarize_corpus(corpus: Corpus) -> PartialSummary:
-        """
-        Provides automated input and output summaries for Corpus
-        """
-        table_summary = summarize.dispatch(Table)(corpus)
-        extras = (
-            (
-                f"<br/><nobr>Tokens: {sum(map(len, corpus.tokens))}, "
-                f"Types: {len(corpus.dictionary)}</nobr>"
-            )
-            if corpus.has_tokens()
-            else "<br/><nobr>Corpus is not preprocessed</nobr>"
+@summarize.register(Corpus)
+def summarize_corpus(corpus: Corpus) -> PartialSummary:
+    """
+    Provides automated input and output summaries for Corpus
+    """
+    table_summary = summarize.dispatch(Table)(corpus)
+    extras = (
+        (
+            f"<br/><nobr>Tokens: {corpus.count_tokens()}, "
+            f"Types: {corpus.count_unique_tokens()}</nobr>"
         )
-        language = ISO2LANG[corpus.language] if corpus.language else "not set"
-        extras += f"<br/><nobr>Language: {language}</nobr>"
-        return PartialSummary(table_summary.summary, table_summary.details + extras)
+        if corpus.has_tokens()
+        else "<br/><nobr>Corpus is not preprocessed</nobr>"
+    )
+    language = ISO2LANG[corpus.language] if corpus.language else "not set"
+    extras += f"<br/><nobr>Language: {language}</nobr>"
+    return PartialSummary(table_summary.summary, table_summary.details + extras)

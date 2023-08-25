@@ -18,8 +18,8 @@ class BaseTests:
     def test_get_topic_table_by_id(self):
         self.model.fit(self.corpus)
         topic1 = self.model.get_topics_table_by_id(1)
-        self.assertEqual(len(topic1), len(self.corpus.dictionary))
-        self.assertEqual(topic1.metas.shape, (len(self.corpus.dictionary), 2))
+        self.assertEqual(len(topic1), self.corpus.count_unique_tokens())
+        self.assertEqual(topic1.metas.shape, (self.corpus.count_unique_tokens(), 2))
         # self.assertAlmostEqual(topic1.W.sum(), 1.)
         self.assertFalse(any(topic1.W == np.nan))
 

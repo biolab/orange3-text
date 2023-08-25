@@ -2,37 +2,29 @@ import os
 import pickle
 import unittest
 from datetime import datetime
-from unittest import skipIf
 
 import numpy as np
 from numpy.testing import assert_array_equal
-from orangecontrib.text.preprocess import (
-    RegexpTokenizer,
-    LowercaseTransformer,
-    StopwordsFilter,
-)
-from scipy.sparse import csr_matrix, issparse
-
 from Orange.data import (
-    Table,
-    DiscreteVariable,
-    StringVariable,
-    Domain,
     ContinuousVariable,
+    DiscreteVariable,
+    Domain,
+    StringVariable,
+    Table,
     dataset_dirs,
 )
+from orangewidget.utils.signals import summarize
+from scipy.sparse import csr_matrix, issparse
 
+import orangecontrib
 from orangecontrib.text import preprocess
 from orangecontrib.text.corpus import Corpus
+from orangecontrib.text.preprocess import (
+    LowercaseTransformer,
+    RegexpTokenizer,
+    StopwordsFilter,
+)
 from orangecontrib.text.tag import AveragedPerceptronTagger
-
-try:
-    from orangewidget.utils.signals import summarize
-    # import to check if Table summary is available - if summarize_by_name does
-    # not exist Orange (3.28) does not support automated summaries
-    from Orange.widgets.utils.state_summary import summarize_by_name
-except ImportError:
-    summarize = None
 
 
 class CorpusTests(unittest.TestCase):
@@ -198,7 +190,6 @@ class CorpusTests(unittest.TestCase):
 
         self.assertEqual(len(new_c._tokens), len(c))
         np.testing.assert_equal(new_c._tokens, new_c._tokens)
-        self.assertEqual(new_c._dictionary, c._dictionary)
         self.assertEqual(new_c.text_features, c.text_features)
         self.assertEqual(new_c.ngram_range, c.ngram_range)
         self.assertEqual(new_c.attributes, c.attributes)
@@ -415,20 +406,17 @@ class CorpusTests(unittest.TestCase):
         self.assertEqual(len(sel), 1)
         self.assertEqual(len(sel._tokens), 1)
         np.testing.assert_equal(sel._tokens, np.array([c._tokens[0]]))
-        self.assertEqual(sel._dictionary, c._dictionary)
 
         sel = c[0:5]
         self.assertEqual(len(sel), 5)
         self.assertEqual(len(sel._tokens), 5)
         np.testing.assert_equal(sel._tokens, c._tokens[0:5])
-        self.assertEqual(sel._dictionary, c._dictionary)
 
         ind = [3, 4, 5, 6]
         sel = c[ind]
         self.assertEqual(len(sel), len(ind))
         self.assertEqual(len(sel._tokens), len(ind))
         np.testing.assert_equal(sel._tokens, c._tokens[ind])
-        self.assertEqual(sel._dictionary, c._dictionary)
         self.assertEqual(sel.text_features, c.text_features)
         self.assertEqual(sel.ngram_range, c.ngram_range)
         self.assertEqual(sel.attributes, c.attributes)
@@ -438,7 +426,6 @@ class CorpusTests(unittest.TestCase):
         self.assertEqual(len(sel), len(ind))
         self.assertEqual(len(sel._tokens), len(ind))
         np.testing.assert_equal(sel._tokens, c._tokens[ind])
-        self.assertEqual(sel._dictionary, c._dictionary)
         self.assertEqual(sel.text_features, c.text_features)
         self.assertEqual(sel.ngram_range, c.ngram_range)
         self.assertEqual(sel.attributes, c.attributes)
@@ -448,7 +435,6 @@ class CorpusTests(unittest.TestCase):
         self.assertEqual(len(sel), len(ind))
         self.assertEqual(len(sel._tokens), len(ind))
         np.testing.assert_equal(sel._tokens, c._tokens[list(ind)])
-        self.assertEqual(sel._dictionary, c._dictionary)
         self.assertEqual(sel.text_features, c.text_features)
         self.assertEqual(sel.ngram_range, c.ngram_range)
         self.assertEqual(sel.attributes, c.attributes)
@@ -457,7 +443,6 @@ class CorpusTests(unittest.TestCase):
         self.assertEqual(len(sel), len(c))
         self.assertEqual(len(sel._tokens), len(c))
         np.testing.assert_equal(sel._tokens, c._tokens)
-        self.assertEqual(sel._dictionary, c._dictionary)
         self.assertEqual(sel.text_features, c.text_features)
         self.assertEqual(sel.ngram_range, c.ngram_range)
         self.assertEqual(sel.attributes, c.attributes)
@@ -466,7 +451,6 @@ class CorpusTests(unittest.TestCase):
         self.assertEqual(len(sel), 5)
         self.assertEqual(len(sel._tokens), 5)
         np.testing.assert_equal(sel._tokens, c._tokens[0:5])
-        self.assertEqual(sel._dictionary, c._dictionary)
 
     def test_set_text_features(self):
         c = Corpus.from_file('friends-transcripts')[:100]
@@ -707,8 +691,48 @@ class CorpusTests(unittest.TestCase):
         corpus = Corpus.from_file(file)
         self.assertIsNone(corpus.attributes["language"])
 
+    def test_count_tokens(self):
+        domain = Domain([], metas=[StringVariable("Text")])
+        texts = np.array([["Test text"], ["This is another test text"], ["Text 3"]])
+        corpus = Corpus.from_numpy(
+            domain,
+            np.empty((3, 0)),
+            metas=texts,
+            text_features=domain.metas,
+            language="en",
+        )
+        corpus = RegexpTokenizer()(corpus)
+        self.assertEqual(9, corpus.count_tokens())
+        # test on Corpus subset
+        self.assertEqual(7, corpus[:2].count_tokens())
+        self.assertEqual(2, corpus[:1].count_tokens())
 
-@skipIf(summarize is None, "summarize is not available for orange3<=3.28")
+    def test_count_unique_tokens(self):
+        domain = Domain([], metas=[StringVariable("Text")])
+        texts = np.array([["Test text"], ["This is another test text"], ["Text 3"]])
+        corpus = Corpus.from_numpy(
+            domain,
+            np.empty((3, 0)),
+            metas=texts,
+            text_features=domain.metas,
+            language="en",
+        )
+        corpus = RegexpTokenizer()(LowercaseTransformer()(corpus))
+        self.assertEqual(6, corpus.count_unique_tokens())
+        # test on Corpus subset
+        self.assertEqual(5, corpus[:2].count_unique_tokens())
+        self.assertEqual(2, corpus[:1].count_unique_tokens())
+
+    def test_remove_dictionary(self):
+        """
+        When this test starts to fail remove:
+        - this test
+        - dictionary property from Corpus
+        - dictionary argument from Corpus.store_tokens
+        """
+        self.assertFalse(orangecontrib.text.__version__.startswith("1.15"))
+
+
 class TestCorpusSummaries(unittest.TestCase):
     def test_corpus_not_preprocessed(self):
         """Check if details part of the summary is formatted correctly"""
@@ -745,6 +769,40 @@ class TestCorpusSummaries(unittest.TestCase):
         )
         summary = summarize.dispatch(Corpus)(corpus)
         self.assertEqual(140, summary.summary)
+        self.assertEqual(details, summary.details)
+
+    def test_corpus_subset(self):
+        """Test numbers are correct on corpus subset"""
+        # use custom set to have more control
+        domain = Domain([], metas=[StringVariable("Text")])
+        corpus = Corpus.from_numpy(
+            domain,
+            np.empty((2, 0)),
+            metas=np.array([["This is test text 1"], ["This is test another text"]]),
+            text_features=domain.metas,
+            language="en",
+        )
+        corpus = RegexpTokenizer()(corpus)
+
+        details = (
+            f"<nobr>{len(corpus)} instances, 1 variable</nobr><br/>"
+            f"<nobr>Metas: string</nobr><br/>"
+            f"<nobr>Tokens: 10, Types: 6</nobr><br/>"
+            f"<nobr>Language: English</nobr>"
+        )
+        summary = summarize.dispatch(Corpus)(corpus)
+        self.assertEqual(2, summary.summary)
+        self.assertEqual(details, summary.details)
+
+        corpus = corpus[:1]
+        details = (
+            f"<nobr>{len(corpus)} instance, 1 variable</nobr><br/>"
+            f"<nobr>Metas: string</nobr><br/>"
+            f"<nobr>Tokens: 5, Types: 5</nobr><br/>"
+            f"<nobr>Language: English</nobr>"
+        )
+        summary = summarize.dispatch(Corpus)(corpus)
+        self.assertEqual(1, summary.summary)
         self.assertEqual(details, summary.details)
 
     def test_language(self):
