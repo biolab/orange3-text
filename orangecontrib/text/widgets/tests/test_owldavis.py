@@ -113,6 +113,33 @@ class TestOWLDAvis(WidgetTest):
         mocked_items.assert_called_once()
         mocked_plot. assert_called_once()
 
+    def test_wrong_model(self):
+        lsi_topic = self.topics.copy()
+        lsi_topic.attributes["Model"] = "Latent Sematic Indexing"
+        self.send_signal(self.widget.Inputs.topics, lsi_topic)
+        self.assertTrue(self.widget.Error.wrong_model.is_shown())
+
+        self.send_signal(self.widget.Inputs.topics, self.topics)
+        self.assertFalse(self.widget.Error.wrong_model.is_shown())
+        self.assertListEqual(
+            ["Topic 1", "Topic 2", "Topic 3", "Topic 4", "Topic 5"],
+            self.widget.topic_list,
+        )
+        self.widget.topic_box.setCurrentRow(2)
+        self.assertEqual(2, self.widget.selected_topic)
+
+        self.send_signal(self.widget.Inputs.topics, lsi_topic)
+        self.assertTrue(self.widget.Error.wrong_model.is_shown())
+
+        self.send_signal(self.widget.Inputs.topics, self.topics)
+        self.assertFalse(self.widget.Error.wrong_model.is_shown())
+        self.assertListEqual(
+            ["Topic 1", "Topic 2", "Topic 3", "Topic 4", "Topic 5"],
+            self.widget.topic_list,
+        )
+        # should be remembered from before
+        self.assertEqual(2, self.widget.selected_topic)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Set
 
 import numpy as np
 import pyqtgraph as pg
@@ -230,9 +230,9 @@ class OWLDAvis(OWWidget):
     icon = "icons/LDAvis.svg"
     keywords = "ldavis"
 
-    selected_topic = Setting(0, schema_only=True)
-    relevance = Setting(0.5)
-    visual_settings = Setting({}, schema_only=True)
+    selected_topic: int = Setting(0, schema_only=True)
+    relevance: float = Setting(0.5)
+    visual_settings: Set = Setting({}, schema_only=True)
 
     graph = SettingProvider(BarPlotGraph)
     graph_name = "graph.plotItem"
@@ -329,7 +329,6 @@ class OWLDAvis(OWWidget):
 
     @Inputs.topics
     def set_data(self, data: Optional[Topics]):
-        prev_topic = self.selected_topic
         self.clear()
         if data is None:
             return
@@ -343,7 +342,8 @@ class OWLDAvis(OWWidget):
         self.term_topic_matrix = self.compute_distributions(data)
         self.term_frequency = np.sum(self.term_topic_matrix, axis=0)
 
-        self.selected_topic = prev_topic if prev_topic < len(self.topic_list) else 0
+        st = self.selected_topic
+        self.selected_topic = st if st < len(self.topic_list) else 0
         self.on_params_change()
 
     def set_visual_settings(self, key: KeyType, value: ValueType):
@@ -354,7 +354,10 @@ class OWLDAvis(OWWidget):
         self.Error.clear()
         self.graph.clear_all()
         self.data = None
+        prev_topic = self.selected_topic
         self.topic_list = []
+        # resting topic_list resets selected_topic to None - setting back to prev value
+        self.selected_topic = prev_topic
         self.term_topic_matrix = None
         self.term_frequency = None
         self.num_tokens = None
