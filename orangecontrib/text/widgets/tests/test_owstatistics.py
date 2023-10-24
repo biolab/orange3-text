@@ -5,11 +5,18 @@ from AnyQt.QtWidgets import QPushButton
 
 from Orange.data import Domain, StringVariable
 from Orange.widgets.tests.base import WidgetTest
+from Orange.widgets.tests.utils import simulate
 from orangecontrib.text import Corpus
+from orangecontrib.text.preprocess import (
+    PreprocessorList,
+    LowercaseTransformer,
+    RegexpTokenizer,
+    StopwordsFilter,
+)
 from orangecontrib.text.tag import AveragedPerceptronTagger
 from orangecontrib.text.widgets.owstatistics import (
     STATISTICS_NAMES,
-    OWStatistics,
+    OWStatistics, Sources,
 )
 
 
@@ -40,7 +47,9 @@ class TestStatisticsWidget(WidgetTest):
             text_features=[text_var],
         )
 
-    def _set_feature(self, feature_name: str, value: str = ""):
+    def _set_feature(
+            self, feature_name: str, value: str = "", source: str = Sources.DOCUMENTS
+    ):
         """
         Set statistic which need to be computed by widget. It sets only one
         statistics.
@@ -52,11 +61,15 @@ class TestStatisticsWidget(WidgetTest):
         value
             If statistic need a value (e.g. prefix) it is passed here.
         """
-        feature_index = STATISTICS_NAMES.index(feature_name)
-        self.widget.active_rules = [(feature_index, value)]
-        self.widget.adjust_n_rule_rows()
+        simulate.combobox_activate_item(self.widget.statistics_combos[0], feature_name)
+        self.widget.line_edits[0].setText(value)
+        simulate.combobox_activate_item(self.widget.source_combos[0], source)
+        for button in self.widget.remove_buttons[1:]:
+            button.click()
 
-    def _compute_features(self, feature_name: str, value: str = "") -> Corpus:
+    def _compute_features(
+        self, feature_name: str, value: str = "", source: str = Sources.DOCUMENTS
+    ) -> Corpus:
         """
         Send `self.corpus` to widget, set statistic which need bo be computed,
         run the computation, and return widget output.
@@ -74,7 +87,7 @@ class TestStatisticsWidget(WidgetTest):
         """
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
         self.wait_until_finished()
-        self._set_feature(feature_name, value)
+        self._set_feature(feature_name, value, source)
         self.widget.apply()
         self.wait_until_finished()
         res = self.get_output(self.widget.Outputs.corpus)
@@ -101,7 +114,10 @@ class TestStatisticsWidget(WidgetTest):
 
     def test_characters_count(self):
         """ Test characters count statistic """
-        data = self._compute_features("Character count")
+        data = self._compute_features("Character count", source=Sources.DOCUMENTS)
+        np.testing.assert_array_equal(data.X.flatten(), [47, 44, 48, 51])
+
+        data = self._compute_features("Character count", source=Sources.TOKENS)
         np.testing.assert_array_equal(data.X.flatten(), [47, 44, 48, 51])
 
         self.send_signal(self.widget.Inputs.corpus, None)
@@ -109,7 +125,7 @@ class TestStatisticsWidget(WidgetTest):
 
     def test_n_gram_count(self):
         """ Test n-grams count statistic """
-        data = self._compute_features("N-gram count")
+        data = self._compute_features("N-gram count", source=Sources.TOKENS)
         np.testing.assert_array_equal(data.X.flatten(), [10, 12, 13, 12])
 
         self.send_signal(self.widget.Inputs.corpus, None)
@@ -117,9 +133,14 @@ class TestStatisticsWidget(WidgetTest):
 
     def test_average_word_len(self):
         """ Test word density statistic """
-        data = self._compute_features("Average word length")
+        data = self._compute_features("Average term length", source=Sources.DOCUMENTS)
         np.testing.assert_array_almost_equal(
             data.X.flatten(), [5.875, 4.888889, 4.363636, 5.666667]
+        )
+
+        data = self._compute_features("Average term length", source=Sources.TOKENS)
+        np.testing.assert_array_almost_equal(
+            data.X.flatten(), [4.7, 3.666667, 3.692308, 4.25]
         )
 
         self.send_signal(self.widget.Inputs.corpus, None)
@@ -161,16 +182,16 @@ class TestStatisticsWidget(WidgetTest):
 
     def test_per_cent_unique_words(self):
         """ Test per-cent unique words statistic """
-        data = self._compute_features("Per cent unique words")
+        data = self._compute_features("Per cent unique terms", source=Sources.TOKENS)
         np.testing.assert_array_almost_equal(
-            data.X.flatten(), [1, 1, 0.909091, 1]
+            data.X.flatten(), [1, 1, 0.84615, 1], decimal=5
         )
 
         with self.corpus.unlocked():
-            self.corpus[1][-1] = ""
-        data = self._compute_features("Per cent unique words")
+            self.corpus[1][-1] = " "
+        data = self._compute_features("Per cent unique terms", source=Sources.TOKENS)
         np.testing.assert_array_almost_equal(
-            data.X.flatten(), [1, np.nan, 0.909091, 1]
+            data.X.flatten(), [1, np.nan, 0.84615, 1], decimal=5
         )
         
         self.send_signal(self.widget.Inputs.corpus, None)
@@ -178,10 +199,10 @@ class TestStatisticsWidget(WidgetTest):
 
     def test_starts_with(self):
         """ Test starts with count statistic """
-        data = self._compute_features("Starts with", "a")
+        data = self._compute_features("Starts with", "a", Sources.TOKENS)
         np.testing.assert_array_almost_equal(data.X.flatten(), [2, 0, 2, 2])
 
-        data = self._compute_features("Starts with", "ap")
+        data = self._compute_features("Starts with", "ap", Sources.TOKENS)
         np.testing.assert_array_almost_equal(data.X.flatten(), [0, 0, 0, 1])
 
         self.send_signal(self.widget.Inputs.corpus, None)
@@ -189,10 +210,10 @@ class TestStatisticsWidget(WidgetTest):
 
     def test_ends_with(self):
         """ Test ends with count statistic """
-        data = self._compute_features("Ends with", "t")
+        data = self._compute_features("Ends with", "t", Sources.TOKENS)
         np.testing.assert_array_almost_equal(data.X.flatten(), [3, 3, 1, 2])
 
-        data = self._compute_features("Ends with", "et")
+        data = self._compute_features("Ends with", "et", Sources.TOKENS)
         np.testing.assert_array_almost_equal(data.X.flatten(), [1, 1, 0, 0])
 
         self.send_signal(self.widget.Inputs.corpus, None)
@@ -200,27 +221,49 @@ class TestStatisticsWidget(WidgetTest):
 
     def test_contains(self):
         """ Test contains count statistic """
-        data = self._compute_features("Contains", "t")
+        data = self._compute_features("Contains", "t", Sources.DOCUMENTS)
         np.testing.assert_array_almost_equal(data.X.flatten(), [5, 4, 4, 9])
 
-        data = self._compute_features("Contains", "et")
+        data = self._compute_features("Contains", "et", Sources.DOCUMENTS)
         np.testing.assert_array_almost_equal(data.X.flatten(), [2, 1, 0, 0])
 
-        data = self._compute_features("Contains", "is")
+        data = self._compute_features("Contains", "is", Sources.DOCUMENTS)
         np.testing.assert_array_almost_equal(data.X.flatten(), [1, 2, 2, 0])
+
+        data = self._compute_features("Contains", "t", Sources.TOKENS)
+        np.testing.assert_array_almost_equal(data.X.flatten(), [5, 4, 4, 9])
+
+        data = self._compute_features("Contains", " ", Sources.TOKENS)
+        np.testing.assert_array_almost_equal(data.X.flatten(), [0, 0, 0, 0])
 
         self.send_signal(self.widget.Inputs.corpus, None)
         self.assertIsNone(self.get_output(self.widget.Outputs.corpus))
 
     def test_regex(self):
         """ Test regex statistic """
-        # words that contains digit
-        data = self._compute_features("Regex", "\w*\d\w*")
+        # words that contain digit
+        data = self._compute_features("Regex", r"\w*\d\w*", Sources.DOCUMENTS)
         np.testing.assert_array_almost_equal(data.X.flatten(), [0, 0, 0, 1])
 
-        # words that contains digit
-        data = self._compute_features("Regex", "\w*is\w*")
+        # words that contain is
+        data = self._compute_features("Regex", r"\w*is\w*", Sources.DOCUMENTS)
         np.testing.assert_array_almost_equal(data.X.flatten(), [1, 2, 2, 0])
+
+        # count specific n-gram
+        data = self._compute_features("Regex", r"ipsum\ dolor", Sources.DOCUMENTS)
+        np.testing.assert_array_almost_equal(data.X.flatten(), [1, 0, 0, 0])
+
+        # words that contain digit
+        data = self._compute_features("Regex", r"\w*\d\w*", Sources.TOKENS)
+        np.testing.assert_array_almost_equal(data.X.flatten(), [0, 0, 0, 1])
+
+        # words that contain is
+        data = self._compute_features("Regex", r"\w*is\w*", Sources.TOKENS)
+        np.testing.assert_array_almost_equal(data.X.flatten(), [1, 2, 2, 0])
+
+        # count specific n-gram
+        data = self._compute_features("Regex", r"ipsum\ dolor", Sources.TOKENS)
+        np.testing.assert_array_almost_equal(data.X.flatten(), [0, 0, 0, 0])
 
         self.send_signal(self.widget.Inputs.corpus, None)
         self.assertIsNone(self.get_output(self.widget.Outputs.corpus))
@@ -232,7 +275,7 @@ class TestStatisticsWidget(WidgetTest):
         - test with corpus that has pos tags
         """
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
-        self._set_feature("POS tag", "NN")
+        self._set_feature("POS tag", "NN", Sources.TOKENS)
         self.widget.apply()
         self.wait_until_finished()
         res = self.get_output(self.widget.Outputs.corpus)
@@ -243,7 +286,7 @@ class TestStatisticsWidget(WidgetTest):
         result = tagger(self.corpus)
 
         self.send_signal(self.widget.Inputs.corpus, result)
-        self._set_feature("POS tag", "NN")
+        self._set_feature("POS tag", "NN", Sources.TOKENS)
         self.widget.apply()
         self.wait_until_finished()
         res = self.get_output(self.widget.Outputs.corpus)
@@ -258,7 +301,7 @@ class TestStatisticsWidget(WidgetTest):
         - test with corpus that has pos tags
         """
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
-        self._set_feature("Yule's I")
+        self._set_feature("Yule's I", source=Sources.TOKENS)
         self.widget.apply()
         self.wait_until_finished()
         res = self.get_output(self.widget.Outputs.corpus)
@@ -271,7 +314,7 @@ class TestStatisticsWidget(WidgetTest):
         result = tagger(self.corpus)
 
         self.send_signal(self.widget.Inputs.corpus, result)
-        self._set_feature("Yule's I")
+        self._set_feature("Yule's I", source=Sources.TOKENS)
         self.widget.apply()
         self.wait_until_finished()
         res = self.get_output(self.widget.Outputs.corpus)
@@ -287,13 +330,47 @@ class TestStatisticsWidget(WidgetTest):
         with self.corpus.unlocked():
             self.corpus[1][-1] = "simple. simple."
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
-        self._set_feature("LIX index")
+        self._set_feature("LIX index", source=Sources.TOKENS)
         self.widget.apply()
         self.wait_until_finished()
         res = self.get_output(self.widget.Outputs.corpus)
         self.assertTupleEqual((len(self.corpus), 1), res.X.shape)
         # the second document will have lower complexity than the first one
         self.assertLess(res[1][0], res[0][0])
+
+    def test_stats_different_preprocessing(self):
+        pp = [LowercaseTransformer(), RegexpTokenizer(), StopwordsFilter(language="en")]
+        pp = PreprocessorList(pp)
+        self.corpus = pp(self.corpus)
+
+        data = self._compute_features("Character count", "", Sources.TOKENS)
+        np.testing.assert_array_almost_equal(data.X.flatten(), [47, 44, 46, 51])
+
+        data = self._compute_features("N-gram count", "", Sources.TOKENS)
+        np.testing.assert_array_almost_equal(data.X.flatten(), [8, 9, 9, 9])
+
+        data = self._compute_features("Per cent unique terms", "", Sources.TOKENS)
+        np.testing.assert_array_almost_equal(data.X.flatten(), [1, 1, 1, 1])
+
+        # none start with the capital because of Lowercase preprocessor
+        data = self._compute_features("Starts with", "L", Sources.TOKENS)
+        np.testing.assert_array_almost_equal(data.X.flatten(), [0, 0, 0, 0])
+
+        data = self._compute_features("Starts with", "a", Sources.TOKENS)
+        np.testing.assert_array_almost_equal(data.X.flatten(), [2, 0, 0, 2])
+
+        data = self._compute_features("Ends with", "a", Sources.TOKENS)
+        np.testing.assert_array_almost_equal(data.X.flatten(), [0, 1, 2, 1])
+
+        # non contain comma since we use RegexP preprocessor
+        data = self._compute_features("Contains", ",", Sources.TOKENS)
+        np.testing.assert_array_almost_equal(data.X.flatten(), [0, 0, 0, 0])
+
+        data = self._compute_features("Contains", "a", Sources.TOKENS)
+        np.testing.assert_array_almost_equal(data.X.flatten(), [2, 2, 6, 5])
+
+        data = self._compute_features("Regex", "{e", Sources.TOKENS)
+        np.testing.assert_array_almost_equal(data.X.flatten(), [0, 0, 0, 0])
 
     def test_statistics_combination(self):
         """
@@ -306,9 +383,9 @@ class TestStatisticsWidget(WidgetTest):
         starts_with_index = STATISTICS_NAMES.index("Starts with")
         capital_counts_index = STATISTICS_NAMES.index("Capital letter count")
         self.widget.active_rules = [
-            (wc_index, ""),
-            (starts_with_index, "a"),
-            (capital_counts_index, ""),
+            (wc_index, "", Sources.DOCUMENTS),
+            (starts_with_index, "a", Sources.TOKENS),
+            (capital_counts_index, "", Sources.DOCUMENTS),
         ]
         self.widget.adjust_n_rule_rows()
 
@@ -333,43 +410,44 @@ class TestStatisticsWidget(WidgetTest):
         """
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
 
-        self.widget.active_rules = [
-            (1, ""),
-        ]
+        self.widget.active_rules = [(1, "", Sources.DOCUMENTS)]
         self.widget.adjust_n_rule_rows()
         self.widget.apply()
         self.wait_until_finished()
 
-        self.assertListEqual([(1, None)], list(self.widget.result_dict.keys()))
+        expected = [(1, "", Sources.DOCUMENTS)]
+        self.assertListEqual(expected, list(self.widget.result_dict.keys()))
 
-        self.widget.active_rules = [(1, ""), (2, "")]
+        self.widget.active_rules = [(1, "", Sources.DOCUMENTS), (2, "", Sources.TOKENS)]
         self.widget.adjust_n_rule_rows()
         self.widget.apply()
         self.wait_until_finished()
 
-        self.assertListEqual(
-            [(1, ""), (2, None)], list(self.widget.result_dict.keys())
-        )
+        expected = [(1, "", Sources.DOCUMENTS), (2, "", Sources.TOKENS)]
+        self.assertListEqual(expected, list(self.widget.result_dict.keys()))
 
-        self.widget.active_rules = [(2, "")]
+        self.widget.active_rules = [(2, "", Sources.TOKENS)]
         self.widget.adjust_n_rule_rows()
         self.widget.apply()
         self.wait_until_finished()
 
-        self.assertListEqual([(2, None)], list(self.widget.result_dict.keys()))
+        expected = [(2, "", Sources.TOKENS)]
+        self.assertListEqual(expected, list(self.widget.result_dict.keys()))
 
         # dict should empty on new data
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
         self.assertListEqual([], list(self.widget.result_dict.keys()))
 
     def test_settings(self):
-        """ Test whether context correctly restore rules """
-        rules = [(0, ""), (1, ""), (2, None)]
+        """Test whether context correctly restore rules"""
+        doc, tk = Sources.DOCUMENTS, Sources.TOKENS
+        rules = [(0, "", doc), (1, "", doc), (2, "", tk)]
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
         self.widget.active_rules = rules[:]
 
         self.send_signal(self.widget.Inputs.corpus, self.book_data)
-        self.assertListEqual([(0, ""), (1, ""), (2, None)], self.widget.active_rules)
+        expected = [(0, "", doc), (1, "", doc), (2, "", tk)]
+        self.assertListEqual(expected, self.widget.active_rules)
 
     def test_compute_values(self):
         """ Test compute values on new data """
@@ -401,13 +479,13 @@ class TestStatisticsWidget(WidgetTest):
             if x.text() == "+"
         ][0]
         add_button.click()
-        self.assertListEqual([(0, "")], self.widget.active_rules)
+        self.assertListEqual([(0, "", Sources.DOCUMENTS)], self.widget.active_rules)
 
     def test_remove_row(self):
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
-        self.widget.active_rules = [(0, "")]
+        self.widget.active_rules = [(0, "", Sources.DOCUMENTS)]
         self.widget.adjust_n_rule_rows()
-        self.assertListEqual([(0, "")], self.widget.active_rules)
+        self.assertListEqual([(0, "", Sources.DOCUMENTS)], self.widget.active_rules)
 
         remove_button = [
             x
@@ -416,6 +494,32 @@ class TestStatisticsWidget(WidgetTest):
         ][0]
         remove_button.click()
         self.assertListEqual([], self.widget.active_rules)
+
+    def test_migrate_settings(self):
+        vals = [""] * 6 + ["a,e", "b,c", "", "a", "b", "c", r"\w*is", "NN,VV", "", ""]
+        settings = {"__version__": 1, "active_rules": list(zip(range(17), vals))}
+        widget = self.create_widget(OWStatistics, stored_settings=settings)
+        self.send_signal(self.widget.Inputs.corpus, self.corpus, widget=widget)
+
+        expected = [
+            (0, "", Sources.DOCUMENTS),
+            (1, "", Sources.DOCUMENTS),
+            (2, "", Sources.TOKENS),
+            (3, "", Sources.DOCUMENTS),
+            (4, "", Sources.DOCUMENTS),
+            (5, "", Sources.DOCUMENTS),
+            (6, "a,e", Sources.DOCUMENTS),
+            (7, "b,c", Sources.DOCUMENTS),
+            (8, "", Sources.TOKENS),
+            (9, "a", Sources.TOKENS),
+            (10, "b", Sources.TOKENS),
+            (11, "c", Sources.DOCUMENTS),
+            (12, r"\w*is", Sources.DOCUMENTS),
+            (13, "NN,VV", Sources.TOKENS),
+            (14, "", Sources.TOKENS),
+            (15, "", Sources.TOKENS),
+        ]
+        self.assertListEqual(expected, widget.active_rules)
 
 
 if __name__ == "__main__":
