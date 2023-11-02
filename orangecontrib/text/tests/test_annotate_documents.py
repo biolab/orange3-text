@@ -37,7 +37,7 @@ class TestClusterDocuments(unittest.TestCase):
     def test_gmm(self):
         labels = ClusterDocuments.gmm(self.corpus.metas[:, -2:], 2, 0.6)
         self.assertIn(
-            list(labels), ([0, 1, 0, 1, 0, 1, 0, 1, 0], [0, 1, 0, 1, 0, 1, 0, 1, 0])
+            list(labels), ([0, 1, 0, 1, 0, 1, 0, 1, 0], [1, 0, 1, 0, 1, 0, 1, 0, 1])
         )
 
     def test_gmm_n_comp(self):
