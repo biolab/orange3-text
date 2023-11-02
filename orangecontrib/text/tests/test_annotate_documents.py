@@ -1,51 +1,58 @@
 import unittest
-from itertools import chain
 
-from Orange.data import Domain
-from Orange.projection import PCA
+import numpy as np
+from Orange.data import Domain, ContinuousVariable
 from orangecontrib.text import Corpus
 from orangecontrib.text.annotate_documents import _get_characteristic_terms, \
     _hypergeom_clusters, annotate_documents, ClusterDocuments
-from orangecontrib.text.vectorization import BowVectorizer
 
 
-def add_embedding(corpus: Corpus) -> Corpus:
-    transformed_corpus = BowVectorizer().transform(corpus)
-
-    pca = PCA(n_components=2)
-    pca_model = pca(transformed_corpus)
-    projection = pca_model(transformed_corpus)
-
-    domain = Domain(
-        transformed_corpus.domain.attributes,
-        transformed_corpus.domain.class_vars,
-        chain(transformed_corpus.domain.metas,
-              projection.domain.attributes)
+def add_embedding(corpus: Corpus, num_clusters: int) -> Corpus:
+    """
+    Generate random points around cluster centers to have reproducible clusters
+    this solution is resistant to changes in random_seeds by scikit
+    """
+    new_domain = Domain(
+        corpus.domain.attributes,
+        corpus.domain.class_vars,
+        corpus.domain.metas + (ContinuousVariable("PC1"), ContinuousVariable("PC2"))
     )
-    return corpus.transform(domain)
+    corpus = corpus.transform(new_domain)
+
+    cluster_centers = np.array([(x * 10, x * 10) for x in range(num_clusters)])
+    points = np.random.randn(len(corpus), 2)
+    cluster_assignments = np.tile(
+        np.arange(len(cluster_centers)), len(corpus) // num_clusters + 1
+    )[:len(corpus)]
+    points += cluster_centers[cluster_assignments]  # move points to its cluster center
+    with corpus.unlocked(corpus.metas):
+        corpus[:, ["PC1", "PC2"]] = points
+    return corpus
 
 
 class TestClusterDocuments(unittest.TestCase):
     def setUp(self):
-        self.corpus = add_embedding(Corpus.from_file("deerwester"))
+        self.corpus = add_embedding(Corpus.from_file("deerwester"), 2)
 
     def test_gmm(self):
-        labels = ClusterDocuments.gmm(self.corpus.metas[:, -2:], 3, 0.6)
-        self.assertEqual([2, 1, 2, 2, 1, 0, 0, 0, 0], list(labels))
+        labels = ClusterDocuments.gmm(self.corpus.metas[:, -2:], 2, 0.6)
+        self.assertIn(
+            list(labels), ([0, 1, 0, 1, 0, 1, 0, 1, 0], [0, 1, 0, 1, 0, 1, 0, 1, 0])
+        )
 
     def test_gmm_n_comp(self):
         emb = self.corpus.metas[:, -2:]
         n = ClusterDocuments.gmm_compute_n_components(emb)
-        self.assertEqual(n, 3)
+        self.assertEqual(n, 2)
 
     def test_dbscan(self):
-        labels = ClusterDocuments.dbscan(self.corpus.metas[:, -2:], 2)
-        self.assertEqual([0, -1, 0, 0, -1, 0, 0, 0, 0], list(labels))
+        labels = ClusterDocuments.dbscan(self.corpus.metas[:, -2:], 5)
+        self.assertEqual([0, -1, 0, -1, 0, -1, 0, -1, 0], list(labels))
 
 
 class TestAnnotateDocuments(unittest.TestCase):
     def setUp(self):
-        self.corpus = add_embedding(Corpus.from_file("deerwester"))
+        self.corpus = add_embedding(Corpus.from_file("deerwester"), 3)
 
     def test_get_characteristic_terms(self):
         keywords = _get_characteristic_terms(self.corpus, 4)
