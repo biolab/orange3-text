@@ -37,11 +37,21 @@ class TopicWidget(gui.OWComponent, QGroupBox):
         self.model = self.create_model()
         QVBoxLayout(self)
         for parameter, description, minv, maxv, step, _type in self.parameters:
-            spin = gui.spin(self, self, parameter, minv=minv, maxv=maxv, step=step,
-                            label=self.spin_format.format(description=description, parameter=parameter),
-                            labelWidth=220, spinType=_type)
+            spin = gui.spin(
+                self,
+                self,
+                parameter,
+                minv=minv,
+                maxv=maxv,
+                step=step,
+                label=self.spin_format.format(
+                    description=description, parameter=parameter
+                ),
+                labelWidth=220,
+                spinType=_type,
+                callback=self.on_change,
+            )
             spin.clearFocus()
-            spin.editingFinished.connect(self.on_change)
 
     def on_change(self):
         self.model = self.create_model()
