@@ -16,6 +16,7 @@ from orangecontrib.text.import_documents import (
     TxtReader,
     TextData,
     XmlReader,
+    PdfReader,
 )
 
 
@@ -294,6 +295,37 @@ class TestXMLReader(unittest.TestCase):
         self.assertIsNone(res[0])
         self.assertEqual(fp.name.split(os.sep)[-1], res[1])
         os.remove(fp.name)
+
+
+DATA_PATH = os.path.join(os.path.dirname(__file__), "data", "documents")
+
+
+class TestPdfReader(unittest.TestCase):
+    def test_file(self):
+        reader = PdfReader(os.path.join(DATA_PATH, "good", "minimal-document.pdf"))
+        res = reader.read()[0]
+        exp = (
+            "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam "
+            "nonumy eirmod"
+        )
+        self.assertTrue(res.content.startswith(exp))
+
+        path = os.path.join(DATA_PATH, "good", "sample_pdf.pdf")
+        reader = PdfReader(path)
+        res = reader.read()[0]
+        self.assertEqual("This is a test pdf file", res.content)
+        self.assertEqual("sample_pdf", res.name)
+        self.assertEqual(os.path.join(path), res.path)
+        self.assertListEqual([".pdf"], res.ext)
+        self.assertEqual("good", res.category)
+
+    def test_error(self):
+        reader = PdfReader(
+            os.path.join(DATA_PATH, "corrupted", "sample_pdf_corrupted.pdf")
+        )
+        res = reader.read()
+        self.assertIsNone(res[0])
+        self.assertEqual("sample_pdf_corrupted.pdf", res[1])
 
 
 if __name__ == "__main__":

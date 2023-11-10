@@ -25,10 +25,7 @@ from Orange.data.io import detect_encoding, sanitize_variable
 from Orange.data.util import get_unique_names
 from Orange.misc.utils.embedder_utils import get_proxies
 from Orange.util import Registry, dummy_callback
-from pdfminer.converter import PDFPageAggregator
-from pdfminer.layout import LAParams, LTTextBox, LTTextLine
-from pdfminer.pdfinterp import PDFPageInterpreter, PDFResourceManager
-from pdfminer.pdfparser import PDFDocument, PDFParser
+from pypdf import PdfReader as PyPDFReader
 from requests.exceptions import ConnectionError
 
 from orangecontrib.text.corpus import Corpus
@@ -130,28 +127,9 @@ class PdfReader(Reader):
     ext = [".pdf"]
 
     def read_file(self):
-        with open(self.path, 'rb') as f:
-            parser = PDFParser(f)
-        doc = PDFDocument()
-        parser.set_document(doc)
-        doc.set_parser(parser)
-        doc.initialize('')
-        rsrcmgr = PDFResourceManager()
-        laparams = LAParams()
-        laparams.char_margin = 0.1
-        laparams.word_margin = 1.0
-        device = PDFPageAggregator(rsrcmgr, laparams=laparams)
-        interpreter = PDFPageInterpreter(rsrcmgr, device)
-        extracted_text = []
-
-        for page in doc.get_pages():
-            interpreter.process_page(page)
-            layout = device.get_result()
-            for lt_obj in layout:
-                if isinstance(lt_obj, LTTextBox) or isinstance(lt_obj,
-                                                               LTTextLine):
-                    extracted_text.append(lt_obj.get_text())
-        self.content = ' '.join(extracted_text).replace('\x00', '')
+        reader = PyPDFReader(self.path)
+        texts = [page.extract_text() for page in reader.pages]
+        self.content = " ".join(texts)
 
 
 class XmlReader(Reader):
