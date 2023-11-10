@@ -22,7 +22,6 @@ class TestTopicModeling(WidgetTest):
         self.assertIsNone(output)
 
     def test_saved_selection(self):
-        self.widget.method_index = 1
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
         self.wait_until_finished()
 
@@ -58,17 +57,41 @@ class TestTopicModeling(WidgetTest):
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
         self.wait_until_finished()
 
-        # test LSI
-        self.assertEqual(self.widget.perplexity, "n/a")
-        self.assertNotEqual(self.widget.coherence, "n/a")
-
         # test LDA, which is the only one with log perplexity
+        self.assertNotEqual(self.widget.perplexity, "n/a")
+        self.assertTrue(self.widget.coherence)
+
+        # test LSI
         self.widget.method_index = 1
         self.widget.commit.now()
         self.wait_until_finished()
+        self.assertEqual(self.widget.perplexity, "n/a")
+        self.assertNotEqual(self.widget.coherence, "n/a")
 
-        self.assertNotEqual(self.widget.perplexity, "n/a")
-        self.assertTrue(self.widget.coherence)
+    def test_migrate_settings_transform(self):
+        # 0 used to be LSI in version <2 - it is on index 1 now
+        settings = {"__version__": 1, "method_index": 0}
+        widget = self.create_widget(OWTopicModeling, stored_settings=settings)
+        self.assertEqual(1, widget.method_index)
+        self.assertEqual("Latent Semantic Indexing", widget.model.name)
+
+        # 1 used to be LDA in version <2 - it is on index 0 now
+        settings = {"__version__": 1, "method_index": 1}
+        widget = self.create_widget(OWTopicModeling, stored_settings=settings)
+        self.assertEqual(0, widget.method_index)
+        self.assertEqual("Latent Dirichlet Allocation", widget.model.name)
+
+        # 2 is unchanged - still HDP
+        settings = {"__version__": 1, "method_index": 2}
+        widget = self.create_widget(OWTopicModeling, stored_settings=settings)
+        self.assertEqual(2, widget.method_index)
+        self.assertEqual("Hierarchical Dirichlet Process", widget.model.name)
+
+        # 2 is unchanged - still NMF
+        settings = {"__version__": 1, "method_index": 3}
+        widget = self.create_widget(OWTopicModeling, stored_settings=settings)
+        self.assertEqual(3, widget.method_index)
+        self.assertEqual("Negative Matrix Factorization", widget.model.name)
 
 
 if __name__ == "__main__":
