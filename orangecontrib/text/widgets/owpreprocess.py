@@ -29,7 +29,6 @@ from orangecontrib.text.preprocess import *
 from orangecontrib.text.preprocess.normalize import UDPipeStopIteration
 from orangecontrib.text.tag import AveragedPerceptronTagger, MaxEntTagger, \
     POSTagger
-from orangecontrib.text.tag.pos import StanfordPOSTaggerError
 
 _DEFAULT_NONE = "(none)"
 
@@ -973,7 +972,7 @@ class NgramsModule(PreprocessorModule):
 
 
 class POSTaggingModule(SingleMethodModule):
-    Averaged, MaxEnt, Stanford = range(3)
+    Averaged, MaxEnt = range(2)
     Methods = {Averaged: AveragedPerceptronTagger,
                MaxEnt: MaxEntTagger}
     DEFAULT_METHOD = Averaged
@@ -1041,7 +1040,6 @@ class OWPreprocess(Orange.widgets.data.owpreprocess.OWPreprocess,
         file_not_found = Msg("File not found.")
         invalid_encoding = Msg("Invalid file encoding. Please save the "
                                "file as UTF-8 and try again.")
-        stanford_tagger = Msg("Problem loading Stanford POS Tagger:\n{}")
 
     class Warning(Orange.widgets.data.owpreprocess.OWPreprocess.Warning):
         no_token_left = Msg("No tokens on the output.")
@@ -1162,8 +1160,6 @@ class OWPreprocess(Orange.widgets.data.owpreprocess.OWPreprocess,
             self.Error.file_not_found()
         except UnicodeError as e:
             self.Error.invalid_encoding(e)
-        except StanfordPOSTaggerError as e:
-            self.Error.stanford_tagger(e)
         except Exception as e:
             self.Error.unknown_error(str(e))
 

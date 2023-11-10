@@ -1,11 +1,9 @@
 import pickle
 import copy
-import tempfile
 import unittest
 
 from orangecontrib.text import tag
 from orangecontrib.text.corpus import Corpus
-from orangecontrib.text.tag.pos import StanfordPOSTaggerError
 
 
 class POSTaggerTests(unittest.TestCase):
@@ -18,15 +16,6 @@ class POSTaggerTests(unittest.TestCase):
         self.assertTrue(hasattr(result, 'pos_tags'))
         for tokens, tags in zip(result.tokens, result.pos_tags):
             self.assertEqual(len(tokens), len(tags))
-
-    def test_Stanford_check(self):
-        model = tempfile.NamedTemporaryFile()
-        resource = tempfile.NamedTemporaryFile()
-        with self.assertRaises(StanfordPOSTaggerError):
-            tag.StanfordPOSTagger.check(model.name, resource.name)
-
-        with self.assertRaises(StanfordPOSTaggerError):
-            tag.StanfordPOSTagger.check('model', resource.name)
 
     def test_str(self):
         self.assertEqual('Averaged Perceptron Tagger', str(self.tagger))
