@@ -5,6 +5,20 @@ Change Log
 ------------
 * ...
 
+[1.15.0] - 2023-11-17
+--------------------
+##### Enhancements
+* Topic modelling - Reorder methods by relevance ([#1020](../../pull/1020))
+
+##### Bugfixes
+* Replace pdfminer3k with pypdf ([#994](../../pull/994))
+* Topic Modelling - Do not recompute when spin value doesn't change ([#1019](../../pull/1019))
+* Annotator - Change epsilon step and limits ([#1009](../../pull/1009))
+* LDAVis - Fix fail after None data ([#1008](../../pull/1008))
+* Corpus - remove dictionary and fix wrong types count on subsampled corpus ([#990](../../pull/990))
+* Corpus - Open file dialogue at previous location ([#1002](../../pull/1002))
+
+
 [1.14.0] - 2023-08-23
 --------------------
 ##### Enhancements
@@ -449,7 +463,8 @@ Change Log
 --------------------
 
 
-[next]: https://github.com/biolab/orange3-text/compare/1.14.0...HEAD
+[next]: https://github.com/biolab/orange3-text/compare/1.15.0...HEAD
+[1.15.0]: https://github.com/biolab/orange3-text/compare/1.14.0...1.15.0
 [1.14.0]: https://github.com/biolab/orange3-text/compare/1.13.1...1.14.0
 [1.13.1]: https://github.com/biolab/orange3-text/compare/1.13.0...1.13.1
 [1.13.0]: https://github.com/biolab/orange3-text/compare/1.12.0...1.13.0
