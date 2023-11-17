@@ -1,10 +1,10 @@
-from typing import Dict, Optional, List, Callable, Tuple, Type, Union
+from typing import Dict, Optional, List, Callable, Tuple, Type, Union, Iterable
 from types import SimpleNamespace
 import os
 import random
 import pkg_resources
 
-from AnyQt.QtCore import Qt, pyqtSignal
+from AnyQt.QtCore import Qt, pyqtSignal, QModelIndex
 from AnyQt.QtWidgets import QComboBox, QButtonGroup, QLabel, QCheckBox, \
     QRadioButton, QGridLayout, QLineEdit, QSpinBox, QFormLayout, QHBoxLayout, \
     QDoubleSpinBox, QFileDialog, QAbstractSpinBox
@@ -24,6 +24,7 @@ from Orange.widgets.utils.concurrent import TaskState, ConcurrentWidgetMixin
 from Orange.widgets.widget import Input, Output, Msg, Message
 
 from orangecontrib.text import Corpus
+from orangecontrib.text.language import ISO2LANG
 from orangecontrib.text.misc import nltk_data_dir
 from orangecontrib.text.preprocess import *
 from orangecontrib.text.preprocess.normalize import UDPipeStopIteration
@@ -61,6 +62,57 @@ class ComboBox(QComboBox):
         self.addItems(items)
         self.setCurrentText(value)
         self.currentTextChanged.connect(callback)
+
+
+class LanguageComboBox(QComboBox):
+    """A combo box for selecting language."""
+    def __init__(
+        self,
+        parent: Optional[BaseEditor],
+        items: Iterable[str],
+        value: Optional[str],
+        include_none: bool,
+        callback: Callable,
+    ):
+        """
+        Parameters
+        ----------
+        parent
+            Combo box's parent widget
+        items
+            Combo box's languages (items) as ISO codes.
+        include_none
+            Boolean indicating whether to include none option in the start of the list
+        value
+            Boxs initial value (as an ISO code).
+        """
+        super().__init__(parent)
+        self.setMinimumWidth(80)
+        self.__add_items(items, include_none)
+        self.set_current_language(value)
+        self.currentIndexChanged.connect(self.__index_changed)
+        self.callback = callback
+
+    def __add_items(self, items: Iterable[str], include_non: bool):
+        if include_non:
+            self.addItem(_DEFAULT_NONE, None)
+        for itm in sorted(items, key=ISO2LANG.get):
+            self.addItem(ISO2LANG[itm], itm)
+
+    def __index_changed(self, index: QModelIndex):
+        self.callback(self.itemData(index))
+
+    def set_current_language(self, iso_language: Optional[str]):
+        """
+        Set current element of dropdown from ISO language code.
+
+        Parameters
+        ----------
+        iso_language
+            The ISO language code of element to be selected.
+        """
+        index = self.findData(iso_language)
+        self.setCurrentIndex(index)
 
 
 class UDPipeComboBox(QComboBox):
@@ -570,7 +622,7 @@ class FilteringModule(MultipleMethodModule):
                MostFreq: MostFrequentTokensFilter,
                PosTag: PosTagFilter}
     DEFAULT_METHODS = [Stopwords]
-    DEFAULT_LANG = "English"
+    DEFAULT_LANG = "en"
     DEFAULT_NONE = None
     DEFAULT_INCL_NUM = False
     DEFAULT_PATTERN = r"\.|,|:|;|!|\?|\(|\)|\||\+|\'|\"|‘|’|“|”|\'|" \
@@ -597,9 +649,12 @@ class FilteringModule(MultipleMethodModule):
         self.__pos_tag = self.DEFAULT_POS_TAGS
         self.__invalidated = False
 
-        self.__combo = ComboBox(
-            self, [_DEFAULT_NONE] + StopwordsFilter.supported_languages(),
-            self.__sw_lang, self.__set_language
+        self.__combo = LanguageComboBox(
+            self,
+            StopwordsFilter.supported_languages(),
+            self.__sw_lang,
+            True,
+            self.__set_language,
         )
         self.__sw_loader = FileLoader()
         self.__sw_loader.set_file_list()
@@ -755,10 +810,10 @@ class FilteringModule(MultipleMethodModule):
         self.__set_tags(params.get("pos_tags", self.DEFAULT_POS_TAGS))
         self.__invalidated = False
 
-    def __set_language(self, language: str):
+    def __set_language(self, language: Optional[str]):
         if self.__sw_lang != language:
             self.__sw_lang = language
-            self.__combo.setCurrentText(language)
+            self.__combo.set_current_language(language)
             self.changed.emit()
             if self.Stopwords in self.methods:
                 self.edited.emit()
@@ -899,8 +954,8 @@ class FilteringModule(MultipleMethodModule):
         texts = []
         for method in self.methods:
             if method == self.Stopwords:
-                append = f"Language: {self.__sw_lang}, " \
-                         f"File: {_to_abspath(self.__sw_file)}"
+                language = ISO2LANG[self.__sw_lang]
+                append = f"Language: {language}, File: {_to_abspath(self.__sw_file)}"
             elif method == self.Lexicon:
                 append = f"File: {_to_abspath(self.__lx_file)}"
             elif method == self.Numbers:
@@ -1026,7 +1081,7 @@ class OWPreprocess(Orange.widgets.data.owpreprocess.OWPreprocess,
     priority = 200
     keywords = "preprocess text, text"
 
-    settings_version = 3
+    settings_version = 4
 
     class Inputs:
         corpus = Input("Corpus", Corpus)
@@ -1319,6 +1374,16 @@ class OWPreprocess(Orange.widgets.data.owpreprocess.OWPreprocess,
                         pp_settings["abs_end"] = end
                     del pp_settings["start"]
                     del pp_settings["end"]
+
+        # before version 4 languages were saved as full-word language strings
+        if version < 4:
+            preprocessors = settings["storedsettings"]["preprocessors"]
+            for pp_name, pp in preprocessors:
+                if pp_name == "preprocess.filter" and "language" in pp:
+                    if pp["language"] == _DEFAULT_NONE:
+                        pp["language"] = None
+                    else:
+                        pp["language"] = StopwordsFilter.lang_to_iso(pp["language"])
 
 
 if __name__ == "__main__":
