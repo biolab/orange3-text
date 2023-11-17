@@ -124,7 +124,7 @@ class OWCollocations(OWWidget):
         # GUI
         self.collModel = model = BarRatioTableModel(parent=self)  # type:
         # TableModel
-        model.setHorizontalHeaderLabels(["Method", "Score"])
+        model.setHorizontalHeaderLabels(["Collocation", "Score"])
         self.collView = view = TableView(self)  # type: TableView
         self.mainArea.layout().addWidget(view)
         view.setModel(model)
@@ -189,8 +189,8 @@ class OWCollocations(OWWidget):
         self.Outputs.corpus.send(output)
 
     def create_scores_table(self):
-        domain = Domain([ContinuousVariable("Collocations")],
-                        metas=[StringVariable("Scores")])
+        domain = Domain([ContinuousVariable("Scores")],
+                        metas=[StringVariable("Collocations")])
 
         collocations, scores = self.results
 
