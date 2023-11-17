@@ -1,14 +1,12 @@
 # Test methods with long descriptive names can omit docstrings
 # pylint: disable=missing-docstring,arguments-differ
 import unittest
-from itertools import chain
 from unittest.mock import Mock, patch
 
 import numpy as np
 from AnyQt.QtCore import QRectF, QPointF
 
 from Orange.data import Domain, Table
-from Orange.projection import PCA
 from Orange.widgets.tests.base import WidgetTest, simulate
 from Orange.widgets.unsupervised.owtsne import OWtSNE
 from Orange.widgets.unsupervised.tests.test_owtsne import DummyTSNE, \
@@ -16,6 +14,7 @@ from Orange.widgets.unsupervised.tests.test_owtsne import DummyTSNE, \
 from orangecontrib.text import Corpus
 from orangecontrib.text.preprocess import LowercaseTransformer, \
         RegexpTokenizer, StopwordsFilter, FrequencyFilter
+from orangecontrib.text.tests.test_annotate_documents import add_embedding
 from orangecontrib.text.vectorization import BowVectorizer
 from orangecontrib.text.widgets.owannotator import OWAnnotator
 
@@ -24,20 +23,8 @@ def preprocess(corpus: Corpus) -> Corpus:
     for pp in (LowercaseTransformer(), RegexpTokenizer(r"\w+"),
                StopwordsFilter("English"), FrequencyFilter(0.25, 0.5)):
         corpus = pp(corpus)
-
-    transformed_corpus = BowVectorizer().transform(corpus)
-
-    pca = PCA(n_components=2)
-    pca_model = pca(transformed_corpus)
-    projection = pca_model(transformed_corpus)
-
-    domain = Domain(
-        transformed_corpus.domain.attributes,
-        transformed_corpus.domain.class_vars,
-        chain(transformed_corpus.domain.metas,
-              projection.domain.attributes)
-    )
-    return corpus.transform(domain)
+    corpus = BowVectorizer().transform(corpus)
+    return add_embedding(corpus, 4)
 
 
 class TestOWAnnotator(WidgetTest):
@@ -257,14 +244,14 @@ class TestOWAnnotator(WidgetTest):
         self.assertIsNotNone(self.widget.cluster_var)
 
     def test_invalidate(self):
-        self.send_signal(self.widget.Inputs.corpus, self.corpus[::4])
+        self.send_signal(self.widget.Inputs.corpus, self.corpus[:len(self.corpus) // 2])
 
         self.wait_until_finished()
-        self.assertEqual(len(self.widget.clusters.groups), 1)
+        self.assertEqual(len(self.widget.clusters.groups), 4)
 
         self.widget.controls.clustering_type.buttons[1].click()
         self.wait_until_finished()
-        self.assertEqual(len(self.widget.clusters.groups), 8)
+        self.assertEqual(len(self.widget.clusters.groups), 4)
 
         self.widget.controls.use_n_components.setChecked(True)
         self.widget.controls.n_components.setValue(4)

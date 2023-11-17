@@ -77,7 +77,9 @@ def infer_ngrams_corpus(corpus, return_dict=False):
     dictionary = Dictionary(corpus.ngrams_iterator(include_postags=True), prune_at=None)
     idx_of_keep = np.argsort([dictionary.token2id[a] for _, a in keep])
     keep = [keep[i][0] for i in idx_of_keep]
-    result = Sparse2Corpus(corpus.X[:, keep].T)
+    result = []
+    if len(dictionary) > 0:
+        result = Sparse2Corpus(corpus.X[:, keep].T)
 
     return (result, dictionary) if return_dict else result
 
@@ -106,7 +108,8 @@ class GensimWrapper:
         Args:
             corpus (Corpus): A corpus to learn topics from.
         """
-        if not len(corpus.dictionary):
+        ngrams_corpus, dictionary = infer_ngrams_corpus(corpus, return_dict=True)
+        if len(dictionary) == 0:
             return None
         model_kwars = self.kwargs
         if "callbacks" in inspect.getfullargspec(self.Model).args:
@@ -116,7 +119,6 @@ class GensimWrapper:
                 model_kwars, callbacks=[GensimProgressCallback(on_progress)]
             )
 
-        ngrams_corpus, dictionary = infer_ngrams_corpus(corpus, return_dict=True)
         self.model = self.Model(
             corpus=ngrams_corpus, id2word=dictionary, **model_kwars
         )

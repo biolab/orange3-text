@@ -1,11 +1,12 @@
 recursive-include orangecontrib/text/datasets *.tab *.txt *.metadata
 recursive-include orangecontrib/text/models *.ftz
 recursive-include orangecontrib/text/sentiment *.txt
-recursive-include orangecontrib/text/tests *.txt *.json *.pkl *.udpipe
+recursive-include orangecontrib/text/tests *.txt *.json
+recursive-include orangecontrib/text/tests/data *
 recursive-include orangecontrib/text/tutorials *.ows
 recursive-include orangecontrib/text/widgets/icons *.svg *.png *.ai
 recursive-include orangecontrib/text/widgets/resources *.js *.css *.html
-recursive-include orangecontrib/text/widgets/tests/data *.docx *.odt *.pdf *.txt *.conllu *.csv *.tab *.tab.metadata
+recursive-include orangecontrib/text/widgets/tests/data *.txt *.conllu *.csv *.tab *.tab.metadata
 include orangecontrib/text/widgets/tests/bow-test
 recursive-include scripts *.sh *.py
 

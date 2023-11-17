@@ -29,7 +29,6 @@ from orangecontrib.text.preprocess import *
 from orangecontrib.text.preprocess.normalize import UDPipeStopIteration
 from orangecontrib.text.tag import AveragedPerceptronTagger, MaxEntTagger, \
     POSTagger
-from orangecontrib.text.tag.pos import StanfordPOSTaggerError
 
 _DEFAULT_NONE = "(none)"
 
@@ -973,7 +972,7 @@ class NgramsModule(PreprocessorModule):
 
 
 class POSTaggingModule(SingleMethodModule):
-    Averaged, MaxEnt, Stanford = range(3)
+    Averaged, MaxEnt = range(2)
     Methods = {Averaged: AveragedPerceptronTagger,
                MaxEnt: MaxEntTagger}
     DEFAULT_METHOD = Averaged
@@ -1041,7 +1040,6 @@ class OWPreprocess(Orange.widgets.data.owpreprocess.OWPreprocess,
         file_not_found = Msg("File not found.")
         invalid_encoding = Msg("Invalid file encoding. Please save the "
                                "file as UTF-8 and try again.")
-        stanford_tagger = Msg("Problem loading Stanford POS Tagger:\n{}")
 
     class Warning(Orange.widgets.data.owpreprocess.OWPreprocess.Warning):
         no_token_left = Msg("No tokens on the output.")
@@ -1162,8 +1160,6 @@ class OWPreprocess(Orange.widgets.data.owpreprocess.OWPreprocess,
             self.Error.file_not_found()
         except UnicodeError as e:
             self.Error.invalid_encoding(e)
-        except StanfordPOSTaggerError as e:
-            self.Error.stanford_tagger(e)
         except Exception as e:
             self.Error.unknown_error(str(e))
 
@@ -1186,7 +1182,7 @@ class OWPreprocess(Orange.widgets.data.owpreprocess.OWPreprocess,
             if not pp_data.has_tokens():
                 pp_data = BASE_TOKENIZER(
                     pp_data, wrap_callback(callback, start=0.9))
-            if pp_data is not None and len(pp_data.dictionary) == 0:
+            if pp_data is not None and pp_data.count_tokens() == 0:
                 msgs.append(self.Warning.no_token_left)
                 pp_data = None
         return Result(corpus=pp_data, msgs=msgs)
@@ -1212,9 +1208,8 @@ class OWPreprocess(Orange.widgets.data.owpreprocess.OWPreprocess,
             try:
                 tokens = next(data.ngrams_iterator(include_postags=True))
                 self.preview = ", ".join(tokens[:5])
-                n_tokens = sum(
-                    map(len, data.tokens)) if data.has_tokens() else ''
-                n_types = len(data.dictionary) if data.has_tokens() else ''
+                n_tokens = data.count_tokens() if data.has_tokens() else ''
+                n_types = data.count_unique_tokens() if data.has_tokens() else ''
                 self.output_info = f"Tokens: {n_tokens}\nTypes: {n_types}"
             except StopIteration:
                 self.preview = ""

@@ -282,8 +282,15 @@ class OWAnnotator(OWDataProjectionWidget, ConcurrentWidgetMixin):
                                                  orientation=Qt.Horizontal)
         gui.checkBox(ibox, self, "use_epsilon", "epsilon:",  labelWidth=80,
                      callback=self.__on_epsilon_check_changed)
-        gui.doubleSpin(ibox, self, "epsilon", 0.1, 10, 0.1,
-                       callback=self.__on_epsilon_changed)
+        gui.doubleSpin(
+            ibox,
+            self,
+            "epsilon",
+            0.01,
+            1000,
+            step=0.01,
+            callback=self.__on_epsilon_changed,
+        )
 
         gui.appendRadioButton(rbuttons, "Gaussian mixture models")
         self.gmm_box = ibox = gui.indentedBox(rbuttons, 20,

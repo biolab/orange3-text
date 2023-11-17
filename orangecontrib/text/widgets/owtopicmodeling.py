@@ -37,11 +37,21 @@ class TopicWidget(gui.OWComponent, QGroupBox):
         self.model = self.create_model()
         QVBoxLayout(self)
         for parameter, description, minv, maxv, step, _type in self.parameters:
-            spin = gui.spin(self, self, parameter, minv=minv, maxv=maxv, step=step,
-                            label=self.spin_format.format(description=description, parameter=parameter),
-                            labelWidth=220, spinType=_type)
+            spin = gui.spin(
+                self,
+                self,
+                parameter,
+                minv=minv,
+                maxv=maxv,
+                step=step,
+                label=self.spin_format.format(
+                    description=description, parameter=parameter
+                ),
+                labelWidth=220,
+                spinType=_type,
+                callback=self.on_change,
+            )
             spin.clearFocus()
-            spin.editingFinished.connect(self.on_change)
 
     def on_change(self):
         self.model = self.create_model()
@@ -143,13 +153,14 @@ class OWTopicModeling(OWWidget, ConcurrentWidgetMixin):
     want_main_area = True
 
     methods = [
-        (LsiWidget, 'lsi'),
         (LdaWidget, 'lda'),
+        (LsiWidget, 'lsi'),
         (HdpWidget, 'hdp'),
         (NmfWidget, 'nmf')
     ]
 
     # Settings
+    settings_version = 2
     autocommit = settings.Setting(True)
     method_index = settings.Setting(0)
 
@@ -266,6 +277,8 @@ class OWTopicModeling(OWWidget, ConcurrentWidgetMixin):
         if self.model.name == "Latent Dirichlet Allocation":
             bound = self.model.model.log_perplexity(infer_ngrams_corpus(corpus))
             self.perplexity = "{:.5f}".format(np.exp2(-bound))
+        else:
+            self.perplexity = "n/a"
         # for small corpora it is slower to use more processes
         # there is no good estimation when multiprocessing is helpful, but it is
         # definitely not helpful for corpora smaller than 100
@@ -298,6 +311,15 @@ class OWTopicModeling(OWWidget, ConcurrentWidgetMixin):
         if self.model.model and topic_id is not None:
             self.Outputs.selected_topic.send(
                 self.model.get_topics_table_by_id(topic_id))
+
+    @classmethod
+    def migrate_settings(cls, settings, version=0):
+        if version < 2 and "method_index" in settings:
+            # in version 2 we change the position of first and second method (lsi, lda)
+            # map changes that correct method from the workflow is loaded
+            change = {1: 0, 0: 1}
+            method_idx = settings["method_index"]
+            settings["method_index"] = change.get(method_idx, method_idx)
 
 
 class TopicViewerTreeWidgetItem(QTreeWidgetItem):

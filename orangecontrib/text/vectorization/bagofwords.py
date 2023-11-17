@@ -70,10 +70,12 @@ class BowVectorizer(BaseVectorizer):
         self.wglobal = wglobal
 
     def _transform(self, corpus, source_dict=None, callback=dummy_callback):
-        if not (len(corpus.dictionary) or source_dict) or not len(corpus):
+        if len(corpus) == 0:
             return corpus
         temp_corpus = list(corpus.ngrams_iterator(' ', include_postags=True))
         dic = corpora.Dictionary(temp_corpus, prune_at=None) if not source_dict else source_dict
+        if len(dic) == 0:
+            return corpus
         callback(0.3)
         temp_corpus = [dic.doc2bow(doc) for doc in temp_corpus]
         model = models.TfidfModel(dictionary=dic, normalize=False,
