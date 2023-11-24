@@ -15,9 +15,17 @@ import numpy as np
 
 from orangecontrib.text import preprocess, tag
 from orangecontrib.text.corpus import Corpus
-from orangecontrib.text.preprocess import BASE_TOKENIZER, PreprocessorList
-from orangecontrib.text.preprocess.normalize import file_to_language, \
-    file_to_name, language_to_name, UDPipeModels
+from orangecontrib.text.preprocess import (
+    BASE_TOKENIZER,
+    PreprocessorList,
+    StopwordsFilter,
+)
+from orangecontrib.text.preprocess.normalize import (
+    file_to_language,
+    file_to_name,
+    language_to_name,
+    UDPipeModels,
+)
 
 
 SF_LIST = "orangecontrib.text.preprocess.normalize.serverfiles.ServerFiles.listfiles"
@@ -430,7 +438,7 @@ class FilteringTests(unittest.TestCase):
         self.assertEqual(filtered, ['a'])
 
     def test_stopwords(self):
-        f = preprocess.StopwordsFilter('english')
+        f = preprocess.StopwordsFilter("en")
         self.assertFalse(f._check('a'))
         self.assertTrue(f._check('filter'))
         with self.corpus.unlocked():
@@ -440,7 +448,7 @@ class FilteringTests(unittest.TestCase):
         self.assertEqual(len(corpus.used_preprocessor.preprocessors), 2)
 
     def test_stopwords_slovene(self):
-        f = preprocess.StopwordsFilter('slovene')
+        f = preprocess.StopwordsFilter("sl")
         self.assertFalse(f._check('in'))
         self.assertTrue(f._check('abeceda'))
         with self.corpus.unlocked():
@@ -448,6 +456,22 @@ class FilteringTests(unittest.TestCase):
         corpus = f(self.corpus)
         self.assertListEqual(["kača", "hiši"], corpus.tokens[0])
         self.assertEqual(len(corpus.used_preprocessor.preprocessors), 2)
+
+    def test_supported_languages(self):
+        langs = preprocess.StopwordsFilter.supported_languages()
+        self.assertIsInstance(langs, set)
+        # just testing few of most important languages since I want for test to be
+        # resistant for any potentially newly introduced languages by NLTK
+        self.assertIn("en", langs)
+        self.assertIn("sl", langs)
+        self.assertIn("fr", langs)
+        self.assertIn("sv", langs)
+        self.assertIn("fi", langs)
+        self.assertIn("de", langs)
+
+    def test_lang_to_iso(self):
+        self.assertEqual("en", StopwordsFilter.lang_to_iso("English"))
+        self.assertEqual("sl", StopwordsFilter.lang_to_iso("Slovene"))
 
     def test_lexicon(self):
         f = tempfile.NamedTemporaryFile(delete=False)

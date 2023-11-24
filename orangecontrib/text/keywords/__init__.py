@@ -15,12 +15,16 @@ from Orange.util import dummy_callback
 from orangecontrib.text import Corpus
 from orangecontrib.text.keywords.mbert import mbert_keywords
 from orangecontrib.text.keywords.rake import Rake
+from orangecontrib.text.language import ISO2LANG
 from orangecontrib.text.preprocess import StopwordsFilter
 
 # all available languages for RAKE
 from orangecontrib.text.vectorization import BowVectorizer
 
-RAKE_LANGUAGES = StopwordsFilter.supported_languages()
+
+# todo: refactor when refactoring language for keywords module
+# this is a temporary solution since supported_languages now returns lang ISO codes
+RAKE_LANGUAGES = [ISO2LANG[la] for la in StopwordsFilter.supported_languages()]
 # all available languages for YAKE!
 YAKE_LANGUAGE_MAPPING = {
     "Arabic": "ar",

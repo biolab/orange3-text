@@ -21,7 +21,7 @@ from orangecontrib.text.widgets.owannotator import OWAnnotator
 
 def preprocess(corpus: Corpus) -> Corpus:
     for pp in (LowercaseTransformer(), RegexpTokenizer(r"\w+"),
-               StopwordsFilter("English"), FrequencyFilter(0.25, 0.5)):
+               StopwordsFilter("en"), FrequencyFilter(0.25, 0.5)):
         corpus = pp(corpus)
     corpus = BowVectorizer().transform(corpus)
     return add_embedding(corpus, 4)

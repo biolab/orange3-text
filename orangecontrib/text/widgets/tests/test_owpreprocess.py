@@ -5,6 +5,7 @@ import numpy as np
 from Orange.data import Domain, StringVariable
 from orangewidget.utils.filedialogs import RecentPath
 from Orange.widgets.tests.base import WidgetTest
+from Orange.widgets.tests.utils import simulate
 
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.preprocess import RegexpTokenizer, WhitespaceTokenizer, \
@@ -12,9 +13,17 @@ from orangecontrib.text.preprocess import RegexpTokenizer, WhitespaceTokenizer, 
     UDPipeLemmatizer, StopwordsFilter, MostFrequentTokensFilter, NGrams
 from orangecontrib.text.tag import AveragedPerceptronTagger, MaxEntTagger
 from orangecontrib.text.tests.test_preprocess import SF_LIST, SERVER_FILES
-from orangecontrib.text.widgets.owpreprocess import OWPreprocess, \
-    TransformationModule, TokenizerModule, NormalizationModule, \
-    FilteringModule, NgramsModule, POSTaggingModule
+from orangecontrib.text.widgets.owpreprocess import (
+    OWPreprocess,
+    TransformationModule,
+    TokenizerModule,
+    NormalizationModule,
+    FilteringModule,
+    NgramsModule,
+    POSTaggingModule,
+    LanguageComboBox,
+    _DEFAULT_NONE,
+)
 
 
 @patch(SF_LIST, new=Mock(return_value=SERVER_FILES))
@@ -211,7 +220,7 @@ class TestOWPreprocessMigrateSettings(WidgetTest):
                                 "use_df": False, "use_keep_n": False}}
         widget = self.create_widget(OWPreprocess, stored_settings=settings)
         params = [("preprocess.filter",
-                   {"methods": [0, 2, 4], "language": "Finnish",
+                   {"methods": [0, 2, 4], "language": "fi",
                     "sw_path": None, "sw_list": [],
                     "lx_path": None, "lx_list": [],
                     "pattern": "foo", "rel_start": 0.3,
@@ -261,6 +270,55 @@ class TestOWPreprocessMigrateSettings(WidgetTest):
             "transformers": {"checked": [0, 1, 2, 3], "enabled": True}
         }
         self.create_widget(OWPreprocess, stored_settings=settings)
+
+    def test_migrate_language_settings(self):
+        """Test migration to iso langauge codes"""
+        settings = {
+            "__version__": 3,
+            "storedsettings": {
+                "preprocessors": [
+                    (
+                        "preprocess.normalize",
+                        {
+                            "snowball_language": "French",
+                            "udpipe_language": "German",
+                            "lemmagen_language": "Slovenian",
+                        },
+                    ),
+                    ("preprocess.filter", {"language": "Finnish"}),
+                ]
+            },
+        }
+        widget = self.create_widget(OWPreprocess, stored_settings=settings)
+        normalize_settings = widget.storedsettings["preprocessors"][0][1]
+        filter_settings = widget.storedsettings["preprocessors"][1][1]
+        self.assertEqual("Slovenian", normalize_settings["lemmagen_language"])
+        self.assertEqual("French", normalize_settings["snowball_language"])
+        self.assertEqual("German", normalize_settings["udpipe_language"])
+        self.assertEqual("fi", filter_settings["language"])
+
+        # NLTK uses Slovene instead of Slovenian, this is also the reason
+        # that preprocess widget stored language as Slovene before
+        # check if it is mapped correctly
+        settings = {
+            "__version__": 3,
+            "storedsettings": {
+                "preprocessors": [("preprocess.filter", {"language": "Slovene"})]
+            },
+        }
+        widget = self.create_widget(OWPreprocess, stored_settings=settings)
+        filter_settings = widget.storedsettings["preprocessors"][0][1]
+        self.assertEqual("sl", filter_settings["language"])
+
+        settings = {
+            "__version__": 3,
+            "storedsettings": {
+                "preprocessors": [("preprocess.filter", {"language": _DEFAULT_NONE})]
+            },
+        }
+        widget = self.create_widget(OWPreprocess, stored_settings=settings)
+        filter_settings = widget.storedsettings["preprocessors"][0][1]
+        self.assertIsNone(filter_settings["language"])
 
 
 class TestTransformationModule(WidgetTest):
@@ -522,7 +580,7 @@ class TestFilterModule(WidgetTest):
 
     def test_parameters(self):
         params = {"methods": [FilteringModule.Stopwords],
-                  "language": "English", "sw_path": None, "lx_path": None,
+                  "language": "en", "sw_path": None, "lx_path": None,
                   "sw_list": [], "lx_list": [],
                   "incl_num": False,
                   "pattern": FilteringModule.DEFAULT_PATTERN,
@@ -537,7 +595,7 @@ class TestFilterModule(WidgetTest):
         sw_path = RecentPath.create("Foo", [])
         lx_path = RecentPath.create("Bar", [])
         params = {"methods": [FilteringModule.Lexicon, FilteringModule.Regexp],
-                  "language": "Finnish",
+                  "language": "fi",
                   "sw_path": sw_path, "lx_path": lx_path,
                   "sw_list": [sw_path], "lx_list": [lx_path],
                   "incl_num": False,
@@ -581,10 +639,13 @@ class TestFilterModule(WidgetTest):
         self.assertIsInstance(pp[1], MostFrequentTokensFilter)
 
     def test_repr(self):
-        self.assertEqual(str(self.editor),
-                         "Stopwords (Language: English, File: None)")
-        params = {"methods": [FilteringModule.Lexicon,
-                              FilteringModule.Regexp]}
+        self.assertEqual(str(self.editor), "Stopwords (Language: English, File: None)")
+        params = self.editor.parameters()
+        params["language"] = None
+        self.editor.setParameters(params)
+        self.assertEqual(str(self.editor), "Stopwords (Language: None, File: None)")
+
+        params = {"methods": [FilteringModule.Lexicon, FilteringModule.Regexp]}
         self.editor.setParameters(params)
         self.assertEqual(
             str(self.editor),
@@ -683,6 +744,60 @@ class TestPOSTaggerModule(WidgetTest):
 
     def test_repr(self):
         self.assertEqual(str(self.editor), "Averaged Perceptron Tagger")
+
+
+class TestLanguageComboBox(WidgetTest):
+    def test_basic_setup(self):
+        mock = Mock()
+        cb = LanguageComboBox(None, ["sl", "en", "sv", "fi"], "fi", False, mock)
+        self.assertEqual(4, cb.count())
+        self.assertEqual(
+            ["English", "Finnish", "Slovenian", "Swedish"],
+            [cb.itemText(i) for i in range(cb.count())],
+        )
+        self.assertEqual("Finnish", cb.currentText())
+
+    def test_include_none(self):
+        mock = Mock()
+        cb = LanguageComboBox(None, ["sl", "en", "sv", "fi"], "fi", True, mock)
+        self.assertEqual(5, cb.count())
+        self.assertEqual(
+            [_DEFAULT_NONE, "English", "Finnish", "Slovenian", "Swedish"],
+            [cb.itemText(i) for i in range(cb.count())],
+        )
+        self.assertEqual("Finnish", cb.currentText())
+
+        # test with current item None
+        cb = LanguageComboBox(None, ["sl", "en", "sv", "fi"], None, True, mock)
+        self.assertEqual(5, cb.count())
+        self.assertEqual(
+            [_DEFAULT_NONE, "English", "Finnish", "Slovenian", "Swedish"],
+            [cb.itemText(i) for i in range(cb.count())],
+        )
+        self.assertEqual(_DEFAULT_NONE, cb.currentText())
+
+    def test_set_current_language(self):
+        mock = Mock()
+        cb = LanguageComboBox(None, ["sl", "en", "sv", "fi"], "fi", True, mock)
+        self.assertEqual("Finnish", cb.currentText())
+        cb.set_current_language("sl")
+        self.assertEqual("Slovenian", cb.currentText())
+        cb.set_current_language(None)
+        self.assertEqual(_DEFAULT_NONE, cb.currentText())
+
+    def test_change_item(self):
+        mock = Mock()
+        cb = LanguageComboBox(None, ["sl", "en", "sv", "fi"], "fi", True, mock)
+        self.assertEqual(
+            [_DEFAULT_NONE, "English", "Finnish", "Slovenian", "Swedish"],
+            [cb.itemText(i) for i in range(cb.count())],
+        )
+        mock.assert_not_called()
+        simulate.combobox_activate_item(cb, "Slovenian")
+        mock.assert_called_once_with("sl")
+        mock.reset_mock()
+        simulate.combobox_activate_item(cb, _DEFAULT_NONE)
+        mock.assert_called_once_with(None)
 
 
 if __name__ == "__main__":

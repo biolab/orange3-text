@@ -46,6 +46,9 @@ ISO2LANG = {
     "he": "Hebrew",
     "hi": "Hindi",
     "hi-Latn": "Hindi (latin)",
+    # https://en.wikipedia.org/wiki/Hinglish - since it doesn't really have ISO
+    # code we made one up to be able to used it for stopwords (supported in NLTK)
+    "hi_eng": "Hinglish",
     "hr": "Croatian",
     "ht": "Haitian",
     "hu": "Hungarian",
