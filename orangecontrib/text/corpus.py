@@ -382,17 +382,13 @@ class Corpus(Table):
         return [' '.join(f.str_val(val) for f, val in zip(data.domain.metas, row))
                 for row in data.metas]
 
-    def store_tokens(self, tokens, dictionary=None):
+    def store_tokens(self, tokens: List):
         """
-        Args:
-            tokens (list): List of lists containing tokens.
+        Parameters
+        ----------
+        tokens
+            List of lists containing tokens.
         """
-        if dictionary is not None:
-            warn(
-                "dictionary argument is deprecated and doesn't have effect."
-                "It will be removed in future orange3-text 1.15.",
-                FutureWarning,
-            )
         self._tokens = np.array(tokens, dtype=object)
 
     @property
@@ -417,14 +413,6 @@ class Corpus(Table):
         base_preprocessors = PreprocessorList([BASE_TRANSFORMER, BASE_TOKENIZER])
         corpus = base_preprocessors(self)
         return corpus.tokens
-
-    @property
-    def dictionary(self):
-        warn(
-            "dictionary is deprecated and will be removed in Orange3-text 1.15",
-            FutureWarning,
-        )
-        return corpora.Dictionary(self.tokens)
 
     @property
     def pos_tags(self):
