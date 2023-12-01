@@ -271,30 +271,16 @@ class TestOWPreprocessMigrateSettings(WidgetTest):
         }
         self.create_widget(OWPreprocess, stored_settings=settings)
 
-    def test_migrate_language_settings(self):
+    def test_migrate_filter_language_settings(self):
         """Test migration to iso langauge codes"""
         settings = {
             "__version__": 3,
             "storedsettings": {
-                "preprocessors": [
-                    (
-                        "preprocess.normalize",
-                        {
-                            "snowball_language": "French",
-                            "udpipe_language": "German",
-                            "lemmagen_language": "Slovenian",
-                        },
-                    ),
-                    ("preprocess.filter", {"language": "Finnish"}),
-                ]
+                "preprocessors": [("preprocess.filter", {"language": "Finnish"})]
             },
         }
         widget = self.create_widget(OWPreprocess, stored_settings=settings)
-        normalize_settings = widget.storedsettings["preprocessors"][0][1]
-        filter_settings = widget.storedsettings["preprocessors"][1][1]
-        self.assertEqual("Slovenian", normalize_settings["lemmagen_language"])
-        self.assertEqual("French", normalize_settings["snowball_language"])
-        self.assertEqual("German", normalize_settings["udpipe_language"])
+        filter_settings = widget.storedsettings["preprocessors"][0][1]
         self.assertEqual("fi", filter_settings["language"])
 
         # NLTK uses Slovene instead of Slovenian, this is also the reason
@@ -319,6 +305,32 @@ class TestOWPreprocessMigrateSettings(WidgetTest):
         widget = self.create_widget(OWPreprocess, stored_settings=settings)
         filter_settings = widget.storedsettings["preprocessors"][0][1]
         self.assertIsNone(filter_settings["language"])
+
+    def test_migrate_lemmagen_language_settings(self):
+        """Test migration to iso langauge codes"""
+        settings = {
+            "__version__": 3,
+            "storedsettings": {
+                "preprocessors": [
+                    ("preprocess.normalize", {"lemmagen_language": "Slovenian"}),
+                ]
+            },
+        }
+        widget = self.create_widget(OWPreprocess, stored_settings=settings)
+        normalize_settings = widget.storedsettings["preprocessors"][0][1]
+        self.assertEqual("sl", normalize_settings["lemmagen_language"])
+
+        settings = {
+            "__version__": 3,
+            "storedsettings": {
+                "preprocessors": [
+                    ("preprocess.normalize", {"lemmagen_language": "English"}),
+                ]
+            },
+        }
+        widget = self.create_widget(OWPreprocess, stored_settings=settings)
+        normalize_settings = widget.storedsettings["preprocessors"][0][1]
+        self.assertEqual("en", normalize_settings["lemmagen_language"])
 
 
 class TestTransformationModule(WidgetTest):
@@ -459,19 +471,23 @@ class TestNormalizationModule(WidgetTest):
         self.assertFalse(self.check_use.isChecked())
 
     def test_parameters(self):
-        params = {"method": NormalizationModule.Porter,
-                  "snowball_language": "English",
-                  "udpipe_language": "English",
-                  "lemmagen_language": "English",
-                  "udpipe_tokenizer": False}
+        params = {
+            "method": NormalizationModule.Porter,
+            "snowball_language": "English",
+            "udpipe_language": "English",
+            "lemmagen_language": "en",
+            "udpipe_tokenizer": False,
+        }
         self.assertDictEqual(self.editor.parameters(), params)
 
     def test_set_parameters(self):
-        params = {"method": NormalizationModule.UDPipe,
-                  "snowball_language": "Dutch",
-                  "udpipe_language": "Slovenian",
-                  "lemmagen_language": "Bulgarian",
-                  "udpipe_tokenizer": True}
+        params = {
+            "method": NormalizationModule.UDPipe,
+            "snowball_language": "Dutch",
+            "udpipe_language": "Slovenian",
+            "lemmagen_language": "bg",
+            "udpipe_tokenizer": True,
+        }
         self.editor.setParameters(params)
         self.assertDictEqual(self.editor.parameters(), params)
         self.assertEqual(self.combo_sbl.currentText(), "Dutch")
@@ -737,10 +753,6 @@ class TestPOSTaggerModule(WidgetTest):
 
         pp = self.editor.createinstance({"method": POSTaggingModule.MaxEnt})
         self.assertIsInstance(pp, MaxEntTagger)
-
-        # TODO - implement StanfordPOSTagger
-        # pp = self.editor.createinstance({"method": POSTaggingModule.Stanford})
-        # self.assertIsInstance(pp, StanfordPOSTagger)
 
     def test_repr(self):
         self.assertEqual(str(self.editor), "Averaged Perceptron Tagger")
