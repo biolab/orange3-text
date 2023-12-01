@@ -342,14 +342,21 @@ class TokenNormalizerTests(unittest.TestCase):
         )
 
     def test_lemmagen(self):
-        normalizer = preprocess.LemmagenLemmatizer('Slovenian')
-        sentence = 'Gori na gori hiša gori'
+        normalizer = preprocess.LemmagenLemmatizer("sl")
+        sentence = "Gori na gori hiša gori"
         with self.corpus.unlocked():
             self.corpus.metas[0, 0] = sentence
         self.assertEqual(
             [Lemmatizer("sl").lemmatize(t) for t in sentence.split()],
             normalizer(self.corpus).tokens[0],
         )
+
+    def test_lemmagen_all_langs(self):
+        for language in preprocess.LemmagenLemmatizer.supported_languages:
+            normalizer = preprocess.LemmagenLemmatizer(language)
+            tokens = normalizer(self.corpus).tokens
+            self.assertEqual(len(self.corpus), len(tokens))
+            self.assertTrue(all(tokens))
 
     def test_normalizers_picklable(self):
         """ Normalizers must be picklable, tests if it is true"""
