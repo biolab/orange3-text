@@ -723,15 +723,6 @@ class CorpusTests(unittest.TestCase):
         self.assertEqual(5, corpus[:2].count_unique_tokens())
         self.assertEqual(2, corpus[:1].count_unique_tokens())
 
-    def test_remove_dictionary(self):
-        """
-        When this test starts to fail remove:
-        - this test
-        - dictionary property from Corpus
-        - dictionary argument from Corpus.store_tokens
-        """
-        self.assertFalse(orangecontrib.text.__version__.startswith("1.16"))
-
 
 class TestCorpusSummaries(unittest.TestCase):
     def test_corpus_not_preprocessed(self):
