@@ -213,39 +213,12 @@ class UDPipeLemmatizer(BaseNormalizer):
 
 class LemmagenLemmatizer(BaseNormalizer):
     name = 'Lemmagen Lemmatizer'
-    lemmagen_languages = {
-        "Bulgarian": "bg",
-        "Croatian": "hr",
-        "Czech": "cs",
-        "English": "en",
-        "Estonian": "et",
-        "Farsi/Persian": "fa",
-        "French": "fr",
-        "German": "de",
-        "Hungarian": "hu",
-        "Italian": "it",
-        "Macedonian": "mk",
-        "Polish": "pl",
-        "Romanian": "ro",
-        "Russian": "ru",
-        "Serbian": "sr",
-        "Slovak": "sk",
-        "Slovenian": "sl",
-        "Spanish": "es",
-        "Ukrainian": "uk"
-    }
+    supported_languages = set(Lemmatizer.list_supported_languages())
 
-    def __init__(self, language='English'):
+    def __init__(self, language="en"):
         super().__init__()
-        self.language = language
-        self.lemmatizer = None
-
-    def __call__(self, corpus: Corpus, callback: Callable = None) -> Corpus:
-        # lemmagen3 lemmatizer is not picklable, define it on call and discard it afterward
-        self.lemmatizer = Lemmatizer(self.lemmagen_languages[self.language])
-        output_corpus = super().__call__(corpus, callback)
-        self.lemmatizer = None
-        return output_corpus
+        self.language = language  # used only for unpicking
+        self.lemmatizer = Lemmatizer(language)
 
     def normalizer(self, token):
         assert self.lemmatizer is not None
@@ -253,3 +226,14 @@ class LemmagenLemmatizer(BaseNormalizer):
         # sometimes Lemmagen returns an empty string, return original tokens
         # in this case
         return t if t else token
+
+    def __getstate__(self):
+        """Remove model that cannot be pickled"""
+        state = super().__getstate__()
+        state["lemmatizer"] = None
+        return state
+
+    def __setstate__(self, state):
+        """Reinstate the model when upickled"""
+        super().__setstate__(state)
+        self.lemmatizer = Lemmatizer(self.language)
