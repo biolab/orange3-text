@@ -475,21 +475,23 @@ class NormalizationModule(SingleMethodModule):
                UDPipe: UDPipeLemmatizer,
                Lemmagen: LemmagenLemmatizer}
     DEFAULT_METHOD = Porter
-    DEFAULT_SNOWBALL_LANG = "English"  # todo: remove when snowball use iso
     DEFAULT_UDPIPE_LANG = "English"  # todo: remove when udpipe use iso
     DEFAULT_LANGUAGE = "en"
     DEFAULT_USE_TOKE = False
 
     def __init__(self, parent=None, **kwargs):
         super().__init__(parent, **kwargs)
-        self.__snowball_lang = self.DEFAULT_SNOWBALL_LANG
+        self.__snowball_lang = self.DEFAULT_LANGUAGE
         self.__udpipe_lang = self.DEFAULT_UDPIPE_LANG
         self.__lemmagen_lang = self.DEFAULT_LANGUAGE
         self.__use_tokenizer = self.DEFAULT_USE_TOKE
 
-        self.__combo_sbl = ComboBox(
-            self, SnowballStemmer.supported_languages,
-            self.__snowball_lang, self.__set_snowball_lang
+        self.__combo_sbl = LanguageComboBox(
+            self,
+            SnowballStemmer.supported_languages,
+            self.__snowball_lang,
+            False,
+            self.__set_snowball_lang
         )
         self.__combo_udl = UDPipeComboBox(
             self, self.__udpipe_lang, self.DEFAULT_UDPIPE_LANG, self.__set_udpipe_lang
@@ -534,7 +536,7 @@ class NormalizationModule(SingleMethodModule):
 
     def setParameters(self, params: Dict):
         super().setParameters(params)
-        snowball_lang = params.get("snowball_language", self.DEFAULT_SNOWBALL_LANG)
+        snowball_lang = params.get("snowball_language", self.DEFAULT_LANGUAGE)
         self.__set_snowball_lang(snowball_lang)
         udpipe_lang = params.get("udpipe_language", self.DEFAULT_UDPIPE_LANG)
         self.__set_udpipe_lang(udpipe_lang)
@@ -550,7 +552,7 @@ class NormalizationModule(SingleMethodModule):
     def __set_snowball_lang(self, language: str):
         if self.__snowball_lang != language:
             self.__snowball_lang = language
-            self.__combo_sbl.setCurrentText(language)
+            self.__combo_sbl.set_current_language(language)
             self.changed.emit()
             if self.method == self.Snowball:
                 self.edited.emit()
@@ -591,11 +593,10 @@ class NormalizationModule(SingleMethodModule):
     def createinstance(params: Dict) -> BaseNormalizer:
         method = params.get("method", NormalizationModule.DEFAULT_METHOD)
         args = {}
-        def_snowball = NormalizationModule.DEFAULT_SNOWBALL_LANG
         def_udpipe = NormalizationModule.DEFAULT_UDPIPE_LANG
         def_lang = NormalizationModule.DEFAULT_LANGUAGE
         if method == NormalizationModule.Snowball:
-            args = {"language": params.get("snowball_language", def_snowball)}
+            args = {"language": params.get("snowball_language", def_lang)}
         elif method == NormalizationModule.UDPipe:
             def_use = NormalizationModule.DEFAULT_USE_TOKE
             args = {"language": params.get("udpipe_language", def_udpipe),
@@ -1390,8 +1391,10 @@ class OWPreprocess(Orange.widgets.data.owpreprocess.OWPreprocess,
                         pp["language"] = None
                     else:
                         pp["language"] = StopwordsFilter.lang_to_iso(pp["language"])
-                if pp_name == "preprocess.normalize" and "lemmagen_language" in pp:
-                    pp["lemmagen_language"] = LANG2ISO[pp["lemmagen_language"]]
+                if pp_name == "preprocess.normalize":
+                    for key in ("lemmagen_language", "snowball_language"):
+                        if key in pp:
+                            pp[key] = LANG2ISO[pp[key]]
 
 
 if __name__ == "__main__":
