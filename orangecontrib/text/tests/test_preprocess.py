@@ -289,11 +289,18 @@ class TokenNormalizerTests(unittest.TestCase):
         self.assertEqual(stemmer._preprocess('token'), 'toke')
 
     def test_snowball(self):
-        stemmer = preprocess.SnowballStemmer('french')
+        stemmer = preprocess.SnowballStemmer('fr')
         token = 'voudrais'
         self.assertEqual(
             stemmer._preprocess(token),
             nltk.SnowballStemmer(language='french').stem(token))
+
+    def test_snowball_all_langs(self):
+        for language in preprocess.SnowballStemmer.supported_languages:
+            normalizer = preprocess.SnowballStemmer(language)
+            tokens = normalizer(self.corpus).tokens
+            self.assertEqual(len(self.corpus), len(tokens))
+            self.assertTrue(all(tokens))
 
     def test_udpipe(self):
         """Test udpipe token lemmatization"""

@@ -10,6 +10,7 @@ from Orange.misc.environ import data_dir
 from Orange.util import wrap_callback, dummy_callback
 
 from orangecontrib.text import Corpus
+from orangecontrib.text.language import LANG2ISO, ISO2LANG
 from orangecontrib.text.misc import wait_nltk_data
 from orangecontrib.text.preprocess import Preprocessor, TokenizedPreprocessor
 
@@ -71,12 +72,16 @@ class PorterStemmer(BaseNormalizer):
 
 class SnowballStemmer(BaseNormalizer):
     name = 'Snowball Stemmer'
-    supported_languages = [l.capitalize() for l in
-                           stem.SnowballStemmer.languages]
+    supported_languages = {
+        LANG2ISO[l.capitalize()]
+        for l in stem.SnowballStemmer.languages
+        # skip porter since not language but porter stemmer that we implement separately
+        if l != "porter"
+    }
 
-    def __init__(self, language='English'):
+    def __init__(self, language='en'):
         super().__init__()
-        self.normalizer = stem.SnowballStemmer(language.lower()).stem
+        self.normalizer = stem.SnowballStemmer(ISO2LANG[language].lower()).stem
 
 
 def language_to_name(language):
