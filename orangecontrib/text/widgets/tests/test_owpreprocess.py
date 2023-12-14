@@ -205,7 +205,7 @@ class TestOWPreprocessMigrateSettings(WidgetTest):
                                    "udpipe_tokenizer": True}}
         widget = self.create_widget(OWPreprocess, stored_settings=settings)
         params = [("preprocess.normalize",
-                   {"method": 2, "snowball_language": "French",
+                   {"method": 2, "snowball_language": "fr",
                     "udpipe_language": "German", "udpipe_tokenizer": True})]
         self.assertEqual(widget.storedsettings["preprocessors"], params)
 
@@ -331,6 +331,32 @@ class TestOWPreprocessMigrateSettings(WidgetTest):
         widget = self.create_widget(OWPreprocess, stored_settings=settings)
         normalize_settings = widget.storedsettings["preprocessors"][0][1]
         self.assertEqual("en", normalize_settings["lemmagen_language"])
+
+    def test_migrate_snowball_language_settings(self):
+        """Test migration to iso langauge codes"""
+        settings = {
+            "__version__": 3,
+            "storedsettings": {
+                "preprocessors": [
+                    ("preprocess.normalize", {"snowball_language": "Swedish"}),
+                ]
+            },
+        }
+        widget = self.create_widget(OWPreprocess, stored_settings=settings)
+        normalize_settings = widget.storedsettings["preprocessors"][0][1]
+        self.assertEqual("sv", normalize_settings["snowball_language"])
+
+        settings = {
+            "__version__": 3,
+            "storedsettings": {
+                "preprocessors": [
+                    ("preprocess.normalize", {"snowball_language": "English"}),
+                ]
+            },
+        }
+        widget = self.create_widget(OWPreprocess, stored_settings=settings)
+        normalize_settings = widget.storedsettings["preprocessors"][0][1]
+        self.assertEqual("en", normalize_settings["snowball_language"])
 
 
 class TestTransformationModule(WidgetTest):
@@ -473,7 +499,7 @@ class TestNormalizationModule(WidgetTest):
     def test_parameters(self):
         params = {
             "method": NormalizationModule.Porter,
-            "snowball_language": "English",
+            "snowball_language": "en",
             "udpipe_language": "English",
             "lemmagen_language": "en",
             "udpipe_tokenizer": False,
@@ -483,7 +509,7 @@ class TestNormalizationModule(WidgetTest):
     def test_set_parameters(self):
         params = {
             "method": NormalizationModule.UDPipe,
-            "snowball_language": "Dutch",
+            "snowball_language": "nl",
             "udpipe_language": "Slovenian",
             "lemmagen_language": "bg",
             "udpipe_tokenizer": True,
@@ -504,8 +530,7 @@ class TestNormalizationModule(WidgetTest):
         self.assertIsInstance(pp, SnowballStemmer)
         self.assertIn("<EnglishStemmer>", str(pp.normalizer))
 
-        params = {"method": NormalizationModule.Snowball,
-                  "snowball_language": "Dutch"}
+        params = {"method": NormalizationModule.Snowball, "snowball_language": "nl"}
         pp = self.editor.createinstance(params)
         self.assertIsInstance(pp, SnowballStemmer)
         self.assertIn("<DutchStemmer>", str(pp.normalizer))
