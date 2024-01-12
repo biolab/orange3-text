@@ -328,6 +328,7 @@ class Corpus(Table):
             self.metas.copy(),
             self.W.copy(),
             text_features=copy(self.text_features),
+            attributes=self.attributes,
         )
         c.name = self.name  # keep corpus's name
         Corpus.retain_preprocessing(self, c)
@@ -643,7 +644,6 @@ class Corpus(Table):
 
             new._titles = orig._titles[key]
             new.ngram_range = orig.ngram_range
-            new.attributes = orig.attributes
             new.used_preprocessor = orig.used_preprocessor
         else:  # orig is not Corpus
             new._set_unique_titles()
