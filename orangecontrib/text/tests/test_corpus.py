@@ -671,20 +671,6 @@ class CorpusTests(unittest.TestCase):
         self.assertEqual(new_corpus.language, "sl")
         self.assertEqual(corpus.language, "en")
 
-    def test_remove_attributes_copy(self):
-        """
-        Happy new year!
-
-        We added a deepcopy of attributes to from_table and from_table_rows
-        since Orange didn't copy attributes. It should be removed when oldest
-        supported Orange is 3.34 or higher.
-        When test starts to fail:
-        - remove it
-        - remove copying of attributes in from_table and from_table_rows
-        - update Orange version to >=3.34 if not done yet
-        """
-        self.assertLess(datetime.today(), datetime(2024, 1, 1))
-
     def test_language_unpickle(self):
         path = os.path.dirname(__file__)
         file = os.path.abspath(os.path.join(path, "data", "book-excerpts.pkl"))

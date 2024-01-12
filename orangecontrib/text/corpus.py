@@ -544,8 +544,6 @@ class Corpus(Table):
         c = super().from_table(domain, source, row_indices)
         c._setup_corpus()
         Corpus.retain_preprocessing(source, c, row_indices)
-        # temp fix: remove when oldest Orange >= 3.34
-        c.attributes = deepcopy(c.attributes)
         return c
 
     @classmethod
@@ -587,8 +585,6 @@ class Corpus(Table):
         if hasattr(source, "_titles"):
             # covering case when from_table_rows called by from_table
             c._titles = source._titles[row_indices]
-        # temp fix: remove when oldest Orange >= 3.34
-        c.attributes = deepcopy(c.attributes)
         return c
 
     @classmethod
