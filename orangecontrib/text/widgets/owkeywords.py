@@ -15,6 +15,7 @@ from Orange.util import wrap_callback
 from Orange.widgets import gui
 from Orange.widgets.settings import DomainContextHandler, ContextSetting, \
     Setting
+from Orange.widgets.utils import enum2int
 from Orange.widgets.utils.concurrent import ConcurrentWidgetMixin, TaskState
 from Orange.widgets.utils.itemmodels import PyTableModel, TableModel
 from Orange.widgets.widget import Input, Output, OWWidget, Msg
@@ -23,7 +24,6 @@ from orangecontrib.text import Corpus
 from orangecontrib.text.keywords import ScoringMethods, AggregationMethods, \
     YAKE_LANGUAGE_MAPPING, RAKE_LANGUAGES
 from orangecontrib.text.preprocess import BaseNormalizer
-from orangecontrib.text.widgets.utils import enum2int
 from orangecontrib.text.widgets.utils.words import create_words_table, \
     WORDS_COLUMN_NAME
 
