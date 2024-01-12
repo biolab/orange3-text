@@ -328,6 +328,7 @@ class Corpus(Table):
             self.metas.copy(),
             self.W.copy(),
             text_features=copy(self.text_features),
+            attributes=self.attributes,
         )
         c.name = self.name  # keep corpus's name
         Corpus.retain_preprocessing(self, c)
@@ -544,8 +545,6 @@ class Corpus(Table):
         c = super().from_table(domain, source, row_indices)
         c._setup_corpus()
         Corpus.retain_preprocessing(source, c, row_indices)
-        # temp fix: remove when oldest Orange >= 3.34
-        c.attributes = deepcopy(c.attributes)
         return c
 
     @classmethod
@@ -587,8 +586,6 @@ class Corpus(Table):
         if hasattr(source, "_titles"):
             # covering case when from_table_rows called by from_table
             c._titles = source._titles[row_indices]
-        # temp fix: remove when oldest Orange >= 3.34
-        c.attributes = deepcopy(c.attributes)
         return c
 
     @classmethod
@@ -647,7 +644,6 @@ class Corpus(Table):
 
             new._titles = orig._titles[key]
             new.ngram_range = orig.ngram_range
-            new.attributes = orig.attributes
             new.used_preprocessor = orig.used_preprocessor
         else:  # orig is not Corpus
             new._set_unique_titles()

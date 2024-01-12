@@ -24,6 +24,7 @@ from Orange.data import ContinuousVariable, Domain, StringVariable, Table
 from Orange.data.util import get_unique_names
 from Orange.util import wrap_callback
 from Orange.widgets.settings import ContextSetting, PerfectDomainContextHandler, Setting
+from Orange.widgets.utils import enum2int
 from Orange.widgets.utils.annotated_data import create_annotated_table, add_columns
 from Orange.widgets.utils.concurrent import ConcurrentWidgetMixin, TaskState
 from Orange.widgets.utils.itemmodels import PyTableModel, TableModel
@@ -36,7 +37,6 @@ from sklearn.metrics.pairwise import cosine_similarity
 from orangecontrib.text import Corpus
 from orangecontrib.text.preprocess import BaseNormalizer, NGrams, BaseTokenFilter
 from orangecontrib.text.vectorization.sbert import SBERT
-from orangecontrib.text.widgets.utils import enum2int
 
 from orangecontrib.text.widgets.utils.words import create_words_table
 
