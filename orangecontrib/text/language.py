@@ -1,5 +1,5 @@
 from collections import Counter
-from typing import Optional
+from typing import Optional, Sequence
 
 from AnyQt.QtCore import Qt
 from langdetect import DetectorFactory, detect
@@ -41,7 +41,7 @@ ISO2LANG = {
     "ga": "Irish",
     "gl": "Galician",
     "got": "Gothic",
-    "grc": "Ancient greek",
+    "grc": "Ancient Greek",
     "gu": "Gujarati",
     "he": "Hebrew",
     "hi": "Hindi",
@@ -104,21 +104,38 @@ ISO2LANG = {
     None: None,
 }
 LANG2ISO = {lang: code for code, lang in ISO2LANG.items()}
-DEFAULT_LANGUAGE = "English"
+DEFAULT_LANGUAGE = "en"
 
 
 class LanguageModel(PyListModel):
     """Model for language selection dropdowns in the widgets"""
 
-    def __init__(self):
-        languages = sorted(filter(None, ISO2LANG.values()))
-        super().__init__(iterable=[None] + languages)
+    def __init__(
+        self, include_none: bool = False, languages: Optional[Sequence[str]] = None
+    ):
+        """
+        Parameters
+        ----------
+        include_none
+            Indicates if "(no language)" value is available on the top of the list
+        languages
+            List of languages available in the dropdown.
+            If None all add-on supported languages are available.
+        """
+        if languages is None:
+            # if languages not provided take all available languages
+            languages = sorted(filter(None, ISO2LANG), key=ISO2LANG.get)
+        if include_none:
+            languages = [None] + languages
+        super().__init__(iterable=languages)
 
     def data(self, index, role=Qt.DisplayRole):
-        if index.row() == 0 and role == Qt.DisplayRole:
-            return "(no language)"
-        else:
-            return super().data(index, role)
+        if role == Qt.DisplayRole:
+            value = super().data(index, role)
+            if value is None:
+                return "(no language)"
+            return ISO2LANG[value]
+        return super().data(index, role)
 
 
 DetectorFactory.seed = 0
@@ -167,3 +184,17 @@ def infer_language_from_variable(variable: DiscreteVariable) -> Optional[str]:
     Language ISO code if all documents have the same language, None otherwise
     """
     return variable.values[0] if len(variable.values) == 1 else None
+
+
+# this dictionary hold all changes in language names
+LANGUAGE_MIGRATIONS = {
+    "Ancient greek": "Ancient Greek"
+}
+
+
+def migrate_language_name(language: str) -> str:
+    """
+    We changed some languages names after they were introduced in the add-on.
+    This function transform any langauge name to its new name if existed.
+    """
+    return LANGUAGE_MIGRATIONS.get(language, language)
