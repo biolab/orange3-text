@@ -18,10 +18,10 @@ from orangewidget.settings import ContextHandler
 
 from orangecontrib.text.corpus import Corpus, get_sample_corpora_dir
 from orangecontrib.text.language import (
-    LANG2ISO,
     detect_language,
-    ISO2LANG,
     LanguageModel,
+    LANG2ISO,
+    migrate_language_name,
 )
 from orangecontrib.text.widgets.utils import widgets, QSize
 
@@ -106,6 +106,7 @@ class OWCorpus(OWWidget, ConcurrentWidgetMixin):
                                   key=list(FileFormat.readers.values()).index)))
 
     settingsHandler = CorpusContextHandler()
+    settings_version = 2
 
     recent_files = Setting([
         "book-excerpts.tab",
@@ -116,7 +117,7 @@ class OWCorpus(OWWidget, ConcurrentWidgetMixin):
     ])
     used_attrs = ContextSetting([])
     title_variable = ContextSetting("")
-    language: str = ContextSetting("English")
+    language: str = ContextSetting("en")
 
     class Error(OWWidget.Error):
         read_file = Msg("Can't read file ({})")
@@ -163,7 +164,7 @@ class OWCorpus(OWWidget, ConcurrentWidgetMixin):
             self,
             "language",
             label="Language",
-            model=LanguageModel(),
+            model=LanguageModel(include_none=True),
             sendSelectedValue=True,
             **common_settings
         )
@@ -253,7 +254,7 @@ class OWCorpus(OWWidget, ConcurrentWidgetMixin):
             return
         # set language on Corpus's language (when corpus with already defined
         # language opened) or guess language
-        self.language = ISO2LANG[corpus.language or detect_language(corpus)]
+        self.language = corpus.language or detect_language(corpus)
         self.openContext(self.corpus)
         self.used_attrs_model.extend(self.used_attrs)
         self.unused_attrs_model.extend(
@@ -341,7 +342,7 @@ class OWCorpus(OWWidget, ConcurrentWidgetMixin):
                 self.Error.no_text_features_used()
 
             corpus.set_title_variable(self.title_variable)
-            corpus.attributes["language"] = LANG2ISO[self.language]
+            corpus.attributes["language"] = self.language
             # prevent sending "empty" corpora
             dom = corpus.domain
             empty = (
@@ -368,6 +369,14 @@ class OWCorpus(OWWidget, ConcurrentWidgetMixin):
                 ('Other features', describe(domain.attributes)),
                 ('Target', describe(domain.class_vars)),
             ))
+
+    @classmethod
+    def migrate_context(cls, context, version):
+        if version < 2:
+            if "language" in context.values:
+                language, type_ = context.values["language"]
+                language = LANG2ISO[migrate_language_name(language)]
+                context.values["language"] = (language, type_)
 
 
 if __name__ == '__main__':
