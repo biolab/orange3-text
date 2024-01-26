@@ -12,7 +12,9 @@ from Orange.widgets.tests.utils import simulate
 from orangecontrib.text import preprocess
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.language import ISO2LANG
-from orangecontrib.text.sentiment import DictionaryNotFound
+from orangecontrib.text.sentiment import (
+    DictionaryNotFound, LiuHuSentiment, MultiSentiment, SentiArt, LilahSentiment
+)
 from orangecontrib.text.widgets.owsentimentanalysis import OWSentimentAnalysis
 
 MS_FILES = [
@@ -164,6 +166,20 @@ class TestSentimentWidget(WidgetTest):
         OWSentimentAnalysis.migrate_settings(settings, version=None)
         self.assertTrue(settings.get("method_idx", 5))
 
+    def test_migrate_language_settings(self):
+        methods = (
+            ("liu_language", LiuHuSentiment),
+            ("multi_language", MultiSentiment),
+            ("senti_language", SentiArt),
+            ("lilah_language", LilahSentiment),
+        )
+        for setting, method in methods:
+            if hasattr(method, "LANGUAGES"):
+                for lang in getattr(method, "LANGUAGES"):
+                    se = {setting: ISO2LANG[lang], "__version__": 1}
+                    widget = self.create_widget(OWSentimentAnalysis, stored_settings=se)
+                    self.assertEqual(lang, getattr(widget, setting))
+
     def test_preprocessed(self):
         widget = self.create_widget(OWSentimentAnalysis)
         corpus = self.corpus.copy()
@@ -184,7 +200,7 @@ class TestSentimentWidget(WidgetTest):
         w = self.widget
         settings = [
             w.liu_language,
-            "English",
+            "en",
             w.multi_language,
             w.senti_language,
             w.lilah_language,
@@ -198,7 +214,7 @@ class TestSentimentWidget(WidgetTest):
             self.send_signal(self.widget.Inputs.corpus, self.corpus)
             self.widget.findChildren(QRadioButton)[i].click()
             self.assertIsNotNone(self.get_output(self.widget.Outputs.corpus))
-            self.assertEqual(ISO2LANG[s], sett)
+            self.assertEqual(s, sett)
 
             # try with unsupported language - use default language istead
             self.corpus.attributes["language"] = ns
@@ -213,18 +229,18 @@ class TestSentimentWidget(WidgetTest):
         simulate.combobox_activate_item(self.widget.senti_box, "German")
         simulate.combobox_activate_item(self.widget.lilah_box, "Croatian")
 
-        self.assertEqual("Slovenian", self.widget.liu_language)
-        self.assertEqual("Spanish", self.widget.multi_language)
-        self.assertEqual("German", self.widget.senti_language)
-        self.assertEqual("Croatian", self.widget.lilah_language)
+        self.assertEqual("sl", self.widget.liu_language)
+        self.assertEqual("es", self.widget.multi_language)
+        self.assertEqual("de", self.widget.senti_language)
+        self.assertEqual("hr", self.widget.lilah_language)
         settings = self.widget.settingsHandler.pack_data(self.widget)
 
         widget = self.create_widget(OWSentimentAnalysis, stored_settings=settings)
         self.send_signal(widget.Inputs.corpus, self.corpus, widget=widget)
-        self.assertEqual("Slovenian", widget.liu_language)
-        self.assertEqual("Spanish", widget.multi_language)
-        self.assertEqual("German", widget.senti_language)
-        self.assertEqual("Croatian", widget.lilah_language)
+        self.assertEqual("sl", widget.liu_language)
+        self.assertEqual("es", widget.multi_language)
+        self.assertEqual("de", widget.senti_language)
+        self.assertEqual("hr", widget.lilah_language)
 
     def test_dictionary_offline(self):
         """Test case when offline and dictionary not found locally"""
