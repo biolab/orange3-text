@@ -8,7 +8,9 @@ from Orange.widgets.settings import Setting
 from Orange.widgets.widget import Msg, Output, OWWidget
 
 from orangecontrib.text.corpus import Corpus
-from orangecontrib.text.language import ISO2LANG, LANG2ISO
+from orangecontrib.text.language import (
+    ISO2LANG, DEFAULT_LANGUAGE, LanguageModel, LANG2ISO
+)
 from orangecontrib.text.vectorization.document_embedder import (
     AGGREGATORS,
     AGGREGATORS_ITEMS,
@@ -39,10 +41,9 @@ class OWDocumentEmbedding(OWBaseVectorizer):
     priority = 300
 
     buttons_area_orientation = Qt.Vertical
-    settings_version = 2
+    settings_version = 3
 
     Methods = [SBERT, DocumentEmbedder]
-    DEFAULT_LANGUAGE = "English"
 
     class Outputs(OWBaseVectorizer.Outputs):
         skipped = Output("Skipped documents", Corpus)
@@ -84,7 +85,7 @@ class OWDocumentEmbedding(OWBaseVectorizer):
             ibox,
             self,
             "language",
-            items=[ISO2LANG[lg] for lg in LANGUAGES],
+            model=LanguageModel(languages=LANGUAGES),
             label="Language:",
             sendSelectedValue=True,  # value is actual string not index
             orientation=Qt.Horizontal,
@@ -108,10 +109,10 @@ class OWDocumentEmbedding(OWBaseVectorizer):
     def set_data(self, corpus):
         # set language from corpus as selected language
         if corpus and corpus.language in LANGUAGES:
-            self.language = ISO2LANG[corpus.language]
+            self.language = corpus.language
         else:
             # if Corpus's language not supported use default language
-            self.language = self.DEFAULT_LANGUAGE
+            self.language = DEFAULT_LANGUAGE
 
         # when workflow loaded use language saved in workflow
         if self.__pending_language is not None:
@@ -127,9 +128,7 @@ class OWDocumentEmbedding(OWBaseVectorizer):
         self.vectorizer = EmbeddingVectorizer(self.init_method(), self.corpus)
 
     def init_method(self):
-        params = dict(
-            language=LANG2ISO[self.language], aggregator=self.aggregator
-        )
+        params = dict(language=self.language, aggregator=self.aggregator)
         kwargs = ({}, params)[self.method]
         return self.Methods[self.method](**kwargs)
 
@@ -170,6 +169,9 @@ class OWDocumentEmbedding(OWBaseVectorizer):
                 settings["language"] = LANGUAGES[settings["language"]]
             if "aggregator" in settings:
                 settings["aggregator"] = AGGREGATORS[settings["aggregator"]]
+        if version is None or version < 3 and "language" in settings:
+            # before version 3 language settings were language names, transform to ISO
+            settings["language"] = LANG2ISO[settings["language"]]
 
     def send_report(self):
         if self.method == 0:
@@ -177,11 +179,12 @@ class OWDocumentEmbedding(OWBaseVectorizer):
                 ("Embedder", "Multilingual SBERT"),
             ))
         if self.method == 1:
-            self.report_items((
+            items = (
                 ("Embedder", "fastText"),
-                ("Language", self.language),
+                ("Language", ISO2LANG[self.language]),
                 ("Aggregator", self.aggregator),
-            ))
+            )
+            self.report_items(items)
 
 
 if __name__ == "__main__":

@@ -7,8 +7,12 @@ from Orange.widgets.tests.base import WidgetTest
 from Orange.widgets.tests.utils import simulate
 from Orange.misc.utils.embedder_utils import EmbeddingConnectionError
 
+from orangecontrib.text.language import DEFAULT_LANGUAGE, ISO2LANG
 from orangecontrib.text.tests.test_documentembedder import PATCH_METHOD, make_dummy_post
-from orangecontrib.text.vectorization.document_embedder import DocumentEmbedder
+from orangecontrib.text.vectorization.document_embedder import (
+    DocumentEmbedder,
+    LANGUAGES,
+)
 from orangecontrib.text.vectorization.sbert import EMB_DIM, SBERT
 from orangecontrib.text.widgets.owdocumentembedding import OWDocumentEmbedding
 from orangecontrib.text import Corpus
@@ -157,14 +161,14 @@ class TestOWDocumentEmbedding(WidgetTest):
     def test_fasttext_language(self):
         # english corpus
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
-        self.assertEqual("English", self.widget.language)
+        self.assertEqual("en", self.widget.language)
         result = self.get_output(self.widget.Outputs.corpus)
         self.assertEqual(9, len(result))
 
         # slovenian corpus
         self.corpus.attributes["language"] = "sl"
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
-        self.assertEqual("Slovenian", self.widget.language)
+        self.assertEqual("sl", self.widget.language)
         result = self.get_output(self.widget.Outputs.corpus)
         self.assertEqual(9, len(result))
 
@@ -172,7 +176,7 @@ class TestOWDocumentEmbedding(WidgetTest):
         self.corpus.attributes["language"] = None
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
         # use widgets default language English
-        self.assertEqual(self.widget.DEFAULT_LANGUAGE, self.widget.language)
+        self.assertEqual(DEFAULT_LANGUAGE, self.widget.language)
         result = self.get_output(self.widget.Outputs.corpus)
         self.assertEqual(9, len(result))
 
@@ -180,14 +184,14 @@ class TestOWDocumentEmbedding(WidgetTest):
         self.corpus.attributes["language"] = "be"
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
         # use widgets default language English
-        self.assertEqual(self.widget.DEFAULT_LANGUAGE, self.widget.language)
+        self.assertEqual(DEFAULT_LANGUAGE, self.widget.language)
         result = self.get_output(self.widget.Outputs.corpus)
         self.assertEqual(9, len(result))
 
         # language english
         self.corpus.attributes["language"] = "en"
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
-        self.assertEqual("English", self.widget.language)
+        self.assertEqual("en", self.widget.language)
         result = self.get_output(self.widget.Outputs.corpus)
         self.assertEqual(9, len(result))
 
@@ -195,25 +199,25 @@ class TestOWDocumentEmbedding(WidgetTest):
         simulate.combobox_activate_item(
             self.widget.controlArea.findChildren(QComboBox)[0], "French"
         )
-        self.assertEqual("French", self.widget.language)
+        self.assertEqual("fr", self.widget.language)
         result = self.get_output(self.widget.Outputs.corpus)
         self.assertEqual(9, len(result))
 
         # providing new corpus should reset language
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
-        self.assertEqual("English", self.widget.language)
+        self.assertEqual("en", self.widget.language)
 
     def test_language_from_settings(self):
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
         simulate.combobox_activate_item(
             self.widget.controlArea.findChildren(QComboBox)[0], "French"
         )
-        self.assertEqual("French", self.widget.language)
+        self.assertEqual("fr", self.widget.language)
         settings = self.widget.settingsHandler.pack_data(self.widget)
 
         widget = self.create_widget(OWDocumentEmbedding, stored_settings=settings)
         self.send_signal(widget.Inputs.corpus, self.corpus, widget=widget)
-        self.assertEqual("French", widget.language)
+        self.assertEqual("fr", widget.language)
 
     @patch(PATCH_METHOD, make_dummy_post(b'{"embedding": [1.3, 1]}'))
     @patch("orangecontrib.text.widgets.owdocumentembedding.OWDocumentEmbedding.report_items")
@@ -231,6 +235,12 @@ class TestOWDocumentEmbedding(WidgetTest):
         self.widget.send_report()
         mocked_items.assert_called_once()
         mocked_items.reset_mock()
+
+    def test_migrate_settings(self):
+        for iso_lang in LANGUAGES:
+            settings = {"__version__": 2, "language": ISO2LANG[iso_lang]}
+            widget = self.create_widget(OWDocumentEmbedding, stored_settings=settings)
+            self.assertEqual(iso_lang, widget.language)
 
 
 if __name__ == "__main__":
