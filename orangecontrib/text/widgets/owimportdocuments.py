@@ -47,10 +47,7 @@ from orangecanvas.preview.previewbrowser import TextLabel
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.import_documents import ImportDocuments, NoDocumentsException
 from orangecontrib.text.language import (
-    ISO2LANG,
-    detect_language,
-    LANG2ISO,
-    LanguageModel,
+    detect_language, LanguageModel, DEFAULT_LANGUAGE, LANG2ISO, migrate_language_name
 )
 
 # domain for skipped images output
@@ -124,6 +121,7 @@ class OWImportDocuments(widget.OWWidget):
         skipped_documents = Output("Skipped documents", Table)
 
     settingsHandler = ImportDocumentContextHandler()
+    settings_version = 2
 
     LOCAL_FILE, URL = range(2)
     source = settings.Setting(LOCAL_FILE)
@@ -134,7 +132,7 @@ class OWImportDocuments(widget.OWWidget):
     lemma_cb = settings.Setting(True)
     pos_cb = settings.Setting(False)
     ner_cb = settings.Setting(False)
-    language: str = settings.ContextSetting("English")
+    language: str = settings.ContextSetting(DEFAULT_LANGUAGE)
 
     want_main_area = False
     resizing_enabled = False
@@ -253,7 +251,7 @@ class OWImportDocuments(widget.OWWidget):
             self,
             "language",
             box="Language",
-            model=LanguageModel(),
+            model=LanguageModel(include_none=True),
             sendSelectedValue=True,
             searchable=True,
             callback=self.commit,
@@ -665,7 +663,7 @@ class OWImportDocuments(widget.OWWidget):
             self.n_text_data = len(corpus)
             self.n_text_categories = len(corpus.domain.class_var.values) \
                 if corpus.domain.class_var else 0
-            self.language = ISO2LANG[corpus.language or detect_language(corpus)]
+            self.language = corpus.language or detect_language(corpus)
             self.openContext(corpus)
         else:
             self.language = None
@@ -727,7 +725,7 @@ class OWImportDocuments(widget.OWWidget):
         if self.is_conllu:
             self.add_features()
         if self.corpus:
-            self.corpus.attributes["language"] = LANG2ISO[self.language]
+            self.corpus.attributes["language"] = self.language
         self.Outputs.data.send(self.corpus)
         if self.skipped_documents:
             skipped_table = (
@@ -790,6 +788,13 @@ class OWImportDocuments(widget.OWWidget):
         if self.skipped_documents:
             items += [('Number of skipped', len(self.skipped_documents))]
         self.report_items(items, )
+
+    @classmethod
+    def migrate_context(cls, context, version):
+        if version < 2:
+            if "language" in context.values:
+                language = LANG2ISO[migrate_language_name(context.values["language"])]
+                context.values["language"] = language
 
 
 class UserInterruptError(BaseException):

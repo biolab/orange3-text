@@ -16,14 +16,13 @@ DATA_PATH = os.path.abspath(
 class TestOWImportDocuments(WidgetTest):
     def setUp(self) -> None:
         self.widget: OWImportDocuments = self.create_widget(OWImportDocuments)
-        path = os.path.join(os.path.dirname(__file__), DATA_PATH)
-        self.widget.setCurrentPath(path)
+        self.path = os.path.join(os.path.dirname(__file__), DATA_PATH)
+        self.widget.setCurrentPath(self.path)
         self.widget.reload()
         self.wait_until_finished()
 
     def test_current_path(self):
-        path = os.path.join(os.path.dirname(__file__), DATA_PATH)
-        self.assertEqual(path, self.widget.currentPath)
+        self.assertEqual(self.path, self.widget.currentPath)
 
     def test_no_skipped(self):
         path = os.path.join(DATA_PATH, "good")
@@ -132,7 +131,7 @@ class TestOWImportDocuments(WidgetTest):
     def tests_context(self):
         self.widget: OWImportDocuments = self.create_widget(OWImportDocuments)
         # change default to something else to see if language is changed
-        self.widget.language = "Slovenian"
+        self.widget.language = "sl"
 
         path = os.path.join(DATA_PATH, "good")
         self.widget.setCurrentPath(path)
@@ -140,11 +139,11 @@ class TestOWImportDocuments(WidgetTest):
         self.wait_until_finished()
 
         # english is recognized for selected documents
-        self.assertEqual(self.widget.language, "English")
+        self.assertEqual(self.widget.language, "en")
         self.assertEqual("en", self.get_output(self.widget.Outputs.data).language)
         simulate.combobox_activate_item(self.widget.controls.language, "Dutch")
 
-        self.assertEqual(self.widget.language, "Dutch")
+        self.assertEqual(self.widget.language, "nl")
         self.assertEqual("nl", self.get_output(self.widget.Outputs.data).language)
 
         # read something else
@@ -157,8 +156,33 @@ class TestOWImportDocuments(WidgetTest):
         self.widget.setCurrentPath(path)
         self.widget.reload()
         self.wait_until_finished()
-        self.assertEqual(self.widget.language, "Dutch")
+        self.assertEqual(self.widget.language, "nl")
         self.assertEqual("nl", self.get_output(self.widget.Outputs.data).language)
+
+    def test_migrate_settings(self):
+        packed_data = self.widget.settingsHandler.pack_data(self.widget)
+        packed_data["context_settings"][0].values["language"] = "French"
+        packed_data["context_settings"][0].values["__version__"] = 1
+
+        widget = self.create_widget(OWImportDocuments, stored_settings=packed_data)
+        widget.setCurrentPath(self.path)
+        widget.reload()
+        self.wait_until_finished(widget=widget)
+        self.assertEqual("fr", widget.language)
+
+        packed_data["context_settings"][0].values["language"] = "Ancient greek"
+        widget = self.create_widget(OWImportDocuments, stored_settings=packed_data)
+        widget.setCurrentPath(self.path)
+        widget.reload()
+        self.wait_until_finished(widget=widget)
+        self.assertEqual("grc", widget.language)
+
+        packed_data["context_settings"][0].values["language"] = None
+        widget = self.create_widget(OWImportDocuments, stored_settings=packed_data)
+        widget.setCurrentPath(self.path)
+        widget.reload()
+        self.wait_until_finished(widget=widget)
+        self.assertIsNone(widget.language)
 
 
 if __name__ == "__main__":

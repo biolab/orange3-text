@@ -207,6 +207,19 @@ class TestOWCreateCorpus(WidgetTest):
         corpus = self.get_output(self.widget.Outputs.corpus)
         self.assertEqual("am", corpus.language)
 
+    def test_migrate_settings(self):
+        settings = {"__version__": 1, "language": "French"}
+        widget = self.create_widget(OWCreateCorpus, stored_settings=settings)
+        self.assertEqual("fr", widget.language)
+
+        settings = {"__version__": 1, "language": "Ancient greek"}
+        widget = self.create_widget(OWCreateCorpus, stored_settings=settings)
+        self.assertEqual("grc", widget.language)
+
+        settings = {"__version__": 1, "language": None}
+        widget = self.create_widget(OWCreateCorpus, stored_settings=settings)
+        self.assertIsNone(widget.language)
+
 
 if __name__ == "__main__":
     unittest.main()

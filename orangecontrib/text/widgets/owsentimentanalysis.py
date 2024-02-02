@@ -3,12 +3,14 @@ from typing import List, Type, Tuple
 from AnyQt.QtCore import Qt
 from AnyQt.QtWidgets import QGridLayout, QLabel
 
-from Orange.widgets import gui, settings
+from Orange.widgets import gui
 from Orange.widgets.utils.concurrent import ConcurrentWidgetMixin, TaskState
 from Orange.widgets.utils.signals import Input, Output
 from Orange.widgets.widget import OWWidget, Msg
+from orangewidget.settings import Setting
+
 from orangecontrib.text import Corpus, preprocess
-from orangecontrib.text.language import ISO2LANG, LANG2ISO
+from orangecontrib.text.language import LanguageModel, LANG2ISO
 from orangecontrib.text.sentiment import (
     VaderSentiment,
     LiuHuSentiment,
@@ -37,24 +39,16 @@ class OWSentimentAnalysis(OWWidget, ConcurrentWidgetMixin):
     class Outputs:
         corpus = Output("Corpus", Corpus)
 
-    settings_version = 1
+    settings_version = 2
     want_main_area = False
     resizing_enabled = False
 
-    method_idx: int = settings.Setting(1)
-    autocommit: bool = settings.Setting(True)
-    liu_language: str = settings.Setting(
-        ISO2LANG[LiuHuSentiment.DEFAULT_LANG], schema_only=True
-    )
-    multi_language: str = settings.Setting(
-        ISO2LANG[MultiSentiment.DEFAULT_LANG], schema_only=True
-    )
-    senti_language: str = settings.Setting(
-        ISO2LANG[SentiArt.DEFAULT_LANG], schema_only=True
-    )
-    lilah_language: str = settings.Setting(
-        ISO2LANG[LilahSentiment.DEFAULT_LANG], schema_only=True
-    )
+    method_idx: int = Setting(1)
+    autocommit: bool = Setting(True)
+    liu_language: str = Setting(LiuHuSentiment.DEFAULT_LANG, schema_only=True)
+    multi_language: str = Setting(MultiSentiment.DEFAULT_LANG, schema_only=True)
+    senti_language: str = Setting(SentiArt.DEFAULT_LANG, schema_only=True)
+    lilah_language: str = Setting(LilahSentiment.DEFAULT_LANG, schema_only=True)
 
     METHODS = [
         LiuHuSentiment,
@@ -99,9 +93,8 @@ class OWSentimentAnalysis(OWWidget, ConcurrentWidgetMixin):
             None,
             self,
             "liu_language",
-            sendSelectedValue=True,
             contentsLength=10,
-            items=[ISO2LANG[lg] for lg in LiuHuSentiment.LANGUAGES],
+            model=LanguageModel(languages=LiuHuSentiment.LANGUAGES),
             callback=self._method_changed,
         )
         self.vader = gui.appendRadioButton(box, "Vader", addToLayout=False)
@@ -112,9 +105,8 @@ class OWSentimentAnalysis(OWWidget, ConcurrentWidgetMixin):
             None,
             self,
             "multi_language",
-            sendSelectedValue=True,
             contentsLength=10,
-            items=[ISO2LANG[lg] for lg in MultiSentiment.LANGUAGES],
+            model=LanguageModel(languages=MultiSentiment.LANGUAGES),
             callback=self._method_changed,
         )
         self.senti_art = gui.appendRadioButton(box, "SentiArt", addToLayout=False)
@@ -124,7 +116,7 @@ class OWSentimentAnalysis(OWWidget, ConcurrentWidgetMixin):
             "senti_language",
             sendSelectedValue=True,
             contentsLength=10,
-            items=[ISO2LANG[lg] for lg in SentiArt.LANGUAGES],
+            model=LanguageModel(languages=SentiArt.LANGUAGES),
             callback=self._method_changed,
         )
         self.lilah_sent = gui.appendRadioButton(
@@ -134,9 +126,8 @@ class OWSentimentAnalysis(OWWidget, ConcurrentWidgetMixin):
             None,
             self,
             "lilah_language",
-            sendSelectedValue=True,
             contentsLength=10,
-            items=[ISO2LANG[lg] for lg in LilahSentiment.LANGUAGES],
+            model=LanguageModel(languages=LilahSentiment.LANGUAGES),
             callback=self._method_changed,
         )
         self.custom_list = gui.appendRadioButton(
@@ -228,10 +219,10 @@ class OWSentimentAnalysis(OWWidget, ConcurrentWidgetMixin):
 
         for l_pending, l_setting, model in settings_:
             if self.pp_corpus and self.pp_corpus.language in model.LANGUAGES:
-                setattr(self, l_setting, ISO2LANG[self.pp_corpus.language])
+                setattr(self, l_setting, self.pp_corpus.language)
             else:
                 # if Corpus's language not supported use default language
-                setattr(self, l_setting, ISO2LANG[model.DEFAULT_LANG])
+                setattr(self, l_setting, model.DEFAULT_LANG)
 
             # when workflow loaded use language saved in workflow
             if l_pending is not None:
@@ -249,13 +240,13 @@ class OWSentimentAnalysis(OWWidget, ConcurrentWidgetMixin):
         method = self.METHODS[self.method_idx]
         kwargs = {}
         if method.name == "Liu Hu":
-            kwargs = dict(language=LANG2ISO[self.liu_language])
+            kwargs = dict(language=self.liu_language)
         elif method.name == "Multilingual Sentiment":
-            kwargs = dict(language=LANG2ISO[self.multi_language])
+            kwargs = dict(language=self.multi_language)
         elif method.name == "SentiArt":
-            kwargs = dict(language=LANG2ISO[self.senti_language])
+            kwargs = dict(language=self.senti_language)
         elif method.name == "LiLaH Sentiment":
-            kwargs = dict(language=LANG2ISO[self.lilah_language])
+            kwargs = dict(language=self.lilah_language)
         elif method.name == "Custom Dictionaries":
             kwargs = dict(pos=self.pos_file, neg=self.neg_file)
             if bool(self.pos_file) != bool(self.neg_file):  # xor: one of them None
@@ -313,6 +304,11 @@ class OWSentimentAnalysis(OWWidget, ConcurrentWidgetMixin):
             method_idx = settings["method_idx"]
             if method_idx == 4:
                 settings["metric_idx"] = 5
+        if version is None or version < 2:
+            s = ("liu_language", "lilah_language", "multi_language", "senti_language")
+            for lang_set in s:
+                if lang_set in settings:
+                    settings[lang_set] = LANG2ISO[settings[lang_set]]
 
 
 if __name__ == '__main__':
