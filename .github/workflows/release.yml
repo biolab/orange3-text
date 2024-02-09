@@ -1,0 +1,10 @@
+name: Release
+on:
+  release:
+    types: [published]
+  # Enable manual run
+  workflow_dispatch:
+
+jobs:
+  rebase:
+    uses: biolab/orange-ci-cd/.github/workflows/release.yml@wheel-build
