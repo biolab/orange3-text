@@ -2,14 +2,10 @@ name: Release
 on:
   release:
     types: [published]
-  # Enable manual run
   workflow_dispatch:
-  pull_request: # todo: remove
-    branches:
-      - master
 
 jobs:
-  rebase:
+  release:
     uses: biolab/orange-ci-cd/.github/workflows/release.yml@wheel-build
     with:
       pure-python: true
