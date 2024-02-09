@@ -4,6 +4,9 @@ on:
     types: [published]
   # Enable manual run
   workflow_dispatch:
+  pull_request: # todo: remove
+    branches:
+      - master
 
 jobs:
   rebase:
