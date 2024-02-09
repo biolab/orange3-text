@@ -11,3 +11,5 @@ on:
 jobs:
   rebase:
     uses: biolab/orange-ci-cd/.github/workflows/release.yml@wheel-build
+    with:
+      pure-python: true
