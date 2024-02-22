@@ -23,6 +23,7 @@ from orangecontrib.text.widgets.owpreprocess import (
     POSTaggingModule,
     LanguageComboBox,
     _DEFAULT_NONE,
+    UDPipeComboBox,
 )
 
 
@@ -127,7 +128,7 @@ class TestOWPreprocess(WidgetTest):
     @patch("orangecontrib.text.preprocess.normalize.UDPipeModels.online",
            PropertyMock(return_value=False))
     @patch("orangecontrib.text.preprocess.normalize.UDPipeModels.model_files",
-           PropertyMock(return_value=[]))
+           PropertyMock(return_value={}))
     @patch("orangecontrib.text.widgets.owpreprocess.OWPreprocess.start", Mock())
     def test_udpipe_no_models(self):
         widget = self.create_widget(OWPreprocess)
@@ -201,12 +202,12 @@ class TestOWPreprocessMigrateSettings(WidgetTest):
         settings = {"__version__": 1,
                     "normalizer": {"enabled": True, "method_index": 2,
                                    "snowball_language": "French",
-                                   "udpipe_language": "German",
+                                   "udpipe_language": "Portuguese",
                                    "udpipe_tokenizer": True}}
         widget = self.create_widget(OWPreprocess, stored_settings=settings)
         params = [("preprocess.normalize",
                    {"method": 2, "snowball_language": "fr",
-                    "udpipe_language": "German", "udpipe_tokenizer": True})]
+                    "udpipe_language": "pt", "udpipe_tokenizer": True})]
         self.assertEqual(widget.storedsettings["preprocessors"], params)
 
     def test_migrate_settings_filter(self):
@@ -358,6 +359,133 @@ class TestOWPreprocessMigrateSettings(WidgetTest):
         normalize_settings = widget.storedsettings["preprocessors"][0][1]
         self.assertEqual("en", normalize_settings["snowball_language"])
 
+    def test_migrate_udpipe_language_settings(self):
+        """Test migration to iso langauge codes"""
+        settings = {
+            "__version__": 3,
+            "storedsettings": {
+                "preprocessors": [
+                    ("preprocess.normalize", {"udpipe_language": "Slovenian"}),
+                ]
+            },
+        }
+        widget = self.create_widget(OWPreprocess, stored_settings=settings)
+        normalize_settings = widget.storedsettings["preprocessors"][0][1]
+        self.assertEqual("sl", normalize_settings["udpipe_language"])
+
+        settings = {
+            "__version__": 3,
+            "storedsettings": {
+                "preprocessors": [
+                    ("preprocess.normalize", {"udpipe_language": "English (lines)"}),
+                ]
+            },
+        }
+        widget = self.create_widget(OWPreprocess, stored_settings=settings)
+        normalize_settings = widget.storedsettings["preprocessors"][0][1]
+        self.assertEqual("en_lines", normalize_settings["udpipe_language"])
+
+        settings = {
+            "__version__": 3,
+            "storedsettings": {
+                "preprocessors": [
+                    ("preprocess.normalize", {"udpipe_language": "Abc"}),
+                ]
+            },
+        }
+        widget = self.create_widget(OWPreprocess, stored_settings=settings)
+        normalize_settings = widget.storedsettings["preprocessors"][0][1]
+        self.assertIsNone(normalize_settings["udpipe_language"])
+
+    @unittest.skip("Very slow test")
+    def test_migrate_udpipe_language_settings_slow(self):
+        """
+        Test migration to iso langauge codes. To run it successfully remove
+        patch on the TestOWPreprocessMigrateSettings class
+        """
+        migrations = [
+            ("Ancient greek proiel", "grc_proiel"),
+            ("Ancient greek", "grc"),
+            ("Arabic", "ar"),
+            ("Basque", "eu"),
+            ("Belarusian", "be"),
+            ("Bulgarian", "bg"),
+            ("Catalan", "ca"),
+            ("Chinese", "zh"),
+            ("Coptic", "cop"),
+            ("Croatian", "hr"),
+            ("Czech cac", "cs_cac"),
+            ("Czech cltt", "cs_cltt"),
+            ("Czech", "cs"),
+            ("Danish", "da"),
+            ("Dutch lassysmall", "nl_lassysmall"),
+            ("Dutch", "nl"),
+            ("English lines", "en_lines"),
+            ("English partut", "en_partut"),
+            ("English", "en"),
+            ("Estonian", "et"),
+            ("Finnish ftb", "fi_ftb"),
+            ("Finnish", "fi"),
+            ("French partut", "fr_partut"),
+            ("French sequoia", "fr_sequoia"),
+            ("French", "fr"),
+            ("Galician treegal", "gl_treegal"),
+            ("Galician", "gl"),
+            ("German", "de"),
+            ("Gothic", "got"),
+            ("Greek", "el"),
+            ("Hebrew", "he"),
+            ("Hindi", "hi"),
+            ("Hungarian", "hu"),
+            ("Indonesian", "id"),
+            ("Irish", "ga"),
+            ("Italian", "it"),
+            ("Japanese", "ja"),
+            ("Kazakh", "kk"),
+            ("Korean", "ko"),
+            ("Latin ittb", "la_ittb"),
+            ("Latin proiel", "la_proiel"),
+            ("Latin", "la"),
+            ("Latvian", "lv"),
+            ("Lithuanian", "lt"),
+            ("Norwegian bokmaal", "nb"),
+            ("Norwegian nynorsk", "nn"),
+            ("Old church slavonic", "cu"),
+            ("Persian", "fa"),
+            ("Polish", "pl"),
+            ("Portuguese br", "pt_br"),
+            ("Portuguese", "pt"),
+            ("Romanian", "ro"),
+            ("Russian syntagrus", "ru_syntagrus"),
+            ("Russian", "ru"),
+            ("Sanskrit", "sa"),
+            ("Slovak", "sk"),
+            ("Slovenian sst", "sl_sst"),
+            ("Slovenian", "sl"),
+            ("Spanish ancora", "es_ancora"),
+            ("Spanish", "es"),
+            ("Swedish lines", "sv_lines"),
+            ("Swedish", "sv"),
+            ("Tamil", "ta"),
+            ("Turkish", "tr"),
+            ("Ukrainian", "uk"),
+            ("Urdu", "ur"),
+            ("Uyghur", "ug"),
+            ("Vietnamese", "vi"),
+        ]
+        for old_value, new_value in migrations:
+            settings = {
+                "__version__": 3,
+                "storedsettings": {
+                    "preprocessors": [
+                        ("preprocess.normalize", {"udpipe_language": old_value}),
+                    ]
+                },
+            }
+            widget = self.create_widget(OWPreprocess, stored_settings=settings)
+            normalize_settings = widget.storedsettings["preprocessors"][0][1]
+            self.assertEqual(new_value, normalize_settings["udpipe_language"])
+
 
 class TestTransformationModule(WidgetTest):
     def setUp(self):
@@ -500,7 +628,7 @@ class TestNormalizationModule(WidgetTest):
         params = {
             "method": NormalizationModule.Porter,
             "snowball_language": "en",
-            "udpipe_language": "English",
+            "udpipe_language": "en",
             "lemmagen_language": "en",
             "udpipe_tokenizer": False,
         }
@@ -510,7 +638,7 @@ class TestNormalizationModule(WidgetTest):
         params = {
             "method": NormalizationModule.UDPipe,
             "snowball_language": "nl",
-            "udpipe_language": "Slovenian",
+            "udpipe_language": "sl",
             "lemmagen_language": "bg",
             "udpipe_tokenizer": True,
         }
@@ -549,7 +677,7 @@ class TestNormalizationModule(WidgetTest):
     @patch("orangecontrib.text.preprocess.normalize.UDPipeModels.online",
            PropertyMock(return_value=False))
     @patch("orangecontrib.text.preprocess.normalize.UDPipeModels.model_files",
-           PropertyMock(return_value=[]))
+           PropertyMock(return_value={}))
     def test_udpipe_no_models(self):
         editor = NormalizationModule()
         button = editor._SingleMethodModule__group.button(editor.UDPipe)
@@ -835,6 +963,42 @@ class TestLanguageComboBox(WidgetTest):
         mock.reset_mock()
         simulate.combobox_activate_item(cb, _DEFAULT_NONE)
         mock.assert_called_once_with(None)
+
+
+@patch(SF_LIST, new=Mock(return_value=SERVER_FILES))
+class TestUDPipeComboBox(WidgetTest):
+    ITEMS = ["English", "English (lines)", "English (partut)", "Lithuanian",
+             "Portuguese", "Slovenian", "Slovenian (sst)"]
+
+    def test_basic_setup(self):
+        mock = Mock()
+        cb = UDPipeComboBox(None, "pt", "en", mock)
+        self.assertEqual(7, cb.count())
+        self.assertEqual(self.ITEMS, [cb.itemText(i) for i in range(cb.count())])
+        self.assertEqual("Portuguese", cb.currentText())
+
+    def test_set_current_language(self):
+        mock = Mock()
+        cb = UDPipeComboBox(None, "pt", "en", mock)
+        self.assertEqual("Portuguese", cb.currentText())
+        cb.set_current_language("sl")
+        self.assertEqual("Slovenian", cb.currentText())
+        cb.set_current_language("abc")  # should set to default
+        self.assertEqual("English", cb.currentText())
+        # when no default language in the dropdown set to first
+        cb.removeItem(0)
+        x = cb._UDPipeComboBox__items
+        cb._UDPipeComboBox__items = x[:3] + x[4:]
+        cb.set_current_language("abc")
+        self.assertEqual("English (lines)", cb.currentText())
+
+    def test_change_item(self):
+        mock = Mock()
+        cb = UDPipeComboBox(None, "pt", "en", mock)
+        self.assertEqual(self.ITEMS, [cb.itemText(i) for i in range(cb.count())])
+        mock.assert_not_called()
+        simulate.combobox_activate_item(cb, "Slovenian")
+        mock.assert_called_once_with("sl")
 
 
 if __name__ == "__main__":

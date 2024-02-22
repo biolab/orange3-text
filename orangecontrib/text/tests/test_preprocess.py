@@ -20,12 +20,7 @@ from orangecontrib.text.preprocess import (
     PreprocessorList,
     StopwordsFilter,
 )
-from orangecontrib.text.preprocess.normalize import (
-    file_to_language,
-    file_to_name,
-    language_to_name,
-    UDPipeModels,
-)
+from orangecontrib.text.preprocess.normalize import UDPipeModels
 
 
 SF_LIST = "orangecontrib.text.preprocess.normalize.serverfiles.ServerFiles.listfiles"
@@ -270,7 +265,7 @@ class TokenNormalizerTests(unittest.TestCase):
         self.assertEqual(len(corpus.used_preprocessor.preprocessors), 2)
 
     def test_call_UDPipe(self):
-        pp = preprocess.UDPipeLemmatizer(language="Lithuanian")
+        pp = preprocess.UDPipeLemmatizer(language="lt")
         self.assertFalse(self.corpus.has_tokens())
         corpus = pp(self.corpus)
         self.assertTrue(corpus.has_tokens())
@@ -304,7 +299,7 @@ class TokenNormalizerTests(unittest.TestCase):
 
     def test_udpipe(self):
         """Test udpipe token lemmatization"""
-        normalizer = preprocess.UDPipeLemmatizer("Lithuanian")
+        normalizer = preprocess.UDPipeLemmatizer("lt")
         with self.corpus.unlocked():
             self.corpus.metas[0, 0] = "esu"
         corpus = normalizer(self.corpus)
@@ -313,7 +308,7 @@ class TokenNormalizerTests(unittest.TestCase):
 
     def test_udpipe_doc(self):
         """Test udpipe lemmatization with its own tokenization"""
-        normalizer = preprocess.UDPipeLemmatizer("Lithuanian", True)
+        normalizer = preprocess.UDPipeLemmatizer("lt", True)
         with self.corpus.unlocked():
             self.corpus.metas[0, 0] = "Ant kalno dega namas"
         corpus = normalizer(self.corpus)
@@ -321,7 +316,7 @@ class TokenNormalizerTests(unittest.TestCase):
         self.assertEqual(len(corpus.used_preprocessor.preprocessors), 1)
 
     def test_udpipe_pickle(self):
-        normalizer = preprocess.UDPipeLemmatizer("Lithuanian", True)
+        normalizer = preprocess.UDPipeLemmatizer("lt", True)
         # udpipe store model after first call - model is not picklable
         normalizer(self.corpus)
         loaded = pickle.loads(pickle.dumps(normalizer))
@@ -336,7 +331,7 @@ class TokenNormalizerTests(unittest.TestCase):
         )
 
     def test_udpipe_deepcopy(self):
-        normalizer = preprocess.UDPipeLemmatizer("Lithuanian", True)
+        normalizer = preprocess.UDPipeLemmatizer("lt", True)
         copied = copy.deepcopy(normalizer)
         self.assertEqual(normalizer._UDPipeLemmatizer__language,
                          copied._UDPipeLemmatizer__language)
@@ -370,7 +365,7 @@ class TokenNormalizerTests(unittest.TestCase):
         for nm in set(preprocess.normalize.__all__) - {"BaseNormalizer"}:
             normalizer = getattr(preprocess.normalize, nm)
             normalizer = (
-                normalizer(language="Lithuanian")
+                normalizer(language="lt")
                 if normalizer is preprocess.UDPipeLemmatizer
                 else normalizer()
             )
@@ -379,7 +374,7 @@ class TokenNormalizerTests(unittest.TestCase):
             loaded(self.corpus)
 
     def test_cache(self):
-        normalizer = preprocess.UDPipeLemmatizer("Lithuanian")
+        normalizer = preprocess.UDPipeLemmatizer("lt")
         with self.corpus.unlocked():
             self.corpus.metas[0, 0] = "esu"
         normalizer(self.corpus)
@@ -391,25 +386,38 @@ class TokenNormalizerTests(unittest.TestCase):
         self.assertEqual(0, len(loaded_normalizer._normalization_cache))
 
 
+class TokenNormalizerNotPatched(unittest.TestCase):
+    def setUp(self):
+        self.corpus = Corpus.from_file('deerwester')
+
+    @unittest.skip("Slow tests")
+    def test_udpipe_all_langs(self):
+        for _, language in UDPipeModels().supported_languages:
+            normalizer = preprocess.UDPipeLemmatizer(language)
+            tokens = normalizer(self.corpus).tokens
+            self.assertEqual(len(self.corpus), len(tokens))
+            self.assertTrue(all(tokens))
+
+
 @patch(SF_LIST, return_value=SERVER_FILES)
 class UDPipeModelsTests(unittest.TestCase):
     def test_label_transform(self, _):
         """Test helper functions for label transformation"""
-        self.assertEqual(file_to_language('slovenian-sst-ud-2.0-170801.udpipe'),
-                         'Slovenian sst')
-        self.assertEqual(file_to_name('slovenian-sst-ud-2.0-170801.udpipe'),
-                         'sloveniansstud2.0170801.udpipe')
-        self.assertEqual(language_to_name('Slovenian sst'), 'sloveniansstud')
+        fun = UDPipeModels()._UDPipeModels__file_to_language
+        res = fun("slovenian-sst-ud-2.0-170801.udpipe")
+        self.assertTupleEqual(res, ("Slovenian (sst)", "sl_sst"))
+        res = fun("norwegian_bokmaal-sst-ud-2.0-170801.udpipe")
+        self.assertTupleEqual(res, ("Norwegian Bokmål (sst)", "nb_sst"))
 
     @patch(SF_DOWNLOAD, download_patch)
     def test_udpipe_model(self, _):
         """Test udpipe models loading from server"""
         models = UDPipeModels()
-        self.assertIn("Lithuanian", models.supported_languages)
+        self.assertIn(('Lithuanian', 'lt'), models.supported_languages)
         self.assertEqual(7, len(models.supported_languages))
 
         local_file = os.path.join(models.local_data, "lithuanian-ud-2.0-170801.udpipe")
-        model = models["Lithuanian"]
+        model = models["lt"]
         self.assertEqual(model, local_file)
         self.assertTrue(os.path.isfile(local_file))
 
@@ -419,16 +427,22 @@ class UDPipeModelsTests(unittest.TestCase):
         models = UDPipeModels()
         [models.localfiles.remove(f[0]) for f in models.localfiles.listfiles()]
         # use Uyghur, it is the smallest model, we can have it in the repository
-        _ = models["Lithuanian"]
+        _ = models["lt"]
         sf_mock.side_effect = ConnectionError()
-        self.assertIn("Lithuanian", UDPipeModels().supported_languages)
-        self.assertEqual(1, len(UDPipeModels().supported_languages))
+        exp = {"lt": ('Lithuanian', 'lithuanian-ud-2.0-170801.udpipe')}
+        self.assertDictEqual(exp, models.model_files)
+        self.assertListEqual([('Lithuanian', 'lt')], models.supported_languages)
 
     def test_udpipe_offline(self, sf_mock):
         """Test if UDPipe works offline"""
         self.assertTrue(UDPipeModels().online)
         sf_mock.side_effect = ConnectionError()
         self.assertFalse(UDPipeModels().online)
+
+    def test_language_to_iso(self, _):
+        models = UDPipeModels()
+        self.assertEqual("en", models.language_to_iso("English"))
+        self.assertEqual("en_lines", models.language_to_iso("English (lines)"))
 
 
 class FilteringTests(unittest.TestCase):

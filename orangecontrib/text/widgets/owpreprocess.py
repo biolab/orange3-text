@@ -27,7 +27,7 @@ from orangecontrib.text import Corpus
 from orangecontrib.text.language import ISO2LANG, LANG2ISO
 from orangecontrib.text.misc import nltk_data_dir
 from orangecontrib.text.preprocess import *
-from orangecontrib.text.preprocess.normalize import UDPipeStopIteration
+from orangecontrib.text.preprocess.normalize import UDPipeStopIteration, UDPipeModels
 from orangecontrib.text.tag import AveragedPerceptronTagger, MaxEntTagger, \
     POSTagger
 
@@ -87,19 +87,20 @@ class LanguageComboBox(QComboBox):
             Boxs initial value (as an ISO code).
         """
         super().__init__(parent)
-        self.setMinimumWidth(80)
-        self.__add_items(items, include_none)
-        self.set_current_language(value)
-        self.currentIndexChanged.connect(self.__index_changed)
         self.callback = callback
+        self.setMinimumWidth(80)
+        items = [(ISO2LANG[itm], itm) for itm in items]
+        self.add_items(items, include_none, value)
+        self.currentIndexChanged.connect(self.index_changed)
 
-    def __add_items(self, items: Iterable[str], include_non: bool):
-        if include_non:
+    def add_items(self, items: Iterable[Tuple[str, str]], include_none: bool, language: str):
+        if include_none:
             self.addItem(_DEFAULT_NONE, None)
-        for itm in sorted(items, key=ISO2LANG.get):
-            self.addItem(ISO2LANG[itm], itm)
+        for itm in sorted(items):
+            self.addItem(*itm)
+        self.set_current_language(language)
 
-    def __index_changed(self, index: QModelIndex):
+    def index_changed(self, index: QModelIndex):
         self.callback(self.itemData(index))
 
     def set_current_language(self, iso_language: Optional[str]):
@@ -115,34 +116,35 @@ class LanguageComboBox(QComboBox):
         self.setCurrentIndex(index)
 
 
-class UDPipeComboBox(QComboBox):
-    def __init__(self, master: BaseEditor, value: str, default: str,
-                 callback: Callable):
-        super().__init__(master)
-        self.__items = []  # type: List
+class UDPipeComboBox(LanguageComboBox):
+    def __init__(
+        self, master: BaseEditor, value: str, default: str, callback: Callable
+    ):
+        self.__items: List = []
         self.__default_lang = default
-        self.add_items(value)
-        self.currentTextChanged.connect(callback)
-        self.setMinimumWidth(80)
+        super().__init__(master, [], value, False, callback)
 
     @property
     def items(self) -> List:
-        return UDPipeLemmatizer().models.supported_languages
+        return UDPipeModels().supported_languages
 
-    def add_items(self, value: str):
+    def add_items(self, _, include_none: bool, language: str):
         self.__items = self.items
-        self.addItems(self.__items)
-        if value in self.__items:
-            self.setCurrentText(value)
-        elif self.__default_lang in self.__items:
-            self.setCurrentText(self.__default_lang)
+        super().add_items(self.__items, include_none, language)
+
+    def set_current_language(self, iso_language: Optional[str]):
+        iso_items = {iso for _, iso in self.__items}
+        if iso_language in iso_items:
+            super().set_current_language(iso_language)
+        elif self.__default_lang in iso_items:
+            super().set_current_language(self.__default_lang)
         elif self.__items:
             self.setCurrentIndex(0)
 
     def showPopup(self):
         if self.__items != self.items:
             self.clear()
-            self.add_items(self.currentText())
+            self.add_items(None, False, self.itemData(self.currentIndex()))
         super().showPopup()
 
 
@@ -475,14 +477,13 @@ class NormalizationModule(SingleMethodModule):
                UDPipe: UDPipeLemmatizer,
                Lemmagen: LemmagenLemmatizer}
     DEFAULT_METHOD = Porter
-    DEFAULT_UDPIPE_LANG = "English"  # todo: remove when udpipe use iso
     DEFAULT_LANGUAGE = "en"
     DEFAULT_USE_TOKE = False
 
     def __init__(self, parent=None, **kwargs):
         super().__init__(parent, **kwargs)
         self.__snowball_lang = self.DEFAULT_LANGUAGE
-        self.__udpipe_lang = self.DEFAULT_UDPIPE_LANG
+        self.__udpipe_lang = self.DEFAULT_LANGUAGE
         self.__lemmagen_lang = self.DEFAULT_LANGUAGE
         self.__use_tokenizer = self.DEFAULT_USE_TOKE
 
@@ -494,7 +495,7 @@ class NormalizationModule(SingleMethodModule):
             self.__set_snowball_lang
         )
         self.__combo_udl = UDPipeComboBox(
-            self, self.__udpipe_lang, self.DEFAULT_UDPIPE_LANG, self.__set_udpipe_lang
+            self, self.__udpipe_lang, self.DEFAULT_LANGUAGE, self.__set_udpipe_lang
         )
         self.__check_use = QCheckBox("UDPipe tokenizer",
                                      checked=self.DEFAULT_USE_TOKE)
@@ -538,7 +539,7 @@ class NormalizationModule(SingleMethodModule):
         super().setParameters(params)
         snowball_lang = params.get("snowball_language", self.DEFAULT_LANGUAGE)
         self.__set_snowball_lang(snowball_lang)
-        udpipe_lang = params.get("udpipe_language", self.DEFAULT_UDPIPE_LANG)
+        udpipe_lang = params.get("udpipe_language", self.DEFAULT_LANGUAGE)
         self.__set_udpipe_lang(udpipe_lang)
         use_tokenizer = params.get("udpipe_tokenizer", self.DEFAULT_USE_TOKE)
         self.__set_use_tokenizer(use_tokenizer)
@@ -560,7 +561,7 @@ class NormalizationModule(SingleMethodModule):
     def __set_udpipe_lang(self, language: str):
         if self.__udpipe_lang != language:
             self.__udpipe_lang = language
-            self.__combo_udl.setCurrentText(language)
+            self.__combo_udl.set_current_language(language)
             self.changed.emit()
             if self.method == self.UDPipe:
                 self.edited.emit()
@@ -593,13 +594,12 @@ class NormalizationModule(SingleMethodModule):
     def createinstance(params: Dict) -> BaseNormalizer:
         method = params.get("method", NormalizationModule.DEFAULT_METHOD)
         args = {}
-        def_udpipe = NormalizationModule.DEFAULT_UDPIPE_LANG
         def_lang = NormalizationModule.DEFAULT_LANGUAGE
         if method == NormalizationModule.Snowball:
             args = {"language": params.get("snowball_language", def_lang)}
         elif method == NormalizationModule.UDPipe:
             def_use = NormalizationModule.DEFAULT_USE_TOKE
-            args = {"language": params.get("udpipe_language", def_udpipe),
+            args = {"language": params.get("udpipe_language", def_lang),
                     "use_tokenizer": params.get("udpipe_tokenizer", def_use)}
         elif method == NormalizationModule.Lemmagen:
             args = {"language": params.get("lemmagen_language", def_lang)}
@@ -1395,6 +1395,9 @@ class OWPreprocess(Orange.widgets.data.owpreprocess.OWPreprocess,
                     for key in ("lemmagen_language", "snowball_language"):
                         if key in pp:
                             pp[key] = LANG2ISO[pp[key]]
+                    up_lang = "udpipe_language"
+                    if up_lang in pp:
+                        pp[up_lang] = UDPipeModels().language_to_iso(pp[up_lang])
 
 
 if __name__ == "__main__":
