@@ -5,7 +5,34 @@ import numpy as np
 from Orange.data import StringVariable, Domain
 
 from orangecontrib.text import Corpus
-from orangecontrib.text.language import detect_language, ISO2LANG
+from orangecontrib.text.language import detect_language, ISO2LANG, LanguageModel
+
+
+class TestLanguageModel(TestCase):
+    def test_model_without_languages(self):
+        # no None, all languages
+        lm = LanguageModel()
+        self.assertEqual(len(ISO2LANG) - 1, lm.rowCount())
+        all_langs = [lm.data(lm.index(i)) for i in range(lm.rowCount())]
+        expected = sorted(list(ISO2LANG.values())[:-1])
+        self.assertEqual(expected, all_langs)
+
+        lm = LanguageModel(include_none=True)
+        self.assertEqual(len(ISO2LANG), lm.rowCount())
+        all_langs = [lm.data(lm.index(i)) for i in range(lm.rowCount())]
+        expected = sorted(list(ISO2LANG.values())[:-1])
+        self.assertEqual(["(no language)"] + expected, all_langs)
+
+    def test_model_with_languages(self):
+        lm = LanguageModel(include_none=True, languages=["en", "ar", "it"])
+        self.assertEqual(4, lm.rowCount())
+        all_langs = [lm.data(lm.index(i)) for i in range(lm.rowCount())]
+        self.assertEqual(["(no language)", "Arabic", "English", "Italian"], all_langs)
+
+        lm = LanguageModel(languages=["en", "ar", "it"])
+        self.assertEqual(3, lm.rowCount())
+        all_langs = [lm.data(lm.index(i)) for i in range(lm.rowCount())]
+        self.assertEqual(["Arabic", "English", "Italian"], all_langs)
 
 
 class TestLanguage(TestCase):
