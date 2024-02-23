@@ -215,23 +215,27 @@ class TestOWKeywords(WidgetTest):
             scores = {"TF-IDF", "YAKE!", "Rake", "MBERT"}
             settings = {"selected_scoring_methods": scores}
             widget = self.create_widget(OWKeywords, stored_settings=settings)
-
-            cb = widget.controls.yake_lang_index
-            simulate.combobox_activate_item(cb, "Arabic")
-            cb = widget.controls.rake_lang_index
-            simulate.combobox_activate_item(cb, "Finnish")
-
             self.send_signal(widget.Inputs.corpus, self.corpus, widget=widget)
             self.wait_until_finished(widget=widget, timeout=10000)
+
+            for i in range(4):
+                m[i][1].assert_called_once()
+                m[i][1].reset_mock()
+
+            cb = widget.controls.yake_language
+            simulate.combobox_activate_item(cb, "Arabic")
+            self.wait_until_finished(widget=widget, timeout=10000)
+            cb = widget.controls.rake_language
+            simulate.combobox_activate_item(cb, "Finnish")
+            self.wait_until_finished(widget=widget, timeout=10000)
+
             out = self.get_output(widget.Outputs.words, widget=widget)
             self.assertEqual(scores, {a.name for a in out.domain.attributes})
 
-            m[0][1].assert_called_once()
             m[1][1].assert_called_once()
             m[2][1].assert_called_once()
-            m[3][1].assert_called_once()
-            self.assertEqual(m[1][1].call_args[1]["language"], "Arabic")
-            self.assertEqual(m[2][1].call_args[1]["language"], "Finnish")
+            self.assertEqual(m[1][1].call_args[1]["language"], "ar")
+            self.assertEqual(m[2][1].call_args[1]["language"], "fi")
 
     def test_method_change(self):
         """Test method change by clicking"""
@@ -332,6 +336,88 @@ class TestOWKeywords(WidgetTest):
             np.testing.assert_array_equal(output.metas, [["keyword1"], ["keyword2"]])
             np.testing.assert_array_equal(output.X, [[7.5], [1]])
             self.assertFalse(self.widget.Warning.extraction_warnings.is_shown())
+
+    def test_language_from_corpus(self):
+        self.corpus.attributes["language"] = "it"
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.assertEqual("it", self.widget.yake_language)
+        self.assertEqual("it", self.widget.rake_language)
+
+        simulate.combobox_activate_item(self.widget.controls.yake_language, "Finnish")
+        simulate.combobox_activate_item(self.widget.controls.rake_language, "Finnish")
+        self.assertEqual("fi", self.widget.yake_language)
+        self.assertEqual("fi", self.widget.rake_language)
+
+        # language none of them support - language should not change
+        self.corpus.attributes["language"] = "mr"
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.assertEqual("fi", self.widget.yake_language)
+        self.assertEqual("fi", self.widget.rake_language)
+
+        # language that is supported by RAKE - language sets for RAKE
+        self.corpus.attributes["language"] = "hi_eng"
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.assertEqual("fi", self.widget.yake_language)
+        self.assertEqual("hi_eng", self.widget.rake_language)
+
+        # language that is supported by YAKE! - language sets for YAKE
+        self.corpus.attributes["language"] = "uk"
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.assertEqual("uk", self.widget.yake_language)
+        self.assertEqual("hi_eng", self.widget.rake_language)
+
+        # language that both support - widget sets both langagues
+        self.corpus.attributes["language"] = "it"
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.assertEqual("it", self.widget.yake_language)
+        self.assertEqual("it", self.widget.rake_language)
+
+        # langauge is None - nothing changes
+        self.corpus.attributes["language"] = None
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.assertEqual("it", self.widget.yake_language)
+        self.assertEqual("it", self.widget.rake_language)
+
+        # corpus None - nothing changes
+        self.send_signal(self.widget.Inputs.corpus, None)
+        self.assertEqual("it", self.widget.yake_language)
+        self.assertEqual("it", self.widget.rake_language)
+
+    def test_language_from_settings(self):
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        simulate.combobox_activate_item(self.widget.controls.yake_language, "Slovenian")
+        simulate.combobox_activate_item(self.widget.controls.rake_language, "Nepali")
+
+        self.assertEqual("sl", self.widget.yake_language)
+        self.assertEqual("ne", self.widget.rake_language)
+        settings = self.widget.settingsHandler.pack_data(self.widget)
+
+        widget = self.create_widget(OWKeywords, stored_settings=settings)
+        self.assertEqual("en", self.corpus.language)
+        self.send_signal(widget.Inputs.corpus, self.corpus, widget=widget)
+        self.assertEqual("sl", widget.yake_language)
+        self.assertEqual("ne", widget.rake_language)
+
+    def test_language_migration(self):
+        settings = {"__version__": 1, "yake_lang_index": 0, "rake_lang_index": 0}
+        widget = self.create_widget(OWKeywords, stored_settings=settings)
+        self.assertEqual("ar", widget.yake_language)
+        self.assertEqual("ar", widget.rake_language)
+
+        settings = {"__version__": 1, "yake_lang_index": 4, "rake_lang_index": 4}
+        widget = self.create_widget(OWKeywords, stored_settings=settings)
+        self.assertEqual("zh", widget.yake_language)
+        self.assertEqual("ca", widget.rake_language)
+
+        settings = {"__version__": 1, "yake_lang_index": 20, "rake_lang_index": 20}
+        widget = self.create_widget(OWKeywords, stored_settings=settings)
+        self.assertEqual("lv", widget.yake_language)
+        self.assertEqual("no", widget.rake_language)
+
+        settings = {"__version__": 1, "yake_lang_index": 33, "rake_lang_index": 28}
+        widget = self.create_widget(OWKeywords, stored_settings=settings)
+        self.assertEqual("uk", widget.yake_language)
+        self.assertEqual("tr", widget.rake_language)
 
 
 if __name__ == "__main__":
