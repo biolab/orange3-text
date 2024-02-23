@@ -17,51 +17,18 @@ from orangecontrib.text.keywords.mbert import mbert_keywords
 from orangecontrib.text.keywords.rake import Rake
 from orangecontrib.text.language import ISO2LANG
 from orangecontrib.text.preprocess import StopwordsFilter
-
-# all available languages for RAKE
 from orangecontrib.text.vectorization import BowVectorizer
 
-
-# todo: refactor when refactoring language for keywords module
-# this is a temporary solution since supported_languages now returns lang ISO codes
-RAKE_LANGUAGES = [ISO2LANG[la] for la in StopwordsFilter.supported_languages()]
+# all available languages for RAKE
+RAKE_LANGUAGES = StopwordsFilter.supported_languages()
 # all available languages for YAKE!
-YAKE_LANGUAGE_MAPPING = {
-    "Arabic": "ar",
-    "Armenian": "hy",
-    "Breton": "br",
-    "Bulgarian": "bg",
-    "Chinese": "zh",
-    "Croatian": "hr",
-    "Czech": "cz",
-    "Danish": "da",
-    "Dutch": "nl",
-    "English": "en",
-    "Estonian": "et",
-    "Finnish": "fi",
-    "French": "fr",
-    "German": "de",
-    "Greek": "el",
-    "Hindi": "hi",
-    "Hungarian": "hu",
-    "Indonesian": "id",
-    "Italian": "it",
-    "Japanese": "ja",
-    "Latvian": "lv",
-    "Lithuanian": "lt",
-    "Norwegian": "no",
-    "Persian": "fa",
-    "Polish": "pl",
-    "Portuguese": "pt",
-    "Romanian": "ro",
-    "Russian": "ru",
-    "Slovak": "sk",
-    "Slovenian": "sl",
-    "Spanish": "es",
-    "Swedish": "sv",
-    "Turkish": "tr",
-    "Ukrainian": "uk"
-}
+# fmt: off
+YAKE_LANGUAGES = [
+    "ar", "hy", "br", "bg", "zh", "hr", "cs", "da", "nl", "en", "et", "fi",
+    "fr", "de", "el", "hi", "hu", "id", "it", "ja", "lv", "lt", "no", "fa",
+    "pl", "pt", "ro", "ru", "sk", "sl", "es", "sv", "tr", "uk"
+]
+# fmt: on
 
 
 def tfidf_keywords(
@@ -110,7 +77,7 @@ def tfidf_keywords(
 
 def yake_keywords(
         texts: List[str],
-        language: str = "English",
+        language: str = "en",
         max_len: int = 1,
         progress_callback: Callable = None
 ) -> List[List[Tuple[str, float]]]:
@@ -135,7 +102,6 @@ def yake_keywords(
     if progress_callback is None:
         progress_callback = dummy_callback
 
-    language = YAKE_LANGUAGE_MAPPING[language]
     extractor = yake.KeywordExtractor(lan=language, n=max_len)
 
     keywords = []
@@ -148,7 +114,7 @@ def yake_keywords(
 
 def rake_keywords(
         texts: List[str],
-        language: str = "English",
+        language: str = "en",
         max_len: int = 1,
         progress_callback: Callable = None
 ) -> List[List[Tuple[str, float]]]:
@@ -174,9 +140,12 @@ def rake_keywords(
     if progress_callback is None:
         progress_callback = dummy_callback
 
-    if language.lower() not in [l.lower() for l in RAKE_LANGUAGES]:
+    if language not in RAKE_LANGUAGES:
         raise ValueError(f"Language must be one of: {RAKE_LANGUAGES}")
 
+    language = ISO2LANG[language]
+    # some languages (e.g. Slovenian have different name than ISO name in nltk)
+    language = StopwordsFilter.LANG2NLTK.get(language, language)
     stop_words_ = [x.strip() for x in stopwords.words(language.lower())]
     rake_object = Rake(stop_words_, max_words_length=max_len)
 
