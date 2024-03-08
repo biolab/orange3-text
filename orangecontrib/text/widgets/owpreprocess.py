@@ -1161,7 +1161,6 @@ class OWPreprocess(Orange.widgets.data.owpreprocess.OWPreprocess,
             pmodel.rowsInserted.connect(self.__on_item_inserted)
         super().set_model(pmodel)
 
-
     def __update_filtering_params(self, params: Dict):
         params["sw_path"] = self.__relocate_file(params.get("sw_path"))
         params["sw_list"] = self.__relocate_files(params.get("sw_list", []))
@@ -1238,6 +1237,7 @@ class OWPreprocess(Orange.widgets.data.owpreprocess.OWPreprocess,
             item = self.preprocessormodel.item(i)
             desc = item.data(DescriptionRole)
             params = item.data(ParametersRole)
+
             assert isinstance(params, dict)
 
             inst = desc.viewclass.createinstance(params)
@@ -1253,6 +1253,7 @@ class OWPreprocess(Orange.widgets.data.owpreprocess.OWPreprocess,
                 self.Warning.tokenizer_propagated()
         elif isinstance(preprocessors, UDPipeLemmatizer):
             if not preprocessors.models.online:
+                print(preprocessors.models.online)
                 if not preprocessors.models.model_files:
                     self.Warning.udpipe_offline_no_models()
                 else:
