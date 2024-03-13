@@ -447,8 +447,7 @@ class TokenizerModule(SingleMethodModule):
         pattern = self.__edit.text()
         if self.__pattern != pattern:
             self.__set_pattern(pattern)
-            if self.method == self.Regexp:
-                self.edited.emit()
+            self.edited.emit()
 
     def parameters(self) -> Dict:
         params = super().parameters()
@@ -555,32 +554,28 @@ class NormalizationModule(SingleMethodModule):
             self.__snowball_lang = language
             self.__combo_sbl.set_current_language(language)
             self.changed.emit()
-            if self.method == self.Snowball:
-                self.edited.emit()
+            self.edited.emit()
 
     def __set_udpipe_lang(self, language: str):
         if self.__udpipe_lang != language:
             self.__udpipe_lang = language
             self.__combo_udl.set_current_language(language)
             self.changed.emit()
-            if self.method == self.UDPipe:
-                self.edited.emit()
+            self.edited.emit()
 
     def __set_lemmagen_lang(self, language: str):
         if self.__lemmagen_lang != language:
             self.__lemmagen_lang = language
             self.__combo_lemm.set_current_language(language)
             self.changed.emit()
-            if self.method == self.Lemmagen:
-                self.edited.emit()
+            self.edited.emit()
 
     def __set_use_tokenizer(self, use: bool):
         if self.__use_tokenizer != use:
             self.__use_tokenizer = use
             self.__check_use.setChecked(use)
             self.changed.emit()
-            if self.method == self.UDPipe:
-                self.edited.emit()
+            self.edited.emit()
 
     def parameters(self) -> Dict:
         params = super().parameters()
@@ -738,8 +733,7 @@ class FilteringModule(MultipleMethodModule):
     def __sw_loader_activated(self):
         self.__sw_file = self.__sw_loader.get_current_file()
         self.changed.emit()
-        if self.Stopwords in self.methods:
-            self.edited.emit()
+        self.edited.emit()
 
     def __sw_invalidate(self):
         if self.Stopwords in self.methods and self.__sw_file:
@@ -749,8 +743,7 @@ class FilteringModule(MultipleMethodModule):
     def __lx_loader_activated(self):
         self.__lx_file = self.__lx_loader.get_current_file()
         self.changed.emit()
-        if self.Lexicon in self.methods:
-            self.edited.emit()
+        self.edited.emit()
 
     def __lx_invalidate(self):
         if self.Lexicon in self.methods and self.__lx_file:
@@ -761,37 +754,31 @@ class FilteringModule(MultipleMethodModule):
         pattern = self.__edit.text()
         if self.__pattern != pattern:
             self.__set_pattern(pattern)
-            if self.Regexp in self.methods:
-                self.edited.emit()
+            self.edited.emit()
 
     def __pos_edit_finished(self):
         tags = self.__pos_edit.text()
         if self.__pos_tag != tags:
             self.__set_tags(tags)
-            if self.PosTag in self.methods:
-                self.edited.emit()
+            self.edited.emit()
 
     def __freq_group_clicked(self):
         i = self.__freq_group.checkedId()
         if self.__freq_type != i:
             self.__set_freq_type(i)
-            if self.DocFreq in self.methods:
-                self.edited.emit()
+            self.edited.emit()
 
     def __rel_spins_edited(self):
-        if self.DocFreq in self.methods and self.__freq_type == 0:
-            self.edited.emit()
+        self.edited.emit()
 
     def __abs_spins_edited(self):
-        if self.DocFreq in self.methods and self.__freq_type == 1:
-            self.edited.emit()
+        self.edited.emit()
 
     def __spin_n_edited(self):
         n = self.__spin_n.value()
         if self.__n_token != n:
             self.__set_n_tokens(n)
-            if self.MostFreq in self.methods:
-                self.edited.emit()
+            self.edited.emit()
 
     def setParameters(self, params: Dict):
         super().setParameters(params)
@@ -822,8 +809,7 @@ class FilteringModule(MultipleMethodModule):
             self.__sw_lang = language
             self.__combo.set_current_language(language)
             self.changed.emit()
-            if self.Stopwords in self.methods:
-                self.edited.emit()
+            self.edited.emit()
 
     def __set_sw_path(self, path: RecentPath, paths: List[RecentPath] = []):
         self.__sw_loader.recent_paths = paths
@@ -842,8 +828,7 @@ class FilteringModule(MultipleMethodModule):
             self.__incl_num = includes
             self.__check_numbers.setChecked(includes)
             self.changed.emit()
-            if self.Numbers in self.methods:
-                self.edited.emit()
+            self.edited.emit()
 
     def __set_pattern(self, pattern: str):
         if self.__pattern != pattern:

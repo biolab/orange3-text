@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import patch, PropertyMock, MagicMock, Mock
 
 import numpy as np
+from AnyQt.QtWidgets import QCheckBox, QLineEdit, QButtonGroup, QDoubleSpinBox, QSpinBox
 from Orange.data import Domain, StringVariable
 from orangewidget.utils.filedialogs import RecentPath
 from Orange.widgets.tests.base import WidgetTest
@@ -24,6 +25,7 @@ from orangecontrib.text.widgets.owpreprocess import (
     LanguageComboBox,
     _DEFAULT_NONE,
     UDPipeComboBox,
+    ValidatedLineEdit,
 )
 
 
@@ -179,6 +181,135 @@ class TestOWPreprocess(WidgetTest):
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
         self.wait_until_finished()
         self.assertFalse(self.widget.Warning.no_token_left.is_shown())
+
+    def test_all_changes_saved_tokenize(self):
+        """Test settings stored also when tokenizer not selected"""
+        st_settings = {"preprocessors": [("preprocess.tokenize", {"method": 0})]}
+        settings = {"__version__": 4, "storedsettings": st_settings}
+        widget = self.create_widget(OWPreprocess, stored_settings=settings)
+        self.send_signal(self.widget.Inputs.corpus, self.corpus, widget=widget)
+        self.wait_until_finished()
+        pattern_le = widget.findChild(ValidatedLineEdit)
+        pattern_le.setText("abc")
+        pattern_le.editingFinished.emit()
+        widget.apply()
+        self.assertEqual("abc", widget.storedsettings["preprocessors"][0][1]["pattern"])
+
+    def test_all_changes_saved_normalize(self):
+        """Test settings stored also when normalizer not selected"""
+        st_settings = {"preprocessors": [("preprocess.normalize", {"method": 0})]}
+        settings = {"__version__": 4, "storedsettings": st_settings}
+        widget = self.create_widget(OWPreprocess, stored_settings=settings)
+        self.send_signal(self.widget.Inputs.corpus, self.corpus, widget=widget)
+        self.wait_until_finished()
+
+        widget.findChildren(LanguageComboBox)[0].setCurrentText("French")
+        widget.apply()
+        value = widget.storedsettings["preprocessors"][0][1]["snowball_language"]
+        self.assertEqual("fr", value)
+        self.assertEqual(0, widget.storedsettings["preprocessors"][0][1]["method"])
+
+        widget.findChild(UDPipeComboBox).setCurrentText("Slovenian")
+        widget.apply()
+        value = widget.storedsettings["preprocessors"][0][1]["udpipe_language"]
+        self.assertEqual("sl", value)
+        self.assertEqual(0, widget.storedsettings["preprocessors"][0][1]["method"])
+
+        widget.findChildren(LanguageComboBox)[2].setCurrentText("Spanish")
+        widget.apply()
+        value = widget.storedsettings["preprocessors"][0][1]["lemmagen_language"]
+        self.assertEqual("es", value)
+        self.assertEqual(0, widget.storedsettings["preprocessors"][0][1]["method"])
+
+        # test UDPIPE checkbox
+        widget.findChild(QCheckBox).click()
+        widget.apply()
+        self.assertTrue(
+            widget.storedsettings["preprocessors"][0][1]["udpipe_tokenizer"]
+        )
+        self.assertEqual(0, widget.storedsettings["preprocessors"][0][1]["method"])
+
+    def test_all_changes_saved_filtering(self):
+        """Test settings stored also when filter not selected"""
+        st_settings = {"preprocessors": [("preprocess.filter", {"methods": [1]})]}
+        settings = {"__version__": 4, "storedsettings": st_settings}
+        w = self.create_widget(OWPreprocess, stored_settings=settings)
+        self.send_signal(self.widget.Inputs.corpus, self.corpus, widget=w)
+        self.wait_until_finished()
+
+        # test language combo
+        w.findChild(LanguageComboBox).setCurrentText("French")
+        w.apply()
+        self.assertEqual("fr", w.storedsettings["preprocessors"][0][1]["language"])
+        self.assertListEqual([1], w.storedsettings["preprocessors"][0][1]["methods"])
+
+        # test include numbers checkbox
+        w.findChildren(QCheckBox)[8].click()
+        w.apply()
+        self.assertTrue(w.storedsettings["preprocessors"][0][1]["incl_num"])
+        self.assertListEqual([1], w.storedsettings["preprocessors"][0][1]["methods"])
+
+        # test regexp line edit
+        pattern_le = w.findChild(QLineEdit)
+        pattern_le.setText("abc")
+        pattern_le.editingFinished.emit()
+        w.apply()
+        self.assertEqual("abc", w.storedsettings["preprocessors"][0][1]["pattern"])
+        self.assertListEqual([1], w.storedsettings["preprocessors"][0][1]["methods"])
+
+        # test relative, absolute radios
+        w.findChild(QButtonGroup).button(1).click()
+        w.apply()
+        self.assertEqual(1, w.storedsettings["preprocessors"][0][1]["freq_type"])
+        self.assertListEqual([1], w.storedsettings["preprocessors"][0][1]["methods"])
+
+        # test relative from spin
+        spin = w.findChild(QDoubleSpinBox)
+        spin.setValue(0.22)
+        spin.editingFinished.emit()
+        w.apply()
+        self.assertEqual(0.22, w.storedsettings["preprocessors"][0][1]["rel_start"])
+        self.assertListEqual([1], w.storedsettings["preprocessors"][0][1]["methods"])
+
+        # test relative to spin
+        spin = w.findChildren(QDoubleSpinBox)[1]
+        spin.setValue(0.33)
+        spin.editingFinished.emit()
+        w.apply()
+        self.assertEqual(0.33, w.storedsettings["preprocessors"][0][1]["rel_end"])
+        self.assertListEqual([1], w.storedsettings["preprocessors"][0][1]["methods"])
+
+        # test absolute from spin
+        spin = w.findChild(QSpinBox)
+        spin.setValue(22)
+        spin.editingFinished.emit()
+        w.apply()
+        self.assertEqual(22, w.storedsettings["preprocessors"][0][1]["abs_start"])
+        self.assertListEqual([1], w.storedsettings["preprocessors"][0][1]["methods"])
+
+        # test absolute to spin
+        spin = w.findChildren(QSpinBox)[1]
+        spin.setValue(33)
+        spin.editingFinished.emit()
+        w.apply()
+        self.assertEqual(33, w.storedsettings["preprocessors"][0][1]["abs_end"])
+        self.assertListEqual([1], w.storedsettings["preprocessors"][0][1]["methods"])
+
+        # test most frequent tokens spin
+        spin = w.findChildren(QSpinBox)[2]
+        spin.setValue(44)
+        spin.editingFinished.emit()
+        w.apply()
+        self.assertEqual(44, w.storedsettings["preprocessors"][0][1]["n_tokens"])
+        self.assertListEqual([1], w.storedsettings["preprocessors"][0][1]["methods"])
+
+        # test POS tags line edit
+        pos_le = w.findChildren(QLineEdit)[-1]
+        pos_le.setText("JJ")
+        pos_le.editingFinished.emit()
+        w.apply()
+        self.assertEqual("JJ", w.storedsettings["preprocessors"][0][1]["pos_tags"])
+        self.assertListEqual([1], w.storedsettings["preprocessors"][0][1]["methods"])
 
 
 @patch(SF_LIST, new=Mock(return_value=SERVER_FILES))
