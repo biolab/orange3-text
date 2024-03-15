@@ -1,0 +1,11 @@
+name: Release
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  release:
+    uses: biolab/orange-ci-cd/.github/workflows/release.yml@wheel-build
+    with:
+      pure-python: true
