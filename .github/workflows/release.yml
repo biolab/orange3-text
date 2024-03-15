@@ -6,6 +6,7 @@ on:
 
 jobs:
   release:
-    uses: biolab/orange-ci-cd/.github/workflows/release.yml@wheel-build
+    uses: biolab/orange-ci-cd/.github/workflows/release.yml@master
     with:
       pure-python: true
+    secrets: inherit
