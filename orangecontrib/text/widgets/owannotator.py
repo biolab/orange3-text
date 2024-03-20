@@ -444,8 +444,15 @@ class OWAnnotator(OWDataProjectionWidget, ConcurrentWidgetMixin):
 
         model = self.controls.attr_x.model()
         model.set_domain(domain)
-        self.attr_x = model[0] if model else None
-        self.attr_y = model[1] if len(model) >= 2 else self.attr_x
+        x_id = 0
+        y_id = 1
+        for i in range(len(model)):
+            if model[i].name == "t-SNE-x":
+                x_id = i
+            if model[i].name == "t-SNE-y":
+                y_id = i
+        self.attr_x = model[x_id] if model else None
+        self.attr_y = model[y_id] if len(model) >= 2 else (self.attr_x)
 
         model = self.controls.cluster_var.model()
         model.set_domain(domain)
