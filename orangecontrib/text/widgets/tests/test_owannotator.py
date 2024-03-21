@@ -197,6 +197,28 @@ class TestOWAnnotator(WidgetTest):
         simulate.combobox_activate_item(self.widget.controls.attr_label,
                                         self.corpus.domain[-1].name)
 
+    @patch("Orange.projection.manifold.TSNE", DummyTSNE)
+    @patch("Orange.projection.manifold.TSNEModel", DummyTSNEModel)
+    def test_attr_heuristics(self):
+        c = Corpus.from_file("slo-opinion-corpus.tab")[:20]
+
+        for pp in (LowercaseTransformer(), RegexpTokenizer(r"\w+"),
+                   StopwordsFilter("sl"), FrequencyFilter(0.25, 0.5)):
+            corpus = pp(c)
+        corpus = BowVectorizer().transform(corpus)
+
+        owtsne = self.create_widget(OWtSNE)
+        self.send_signal(owtsne.Inputs.data, corpus, widget=owtsne)
+        self.wait_until_finished(widget=owtsne)
+        tsne_output = self.get_output(owtsne.Outputs.annotated_data, owtsne)
+
+        widget = self.create_widget(OWAnnotator)
+        self.send_signal(widget.Inputs.corpus, tsne_output)
+        self.wait_until_finished(widget=widget)
+
+        self.assertEqual(widget.attr_x.name, "t-SNE-x")
+        self.assertEqual(widget.attr_y.name, "t-SNE-y")
+
     def test_attr_models(self):
         self.send_signal(self.widget.Inputs.corpus, self.corpus[::30])
         self.wait_until_finished()
