@@ -240,6 +240,11 @@ class OWWordList(OWWidget):
         action.triggered.connect(self.__on_remove_word_list)
         actions_widget.addAction(action)
 
+        action = QAction("C", self)
+        action.setToolTip("Copy word list from library")
+        action.triggered.connect(self.__on_copy_word_list)
+        actions_widget.addAction(action)
+
         action = QAction("Update", self)
         action.setToolTip("Save changes in the editor to library")
         action.setShortcut(QKeySequence(QKeySequence.Save))
@@ -278,7 +283,7 @@ class OWWordList(OWWidget):
     def __on_add_word_list(self):
         taken = [l.name for l in self.library_model]
         name = WordList.generate_word_list_name(taken)
-        word_list = WordList(name, self.words_model[:])
+        word_list = WordList(name, [])
         self.library_model.append(word_list)
         self._set_selected_word_list(len(self.library_model) - 1)
 
@@ -288,6 +293,15 @@ class OWWordList(OWWidget):
             del self.library_model[index]
             self._set_selected_word_list(max(index - 1, 0))
             self._apply_update_rule()
+
+    def __on_copy_word_list(self):
+        index = self._get_selected_word_list_index()
+        if index is not None:
+            taken = [l.name for l in self.library_model]
+            name = WordList.generate_word_list_name(taken)
+            word_list = WordList(name, self.words_model[:])
+            self.library_model.append(word_list)
+            self._set_selected_word_list(len(self.library_model) - 1)
 
     def __on_update_word_list(self):
         self._set_word_list_modified(mod_type=self.LIBRARY)

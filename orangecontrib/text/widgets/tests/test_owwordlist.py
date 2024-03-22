@@ -157,7 +157,7 @@ class TestOWWordList(WidgetTest):
         sel_words = self.widget._get_selected_words_indices()
         self.assertEqual(sel_wlist, 2)
         self.assertListEqual(sel_words, [])
-        self.assertListEqual(self.widget.words_model[:], self._word_list_1)
+        self.assertListEqual(self.widget.words_model[:], [])
 
         self.widget._set_selected_word_list(1)
         self.assertListEqual(self.widget.words_model[:], self._word_list_2)
@@ -178,6 +178,17 @@ class TestOWWordList(WidgetTest):
         sel_words = self.widget._get_selected_words_indices()
         self.assertIsNone(sel_wlist, 0)
         self.assertListEqual(sel_words, [])
+
+    def test_library_copy(self):
+        self.assertEqual(self.widget.library_model.rowCount(), 2)
+        self.widget._OWWordList__on_copy_word_list()
+        self.assertEqual(self.widget.library_model.rowCount(), 3)
+        self.assertEqual(self.widget.words_model.rowCount(), 3)
+        settings = self.widget.settingsHandler.pack_data(self.widget)
+        self.assertEqual(settings["word_list_library"][0]["words"],
+                         settings["word_list_library"][2]["words"])
+        self.assertNotEqual(settings["word_list_library"][1]["words"],
+                            settings["word_list_library"][2]["words"])
 
     def test_library_update(self):
         self.assertEqual(self.widget._get_selected_word_list_index(), 0)
