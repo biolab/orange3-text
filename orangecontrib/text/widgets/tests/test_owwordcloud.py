@@ -69,7 +69,8 @@ class TestWordCloudWidget(WidgetTest):
         np.testing.assert_array_almost_equal(weights, [1, 2, 2])
 
         output = self.get_output(self.widget.Outputs.word_counts)
-        np.testing.assert_array_almost_equal([2, 2, 1], output.X.flatten())
+        np.testing.assert_array_almost_equal([2, 2, 1], output.X[:, 
+                                                        0].flatten())
         np.testing.assert_array_equal(
             ["Word3", "Word2", "Word1"], output.metas.flatten())
         self.assertTupleEqual(
@@ -93,7 +94,7 @@ class TestWordCloudWidget(WidgetTest):
         np.testing.assert_array_almost_equal(weights, [1, 2])
 
         output = self.get_output(self.widget.Outputs.word_counts)
-        np.testing.assert_array_almost_equal([2, 1], output.X.flatten())
+        np.testing.assert_array_almost_equal([2, 1], output.X[:, 0].flatten())
         np.testing.assert_array_equal(
             ["Word2", "Word1"], output.metas.flatten())
         self.assertTupleEqual(
@@ -167,6 +168,14 @@ class TestWordCloudWidget(WidgetTest):
         output = self.get_output(self.widget.Outputs.selected_words)
         self.assertEqual(2, len(output))
         self.assertEqual("words", output.domain["Words"].attributes["type"])
+
+    def test_word_counts_output(self):
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        output = self.get_output(self.widget.Outputs.word_counts)
+        words = set(w for doc in list(self.corpus.ngrams) for w in doc)
+        self.assertEqual(len(words), len(output))
+        self.assertLessEqual(output.X[:, 1][0], len(self.corpus))
+        self.assertEqual(len(output.domain), 3)
 
 
 if __name__ == "__main__":
