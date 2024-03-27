@@ -1,3 +1,4 @@
+from collections import defaultdict
 from typing import Dict, Optional, List, Callable, Tuple, Type, Union, Iterable
 from types import SimpleNamespace
 import os
@@ -12,6 +13,8 @@ from AnyQt.QtWidgets import QWidget, QPushButton, QSizePolicy, QStyle
 from AnyQt.QtGui import QBrush, QValidator
 
 from Orange.util import wrap_callback
+from orangecanvas.gui.utils import disconnected
+from orangewidget.settings import SettingsHandler
 from orangewidget.utils.filedialogs import RecentPath
 
 import Orange.widgets.data.owpreprocess
@@ -113,7 +116,10 @@ class LanguageComboBox(QComboBox):
             The ISO language code of element to be selected.
         """
         index = self.findData(iso_language)
-        self.setCurrentIndex(index)
+        if index >= 0:
+            self.setCurrentIndex(index)
+        else:
+            self.index_changed(self.currentIndex())
 
 
 class UDPipeComboBox(LanguageComboBox):
@@ -131,15 +137,9 @@ class UDPipeComboBox(LanguageComboBox):
     def add_items(self, _, include_none: bool, language: str):
         self.__items = self.items
         super().add_items(self.__items, include_none, language)
-
-    def set_current_language(self, iso_language: Optional[str]):
         iso_items = {iso for _, iso in self.__items}
-        if iso_language in iso_items:
-            super().set_current_language(iso_language)
-        elif self.__default_lang in iso_items:
+        if language not in iso_items and self.__default_lang in iso_items:
             super().set_current_language(self.__default_lang)
-        elif self.__items:
-            self.setCurrentIndex(0)
 
     def showPopup(self):
         if self.__items != self.items:
@@ -538,41 +538,32 @@ class NormalizationModule(SingleMethodModule):
     def setParameters(self, params: Dict):
         super().setParameters(params)
         snowball_lang = params.get("snowball_language", self.DEFAULT_LANGUAGE)
-        self.__set_snowball_lang(snowball_lang)
+        self.__combo_sbl.set_current_language(snowball_lang)
         udpipe_lang = params.get("udpipe_language", self.DEFAULT_LANGUAGE)
-        self.__set_udpipe_lang(udpipe_lang)
+        self.__combo_udl.set_current_language(udpipe_lang)
         use_tokenizer = params.get("udpipe_tokenizer", self.DEFAULT_USE_TOKE)
         self.__set_use_tokenizer(use_tokenizer)
         lemmagen_lang = params.get("lemmagen_language", self.DEFAULT_LANGUAGE)
-        self.__set_lemmagen_lang(lemmagen_lang)
+        self.__combo_lemm.set_current_language(lemmagen_lang)
 
     def _set_method(self, method: int):
         super()._set_method(method)
         self.__enable_udpipe()
 
     def __set_snowball_lang(self, language: str):
-        if self.__snowball_lang != language:
-            self.__snowball_lang = language
-            self.__combo_sbl.set_current_language(language)
-            self.changed.emit()
-            if self.method == self.Snowball:
-                self.edited.emit()
+        self.__snowball_lang = language
+        self.changed.emit()
+        self.edited.emit()
 
     def __set_udpipe_lang(self, language: str):
-        if self.__udpipe_lang != language:
-            self.__udpipe_lang = language
-            self.__combo_udl.set_current_language(language)
-            self.changed.emit()
-            if self.method == self.UDPipe:
-                self.edited.emit()
+        self.__udpipe_lang = language
+        self.changed.emit()
+        self.edited.emit()
 
     def __set_lemmagen_lang(self, language: str):
-        if self.__lemmagen_lang != language:
-            self.__lemmagen_lang = language
-            self.__combo_lemm.set_current_language(language)
-            self.changed.emit()
-            if self.method == self.Lemmagen:
-                self.edited.emit()
+        self.__lemmagen_lang = language
+        self.changed.emit()
+        self.edited.emit()
 
     def __set_use_tokenizer(self, use: bool):
         if self.__use_tokenizer != use:
@@ -795,7 +786,7 @@ class FilteringModule(MultipleMethodModule):
 
     def setParameters(self, params: Dict):
         super().setParameters(params)
-        self.__set_language(params.get("language", self.DEFAULT_LANG))
+        self.__combo.set_current_language(params.get("language", self.DEFAULT_LANG))
         self.__set_sw_path(params.get("sw_path", self.DEFAULT_NONE),
                            params.get("sw_list", []))
         self.__set_lx_path(params.get("lx_path", self.DEFAULT_NONE),
@@ -818,12 +809,9 @@ class FilteringModule(MultipleMethodModule):
         self.__invalidated = False
 
     def __set_language(self, language: Optional[str]):
-        if self.__sw_lang != language:
-            self.__sw_lang = language
-            self.__combo.set_current_language(language)
-            self.changed.emit()
-            if self.Stopwords in self.methods:
-                self.edited.emit()
+        self.__sw_lang = language
+        self.changed.emit()
+        self.edited.emit()
 
     def __set_sw_path(self, path: RecentPath, paths: List[RecentPath] = []):
         self.__sw_loader.recent_paths = paths
@@ -1045,6 +1033,21 @@ class POSTaggingModule(SingleMethodModule):
         return POSTaggingModule.Methods[method]()
 
 
+class PreprocessSettingsHandler(SettingsHandler):
+    """
+    Settings handler, that makes all language settings, which are
+    a part of common preprocess settings, schema_only. It removes them when
+    settings are not loaded from schema but from common settings.
+    """
+    def _remove_schema_only(self, settings_dict):
+        super()._remove_schema_only(settings_dict)
+        for setting, data, _ in self.provider.traverse_settings(data=settings_dict):
+            for pp_name, settings in data["storedsettings"]["preprocessors"]:
+                for key in list(settings):
+                    if "language" in key:
+                        settings.pop(key)
+
+
 PREPROCESS_ACTIONS = [
     PreprocessAction(
         "Transformation", "preprocess.transform", "",
@@ -1128,12 +1131,14 @@ class OWPreprocess(Orange.widgets.data.owpreprocess.OWPreprocess,
                                     ("preprocess.tokenize", {}),
                                     ("preprocess.filter", {})]
                   }  # type: Dict[str, List[Tuple[str, Dict]]]
+    settingsHandler = PreprocessSettingsHandler()
     storedsettings = Setting(DEFAULT_PP)
     buttons_area_orientation = Qt.Vertical
 
     def __init__(self):
         ConcurrentWidgetMixin.__init__(self)
         Orange.widgets.data.owpreprocess.OWPreprocess.__init__(self)
+        self.__store_pending_languages()
 
         box = gui.vBox(self.controlArea, "Preview")
         self.preview = ""
@@ -1150,6 +1155,11 @@ class OWPreprocess(Orange.widgets.data.owpreprocess.OWPreprocess,
                 self.__update_filtering_params(params)
                 saved["preprocessors"][i] = (name, params)
         return super().load(saved)
+
+    def set_model(self, pmodel):
+        if pmodel:
+            pmodel.rowsInserted.connect(self.__on_item_inserted)
+        super().set_model(pmodel)
 
     def __update_filtering_params(self, params: Dict):
         params["sw_path"] = self.__relocate_file(params.get("sw_path"))
@@ -1176,10 +1186,50 @@ class OWPreprocess(Orange.widgets.data.owpreprocess.OWPreprocess,
                                      search_paths, **kwargs)
         return path
 
+    def __on_item_inserted(self, _, first: int, last: int):
+        assert first == last
+        self.__set_languages_single_editor(first)
+        self.storedsettings = self.save(self.preprocessormodel)
+
     @Inputs.corpus
     def set_data(self, data: Corpus):
         self.cancel()
         self.data = data
+        self.__set_languages()
+
+    LANG_PARAMS = {
+        "preprocess.normalize": ["snowball_language", "udpipe_language", "lemmagen_language"],
+        "preprocess.filter": ["language"],
+    }
+
+    def __store_pending_languages(self):
+        self.__pending_languages = defaultdict(dict)
+        for pp_name, params in self.storedsettings["preprocessors"]:
+            for p in params:
+                if "language" in p:
+                    self.__pending_languages[pp_name][p] = params[p]
+
+    def __set_languages(self):
+        if self.data is not None:
+            for i in range(self.preprocessormodel.rowCount()):
+                self.__set_languages_single_editor(i)
+            self.__pending_languages = {}
+            self.storedsettings = self.save(self.preprocessormodel)
+
+    def __set_languages_single_editor(self, item_index: int):
+        item = self.preprocessormodel.item(item_index)
+        pp_name = item.data(DescriptionRole).qualname
+        params = item.data(ParametersRole)
+        pending = self.__pending_languages.get(pp_name, {})
+        for param in self.LANG_PARAMS.get(pp_name, []):
+            # if param in pending:
+            #     params[param] = pending[param]
+            if self.data and param not in pending and self.data.language:
+                params[param] = self.data.language
+        with disconnected(self.preprocessormodel.dataChanged, self.__on_modelchanged):
+            # dataChange must be disconnected to prevent double apply call
+            # both calls of this method call apply after
+            item.setData(params, ParametersRole)
 
     def buildpreproc(self) -> PreprocessorList:
         plist = []
@@ -1187,6 +1237,7 @@ class OWPreprocess(Orange.widgets.data.owpreprocess.OWPreprocess,
             item = self.preprocessormodel.item(i)
             desc = item.data(DescriptionRole)
             params = item.data(ParametersRole)
+
             assert isinstance(params, dict)
 
             inst = desc.viewclass.createinstance(params)
@@ -1202,6 +1253,7 @@ class OWPreprocess(Orange.widgets.data.owpreprocess.OWPreprocess,
                 self.Warning.tokenizer_propagated()
         elif isinstance(preprocessors, UDPipeLemmatizer):
             if not preprocessors.models.online:
+                print(preprocessors.models.online)
                 if not preprocessors.models.model_files:
                     self.Warning.udpipe_offline_no_models()
                 else:

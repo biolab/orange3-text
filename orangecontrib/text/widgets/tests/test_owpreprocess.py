@@ -125,7 +125,7 @@ class TestOWPreprocess(WidgetTest):
                "preprocessors": [("preprocess.normalize",
                                   {"method": NormalizationModule.UDPipe})]
            }))
-    @patch("orangecontrib.text.preprocess.normalize.UDPipeModels.online",
+    @patch("orangecontrib.text.widgets.owpreprocess.UDPipeModels.online",
            PropertyMock(return_value=False))
     @patch("orangecontrib.text.preprocess.normalize.UDPipeModels.model_files",
            PropertyMock(return_value={}))
@@ -179,6 +179,81 @@ class TestOWPreprocess(WidgetTest):
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
         self.wait_until_finished()
         self.assertFalse(self.widget.Warning.no_token_left.is_shown())
+
+    def test_language_from_corpus(self):
+        """Language from corpus is set correctly"""
+        initial = {
+            "name": "",
+            "preprocessors": [
+                ("preprocess.transform", {}),
+                ("preprocess.tokenize", {}),
+                ("preprocess.normalize", {}),
+                ("preprocess.filter", {}),
+            ],
+        }
+        self.widget.storedsettings = initial
+        self.widget._initialize()
+        self.assertDictEqual(initial, self.widget.storedsettings)
+
+        self.corpus.attributes["language"] = None
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        # nothing should change since language is missing in corpus
+        self.assertDictEqual(initial, self.widget.storedsettings)
+
+        self.corpus.attributes["language"] = "sl"
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        normalize_settings = self.widget.storedsettings["preprocessors"][2][1]
+        filter_settings = self.widget.storedsettings["preprocessors"][3][1]
+        self.assertEqual("sl", normalize_settings["lemmagen_language"])
+        # sl is not supported by snowball
+        self.assertEqual("en", normalize_settings["snowball_language"])
+        self.assertEqual("sl", normalize_settings["udpipe_language"])
+        self.assertEqual("sl", filter_settings["language"])
+
+        # language not supported by some - keep previous selection
+        self.corpus.attributes["language"] = "nl"
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        normalize_settings = self.widget.storedsettings["preprocessors"][2][1]
+        filter_settings = self.widget.storedsettings["preprocessors"][3][1]
+        self.assertEqual("sl", normalize_settings["lemmagen_language"])
+        self.assertEqual("nl", normalize_settings["snowball_language"])
+        self.assertEqual("sl", normalize_settings["udpipe_language"])
+        self.assertEqual("nl", filter_settings["language"])
+
+        # language not supported at all
+        self.corpus.attributes["language"] = "bo"
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        normalize_settings = self.widget.storedsettings["preprocessors"][2][1]
+        filter_settings = self.widget.storedsettings["preprocessors"][3][1]
+        self.assertEqual("sl", normalize_settings["lemmagen_language"])
+        self.assertEqual("nl", normalize_settings["snowball_language"])
+        self.assertEqual("sl", normalize_settings["udpipe_language"])
+        self.assertEqual("nl", filter_settings["language"])
+
+    def test_language_from_schema(self):
+        """Test language from schema/workflow is retained"""
+        initial = {
+            "name": "",
+            "preprocessors": [
+                ("preprocess.transform", {}),
+                ("preprocess.tokenize", {}),
+                (
+                    "preprocess.normalize",
+                    {
+                        "lemmagen_language": "sl",
+                        "snowball_language": "nl",
+                        "udpipe_language": "lt",
+                    },
+                ),
+                ("preprocess.filter", {"language": "nl"}),
+            ],
+        }
+        self.widget.storedsettings = initial
+
+        settings = self.widget.settingsHandler.pack_data(self.widget)
+        widget = self.create_widget(OWPreprocess, stored_settings=settings)
+        self.send_signal(widget.Inputs.corpus, self.corpus, widget=widget)
+        self.assertDictEqual(initial, widget.storedsettings)
 
 
 @patch(SF_LIST, new=Mock(return_value=SERVER_FILES))
@@ -983,14 +1058,20 @@ class TestUDPipeComboBox(WidgetTest):
         self.assertEqual("Portuguese", cb.currentText())
         cb.set_current_language("sl")
         self.assertEqual("Slovenian", cb.currentText())
-        cb.set_current_language("abc")  # should set to default
-        self.assertEqual("English", cb.currentText())
+        cb.set_current_language("abc")  # language not in list - keep current seleciton
+        self.assertEqual("Slovenian", cb.currentText())
+
+    def test_set_language_to_default(self):
+        """In case current item not in dropdown anymore set language to default"""
+        mock = Mock()
+        cb = UDPipeComboBox(None, "pt", "en", mock)
+        self.assertEqual("Portuguese", cb.currentText())
         # when no default language in the dropdown set to first
         cb.removeItem(0)
         x = cb._UDPipeComboBox__items
         cb._UDPipeComboBox__items = x[:3] + x[4:]
-        cb.set_current_language("abc")
-        self.assertEqual("English (lines)", cb.currentText())
+        cb.showPopup()
+        self.assertEqual("English", cb.currentText())
 
     def test_change_item(self):
         mock = Mock()
