@@ -124,7 +124,8 @@ class LanguageModel(PyListModel):
         """
         if languages is None:
             # if languages not provided take all available languages
-            languages = sorted(filter(None, ISO2LANG), key=ISO2LANG.get)
+            languages = filter(None, ISO2LANG)
+        languages = sorted(languages, key=ISO2LANG.get)
         if include_none:
             languages = [None] + languages
         super().__init__(iterable=languages)
