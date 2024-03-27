@@ -1,5 +1,5 @@
 # coding: utf-8
-from collections import Counter
+from collections import Counter, defaultdict
 from itertools import cycle
 from math import pi as PI
 from typing import Dict, List, Tuple
@@ -42,7 +42,8 @@ def _bow_words(corpus):
     return {f: w for f, w in average_bows.items() if w > 0}
 
 
-def count_words(data: Corpus, state: TaskState) -> Tuple[Counter, bool]:
+def count_words(data: Corpus, state: TaskState) -> Tuple[Counter, Counter,
+bool]:
     """
     This function implements counting process of the word cloud widget and
     is called in the separate thread by concurrent.
@@ -69,8 +70,13 @@ def count_words(data: Corpus, state: TaskState) -> Tuple[Counter, bool]:
         corpus_counter = Counter(
             w for doc in data.ngrams for w in doc
         )
+    word_documents = defaultdict(int)
+    for doc in data.ngrams:
+        words = set(w for w in doc)
+        for word in words:
+            word_documents[word] += 1
     state.set_progress_value(1)
-    return corpus_counter, bool(bow_counts)
+    return corpus_counter, Counter(word_documents), bool(bow_counts)
 
 
 class TableModel(PyTableModel):
@@ -141,6 +147,7 @@ class OWWordCloud(OWWidget, ConcurrentWidgetMixin):
         self.topic = None
         self.corpus = None
         self.corpus_counter = None
+        self.document_counter = None
         self.wordlist = None
         self.shown_words = None
         self.shown_weights = None
@@ -393,25 +400,29 @@ span.selected {color:red !important}
         self._repopulate_wordcloud(words, weights)
 
     def _apply_corpus(self):
-        words, freq = self.word_frequencies()
+        words, freq, _ = self.word_frequencies()
         self._repopulate_wordcloud(words, freq)
 
     def word_frequencies(self):
         counts = self.corpus_counter.most_common()
         words, freq = zip(*counts) if counts else ([], [])
-        return words, freq
+        doc_freq = [self.document_counter[w] for w in words]
+        return words, freq, doc_freq
 
     def create_weight_list(self):
         wc_table = None
         if self.corpus is not None:
-            words, freq = self.word_frequencies()
+            words, freq, doc_freq = self.word_frequencies()
             words = np.array(words)[:, None]
             w_count = np.array(freq)[:, None]
+            d_count = np.array(doc_freq)[:, None]
             domain = Domain(
-                [ContinuousVariable("Word Count")],
+                [ContinuousVariable("Word Count"), ContinuousVariable(
+                    "Document Count")],
                 metas=[StringVariable("Word")],
             )
-            wc_table = Table.from_numpy(domain, X=w_count, metas=words)
+            wc_table = Table.from_numpy(domain, X=np.hstack((w_count, d_count)),
+            metas=words)
             wc_table.name = "Word Counts"
         self.Outputs.word_counts.send(wc_table)
 
@@ -421,16 +432,18 @@ span.selected {color:red !important}
         self.Info.clear()
 
         self.corpus_counter = Counter()
+        self.document_counter = Counter()
         if data is not None:
             self.start(count_words, data)
         else:
             self.handle_input()
         self.create_weight_list()
 
-    def on_done(self, result: Tuple[Counter, bool]) -> None:
+    def on_done(self, result: Tuple[Counter, Counter, bool]) -> None:
         self.corpus_counter = result[0]
+        self.document_counter = result[1]
         self.create_weight_list()
-        if result[1]:
+        if result[2]:
             self.Info.bow_weights()
         self.handle_input()
 
