@@ -2,7 +2,6 @@ from typing import Dict, Optional, List, Callable, Tuple, Type, Union, Iterable
 from types import SimpleNamespace
 import os
 import random
-import pkg_resources
 
 from AnyQt.QtCore import Qt, pyqtSignal, QModelIndex
 from AnyQt.QtWidgets import QComboBox, QButtonGroup, QLabel, QCheckBox, \
@@ -35,7 +34,7 @@ _DEFAULT_NONE = "(none)"
 
 
 def icon_path(basename):
-    return pkg_resources.resource_filename(__name__, "icons/" + basename)
+    return os.path.join(os.path.dirname(__file__), "icons", basename)
 
 
 class Result(SimpleNamespace):
