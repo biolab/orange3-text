@@ -22,12 +22,12 @@ from Orange.widgets.widget import Input, Output, OWWidget, Msg
 
 from orangecontrib.text import Corpus
 from orangecontrib.text.keywords import ScoringMethods, AggregationMethods, \
-    YAKE_LANGUAGE_MAPPING, RAKE_LANGUAGES
+    YAKE_LANGUAGES, RAKE_LANGUAGES
+from orangecontrib.text.language import LanguageModel
 from orangecontrib.text.preprocess import BaseNormalizer
 from orangecontrib.text.widgets.utils.words import create_words_table, \
     WORDS_COLUMN_NAME
 
-YAKE_LANGUAGES = list(YAKE_LANGUAGE_MAPPING.keys())
 CONNECTION_WARNING = (
     f"{ScoringMethods.MBERT} could not extract keywords from some "
     "documents due to connection error. Please rerun keyword extraction."
@@ -202,15 +202,17 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
     keywords = "extract keywords, characteristic, term"
 
     buttons_area_orientation = Qt.Vertical
+    settings_version = 2
 
     # Qt.DescendingOrder is IntEnum in PyQt5 and Enum in PyQt6 (both have value attr)
     # in setting we want to save integer and not Enum object (in case of PyQt6)
     DEFAULT_SORTING = (1, enum2int(Qt.DescendingOrder))
+    DEFAULT_LANGUAGE = "en"
 
     settingsHandler = DomainContextHandler()
     selected_scoring_methods: Set[str] = Setting({ScoringMethods.TF_IDF})
-    yake_lang_index: int = Setting(YAKE_LANGUAGES.index("English"))
-    rake_lang_index: int = Setting(RAKE_LANGUAGES.index("English"))
+    yake_language: Optional[str] = Setting(None, schema_only=True)
+    rake_language: Optional[str] = Setting(None, schema_only=True)
     agg_method: int = Setting(AggregationMethods.MEAN)
     sel_method: int = ContextSetting(SelectionMethods.N_BEST)
     n_selected: int = ContextSetting(3)
@@ -236,6 +238,15 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
         self.words: Optional[List] = None
         self.__cached_keywords = {}
         self.model = KeywordsTableModel(parent=self)
+
+        # languages from workflow should be retained when data on input
+        self.__pending_yake_language = self.yake_language
+        self.__pending_rake_language = self.rake_language
+        # language setting is None by default to prevent default language is
+        # saved as pending. It is set to default (here) after pending is stored
+        self.yake_language = self.yake_language or self.DEFAULT_LANGUAGE
+        self.rake_language = self.rake_language or self.DEFAULT_LANGUAGE
+
         self._setup_gui()
 
     def _setup_gui(self):
@@ -243,11 +254,17 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
         box = gui.widgetBox(self.controlArea, "Scoring Methods", grid)
 
         yake_cb = gui.comboBox(
-            self.controlArea, self, "yake_lang_index", items=YAKE_LANGUAGES,
+            self.controlArea,
+            self,
+            "yake_language",
+            model=LanguageModel(include_none=False, languages=YAKE_LANGUAGES),
             callback=self.__on_yake_lang_changed
         )
         rake_cb = gui.comboBox(
-            self.controlArea, self, "rake_lang_index", items=RAKE_LANGUAGES,
+            self.controlArea,
+            self,
+            "rake_language",
+            model=LanguageModel(include_none=False, languages=RAKE_LANGUAGES),
             callback=self.__on_rake_lang_changed
         )
 
@@ -371,6 +388,17 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
         self.corpus = corpus
         self.openContext(self.corpus)
         self.__sel_method_buttons.button(self.sel_method).setChecked(True)
+        if corpus is not None and corpus.language is not None:
+            if self.__pending_rake_language is not None:
+                self.yake_language = self.__pending_yake_language
+                self.rake_language = self.__pending_rake_language
+                self.__pending_yake_language = None
+                self.__pending_rake_language = None
+            else:
+                if corpus.language in YAKE_LANGUAGES:
+                    self.yake_language = corpus.language
+                if corpus.language in RAKE_LANGUAGES:
+                    self.rake_language = corpus.language
 
     def _clear(self):
         self.clear_messages()
@@ -397,11 +425,11 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
         self.Warning.extraction_warnings.clear()
         kwargs = {
             ScoringMethods.YAKE: {
-                "language": YAKE_LANGUAGES[self.yake_lang_index],
+                "language": self.yake_language,
                 "max_len": self.corpus.ngram_range[1] if self.corpus else 1
             },
             ScoringMethods.RAKE: {
-                "language": RAKE_LANGUAGES[self.rake_lang_index],
+                "language": self.rake_language,
                 "max_len": self.corpus.ngram_range[1] if self.corpus else 1,
             },
         }
@@ -507,6 +535,26 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
         if self.words is not None:
             self.report_paragraph("Words", ", ".join(self.words))
         self.report_table("Keywords", self.view, num_format="{:.3f}")
+
+    @classmethod
+    def migrate_settings(cls, settings: Dict[str, Any], version: Optional[int]):
+        if version is None or version < 2:
+            # before version 2 settings were indexes now they are strings
+            # with language name and selected aggregator name
+            if "yake_lang_index" in settings:
+                settings["yake_language"] = YAKE_LANGUAGES[settings["yake_lang_index"]]
+            if "rake_lang_index" in settings:
+                # historic copy of RAKE_LANGUAGES, since current list (now set) depends
+                # on languages in NLTK. If they change order or add a language settings
+                # will not be migrated correctly
+                # fmt: off
+                previous_order = [
+                    "ar", "az", "eu", "bn", "ca", "zh", "da", "nl", "en", "fi",
+                    "fr", "de", "el", "he", "hi_eng", "hu", "id", "it", "kk",
+                    "ne", "no", "pt", "ro", "ru", "sl", "es", "sv", "tg", "tr"
+                ]
+                # fmt: on
+                settings["rake_language"] = previous_order[settings["rake_lang_index"]]
 
 
 if __name__ == "__main__":
