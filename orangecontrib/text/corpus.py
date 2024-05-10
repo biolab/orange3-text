@@ -19,6 +19,14 @@ from Orange.data import (
 )
 from Orange.preprocess.transformation import Identity
 from Orange.data.util import get_unique_names
+
+# Gensim is 4.3.2 is incompatible with scipy 1.3, where they removed triu/
+# thus hack what it is missing here it.
+# Remove this section after we depend on newer gensim
+import scipy.linalg
+if "triu" not in scipy.linalg.__dict__:
+    scipy.linalg.triu = np.triu
+
 from gensim import corpora
 from orangewidget.utils.signals import summarize, PartialSummary
 import scipy.sparse as sp
