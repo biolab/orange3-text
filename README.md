@@ -6,6 +6,7 @@ Orange3 Text
 [![codecov](https://codecov.io/gh/biolab/orange3-text/branch/master/graph/badge.svg)](https://codecov.io/gh/biolab/orange3-text)
 [![Documentation Status](https://readthedocs.org/projects/orange3-text/badge/?version=latest)](http://orange3-text.readthedocs.org/en/latest/?badge=latest)
 
+.fdfd
 Orange3 Text extends [Orange3](http://orange.biolab.si), a data mining software
 package, with common functionality for text mining. It provides access
 to publicly available data, like NY Times, Twitter, Wikipedia and PubMed. Furthermore,
