@@ -414,6 +414,10 @@ class Corpus(Table):
         """ Return whether corpus is preprocessed or not. """
         return self._tokens is not None
 
+    def has_tags(self):
+        """ Return whether corpus is POS tagged or not. """
+        return self._pos_tags is not None
+
     def _base_tokens(self):
         from orangecontrib.text.preprocess import BASE_TRANSFORMER, \
             BASE_TOKENIZER, PreprocessorList
