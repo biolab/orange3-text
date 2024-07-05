@@ -721,5 +721,34 @@ class NGramsTests(unittest.TestCase):
         self.assertEqual(loaded._NGrams__range, self.pp._NGrams__range)
 
 
+class TestPOSTagging(unittest.TestCase):
+    def setUp(self):
+        self.corpus = Corpus.from_file("deerwester")
+        self.pp = [preprocess.WordPunctTokenizer(),
+                   tag.SpacyPOSTagger()]
+
+    def test_no_tokens(self):
+        self.assertFalse(self.corpus.has_tokens())
+        tagger = tag.SpacyPOSTagger()
+        corpus = tagger(self.corpus)
+        self.assertEqual(len(corpus.used_preprocessor.preprocessors), 2)
+        self.assertTrue(corpus.has_tags())
+
+    def test_pos_tagger(self):
+        corpus = self.corpus
+        for pp in self.pp:
+            corpus = pp(corpus)
+        self.assertTrue(corpus.has_tokens())
+        self.assertTrue(corpus.has_tags())
+        self.assertEqual(len(corpus.pos_tags), len(corpus.tokens))
+        spacy_tags = corpus.pos_tags
+        tagger = tag.AveragedPerceptronTagger()
+        corpus = tagger(self.corpus)
+        self.assertEqual(len(corpus.pos_tags), len(corpus.tokens))
+        self.assertEqual(len(corpus.used_preprocessor.preprocessors), 2)
+        apt_tags = corpus.pos_tags
+        self.assertFalse(bool(np.array_equal(spacy_tags, apt_tags)))
+
+
 if __name__ == "__main__":
     unittest.main()
