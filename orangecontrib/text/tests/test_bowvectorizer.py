@@ -31,6 +31,13 @@ class BowVectorizationTest(unittest.TestCase):
 
         self.assertIs(corpus, bag_of_words)
 
+    def test_store_tokens(self):
+        corpus = Corpus.from_file('deerwester')
+        self.assertFalse(corpus.has_tokens())
+
+        bag_of_words = BowVectorizer().transform(corpus, copy=False)
+        self.assertTrue(bag_of_words.has_tokens())
+
     def test_domain(self):
         vect = BowVectorizer()
         corpus = Corpus.from_file('deerwester')
