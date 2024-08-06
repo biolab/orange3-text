@@ -97,7 +97,7 @@ class OWSentimentAnalysis(OWWidget, ConcurrentWidgetMixin):
             model=LanguageModel(languages=LiuHuSentiment.LANGUAGES),
             callback=self._method_changed,
         )
-        self.vader = gui.appendRadioButton(box, "Vader", addToLayout=False)
+        self.vader = gui.appendRadioButton(box, "VADER", addToLayout=False)
         self.multi_sent = gui.appendRadioButton(
             box, "Multilingual " "sentiment", addToLayout=False
         )
