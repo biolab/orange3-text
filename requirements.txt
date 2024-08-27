@@ -3,7 +3,7 @@ beautifulsoup4
 biopython  # Enables Pubmed widget.
 conllu
 docx2txt>=0.6
-gensim>=4.3.0,!=4.3.1  # gensim 4.3.1 is build on numpy 1.24, causing error on older numpys
+gensim>=4.3.3
 httpx!=0.23.1  # temporary fix - semantic search fail (but only in tests)
 langdetect
 lemmagen3
