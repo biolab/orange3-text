@@ -1,7 +1,6 @@
 import os
 import pickle
 import unittest
-from datetime import datetime
 
 import numpy as np
 from numpy.testing import assert_array_equal
@@ -16,7 +15,6 @@ from Orange.data import (
 from orangewidget.utils.signals import summarize
 from scipy.sparse import csr_matrix, issparse
 
-import orangecontrib
 from orangecontrib.text import preprocess
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.preprocess import (
@@ -25,18 +23,6 @@ from orangecontrib.text.preprocess import (
     StopwordsFilter,
 )
 from orangecontrib.text.tag import AveragedPerceptronTagger
-
-
-class ImportHack(unittest.TestCase):
-
-    def test_perhaps_remove_gensim_hack(self):
-        now = datetime.now()
-        if (now.year, now.month) >= (2024, 7):
-            self.fail(
-                "Check if gensim newer than 4.3.2 is available; if so, add it "
-                "to requirements, remove the scipy monkey-patch in corpus.py "
-                "and this test."
-            )
 
 
 class CorpusTests(unittest.TestCase):

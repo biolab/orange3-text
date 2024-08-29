@@ -22,8 +22,8 @@ NLTK_DATA = [
     'punkt',
     'opinion_lexicon',
     'vader_lexicon',
-    'averaged_perceptron_tagger',
-    'maxent_treebank_pos_tagger',
+    'averaged_perceptron_tagger_eng',
+    'maxent_treebank_pos_tagger_tab',
     'omw-1.4',
 ]
 
