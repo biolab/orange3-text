@@ -501,6 +501,24 @@ class FilteringTests(unittest.TestCase):
         self.assertEqual("en", StopwordsFilter.lang_to_iso("English"))
         self.assertEqual("sl", StopwordsFilter.lang_to_iso("Slovene"))
 
+    def test_custom_list(self):
+        f = tempfile.NamedTemporaryFile("w", delete=False,
+                                        encoding='utf-8-sig')
+        # test if BOM removed
+        f.write('human\n')
+        f.write('user\n')
+        f.flush()
+        f.close()
+        stopwords = preprocess.StopwordsFilter(None, f.name)
+        self.assertIn('human', stopwords._lexicon)
+        self.assertIn('user', stopwords._lexicon)
+        with self.corpus.unlocked():
+            self.corpus.metas[0, 0] = 'human user baz'
+        processed = stopwords(self.corpus)
+        self.assertEqual(["baz"], processed.tokens[0])
+        f.close()
+        os.unlink(f.name)
+
     def test_lexicon(self):
         f = tempfile.NamedTemporaryFile(delete=False)
         f.write(b'filter\n')

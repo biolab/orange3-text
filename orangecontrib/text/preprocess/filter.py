@@ -58,7 +58,7 @@ class FileWordListMixin:
         if not path:
             return set()
 
-        for encoding in ('utf-8', None, detect_encoding(path)):
+        for encoding in ('utf-8-sig', None, detect_encoding(path)):
             try:
                 with open(path, encoding=encoding) as f:
                     return set(line.strip() for line in f)
