@@ -408,7 +408,8 @@ class ComputeValue:
         return self.function(data, self.pattern, self.source, lambda: True)[0]
 
     def __eq__(self, other):
-        return self.function == other.function and self.pattern == other.pattern
+        return type(self) is type(other) and self.function == other.function \
+            and self.pattern == other.pattern
 
     def __hash__(self):
         return hash((self.function, self.pattern))

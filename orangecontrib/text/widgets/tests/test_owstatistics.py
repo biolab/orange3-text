@@ -4,6 +4,7 @@ import numpy as np
 from AnyQt.QtWidgets import QPushButton
 
 from Orange.data import Domain, StringVariable
+from Orange.preprocess import SklImpute
 from Orange.widgets.tests.base import WidgetTest
 from Orange.widgets.tests.utils import simulate
 from orangecontrib.text import Corpus
@@ -520,6 +521,12 @@ class TestStatisticsWidget(WidgetTest):
             (15, "", Sources.TOKENS),
         ]
         self.assertListEqual(expected, widget.active_rules)
+
+    def test_preprocess_output(self):
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        output = self.get_output(self.widget.Outputs.corpus)
+        imputed = SklImpute()(output)
+        self.assertIsNotNone(imputed)
 
 
 if __name__ == "__main__":
