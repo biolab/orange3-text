@@ -73,7 +73,11 @@ class BowVectorizer(BaseVectorizer):
         if len(corpus) == 0:
             return corpus
         temp_corpus = list(corpus.ngrams_iterator(' ', include_postags=True))
-        dic = corpora.Dictionary(temp_corpus, prune_at=None) if not source_dict else source_dict
+        if not source_dict:
+            corpus.store_tokens(temp_corpus)
+            dic = corpora.Dictionary(temp_corpus, prune_at=None)
+        else:
+            dic = source_dict
         if len(dic) == 0:
             return corpus
         callback(0.3)
