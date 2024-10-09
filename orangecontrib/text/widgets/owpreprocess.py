@@ -27,8 +27,8 @@ from orangecontrib.text.language import ISO2LANG, LANG2ISO
 from orangecontrib.text.misc import nltk_data_dir
 from orangecontrib.text.preprocess import *
 from orangecontrib.text.preprocess.normalize import UDPipeStopIteration, UDPipeModels
-from orangecontrib.text.tag import AveragedPerceptronTagger, MaxEntTagger, \
-    POSTagger
+from orangecontrib.text.tag import (AveragedPerceptronTagger, MaxEntTagger,
+                                    SpacyPOSTagger, POSTagger)
 
 _DEFAULT_NONE = "(none)"
 
@@ -1033,15 +1033,63 @@ class NgramsModule(PreprocessorModule):
 
 
 class POSTaggingModule(SingleMethodModule):
-    Averaged, MaxEnt = range(2)
+    Averaged, MaxEnt, Spacy = range(3)
     Methods = {Averaged: AveragedPerceptronTagger,
-               MaxEnt: MaxEntTagger}
+               MaxEnt: MaxEntTagger,
+               Spacy: SpacyPOSTagger}
     DEFAULT_METHOD = Averaged
+    DEFAULT_LANGUAGE = "en"
+
+    def __init__(self, parent=None, **kwargs):
+        super().__init__(parent, **kwargs)
+        self.__method = self.DEFAULT_METHOD
+        self.spacy_lang = self.DEFAULT_LANGUAGE
+
+        self.__combo_scy = LanguageComboBox(
+            self,
+            SpacyPOSTagger.supported_languages,
+            self.DEFAULT_LANGUAGE,
+            False,
+            self.__set_spacy_lang
+        )
+
+        label = QLabel("Language:")
+        label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.layout().addWidget(label, self.Spacy, 1)
+        self.layout().addWidget(self.__combo_scy, self.Spacy, 2)
+
+    def __set_spacy_lang(self, language: str):
+        if self.spacy_lang != language:
+            self.spacy_lang = language
+            self.__combo_scy.set_current_language(language)
+            self.changed.emit()
+            if self.method == self.Spacy:
+                self.edited.emit()
+
+    def setParameters(self, params: Dict):
+        super().setParameters(params)
+        spacy_lang = params.get("spacy_language", self.DEFAULT_LANGUAGE)
+        self.__set_spacy_lang(spacy_lang)
+
+    def parameters(self) -> Dict:
+        params = super().parameters()
+        params.update({"spacy_language": self.spacy_lang})
+        return params
 
     @staticmethod
     def createinstance(params: Dict) -> POSTagger:
         method = params.get("method", POSTaggingModule.DEFAULT_METHOD)
-        return POSTaggingModule.Methods[method]()
+        args = {}
+        if method == POSTaggingModule.Spacy:
+            args = {"language": params.get("spacy_language",
+                                           POSTaggingModule.DEFAULT_LANGUAGE)}
+        return POSTaggingModule.Methods[method](**args)
+
+    def __repr__(self):
+        text = super().__repr__()
+        if self.method == self.Spacy:
+            text = f"{text} ({self.spacy_lang})"
+        return text
 
 
 PREPROCESS_ACTIONS = [
