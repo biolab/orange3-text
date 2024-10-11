@@ -117,9 +117,10 @@ class StopwordsFilter(BaseTokenFilter, FileWordListMixin):
         """
         return LANG2ISO[StopwordsFilter.NLTK2LANG.get(language, language)]
 
-    @staticmethod
+    @classmethod
+    @property
     @wait_nltk_data
-    def supported_languages() -> Set[str]:
+    def supported_languages(_) -> Set[str]:
         """
         List all languages supported by NLTK
 

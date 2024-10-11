@@ -20,7 +20,7 @@ from orangecontrib.text.preprocess import StopwordsFilter
 from orangecontrib.text.vectorization import BowVectorizer
 
 # all available languages for RAKE
-RAKE_LANGUAGES = StopwordsFilter.supported_languages()
+RAKE_LANGUAGES = StopwordsFilter.supported_languages
 # all available languages for YAKE!
 # fmt: off
 YAKE_LANGUAGES = [
