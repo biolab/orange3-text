@@ -247,6 +247,8 @@ class TestImportDocuments(unittest.TestCase):
         self.assertEqual(len(corpus), len(lemma))
         self.assertEqual(len(corpus), len(pos))
         self.assertEqual(len(corpus), len(ner))
+        self.assertTrue(np.any(~np.isnan(corpus.get_column(
+            "Speaker_birth"))))
 
     @patch(SF_LIST, return_value=SPECIAL_CHAR_FILES)
     @patch(PATCH_METHOD, side_effect=ConnectTimeout("test message", request=""))
