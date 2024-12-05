@@ -335,7 +335,7 @@ class ConlluReader(Reader):
 class ImportDocuments:
     META_DATA_FILE_KEY = "Text file"
     # this is what we will merge meta data on, change to user-set variable
-    CONLLU_META_DATA = "ID"
+    CONLLU_META_DATA = ["ID", "Text_ID"]
 
     def __init__(
         self,
@@ -513,13 +513,17 @@ class ImportDocuments:
             or self._meta_data is None
             or (
                 self.META_DATA_FILE_KEY not in self._meta_data.columns
-                and self.CONLLU_META_DATA not in self._meta_data.columns
+                and not any(i in self._meta_data.columns for i in
+                         self.CONLLU_META_DATA)
             )
         ):
             return corpus
 
         if self.is_conllu:
-            df = self._meta_data.set_index(self.CONLLU_META_DATA)
+            # find the first matching column
+            match_id = next((idx for idx in self.CONLLU_META_DATA if idx in
+                             self._meta_data.columns))
+            df = self._meta_data.set_index(match_id)
             path_column = corpus.get_column("utterance")
         else:
             df = self._meta_data.set_index(
