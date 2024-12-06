@@ -178,6 +178,12 @@ def quote_url(u):
 ResponseType = Tuple[Optional[Reader], Optional[TextData], Optional[str]]
 
 
+def _rewrite_proxies_to_mounts(proxies):
+    if proxies is None:
+        return None
+    return {c: httpx.AsyncHTTPTransport(proxy=url) for c, url in get_proxies().items()}
+
+
 class UrlProxyReader:
     """
     A collection of functions to handle async downloading of a list of documents
@@ -208,7 +214,8 @@ class UrlProxyReader:
 
     @staticmethod
     async def _read_files(urls: List[str], callback: Callable) -> List[ResponseType]:
-        async with httpx.AsyncClient(timeout=10.0, proxies=get_proxies()) as client:
+        proxy_mounts = _rewrite_proxies_to_mounts(get_proxies())
+        async with httpx.AsyncClient(timeout=10.0, mounts=proxy_mounts) as client:
             req = [UrlProxyReader._read_file(url, client, callback) for url in urls]
             return await asyncio.gather(*req)
 
