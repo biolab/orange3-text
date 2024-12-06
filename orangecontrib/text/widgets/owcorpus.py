@@ -374,9 +374,13 @@ class OWCorpus(OWWidget, ConcurrentWidgetMixin):
     def migrate_context(cls, context, version):
         if version < 2:
             if "language" in context.values:
-                language, type_ = context.values["language"]
-                language = LANG2ISO[migrate_language_name(language)]
-                context.values["language"] = (language, type_)
+                try:
+                    language, type_ = context.values["language"]
+                    language = LANG2ISO[migrate_language_name(language)]
+                    context.values["language"] = (language, type_)
+                except Exception as e:
+                    print("unable to load laguage :",e)
+                    return
 
 
 if __name__ == '__main__':
