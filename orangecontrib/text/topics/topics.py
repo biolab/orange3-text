@@ -64,6 +64,7 @@ def infer_ngrams_corpus(corpus, return_dict=False):
         (i, attribute.name) for i, attribute in enumerate(corpus.domain.attributes)
         if 'bow-feature' in attribute.attributes
     ]
+
     if len(bow_features) == 0:
         corpus = BowVectorizer().transform(corpus)
         bow_features = [
@@ -74,7 +75,8 @@ def infer_ngrams_corpus(corpus, return_dict=False):
     feature_presence = corpus.X.sum(axis=0)
     keep = [(i, a) for i, a in bow_features if feature_presence[0, i] > 0]
     # sort features by the order in the dictionary
-    dictionary = Dictionary(corpus.ngrams_iterator(include_postags=True), prune_at=None)
+    dictionary = Dictionary(corpus.ngrams_iterator(include_postags=False),
+                            prune_at=None)
     idx_of_keep = np.argsort([dictionary.token2id[a] for _, a in keep])
     keep = [keep[i][0] for i in idx_of_keep]
     result = []
