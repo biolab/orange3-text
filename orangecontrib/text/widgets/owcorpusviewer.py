@@ -23,6 +23,7 @@ from AnyQt.QtWidgets import (
     QSizePolicy,
     QSplitter,
     QTableView,
+    QMessageBox,
 )
 from Orange.data import Variable
 from Orange.data.domain import Domain, filter_visible
@@ -34,6 +35,8 @@ from Orange.widgets.utils.itemmodels import DomainModel
 from Orange.widgets.widget import Input, Msg, Output, OWWidget
 from orangecanvas.gui.utils import disconnected
 from orangewidget.utils.listview import ListViewSearch
+
+from PyQt5.QtWidgets import QMessageBox
 
 from orangecontrib.text.corpus import Corpus
 
@@ -133,7 +136,14 @@ def _count_matches(content: List[str], search_string: str, state: TaskState) -> 
     """
     matches = 0
     if search_string:
-        regex = re.compile(search_string.strip("|"), re.IGNORECASE)
+        try:
+            regex = re.compile(search_string.strip("|"), re.IGNORECASE)
+        except re.error:
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Critical)
+            msg.setText("Invalid regex")
+            msg.exec_()
+            return 0
         for i, text in enumerate(content):
             matches += len(regex.findall(text))
             state.set_progress_value((i + 1) / len(content) * 100)
@@ -186,6 +196,10 @@ class DocumentsFilterProxyModel(QSortFilterProxyModel):
     __regex = None
 
     def set_filter_string(self, filter_string: str):
+        try:
+            re.compile(filter_string.strip("|"), re.IGNORECASE)
+        except re.error:
+            return
         self.__regex = re.compile(filter_string.strip("|"), re.IGNORECASE)
         self.invalidateFilter()
 
