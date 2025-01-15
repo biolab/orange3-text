@@ -1338,7 +1338,7 @@ class OWPreprocess(Orange.widgets.data.owpreprocess.OWPreprocess,
                 self.preview = ", ".join(tokens[:5])
                 n_tokens = data.count_tokens() if data.has_tokens() else ''
                 n_types = data.count_unique_tokens() if data.has_tokens() else ''
-                self.output_info = f"Tokens: {n_tokens}\nTypes: {n_types}"
+                self.output_info = f"Tokens: {n_tokens:,}\nTypes: {n_types:,}"
             except StopIteration:
                 self.preview = ""
                 self.output_info = ""
