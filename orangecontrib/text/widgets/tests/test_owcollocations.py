@@ -1,9 +1,7 @@
 import unittest
-from distutils.version import LooseVersion
 
 from AnyQt.QtCore import Qt
 
-import Orange
 from Orange.widgets.tests.base import WidgetTest
 
 from orangecontrib.text import Corpus
