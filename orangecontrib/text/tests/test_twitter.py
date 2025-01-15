@@ -233,7 +233,7 @@ class TestTwitterAPI(unittest.TestCase):
         user_mock.return_value = MagicMock(data=MagicMock(id=1))
 
         self.client.search_authors(["orange"])
-        user_mock.called_with(username="orange")
+        user_mock.assert_called_with(username="orange")
         self.assert_author_query(mock, 1)
         user_mock.reset_mock()
 
