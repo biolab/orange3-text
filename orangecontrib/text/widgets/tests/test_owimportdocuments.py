@@ -99,7 +99,7 @@ class TestOWImportDocuments(WidgetTest):
         # check named entities are on the output
         self.widget.controls.ner_cb.setChecked(True)
         corpus = self.get_output(self.widget.Outputs.data)
-        self.assertEqual(len(corpus.domain.metas), 5)
+        self.assertEqual(len(corpus.domain.metas), 23)
         # check only corpus is on the output when all boxes unchecked
         self.widget.controls.lemma_cb.setChecked(False)
         self.widget.controls.pos_cb.setChecked(False)
@@ -107,7 +107,7 @@ class TestOWImportDocuments(WidgetTest):
         corpus = self.get_output(self.widget.Outputs.data)
         self.assertFalse(corpus.has_tokens())
         self.assertIsNone(corpus.pos_tags)
-        self.assertEqual(len(corpus.domain.metas), 4)
+        self.assertEqual(len(corpus.domain.metas), 22)
 
     def test_info_box(self):
         self.assertEqual("5 documents, 1 skipped", self.widget.info_area.text())
