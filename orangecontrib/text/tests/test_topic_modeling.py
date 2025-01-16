@@ -6,6 +6,7 @@ from orangecontrib.text import vectorization
 from orangecontrib.text.topics import LdaWrapper, HdpWrapper, LsiWrapper, NmfWrapper
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text import preprocess
+from orangecontrib.text.tag import AveragedPerceptronTagger
 
 
 class BaseTests:
@@ -81,6 +82,17 @@ class BaseTests:
         self.model.fit_transform(corpus)
         self.assertEqual(self.model.doc_topic.shape[1],
                          self.model.actual_topics)
+
+    def test_pos_tags(self):
+        corpus = Corpus.from_file('deerwester')
+        pp_list = [preprocess.WordPunctTokenizer(),
+                   AveragedPerceptronTagger(),
+                   preprocess.PosTagFilter("NN")]
+        for pp in pp_list:
+            corpus = pp(corpus)
+        self.model.fit_transform(corpus)
+        self.assertTrue(all("_NN" in word for word in
+                            self.model.get_top_words_by_id(0, 10)[0]))
 
 
 class LDATests(unittest.TestCase, BaseTests):
