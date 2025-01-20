@@ -36,8 +36,6 @@ from Orange.widgets.widget import Input, Msg, Output, OWWidget
 from orangecanvas.gui.utils import disconnected
 from orangewidget.utils.listview import ListViewSearch
 
-from PyQt5.QtWidgets import QMessageBox
-
 from orangecontrib.text.corpus import Corpus
 
 HTML = """
@@ -118,7 +116,7 @@ SEPARATOR = (
 )
 
 
-def _count_matches(content: List[str], search_string: str, state: TaskState) -> int:
+def _count_matches(content: List[str], regex: re.Pattern, state: TaskState) -> int:
     """
     Count number of appears of any terms in search_string in content texts.
 
@@ -135,18 +133,11 @@ def _count_matches(content: List[str], search_string: str, state: TaskState) -> 
     Number of all matches of search_string in all texts in content list
     """
     matches = 0
-    if search_string:
-        try:
-            regex = re.compile(search_string.strip("|"), re.IGNORECASE)
-        except re.error:
-            msg = QMessageBox()
-            msg.setIcon(QMessageBox.Critical)
-            msg.setText("Invalid regex")
-            msg.exec_()
-            return 0
-        for i, text in enumerate(content):
-            matches += len(regex.findall(text))
-            state.set_progress_value((i + 1) / len(content) * 100)
+    if regex:
+        if regex.pattern:
+            for i, text in enumerate(content):
+                matches += len(regex.findall(text))
+                state.set_progress_value((i + 1) / len(content) * 100)
     return matches
 
 
@@ -327,6 +318,9 @@ class OWCorpusViewer(OWWidget, ConcurrentWidgetMixin):
     class Warning(OWWidget.Warning):
         no_feats_search = Msg("No features included in search.")
         no_feats_display = Msg("No features selected for display.")
+        
+    class Error(OWWidget.Error):
+        invalid_regex = Msg("Invalid regular expression.")
 
     def __init__(self):
         super().__init__()
@@ -601,6 +595,7 @@ class OWCorpusViewer(OWWidget, ConcurrentWidgetMixin):
         return self.corpus.documents_from_features(self.search_features)
 
     def refresh_search(self):
+        self.Error.invalid_regex.clear()
         if self.corpus is not None:
             self.doc_list.model().set_filter_string(self.regexp_filter)
             if not self.selected_documents:
@@ -608,10 +603,15 @@ class OWCorpusViewer(OWWidget, ConcurrentWidgetMixin):
                 # select first element in the view in that case
                 self.doc_list.setCurrentIndex(self.doc_list.model().index(0, 0))
             self.update_info()
+            try:
+                self.compiled_regex = re.compile(self.regexp_filter.strip("|"), re.IGNORECASE)
+            except re.error:
+                self.Error.invalid_regex()
+                self.compiled_regex = None
             self.start(
                 _count_matches,
                 self.doc_list_model.get_filter_content(),
-                self.regexp_filter,
+                self.compiled_regex,
             )
             self.show_docs()
             self.commit.deferred()

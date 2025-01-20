@@ -140,6 +140,20 @@ class TestCorpusViewerWidget(WidgetTest):
         self.wait_until_finished()
         self.assertEqual(self.widget.n_matches, 0)
 
+    def test_invalid_regex(self):
+        # Error is shown when invalid regex is entered
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.widget.regexp_filter = "*"
+        self.widget.refresh_search()
+        self.process_events()
+        self.assertEqual(self.widget.n_matches, 0)
+        self.assertTrue(self.widget.Error.invalid_regex.is_shown())
+        # Error is hidden when valid regex is entered
+        self.widget.regexp_filter = "graph"
+        self.widget.refresh_search()
+        self.process_events()
+        self.assertFalse(self.widget.Error.invalid_regex.is_shown())      
+   
     def test_highlighting(self):
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
         # no intersection between filter and selection
