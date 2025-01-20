@@ -146,7 +146,7 @@ class TestCorpusViewerWidget(WidgetTest):
         self.widget.regexp_filter = "*"
         self.widget.refresh_search()
         self.process_events()
-        self.assertEqual(self.widget.n_matches, 0)
+        self.assertEqual(self.widget.n_matches, "n/a")
         self.assertTrue(self.widget.Error.invalid_regex.is_shown())
         # Error is hidden when valid regex is entered
         self.widget.regexp_filter = "graph"

@@ -133,11 +133,10 @@ def _count_matches(content: List[str], regex: re.Pattern, state: TaskState) -> i
     Number of all matches of search_string in all texts in content list
     """
     matches = 0
-    if regex:
-        if regex.pattern:
-            for i, text in enumerate(content):
-                matches += len(regex.findall(text))
-                state.set_progress_value((i + 1) / len(content) * 100)
+    if regex.pattern:
+        for i, text in enumerate(content):
+            matches += len(regex.findall(text))
+            state.set_progress_value((i + 1) / len(content) * 100)
     return matches
 
 
@@ -605,14 +604,19 @@ class OWCorpusViewer(OWWidget, ConcurrentWidgetMixin):
             self.update_info()
             try:
                 self.compiled_regex = re.compile(self.regexp_filter.strip("|"), re.IGNORECASE)
+                self.start(
+                    _count_matches,
+                    self.doc_list_model.get_filter_content(),
+                    self.compiled_regex,
+                )
             except re.error:
                 self.Error.invalid_regex()
-                self.compiled_regex = None
-            self.start(
-                _count_matches,
-                self.doc_list_model.get_filter_content(),
-                self.compiled_regex,
-            )
+                self.compiled_regex = None 
+                self.n_matching = "n/a"
+                self.n_matches = "n/a"
+                self.n_tokens = "n/a"
+                self.n_types = "n/a"
+                
             self.show_docs()
             self.commit.deferred()
 
