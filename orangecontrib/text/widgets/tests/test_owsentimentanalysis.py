@@ -161,6 +161,15 @@ class TestSentimentWidget(WidgetTest):
         # this should not raise an exception
         self.send_signal("Corpus", None)
 
+    def test_custom_dictionary(self):
+        """Test case when custom dictionary is used"""
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        pos_file_path = os.path.join(os.path.dirname(__file__),
+                                     "data/sentiment/pos.txt")
+        self.widget._OWSentimentAnalysis__posfile_loader.add_path(pos_file_path)
+        self.widget._OWSentimentAnalysis__posfile_loader._activate()
+        self.assertEqual(self.widget.pos_file, pos_file_path)
+
     def test_migrates_settings(self):
         settings = {"method_idx": 4}
         OWSentimentAnalysis.migrate_settings(settings, version=None)
