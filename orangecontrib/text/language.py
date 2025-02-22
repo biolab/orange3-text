@@ -12,6 +12,7 @@ from orangewidget.utils.itemmodels import PyListModel
 # normalizers, embedding
 ISO2LANG = {
     "af": "Afrikaans",
+    "al": "Albanian",    
     "am": "Amharic",
     "ar": "Arabic",
     "az": "Azerbaijani",
