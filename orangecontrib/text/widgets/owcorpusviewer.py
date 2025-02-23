@@ -622,7 +622,7 @@ class OWCorpusViewer(OWWidget, ConcurrentWidgetMixin):
 
     def on_done(self, res: int):
         """When matches count is done show the result in the label"""
-        self.n_matches = res if res is not None else "n/a"
+        self.n_matches = f"{int(res):,}" if res is not None else "n/a"
 
     def on_exception(self, ex):
         raise ex
@@ -631,8 +631,8 @@ class OWCorpusViewer(OWWidget, ConcurrentWidgetMixin):
         if self.corpus is not None:
             has_tokens = self.corpus.has_tokens()
             self.n_matching = f"{self.doc_list.model().rowCount()}/{len(self.corpus)}"
-            self.n_tokens = self.corpus.count_tokens() if has_tokens else "n/a"
-            self.n_types = self.corpus.count_unique_tokens() if has_tokens else "n/a"
+            self.n_tokens = f"{int(self.corpus.count_tokens()):,}" if has_tokens else "n/a"
+            self.n_types = f"{int(self.corpus.count_unique_tokens()):,}" if has_tokens else "n/a"
         else:
             self.n_matching = "n/a"
             self.n_matches = "n/a"
