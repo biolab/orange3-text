@@ -22,7 +22,7 @@ from Orange.widgets.widget import Input, Output, OWWidget, Msg
 
 from orangecontrib.text import Corpus
 from orangecontrib.text.keywords import ScoringMethods, AggregationMethods, \
-    YAKE_LANGUAGES, RAKE_LANGUAGES
+    YAKE_LANGUAGES, RAKE_LANGUAGES, get_rake_languages
 from orangecontrib.text.language import LanguageModel
 from orangecontrib.text.preprocess import BaseNormalizer
 from orangecontrib.text.widgets.utils.words import create_words_table, \
@@ -260,6 +260,7 @@ class OWKeywords(OWWidget, ConcurrentWidgetMixin):
             model=LanguageModel(include_none=False, languages=YAKE_LANGUAGES),
             callback=self.__on_yake_lang_changed
         )
+        RAKE_LANGUAGES = get_rake_languages()
         rake_cb = gui.comboBox(
             self.controlArea,
             self,

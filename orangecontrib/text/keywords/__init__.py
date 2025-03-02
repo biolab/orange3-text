@@ -30,6 +30,8 @@ YAKE_LANGUAGES = [
 ]
 # fmt: on
 
+def get_rake_languages():
+    return StopwordsFilter.supported_languages()
 
 def tfidf_keywords(
     corpus: Corpus, progress_callback: Callable = None

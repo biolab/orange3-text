@@ -115,7 +115,11 @@ class StopwordsFilter(BaseTokenFilter, FileWordListMixin):
         -------
         ISO language code for input language
         """
-        return LANG2ISO[StopwordsFilter.NLTK2LANG.get(language, language)]
+        try:
+            return LANG2ISO[StopwordsFilter.NLTK2LANG.get(language, language)]
+        except LookupError:
+            print ('Missing language in ISO2LANG: '+language)
+            return ('None')
 
     @classmethod
     @property
@@ -128,14 +132,13 @@ class StopwordsFilter(BaseTokenFilter, FileWordListMixin):
         -------
         Set of all languages supported by NLTK
         """
-        try:
-            return {
-                StopwordsFilter.lang_to_iso(file.title())
-                for file in os.listdir(stopwords._get_root())
-                if file.islower()
-            }
-        except LookupError:  # when no NLTK data is available
-            return set()
+        languages_list = {
+            StopwordsFilter.lang_to_iso(file.title())
+            for file in os.listdir(stopwords._get_root())
+            if file.islower()
+        }
+        languages_list = {element for element in languages_list if "None" not in element}
+        return languages_list
 
     def _check(self, token):
         return token not in self.__stopwords and token not in self._lexicon
