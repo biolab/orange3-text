@@ -175,24 +175,12 @@ class OWSentimentAnalysis(OWWidget, ConcurrentWidgetMixin):
     def __pos_loader_activated(self):
         cf = self.__posfile_loader.get_current_file()
         self.pos_file = cf.abspath if cf else None
-        self.self.commit.deferred()
+        self.commit.deferred()
 
     def __neg_loader_activated(self):
         cf = self.__negfile_loader.get_current_file()
         self.neg_file = cf.abspath if cf else None
-        self.self.commit.deferred()
-
-    def __set_pos_path(self, path: RecentPath, paths: List[RecentPath] = []):
-        self._posfile_loader.recent_paths = paths
-        self.__posfile_loader.set_file_list()
-        self.__posfile_loader.set_current_file(_to_abspath(path))
-        self.pos_file = self.__posfile_loader.get_current_file()
-
-    def __set_lx_path(self, path: RecentPath, paths: List[RecentPath] = []):
-        self.__negfile_loader.recent_paths = paths
-        self.__negfile_loader.set_file_list()
-        self.__negfile_loader.set_current_file(_to_abspath(path))
-        self.neg_file = self.__negfile_loader.get_current_file()
+        self.commit.deferred()
 
     @Inputs.corpus
     def set_corpus(self, corpus):
