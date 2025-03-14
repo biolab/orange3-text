@@ -205,7 +205,7 @@ class TestOWCreateCorpus(WidgetTest):
         combo = self.widget.controlArea.findChild(QComboBox)
         simulate.combobox_activate_index(combo, 2)
         corpus = self.get_output(self.widget.Outputs.corpus)
-        self.assertEqual("am", corpus.language)
+        self.assertEqual("sq", corpus.language)
 
     def test_migrate_settings(self):
         settings = {"__version__": 1, "language": "French"}

@@ -101,7 +101,7 @@ class StopwordsFilter(BaseTokenFilter, FileWordListMixin):
             self.__stopwords = set(x.strip() for x in stopwords.words(language))
 
     @staticmethod
-    def lang_to_iso(language: str) -> str:
+    def lang_to_iso(language: str) -> str | None:
         """
         Returns the ISO language code for the NLTK language. NLTK have a different name
         for Slovenian. This function takes it into account while transforming to ISO.
@@ -110,12 +110,11 @@ class StopwordsFilter(BaseTokenFilter, FileWordListMixin):
         ----------
         language
             NLTK language name
-
         Returns
         -------
-        ISO language code for input language
+        ISO language code for input language, return None if language is not supported.
         """
-        return LANG2ISO[StopwordsFilter.NLTK2LANG.get(language, language)]
+        return LANG2ISO.get(StopwordsFilter.NLTK2LANG.get(language, language))
 
     @classmethod
     @property
@@ -133,7 +132,7 @@ class StopwordsFilter(BaseTokenFilter, FileWordListMixin):
                 StopwordsFilter.lang_to_iso(file.title())
                 for file in os.listdir(stopwords._get_root())
                 if file.islower()
-            }
+            } - {None}
         except LookupError:  # when no NLTK data is available
             return set()
 
