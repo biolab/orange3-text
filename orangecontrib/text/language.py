@@ -11,6 +11,7 @@ from orangewidget.utils.itemmodels import PyListModel
 # language dependent methods: YAKE!, nltk - stopwords, sentiment methods,
 # normalizers, embedding
 ISO2LANG = {
+    "al": "Albanian",
     "af": "Afrikaans",
     "am": "Amharic",
     "ar": "Arabic",
