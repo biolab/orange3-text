@@ -87,6 +87,7 @@ ISO2LANG = {
     "si": "Sinhala",
     "sk": "Slovak",
     "sl": "Slovenian",
+    "sq": "Albanian",
     "sr": "Serbian",
     "sv": "Swedish",
     "ta": "Tamil",

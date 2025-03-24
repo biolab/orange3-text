@@ -10,6 +10,7 @@ from unittest.mock import patch, Mock
 import nltk
 from gensim import corpora
 from lemmagen3 import Lemmatizer
+from nltk.corpus import stopwords
 from requests.exceptions import ConnectionError
 import numpy as np
 
@@ -496,6 +497,7 @@ class FilteringTests(unittest.TestCase):
         self.assertIn("sv", langs)
         self.assertIn("fi", langs)
         self.assertIn("de", langs)
+        self.assertNotIn(None, langs)
 
     def test_lang_to_iso(self):
         self.assertEqual("en", StopwordsFilter.lang_to_iso("English"))
@@ -518,6 +520,18 @@ class FilteringTests(unittest.TestCase):
         self.assertEqual(["baz"], processed.tokens[0])
         f.close()
         os.unlink(f.name)
+
+    def test_langauge_missing(self):
+        """
+        When NLTK adds language that is not in dict of languages module
+        should raise an error. If this test fall add missing langauge to LANG2ISO
+        """
+        for file in os.listdir(stopwords._get_root()):
+            if file.islower():
+                self.assertIsNotNone(
+                    StopwordsFilter.lang_to_iso(file.title()),
+                    f"Missing language {file.title()} in StopwordsFilter.LANG2ISO"
+                )
 
     def test_lexicon(self):
         f = tempfile.NamedTemporaryFile(delete=False)
