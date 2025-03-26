@@ -168,7 +168,7 @@ class TestSentimentWidget(WidgetTest):
                                      "data/sentiment/pos.txt")
         self.widget._OWSentimentAnalysis__posfile_loader.add_path(pos_file_path)
         self.widget._OWSentimentAnalysis__posfile_loader._activate()
-        self.assertEqual(self.widget.pos_file, pos_file_path)
+        self.assertEqual(self.widget.pos_file, pos_file_path.replace("\\", "/"))
 
     def test_migrates_settings(self):
         settings = {"method_idx": 4}
