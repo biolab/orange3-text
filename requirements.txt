@@ -25,6 +25,7 @@ serverfiles
 simhash >=1.11
 shapely >=2.0
 six
+spacy
 tweepy >=4.0.0
 ufal.udpipe >=1.2.0.3
 trimesh >=3.9.8  # required by alphashape
