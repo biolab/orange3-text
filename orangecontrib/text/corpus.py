@@ -159,6 +159,12 @@ class Corpus(Table):
                 # to invalidate tokens
                 self.text_features = feats
                 self._tokens = None  # invalidate tokens
+            for attr in self.domain.metas:
+                # update all include attributes
+                if attr in feats:
+                    attr.attributes['include'] = True
+                else:
+                    attr.attributes.pop('include', None)
         else:
             self._infer_text_features()
 

@@ -246,6 +246,7 @@ class CorpusTests(unittest.TestCase):
         c._infer_text_features()
         self.assertListEqual(c.text_features, [c.domain["Title"]])
 
+        c.domain["Title"].attributes["include"] = "False"
         c.domain["Content"].attributes["include"] = "True"
         c._infer_text_features()
         self.assertListEqual(c.text_features, [c.domain["Content"]])
@@ -260,6 +261,7 @@ class CorpusTests(unittest.TestCase):
         c._infer_text_features()
         self.assertListEqual(c.text_features, [c.domain["Title"]])
 
+        c.domain["Title"].attributes["include"] = False
         c.domain["Content"].attributes["include"] = True
         c._infer_text_features()
         self.assertListEqual(c.text_features, [c.domain["Content"]])

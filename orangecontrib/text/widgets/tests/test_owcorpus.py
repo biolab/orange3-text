@@ -219,6 +219,30 @@ class TestOWCorpus(WidgetTest):
         self.wait_until_finished()
         self.assertListEqual(list(prew_selected), self.widget.used_attrs)
 
+    def test_multiple_text_features(self):
+        """
+        Test whether the widget properly stores multiple text_features. It
+        must store them both in text_features and in the attributes of
+        attributes.
+        """
+        data = Corpus.from_file("grimm-tales")
+        old_features = len(data.text_features)
+        self.send_signal(self.widget.Inputs.data, data)
+        self.wait_until_finished()
+        # add one more text feature, namely Title
+        self.widget.used_attrs_model.append(data.domain.metas[0])
+        self.widget.update_feature_selection()
+        output = self.get_output(self.widget.Outputs.corpus)
+        self.assertNotEqual(old_features, len(output.text_features))
+        self.assertEqual(len(output.text_features), 2)
+        self.assertTrue(output.domain.metas[0].attributes["include"])
+        # remove one text feature, namely Content
+        self.widget.used_attrs_model.remove(data.domain.metas[2])
+        self.widget.update_feature_selection()
+        output = self.get_output(self.widget.Outputs.corpus)
+        self.assertEqual(len(output.text_features), 1)
+
+
     def test_no_text_feature(self):
         """
         Test with data which have empty text_features. Widget should not show
