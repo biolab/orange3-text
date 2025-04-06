@@ -58,12 +58,21 @@ class OWDocumentEmbedding(OWBaseVectorizer):
     class Warning(OWWidget.Warning):
         unsuccessful_embeddings = Msg("Some embeddings were unsuccessful.")
 
+    class Information(OWWidget.Information):
+        privacy_warning = Msg(
+            "This widget sends documents to an external server. "
+            "Avoid using it with sensitive data."
+        )
+
     method: int = Setting(default=0)
     language: str = Setting(default=DEFAULT_LANGUAGE, schema_only=True)
     aggregator: str = Setting(default="Mean")
 
     def __init__(self):
         super().__init__()
+
+        self.Information.privacy_warning()
+
         self.cancel_button = QPushButton(
             "Cancel", icon=self.style().standardIcon(QStyle.SP_DialogCancelButton)
         )
