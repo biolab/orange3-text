@@ -152,13 +152,19 @@ class OWCreateCorpus(OWWidget):
     @gui.deferred
     def commit(self):
         """Create a new corpus and output it"""
+        filtered_texts = [(title, text) for title, text in self.texts if text.strip()]
+
+        if not filtered_texts:
+            self.Outputs.corpus.send(None)
+            return
+
         doc_var = StringVariable("Document")
         title_var = StringVariable("Title")
         domain = Domain([], metas=[title_var, doc_var])
         corpus = Corpus.from_numpy(
             domain,
-            np.empty((len(self.texts), 0)),
-            metas=np.array(self.texts),
+            np.empty((len(filtered_texts), 0)),
+            metas=np.array(filtered_texts),
             text_features=[doc_var],
             language=self.language,
         )
