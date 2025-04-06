@@ -6,6 +6,7 @@ from Orange.misc.utils.embedder_utils import EmbeddingConnectionError
 from Orange.widgets import gui
 from Orange.widgets.settings import Setting
 from Orange.widgets.widget import Msg, Output, OWWidget
+from orangewidget.widget import Message
 
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.language import (
@@ -39,6 +40,13 @@ class OWDocumentEmbedding(OWBaseVectorizer):
     keywords = "embedding, document embedding, fasttext, bert, sbert"
     icon = "icons/TextEmbedding.svg"
     priority = 300
+
+    UserAdviceMessages = [
+        Message(
+            "This widget sends documents to an external server. Avoid using it with sensitive data.",
+            "privacy_warning"
+        )
+    ]
 
     buttons_area_orientation = Qt.Vertical
     settings_version = 3
