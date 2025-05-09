@@ -669,6 +669,6 @@ def summarize_corpus(corpus: Corpus) -> PartialSummary:
         if corpus.has_tokens()
         else "<br/><nobr>Corpus is not preprocessed</nobr>"
     )
-    language = ISO2LANG[corpus.language] if corpus.language else "not set"
+    language = ISO2LANG.get(corpus.language, "not set")
     extras += f"<br/><nobr>Language: {language}</nobr>"
     return PartialSummary(table_summary.summary, table_summary.details + extras)

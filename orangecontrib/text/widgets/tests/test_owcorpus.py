@@ -1,6 +1,8 @@
 import os
 import tempfile
 import unittest
+import shutil
+import pickle
 
 import numpy as np
 from Orange.data import Table, Domain, StringVariable, ContinuousVariable
@@ -430,6 +432,38 @@ class TestOWCorpus(WidgetTest):
         self.wait_until_finished(widget=widget)
         self.assertIsNone(widget.language)
 
+    def test_relative_corpus_path_serialization(self):
+        """
+        Test if relative paths are properly saved and reloaded.
+        """
+        # Create a dummy corpus file
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            corpus = Corpus.from_file("book-excerpts")
+            corpus_path = os.path.join(tmp_dir, "test.corpus")
+            with open(corpus_path, "wb") as f:
+                pickle.dump(corpus, f)
+
+            # Simulate loading the file into widget
+            self.widget.workflow_file = os.path.join(tmp_dir, "workflow.ows")
+            self.widget.corpus_path = corpus_path
+
+            settings = {}
+            self.widget.save_settings(settings)
+
+            # Simulate moving workflow and corpus to new directory
+            with tempfile.TemporaryDirectory() as new_dir:
+                new_corpus = os.path.join(new_dir, "test.corpus")
+                new_workflow = os.path.join(new_dir, "workflow.ows")
+                shutil.copy2(corpus_path, new_corpus)
+
+                # Simulate loading settings in new widget
+                restored = self.create_widget(OWCorpus)
+                restored.workflow_file = new_workflow
+                settings["corpus_path"] = os.path.relpath(new_corpus, new_dir)
+                restored.load_settings(settings)
+
+                self.assertTrue(os.path.exists(restored.corpus_path))
+                self.assertTrue(os.path.isabs(restored.corpus_path))
 
 if __name__ == "__main__":
     unittest.main()
