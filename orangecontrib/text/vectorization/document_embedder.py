@@ -16,6 +16,10 @@ from Orange.util import dummy_callback
 from orangecontrib.text import Corpus
 from orangecontrib.text.vectorization.base import BaseVectorizer
 
+from Orange.misc.utils.embedder_utils import EmbeddingConnectionError
+import socket
+from urllib.parse import urlparse
+
 AGGREGATORS = ["mean", "sum", "max", "min"]
 AGGREGATORS_ITEMS = ['Mean', 'Sum', 'Max', 'Min']
 # fmt: off
@@ -87,10 +91,36 @@ class DocumentEmbedder(BaseVectorizer):
             server_url="https://api.garaza.io",
             embedder_type="text",
         )
-        embs = embedder.embedd_data(
-            list(corpus.ngrams) if isinstance(corpus, Corpus) else corpus,
-            callback=callback,
-        )
+
+        try:
+            url = urlparse(embedder.server_url)
+            host, port = url.hostname, url.port or (443 if url.scheme == "https" else 80)
+
+            try:
+                sock = socket.create_connection((host, port), timeout=3)
+                sock.close()
+            except socket.gaierror as e:
+                try:
+                    socket.gethostbyname("example.com")
+                    raise ConnectionError("The server is not responding (bad hostname)") from e
+                except socket.gaierror:
+                    raise OSError("No internet connection (DNS failure)") from e
+            except (ConnectionRefusedError, socket.timeout, OSError):
+                raise ConnectionError("The server is not responding (socket check)")
+
+            embs = embedder.embedd_data(
+                list(corpus.ngrams) if isinstance(corpus, Corpus) else corpus,
+                callback=callback,
+            )
+            if not embs or all(e is None for e in embs):
+                raise ConnectionError("The server is not responding (no embeddings returned)")
+
+        except OSError as e:
+            raise EmbeddingConnectionError("No internet connection") from e
+        except ConnectionError as e:
+            raise EmbeddingConnectionError("The server is not responding") from e
+        except Exception as e:
+            raise EmbeddingConnectionError(f"Unknown network error: {e}") from e
 
         if isinstance(corpus, list):
             return embs
