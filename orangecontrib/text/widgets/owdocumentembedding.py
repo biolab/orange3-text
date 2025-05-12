@@ -53,6 +53,9 @@ class OWDocumentEmbedding(OWBaseVectorizer):
             "No internet connection. Please establish a connection or use "
             "another vectorizer."
         )
+        server_unresponsive = Msg(
+        "The server is not responding. Please check the server address or try again later."
+        )
         unexpected_error = Msg("Embedding error: {}")
 
     class Warning(OWWidget.Warning):
@@ -149,8 +152,21 @@ class OWDocumentEmbedding(OWBaseVectorizer):
 
     def on_exception(self, ex: Exception):
         self.cancel_button.setDisabled(True)
+        ex_msg = str(ex.__cause__ or ex).lower()  
+
         if isinstance(ex, EmbeddingConnectionError):
-            self.Error.no_connection()
+            if "getaddrinfo failed" in ex_msg or "no internet" in ex_msg or "temporary failure" in ex_msg:
+                self.Error.no_connection()
+            elif any(signal in ex_msg for signal in [
+                "connection refused",
+                "failed to establish a new connection",
+                "connection aborted",
+                "connection reset",
+                "the server is not responding"
+            ]):
+                self.Error.server_unresponsive()
+            else:
+                self.Error.unexpected_error(str(ex))
         else:
             self.Error.unexpected_error(str(ex))
         self.cancel()
