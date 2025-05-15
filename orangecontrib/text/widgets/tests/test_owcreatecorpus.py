@@ -219,7 +219,26 @@ class TestOWCreateCorpus(WidgetTest):
         settings = {"__version__": 1, "language": None}
         widget = self.create_widget(OWCreateCorpus, stored_settings=settings)
         self.assertIsNone(widget.language)
+    
+    def test_output_skips_empty_documents(self):
+        self.widget._add_document_editor("Doc1", " ")
+        self.widget._add_document_editor("Doc2", "Actual content")
 
+        self.widget.editors[0].title_le.setText("Doc1")
+        self.widget.editors[0].text_area.setPlainText(" ")
+        self.widget.editors[0].text_area.editingFinished.emit()
+        self.widget.editors[0].title_le.editingFinished.emit()
+
+        self.widget.editors[1].title_le.setText("Doc2")
+        self.widget.editors[1].text_area.setPlainText("Actual content")
+        self.widget.editors[1].text_area.editingFinished.emit()
+        self.widget.editors[1].title_le.editingFinished.emit()
+
+        self.widget.commit.now()
+        corpus = self.get_output(self.widget.Outputs.corpus)
+
+        self.assertListEqual(["Doc2"], corpus.titles.tolist())
+        self.assertListEqual(["Actual content"], corpus.documents)
 
 if __name__ == "__main__":
     unittest.main()
