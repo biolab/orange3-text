@@ -24,6 +24,7 @@ from orangecontrib.text.language import (
     migrate_language_name,
 )
 from orangecontrib.text.widgets.utils import widgets, QSize
+from orangecontrib.text.path import fix_relative_path, fix_absolute_path
 
 
 class CorpusContextHandler(DomainContextHandler):
@@ -369,6 +370,22 @@ class OWCorpus(OWWidget, ConcurrentWidgetMixin):
                 ('Other features', describe(domain.attributes)),
                 ('Target', describe(domain.class_vars)),
             ))
+    
+    def save_settings(self, settings):
+        if hasattr(self, "corpus_path") and self.corpus_path:
+            if hasattr(self, "workflow_file") and self.workflow_file:
+                base = os.path.dirname(self.workflow_file)
+                settings["corpus_path"] = fix_relative_path(self.corpus_path, base)
+            else:
+                settings["corpus_path"] = self.corpus_path
+
+    def load_settings(self, settings):
+        path = settings.get("corpus_path")
+        if path and hasattr(self, "workflow_file"):
+            base = os.path.dirname(self.workflow_file)
+            self.corpus_path = fix_absolute_path(path, base)
+        else:
+            self.corpus_path = path
 
     @classmethod
     def migrate_context(cls, context, version):

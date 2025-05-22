@@ -23,6 +23,7 @@ from orangewidget.utils.signals import summarize, PartialSummary
 import scipy.sparse as sp
 
 from orangecontrib.text.language import ISO2LANG
+from orangecontrib.text.path import fix_relative_path, fix_absolute_path
 
 
 def get_sample_corpora_dir():
@@ -594,7 +595,10 @@ class Corpus(Table):
         return c
 
     @classmethod
-    def from_file(cls, filename, sheet=None):
+    def from_file(cls, filename, sheet=None, relative_to=None):
+        if relative_to:
+            filename = fix_absolute_path(filename, relative_to)
+
         if not os.path.exists(filename):  # check the default location
             abs_path = os.path.join(get_sample_corpora_dir(), filename)
             if not abs_path.endswith('.tab'):
@@ -609,6 +613,13 @@ class Corpus(Table):
             name = table.name
             table = cls.from_numpy(table.domain, table.X, table.Y, table.metas, table.W, attributes=table.attributes)
             table.name = name
+
+        # Save relative path if possible (for reopening later)
+        if relative_to:
+            table.attributes["path"] = fix_relative_path(filename, relative_to)
+        else:
+            table.attributes["path"] = filename
+
         return table
 
     @staticmethod
@@ -653,7 +664,6 @@ class Corpus(Table):
         else:  # orig is not Corpus
             new._set_unique_titles()
             new._infer_text_features()
-
 
 @summarize.register(Corpus)
 def summarize_corpus(corpus: Corpus) -> PartialSummary:
