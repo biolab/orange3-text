@@ -32,9 +32,9 @@ class TestDocumentListModel(TestCase):
         self.assertListEqual(model.get_filter_content(), contents)
         self.assertEqual(model.rowCount(), 3)
 
-        self.assertEqual(model.data(model.index(0)), documents[0])
-        self.assertEqual(model.data(model.index(1)), documents[1])
-        self.assertEqual(model.data(model.index(2)), documents[2])
+        self.assertEqual(model.data(model.index(0, 0)), documents[0])
+        self.assertEqual(model.data(model.index(1, 0)), documents[1])
+        self.assertEqual(model.data(model.index(2, 0)), documents[2])
 
     def test_data_method(self):
         model = DocumentListModel()
@@ -42,15 +42,15 @@ class TestDocumentListModel(TestCase):
         contents = ["bar", "foo", "bar foo"]
         model.setup_data(documents, contents)
 
-        self.assertEqual(model.data(model.index(0), Qt.DisplayRole), documents[0])
-        self.assertEqual(model.data(model.index(1), Qt.DisplayRole), documents[1])
-        self.assertEqual(model.data(model.index(2), Qt.DisplayRole), documents[2])
+        self.assertEqual(model.data(model.index(0, 0), Qt.DisplayRole), documents[0])
+        self.assertEqual(model.data(model.index(1, 0), Qt.DisplayRole), documents[1])
+        self.assertEqual(model.data(model.index(2, 0), Qt.DisplayRole), documents[2])
 
-        self.assertEqual(model.data(model.index(0), Qt.UserRole), contents[0])
-        self.assertEqual(model.data(model.index(1), Qt.UserRole), contents[1])
-        self.assertEqual(model.data(model.index(2), Qt.UserRole), contents[2])
+        self.assertEqual(model.data(model.index(0, 0), Qt.UserRole), contents[0])
+        self.assertEqual(model.data(model.index(1, 0), Qt.UserRole), contents[1])
+        self.assertEqual(model.data(model.index(2, 0), Qt.UserRole), contents[2])
 
-        self.assertIsNone(model.data(model.index(2), Qt.BackgroundRole))
+        self.assertIsNone(model.data(model.index(2, 0), Qt.BackgroundRole))
 
     def test_update_filter_content(self):
         model = DocumentListModel()
@@ -59,9 +59,9 @@ class TestDocumentListModel(TestCase):
         model.setup_data(documents, contents)
 
         model.update_filter_content(["a", "b", "c"])
-        self.assertEqual(model.data(model.index(0), Qt.UserRole), "a")
-        self.assertEqual(model.data(model.index(1), Qt.UserRole), "b")
-        self.assertEqual(model.data(model.index(2), Qt.UserRole), "c")
+        self.assertEqual(model.data(model.index(0, 0), Qt.UserRole), "a")
+        self.assertEqual(model.data(model.index(1, 0), Qt.UserRole), "b")
+        self.assertEqual(model.data(model.index(2, 0), Qt.UserRole), "c")
 
         with self.assertRaises(AssertionError):
             model.update_filter_content(
@@ -119,26 +119,34 @@ class TestCorpusViewerWidget(WidgetTest):
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
         self.widget.regexp_filter = "Human"
         self.widget.refresh_search()
+        self.wait_until_finished()
+        
+        sel_model = self.widget.doc_list.selectionModel()
+        sel_model.select(sel_model.model().index(0, 0), QItemSelectionModel.Select | QItemSelectionModel.Rows)
+        
         self.process_events()
         out_corpus = self.get_output(self.widget.Outputs.matching_docs)
+        self.assertIsNotNone(out_corpus)
         self.assertEqual(len(out_corpus), 1)
-        self.assertEqual(self.widget.n_matches, 7)
+        self.assertEqual(int(self.widget.n_matches), 7)
 
         # first document is selected, when filter with word that is not in
         # selected document, first of shown documents is selected
         self.widget.regexp_filter = "graph"
         self.widget.refresh_search()
+        self.wait_until_finished()
         self.process_events()
         self.assertEqual(1, len(self.get_output(self.widget.Outputs.matching_docs)))
         # word count doesn't depend on selection
-        self.assertEqual(self.widget.n_matches, 7)
+        self.assertEqual(int(self.widget.n_matches), 7)
 
         # when filter is removed, matched words is 0
         self.widget.regexp_filter = ""
         self.widget.refresh_search()
+        self.wait_until_finished()
         self.process_events()
         self.wait_until_finished()
-        self.assertEqual(self.widget.n_matches, 0)
+        self.assertEqual(int(self.widget.n_matches), 0)
 
     def test_invalid_regex(self):
         # Error is shown when invalid regex is entered
@@ -205,7 +213,7 @@ class TestCorpusViewerWidget(WidgetTest):
         )
         self.assertEqual(8, len(self.get_output(self.widget.Outputs.other_docs)))
         self.assertEqual(
-            len(self.corpus.domain.metas) + 1,
+            len(self.corpus.domain.metas) + 2,
             len(self.get_output(self.widget.Outputs.corpus).domain.metas),
         )
 
@@ -370,7 +378,13 @@ class TestCorpusViewerWidget(WidgetTest):
         domain = self.corpus.domain
         self.assertListEqual(self.widget.display_features, [domain["Category"]])
         self.assertListEqual(self.widget.search_features, [domain["Text"]])
-
+    
+    def test_match_count_is_in_metas(self):
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.widget.doc_list.selectAll()
+        output = self.get_output(self.widget.Outputs.corpus)
+        meta_names = [var.name for var in output.domain.metas]
+        self.assertIn("Match Count", meta_names)
 
 if __name__ == "__main__":
     unittest.main()
