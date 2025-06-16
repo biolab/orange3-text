@@ -14,6 +14,7 @@ from AnyQt.QtCore import (
     QSortFilterProxyModel,
     Qt,
     QUrl,
+    QAbstractTableModel,
 )
 from AnyQt.QtWidgets import (
     QAbstractItemView,
@@ -37,6 +38,7 @@ from orangecanvas.gui.utils import disconnected
 from orangewidget.utils.listview import ListViewSearch
 
 from orangecontrib.text.corpus import Corpus
+from Orange.data import ContinuousVariable
 
 HTML = """
 <!doctype html>
@@ -140,7 +142,7 @@ def _count_matches(content: List[str], regex: re.Pattern, state: TaskState) -> i
     return matches
 
 
-class DocumentListModel(QAbstractListModel):
+class DocumentListModel(QAbstractTableModel):
     """
     Custom model for listing documents. Using custom model since Onrage's
     pylistmodel is too slow for large number of documents
@@ -150,6 +152,7 @@ class DocumentListModel(QAbstractListModel):
         super().__init__(*args, **kwargs)
         self.__visible_data = []
         self.__filter_content = []
+        self.__match_counts = []
 
     def data(self, index: QModelIndex, role: int = Qt.DisplayRole) -> Any:
         if role == Qt.DisplayRole:
@@ -160,11 +163,40 @@ class DocumentListModel(QAbstractListModel):
     def rowCount(self, parent: QModelIndex = None, *args, **kwargs) -> int:
         return len(self.__visible_data)
 
-    def setup_data(self, data: List[str], content: List[str]):
+    def setup_data(self, data: List[str], content: List[str], match_counts: List[int] = None):
         self.beginResetModel()
         self.__visible_data = data
         self.__filter_content = content
+        self.__match_counts = match_counts or [0] * len(data)
         self.endResetModel()
+
+    def set_match_counts(self, match_counts: List[int]):
+        """Update match counts for each document"""
+        assert len(match_counts) == len(self.__visible_data)
+        self.__match_counts = match_counts
+        self.dataChanged.emit(self.index(0, 0), self.index(self.rowCount() - 1, 1))
+
+    def data(self, index: QModelIndex, role: int = Qt.DisplayRole) -> Any:
+        """Return data for display or filtering"""
+        row = index.row()
+        col = index.column() if index.isValid() else 0
+        if role == Qt.DisplayRole:
+            if col == 0:
+                return self.__visible_data[row]
+            elif col == 1:
+                return self.__match_counts[row]
+        elif role == Qt.UserRole:
+            return self.__filter_content[row]
+    
+    def columnCount(self, parent=None):
+        """Return number of columns (2: title and match count)"""
+        return 2
+
+    def headerData(self, section, orientation, role):
+        """Return column header titles"""
+        if orientation == Qt.Horizontal and role == Qt.DisplayRole:
+            return ["Title", "Match Count"][section]
+        return super().headerData(section, orientation, role)
 
     def update_filter_content(self, content: List[str]):
         assert len(content) == len(self.__visible_data)
@@ -383,13 +415,16 @@ class OWCorpusViewer(OWWidget, ConcurrentWidgetMixin):
         self.doc_list.setSelectionMode(QTableView.ExtendedSelection)
         self.doc_list.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.doc_list.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.doc_list.horizontalHeader().setVisible(False)
+        self.doc_list.horizontalHeader().setVisible(True)
         self.splitter.addWidget(self.doc_list)
+        self.doc_list.setSortingEnabled(True)
 
         self.doc_list_model = DocumentListModel()
         proxy_model = DocumentsFilterProxyModel()
         proxy_model.setSourceModel(self.doc_list_model)
         self.doc_list.setModel(proxy_model)
+        self.doc_list.setSortingEnabled(True)
+        self.doc_list.sortByColumn(1, Qt.DescendingOrder)
         self.doc_list.selectionModel().selectionChanged.connect(self.selection_changed)
         # Document contents
         self.doc_webview = gui.WebviewWidget(self.splitter, debug=False)
@@ -469,7 +504,17 @@ class OWCorpusViewer(OWWidget, ConcurrentWidgetMixin):
     def list_docs(self):
         """List documents into the left scrolling area"""
         docs = self.regenerate_docs()
-        self.doc_list_model.setup_data(self.corpus.titles.tolist(), docs)
+        match_counts = []
+
+        try:
+            regex = re.compile(self.regexp_filter.strip("|"), re.IGNORECASE)
+        except re.error:
+            regex = re.compile("")
+
+        for doc in docs:
+            match_counts.append(len(regex.findall(doc)) if regex.pattern else 0)
+
+        self.doc_list_model.setup_data(self.corpus.titles.tolist(), docs, match_counts)
 
     def get_selected_indexes(self) -> Set[int]:
         m = self.doc_list.model().mapToSource
@@ -597,6 +642,7 @@ class OWCorpusViewer(OWWidget, ConcurrentWidgetMixin):
         self.Error.invalid_regex.clear()
         if self.corpus is not None:
             self.doc_list.model().set_filter_string(self.regexp_filter)
+            self.doc_list.setColumnHidden(1, not bool(self.regexp_filter.strip("|")))
             if not self.selected_documents:
                 # when currently selected items are filtered selection is empty
                 # select first element in the view in that case
@@ -621,8 +667,12 @@ class OWCorpusViewer(OWWidget, ConcurrentWidgetMixin):
             self.commit.deferred()
 
     def on_done(self, res: int):
-        """When matches count is done show the result in the label"""
+        """When matches count is done show the result in the label and update match counts"""
         self.n_matches = f"{int(res):,}" if res is not None else "n/a"
+        if self.compiled_regex and self.corpus:
+            docs = self.doc_list_model.get_filter_content()
+            match_counts = [len(self.compiled_regex.findall(doc)) for doc in docs]
+            self.doc_list_model.set_match_counts(match_counts)
 
     def on_exception(self, ex):
         raise ex
@@ -649,6 +699,19 @@ class OWCorpusViewer(OWWidget, ConcurrentWidgetMixin):
             mask[selected_docs] = 0
             unmatched = self.corpus[mask] if mask.any() else None
             annotated_corpus = create_annotated_table(self.corpus, selected_docs)
+
+            if annotated_corpus is not None:
+                match_counts = self.doc_list_model._DocumentListModel__match_counts
+                match_var = ContinuousVariable("Match Count")
+
+                domain = annotated_corpus.domain
+                new_domain = Domain(
+                    domain.attributes,
+                    domain.class_vars,
+                    domain.metas + (match_var,)
+                )
+                annotated_corpus = Corpus(new_domain, annotated_corpus.X, annotated_corpus.Y, np.column_stack([annotated_corpus.metas, np.array(match_counts, dtype=object).reshape(-1, 1)]))
+
         self.Outputs.matching_docs.send(matched)
         self.Outputs.other_docs.send(unmatched)
         self.Outputs.corpus.send(annotated_corpus)
