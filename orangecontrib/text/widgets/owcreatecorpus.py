@@ -118,7 +118,6 @@ class OWCreateCorpus(OWWidget):
         self.commit.now()
 
     def _add_document_editor(self, title, text):
-        """Function that handles adding new editor with texts provided"""
         editor = DocumentEditor(title, text)
         editor.text_changed.connect(self._text_changed)
         editor.remove_clicked.connect(self._remove_document_editor)
@@ -138,9 +137,8 @@ class OWCreateCorpus(OWWidget):
             self.commit.deferred()
 
     def _add_new_editor(self):
-        """Add editor on the click of Add document button"""
         self.texts.append(("", ""))
-        self._add_document_editor(*self.texts[-1])
+        self._add_document_editor("", "")
         self.commit.deferred()
 
     def _text_changed(self, title, text):
