@@ -122,7 +122,7 @@ class TestCorpusViewerWidget(WidgetTest):
         self.process_events()
         out_corpus = self.get_output(self.widget.Outputs.matching_docs)
         self.assertEqual(len(out_corpus), 1)
-        self.assertEqual(self.widget.n_matches, 7)
+        self.assertEqual(int(self.widget.n_matches), 7)
 
         # first document is selected, when filter with word that is not in
         # selected document, first of shown documents is selected
@@ -131,7 +131,7 @@ class TestCorpusViewerWidget(WidgetTest):
         self.process_events()
         self.assertEqual(1, len(self.get_output(self.widget.Outputs.matching_docs)))
         # word count doesn't depend on selection
-        self.assertEqual(self.widget.n_matches, 7)
+        self.assertEqual(int(self.widget.n_matches), 7)
 
         # when filter is removed, matched words is 0
         self.widget.regexp_filter = ""
