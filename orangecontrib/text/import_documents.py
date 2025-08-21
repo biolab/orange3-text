@@ -128,8 +128,11 @@ class PdfReader(Reader):
 
     def read_file(self):
         reader = PyPDFReader(self.path)
-        texts = [page.extract_text() for page in reader.pages]
-        self.content = " ".join(texts)
+        texts = [page.extract_text() or "" for page in reader.pages]
+        joined = " ".join(texts).strip()
+        if not joined or all(ch == "\uFFFD" for ch in joined if not ch.isspace()):
+            raise ValueError("PDF content is empty or corrupted")
+        self.content = joined
 
 
 class XmlReader(Reader):
