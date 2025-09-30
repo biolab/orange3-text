@@ -5,8 +5,7 @@ from AnyQt.QtWidgets import QVBoxLayout, QPushButton, QStyle
 from Orange.misc.utils.embedder_utils import EmbeddingConnectionError
 from Orange.widgets import gui
 from Orange.widgets.settings import Setting
-from Orange.widgets.widget import Msg, Output, OWWidget
-from orangewidget.widget import Message
+from Orange.widgets.widget import Input, Output, OWWidget, Message, Msg
 
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.language import (
