@@ -19,7 +19,6 @@ Widgets
    widgets/preprocesstext
    widgets/bagofwords-widget
    widgets/documentembedding
-   widgets/similarityhashing
    widgets/sentimentanalysis
    widgets/tweetprofiler
    widgets/topicmodelling-widget

@@ -98,15 +98,6 @@
     ]
    },
    {
-    "text": "Similarity Hashing",
-    "doc": "widgets/similarityhashing.md",
-    "icon": "../orangecontrib/text/widgets/icons/Simhash.svg",
-    "background": "light-blue",
-    "keywords": [
-     "SimHash"
-    ]
-   },
-   {
     "text": "Sentiment Analysis",
     "doc": "widgets/sentimentanalysis.md",
     "icon": "../orangecontrib/text/widgets/icons/SentimentAnalysis.svg",
