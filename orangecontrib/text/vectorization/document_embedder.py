@@ -6,9 +6,12 @@ import json
 import sys
 import warnings
 import zlib
-from typing import Any, Optional, Tuple
+import re
+from typing import Any, Optional, Tuple, Callable
 
 import numpy as np
+import openai
+
 from Orange.misc.server_embedder import ServerEmbedderCommunicator
 from Orange.misc.utils.embedder_utils import EmbedderCache
 from Orange.util import dummy_callback
@@ -162,6 +165,140 @@ class _ServerEmbedder(ServerEmbedderCommunicator):
 
         json_string = json.dumps(data_dict)
         return json_string.encode('utf-8', 'replace')
+
+
+def url_to_safe_filename(url: str) -> str:
+    """
+    Convert an URL into a safe, cross-platform single filesystem filename.
+    Args:
+        url: The input URL string
+
+    Returns:
+        A sanitized, valid single-file filename.
+    """
+    if not url or not url.strip():
+        raise ValueError("'url' cannot be empty")
+
+    # Replace all Windows/POSIX invalid characters and control chars with underscore
+    safe = re.sub(r'[<>:"/\\|?*]', '_', url)
+    safe = re.sub(r'[\x00-\x1f]', '_', safe)
+    # Handle Windows reserved names (CON, PRN, etc.)
+    safe = re.sub(
+        r'^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-3])$', r'_\1', safe, flags=re.IGNORECASE
+    )
+    return safe
+
+
+class OAIDocumentEmbedder(BaseVectorizer):
+    def __init__(self, base_url, api_key, model):
+        self.base_url = base_url
+        self.api_key = api_key
+        self.model = model
+        cache_name = url_to_safe_filename(f"{base_url}_{model}")
+        self._cache = EmbedderCache(cache_name)
+
+    def _transform(self, corpus, source_dict, callback=dummy_callback):
+        texts = list(corpus.documents)
+        results = [None] * len(texts)
+        # Collect all cached results
+        cache = self._cache
+        query = []
+        indices = []
+
+        for i, txt in  enumerate(texts):
+            r = cache.get_cached_result_or_none(cache.md5_hash(txt.encode("utf-8")))
+            if r is not None:
+                results[i] = r
+            else:
+                query.append(txt)
+                indices.append(i)
+
+        callback(0.0)
+        embs = openai_get_embeddings(
+            query, self.api_key, self.base_url, self.model,
+            progress_callback=lambda a, b: callback(a/b)
+        )
+        embs = embs.tolist()
+        # Update cache and results list
+        for i, r, txt in zip(indices, embs, query):
+            cache.add(cache.md5_hash(txt.encode("utf-8"),), r)
+            results[i] = r
+        cache.persist_cache()
+        embs = np.array(results)
+        if results:
+            dim = embs.shape[1]
+            new_corpus = corpus.extend_attributes(
+                embs,
+                feature_names=["Dim{}".format(i + 1) for i in range(dim)],
+                var_attrs={
+                    "embedding-feature": True,
+                    "hidden": True,
+                }
+            )
+        else:
+            new_corpus = corpus
+        return new_corpus, None
+
+
+def openai_get_embeddings(
+    texts: list[str],
+    api_key: str,
+    base_url: Optional[str] = None,
+    model: str = "gpt-4o",
+    batch_size: int = 20,
+    progress_callback: Optional[Callable[[int, int], None]] = None,
+) -> np.ndarray:
+    """Generate embeddings for texts using an OpenAI-compatible API.
+
+    Processed in concurrent batches, each containing up to ``batch_size``
+    texts.
+
+    Args:
+        texts: List of texts
+        api_key: OpenAI-compatible API key.
+        base_url: Base URL for the OpenAI-compatible API. If None, uses the
+            default OpenAI endpoint.
+        model: Model name to use for embeddings. Defaults to "gpt-4o".
+        batch_size: Maximum number of concurrent API requests. Defaults to 10.
+        progress_callback: Optional callable invoked as
+            ``callback(completed_count, total_count)`` after each
+            batch finishes.  Use ``None`` to skip progress reporting.
+
+    Returns:
+        Array of embedding vectors, one per query text. The order matches
+        the order of the input texts list.
+
+    Raises:
+        openai.OpenAIError: If the API call fails.
+    """
+    client = openai.OpenAI(api_key=api_key, base_url=base_url)
+    embeddings = [[]] * len(texts)
+
+    total = len(texts)
+    batch_number = 0
+
+    for start in range(0, total, batch_size):
+        batch_number += 1
+        batch_end = min(start + batch_size, total)
+        batch_indices = range(start, batch_end)
+        batch = texts[start:batch_end]
+        resp = client.embeddings.create(
+            input=batch, model=model, encoding_format="float",
+        )
+        if isinstance(resp, list):
+            resp = resp
+        else:
+            resp = resp.data
+        for i, r in zip(batch_indices, resp):
+            emb = np.array(r.embedding)
+            if emb.ndim > 1:
+                emb = emb.flatten()
+            embeddings[i] = emb
+        # Notify progress callback: (completed, total, batch_number)
+        if progress_callback is not None:
+            completed = min(batch_number * batch_size, total)
+            progress_callback(completed, total)
+    return np.array(embeddings)
 
 
 if __name__ == '__main__':
