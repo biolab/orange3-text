@@ -1,5 +1,8 @@
+import json
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, MagicMock
+
+import openai
 
 import numpy as np
 from AnyQt.QtWidgets import QComboBox, QRadioButton
@@ -9,6 +12,7 @@ from Orange.misc.utils.embedder_utils import EmbeddingConnectionError
 
 from orangecontrib.text.language import DEFAULT_LANGUAGE, ISO2LANG
 from orangecontrib.text.tests.test_documentembedder import PATCH_METHOD, make_dummy_post
+from orangecontrib.text.vectorization import document_embedder
 from orangecontrib.text.vectorization.document_embedder import (
     DocumentEmbedder,
     LANGUAGES,
@@ -241,6 +245,110 @@ class TestOWDocumentEmbedding(WidgetTest):
             settings = {"__version__": 2, "language": ISO2LANG[iso_lang]}
             widget = self.create_widget(OWDocumentEmbedding, stored_settings=settings)
             self.assertEqual(iso_lang, widget.language)
+
+
+class TestOWDocumentEmbeddingOAI(WidgetTest):
+    def setUp(self):
+        super().setUp()
+        self.widget = self.create_widget(OWDocumentEmbedding, stored_settings={
+            "base_url": "localhost:8000", "model": "embedder", "method": 2
+        })
+        self.corpus = Corpus.from_file('deerwester')
+        self.larger_corpus = Corpus.from_file('book-excerpts')
+
+        # Disable embedder caches.
+        cache = MagicMock()
+        cache.md5_hash = lambda _: b""
+        cache.get_cached_result_or_none = lambda _: None
+        self._patch = patch.object(
+            document_embedder, "EmbedderCache", MagicMock(return_value=cache)
+        )
+        self._patch.__enter__()
+
+    def tearDown(self):
+        self._patch.__exit__(None, None, None)
+        super().tearDown()
+
+    @patch("openai.OpenAI")
+    def test_openai_output(self, mock_openai):
+        """Test that OpenAI embedder (method 2) produces correct output."""
+        # Mock the OpenAI client response
+        mock_embedding = MagicMock()
+        mock_embedding.embedding = np.arange(EMB_DIM, dtype=float).tolist()
+        mock_response = MagicMock()
+        mock_response.data = [mock_embedding] * len(self.corpus)
+        mock_client = MagicMock()
+        mock_client.embeddings.create.return_value = mock_response
+        mock_openai.return_value = mock_embedding
+
+        # Select OpenAI embedder (third radio button, index 2)
+        self.widget.findChildren(QRadioButton)[2].click()
+        self.send_signal("Corpus", self.corpus)
+        self.wait_until_finished()
+        result = self.get_output(self.widget.Outputs.corpus)
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, Corpus)
+        self.assertEqual(len(self.corpus), len(result))
+
+    @patch("openai.OpenAI")
+    def test_openai_authentication_error(self, mock_openai):
+        """Test authentication error handling for OpenAI embedder."""
+        mock_response = MagicMock()
+        mock_response.content = json.dumps(
+            {"error": {"message": "Invalid API key"}}
+        ).encode()
+        error = openai.AuthenticationError(
+            "Invalid API key", response=mock_response, body=None
+        )
+        mock_client = MagicMock()
+        mock_client.embeddings.create.side_effect = error
+        mock_openai.return_value = mock_client
+
+        self.widget.findChildren(QRadioButton)[2].click()
+        self.send_signal("Corpus", self.corpus)
+        self.wait_until_finished()
+        self.assertIsNone(self.get_output(self.widget.Outputs.corpus))
+        self.assertTrue(self.widget.Error.authentication_error.is_shown())
+
+    @patch("openai.OpenAI")
+    def test_openai_api_spec_error(self, mock_openai):
+        """Test API spec error handling for OpenAI embedder."""
+        mock_response = MagicMock()
+        mock_response.content = json.dumps(
+            {"error": {"message": "Invalid model: bad-model"}}
+        ).encode()
+        error = openai.BadRequestError(
+            "Bad request", response=mock_response, body=None
+        )
+        mock_client = MagicMock()
+        mock_client.embeddings.create.side_effect = error
+        mock_openai.return_value = mock_client
+
+        self.widget.findChildren(QRadioButton)[2].click()
+        self.send_signal("Corpus", self.corpus)
+        self.wait_until_finished()
+        self.assertIsNone(self.get_output(self.widget.Outputs.corpus))
+        self.assertTrue(self.widget.Error.api_spec_error.is_shown())
+
+    @patch("openai.OpenAI")
+    def test_openai_connection_error(self, mock_openai):
+        """Test connection error handling for OpenAI embedder."""
+        mock_request = MagicMock()
+        error = openai.APIConnectionError(message="Connection refused", request=mock_request)
+        mock_client = MagicMock()
+        mock_client.embeddings.create.side_effect = error
+        mock_openai.return_value = mock_client
+
+        self.widget.findChildren(QRadioButton)[2].click()
+        self.send_signal("Corpus", self.corpus)
+        self.wait_until_finished()
+        self.assertIsNone(self.get_output(self.widget.Outputs.corpus))
+        self.assertTrue(self.widget.Error.connection_error.is_shown())
+
+    def test_report(self):
+        self.widget.findChildren(QRadioButton)[2].click()
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.widget.send_report()
 
 
 if __name__ == "__main__":
