@@ -1,10 +1,5 @@
-import inspect
-from collections import Counter
-from warnings import warn
-
-from gensim import matutils
 import numpy as np
-from gensim.corpora import Dictionary
+from orangecontrib.text.preprocess.dictionary import Dictionary
 from gensim.models.callbacks import Metric
 
 from Orange.data import StringVariable, ContinuousVariable, Domain
@@ -12,7 +7,6 @@ from Orange.data.table import Table
 from Orange.util import dummy_callback
 
 from orangecontrib.text.corpus import Corpus
-from gensim.matutils import Sparse2Corpus
 from orangecontrib.text.vectorization import BowVectorizer
 
 MAX_WORDS = 1000
@@ -86,18 +80,18 @@ def infer_ngrams_corpus(corpus, return_dict=False):
     return (result, dictionary) if return_dict else result
 
 
-class GensimWrapper:
+class SklearnWrapper:
     name = NotImplemented
     Model = NotImplemented
     num_topics = NotImplemented
-    has_negative_weights = False    # whether words can negatively contribute
-    # to a topic
 
     def __init__(self, **kwargs):
         for k, v in kwargs.items():
             setattr(self, k, v)
         self.kwargs = kwargs
         self.model = None
+        self.vectorizer = None
+        self.feature_names = None
         self.topic_names = []
         self.n_words = 0
         self.doc_topic = None
@@ -110,33 +104,28 @@ class GensimWrapper:
         Args:
             corpus (Corpus): A corpus to learn topics from.
         """
-        ngrams_corpus, dictionary = infer_ngrams_corpus(corpus, return_dict=True)
-        if len(dictionary) == 0:
+        X, self.feature_names = self._corpus_to_dtm(corpus)
+
+        if X.shape[1] == 0:
             return None
-        model_kwars = self.kwargs
-        if "callbacks" in inspect.getfullargspec(self.Model).args:
-            # if method support callbacks use progress callback to report progress
-            # at time of writing this code only LDA support callbacks
-            model_kwars = dict(
-                model_kwars, callbacks=[GensimProgressCallback(on_progress)]
-            )
 
-        self.model = self.Model(
-            corpus=ngrams_corpus, id2word=dictionary, **model_kwars
-        )
-        self.n_words = ngrams_corpus.sparse.shape[0]
-        self.topic_names = ['Topic {}'.format(i+1) for i in range(self.num_topics)]
+        # Initialize model with kwargs
+        self.model = self.Model(n_components=self.num_topics, **self.kwargs)
+        self.model.fit(X)
 
-    def dummy_method(self, *args, **kwargs):
-        pass
+        self.n_words = X.shape[1]
+        self.actual_topics = self.model.n_components
+        self.topic_names = [f'Topic {i + 1}' for i in range(self.num_topics)]
 
     def transform(self, corpus):
         """ Create a table with topics representation. """
-        topics = self.model[infer_ngrams_corpus(corpus)]
-        self.actual_topics = self.model.get_topics().shape[0]
-        matrix = matutils.corpus2dense(
-            topics, num_docs=len(corpus), num_terms=self.num_topics
-        ).T.astype(np.float64)
+        X, _ = self._corpus_to_dtm(corpus)
+
+        # Get document-topic distribution
+        doc_topic = self.model.transform(X)
+        self.actual_topics = self.model.n_components
+
+        matrix = doc_topic.astype(np.float64)
         corpus = corpus.extend_attributes(
             matrix[:, :self.actual_topics],
             self.topic_names[:self.actual_topics]
@@ -149,6 +138,24 @@ class GensimWrapper:
     def fit_transform(self, corpus, **kwargs):
         self.fit(corpus, **kwargs)
         return self.transform(corpus)
+
+    def _corpus_to_dtm(self, corpus):
+        """Convert corpus to document-term matrix."""
+        from sklearn.feature_extraction.text import CountVectorizer
+
+        if self.vectorizer is None:
+            self.vectorizer = CountVectorizer(
+                tokenizer=lambda x: x,
+                preprocessor=lambda x: x,
+                token_pattern=None
+            )
+            X = self.vectorizer.fit_transform(corpus.tokens)
+            feature_names = self.vectorizer.get_feature_names_out()
+        else:
+            X = self.vectorizer.transform(corpus.tokens)
+            feature_names = self.vectorizer.get_feature_names_out()
+
+        return X, feature_names
 
     def get_topics_table_by_id(self, topic_id):
         """ Transform topics from gensim model to table. """
@@ -164,16 +171,15 @@ class GensimWrapper:
         data[:, 1] = weights[topic_id]
 
         metas = [StringVariable(self.topic_names[topic_id]),
-                 ContinuousVariable("Topic {} weights".format(topic_id + 1))]
+                 ContinuousVariable(f"Topic {topic_id + 1} weights")]
         metas[-1]._out_format = '%.2e'
 
         domain = Domain([], metas=metas)
         t = Topic.from_numpy(
             domain, X=np.zeros((num_words, 0)), metas=data, W=data[:, 1]
         )
-        t.name = "Topic {}".format(topic_id + 1)
+        t.name = f"Topic {topic_id + 1}"
 
-        # needed for coloring in word cloud
         t.attributes["topic-method-name"] = self.model.__class__.__name__
         return t
 
@@ -236,15 +242,19 @@ class GensimWrapper:
 
     def _topics_words(self, num_of_words):
         """ Returns list of list of topic words. """
-        x = self.model.show_topics(self.num_topics, num_of_words, formatted=False)
-        # `show_topics` method return a list of `(topic_number, topic)` tuples,
-        # where `topic` is a list of `(word, probability)` tuples.
-        return [[i[0] for i in topic[1]] for topic in x]
+        topics = []
+        for topic_idx in range(self.model.n_components):
+            top_indices = self.model.components_[topic_idx].argsort()[
+                          -num_of_words:][::-1]
+            topics.append([self.feature_names[i] for i in top_indices])
+        return topics
 
     def _topics_weights(self, num_of_words):
         """ Returns list of list of topic weights. """
-        topics = self.model.show_topics(self.num_topics, num_of_words,
-                                        formatted=False)
-        # `show_topics` method return a list of `(topic_number, topic)` tuples,
-        # where `topic` is a list of `(word, probability)` tuples.
-        return [[i[1] for i in t[1]] for t in topics]
+        weights = []
+        for topic_idx in range(self.model.n_components):
+            top_indices = self.model.components_[topic_idx].argsort()[
+                          -num_of_words:][::-1]
+            weights.append(
+                [self.model.components_[topic_idx][i] for i in top_indices])
+        return weights

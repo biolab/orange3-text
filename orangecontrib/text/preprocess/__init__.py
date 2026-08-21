@@ -46,3 +46,4 @@ from .tokenize import *
 from .filter import *
 from .normalize import *
 from .transform import *
+from .dictionary import *

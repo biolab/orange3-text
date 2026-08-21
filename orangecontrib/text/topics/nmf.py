@@ -1,11 +1,15 @@
-from gensim import models
+from sklearn.decomposition import NMF
 
-from .topics import GensimWrapper
+from .topics import SklearnWrapper
 
 
-class NmfWrapper(GensimWrapper):
+class NmfWrapper(SklearnWrapper):
     name = 'Negative Matrix Factorization'
-    Model = models.Nmf
+    Model = NMF
 
     def __init__(self, **kwargs):
-        super().__init__(random_state=0, **kwargs, w_max_iter=200, passes=5)
+        super().__init__(
+            random_state=0,
+            max_iter=400,  # NMF sometimes needs more iterations
+            **kwargs
+        )
