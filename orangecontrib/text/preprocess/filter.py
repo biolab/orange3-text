@@ -7,6 +7,7 @@ import numpy as np
 from gensim import corpora
 from nltk.corpus import stopwords
 
+from orangewidget.io import classproperty
 from Orange.data.io import detect_encoding
 from Orange.util import wrap_callback, dummy_callback
 
