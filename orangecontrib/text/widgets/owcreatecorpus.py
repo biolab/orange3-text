@@ -140,7 +140,7 @@ class OWCreateCorpus(OWWidget):
     def _add_new_editor(self):
         """Add editor on the click of Add document button"""
         self.texts.append(("", ""))
-        self._add_document_editor(*self.texts[-1])
+        self._add_document_editor("", "")
         self.commit.deferred()
 
     def _text_changed(self, title, text):
@@ -154,13 +154,26 @@ class OWCreateCorpus(OWWidget):
         """Create a new corpus and output it"""
         doc_var = StringVariable("Document")
         title_var = StringVariable("Title")
+        
+        filtered = [
+            (title.strip() or "?", text.strip())
+            for title, text in self.texts
+            if text.strip()
+        ]
+
+        if not filtered:
+            self.Outputs.corpus.send(None)
+            return
+
+        metas = np.array(filtered, dtype=object)
         domain = Domain([], metas=[title_var, doc_var])
+
         corpus = Corpus.from_numpy(
             domain,
-            np.empty((len(self.texts), 0)),
-            metas=np.array(self.texts),
+            X=np.empty((len(metas), 0)),
+            metas=metas,
             text_features=[doc_var],
-            language=self.language,
+            language=self.language or "en"
         )
         corpus.set_title_variable(title_var)
         self.Outputs.corpus.send(corpus)

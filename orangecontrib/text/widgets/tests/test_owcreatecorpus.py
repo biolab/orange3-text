@@ -1,11 +1,9 @@
 import unittest
-
 import numpy as np
 from Orange.data import StringVariable
 from Orange.widgets.tests.base import WidgetTest
-from AnyQt.QtWidgets import QPushButton, QComboBox
+from AnyQt.QtWidgets import QPushButton, QComboBox, QApplication
 from orangewidget.tests.utils import simulate
-
 from orangecontrib.text.widgets.owcreatecorpus import OWCreateCorpus
 
 
@@ -20,38 +18,45 @@ class TestOWCreateCorpus(WidgetTest):
         self.assertListEqual([("", "")] * 3, self.widget.texts)
 
         self.add_document_btn.click()
+        QApplication.processEvents()
         self.assertEqual(4, len(self.widget.editors))
         self.assertEqual(4, len(self.widget.texts))
         self.assertListEqual([("", "")] * 4, self.widget.texts)
 
         self.add_document_btn.click()
+        QApplication.processEvents()
         self.assertEqual(5, len(self.widget.editors))
         self.assertEqual(5, len(self.widget.texts))
         self.assertListEqual([("", "")] * 5, self.widget.texts)
 
         # click x button for first editor
         self.widget.editors[0].findChild(QPushButton).click()
+        QApplication.processEvents()
         self.assertEqual(4, len(self.widget.editors))
         self.assertEqual(4, len(self.widget.texts))
         self.assertListEqual([("", "")] * 4, self.widget.texts)
 
         self.widget.editors[0].findChild(QPushButton).click()
+        QApplication.processEvents()
         self.assertEqual(3, len(self.widget.editors))
         self.assertEqual(3, len(self.widget.texts))
         self.assertListEqual([("", "")] * 3, self.widget.texts)
 
         self.widget.editors[0].findChild(QPushButton).click()
+        QApplication.processEvents()
         self.assertEqual(2, len(self.widget.editors))
         self.assertEqual(2, len(self.widget.texts))
         self.assertListEqual([("", "")] * 2, self.widget.texts)
 
         self.widget.editors[0].findChild(QPushButton).click()
+        QApplication.processEvents()
         self.assertEqual(1, len(self.widget.editors))
         self.assertEqual(1, len(self.widget.texts))
         self.assertListEqual([("", "")], self.widget.texts)
 
         # last editor cannot be removed
         self.widget.editors[0].findChild(QPushButton).click()
+        QApplication.processEvents()
         self.assertEqual(1, len(self.widget.editors))
         self.assertEqual(1, len(self.widget.texts))
         self.assertListEqual([("", "")], self.widget.texts)
@@ -122,89 +127,96 @@ class TestOWCreateCorpus(WidgetTest):
         )
 
     def test_output(self):
-        # start with 1 editor
-        self.widget.editors[-1].findChild(QPushButton).click()
-        self.widget.editors[-1].findChild(QPushButton).click()
+        self.add_document_btn.click()
+        editor = self.widget.editors[-1]
+        editor.title_le.setText("Test title")
+        editor.text_area.setPlainText("Test body")
+        editor._on_text_changed()
 
+        self.widget.commit.now()
         corpus = self.get_output(self.widget.Outputs.corpus)
+        self.assertIsNotNone(corpus)
         self.assertEqual(0, len(corpus.domain.attributes))
         self.assertTupleEqual(
             (StringVariable("Title"), StringVariable("Document")), corpus.domain.metas
         )
-        np.testing.assert_array_equal(["?"], corpus.titles)
-        self.assertListEqual(["?"], corpus.documents)
-        np.testing.assert_array_equal([["", ""]], corpus.metas)
+        np.testing.assert_array_equal(["Test title"], corpus.titles)
+        self.assertListEqual(["Test body"], corpus.documents)
+        np.testing.assert_array_equal([["Test title", "Test body"]], corpus.metas)
 
         self.add_document_btn.click()
         self.add_document_btn.click()
-        editor1, editor2, editor3 = self.widget.editors
+        editors = self.widget.editors[-3:]
+        editor1, editor2, editor3 = editors
         editor1.title_le.setText("Document 1")
         editor2.title_le.setText("Document 2")
         editor3.title_le.setText("Document 3")
         editor1.text_area.setPlainText("Test 1")
         editor2.text_area.setPlainText("Test 2")
         editor3.text_area.setPlainText("Test 3")
-        editor1.text_area.editingFinished.emit()
-        editor2.text_area.editingFinished.emit()
-        editor3.text_area.editingFinished.emit()
+        for editor in (editor1, editor2, editor3):
+            editor._on_text_changed()
 
+        self.widget.commit.now()
         corpus = self.get_output(self.widget.Outputs.corpus)
-        np.testing.assert_array_equal(
-            ["Document 1", "Document 2", "Document 3"], corpus.titles
-        )
+        self.assertIsNotNone(corpus)
+        np.testing.assert_array_equal(["Document 1", "Document 2", "Document 3"], corpus.titles)
         self.assertListEqual(["Test 1", "Test 2", "Test 3"], corpus.documents)
         np.testing.assert_array_equal(
-            [
-                ["Document 1", "Test 1"],
-                ["Document 2", "Test 2"],
-                ["Document 3", "Test 3"],
-            ],
+            [["Document 1", "Test 1"], ["Document 2", "Test 2"], ["Document 3", "Test 3"]],
             corpus.metas,
         )
 
-        editor2.findChild(QPushButton).click()
+        for editor in self.widget.editors:
+            if editor.title_le.text() == "Document 2":
+                editor.findChild(QPushButton).click()
+                break
+        self.widget.commit.now()
         corpus = self.get_output(self.widget.Outputs.corpus)
         np.testing.assert_array_equal(["Document 1", "Document 3"], corpus.titles)
         self.assertListEqual(["Test 1", "Test 3"], corpus.documents)
         np.testing.assert_array_equal(
-            [
-                ["Document 1", "Test 1"],
-                ["Document 3", "Test 3"],
-            ],
+            [["Document 1", "Test 1"], ["Document 3", "Test 3"]],
             corpus.metas,
         )
 
         self.add_document_btn.click()
+        self.widget.commit.now()
         corpus = self.get_output(self.widget.Outputs.corpus)
-        np.testing.assert_array_equal(["Document 1", "Document 3", "?"], corpus.titles)
-        self.assertListEqual(["Test 1", "Test 3", "?"], corpus.documents)
+        np.testing.assert_array_equal(["Document 1", "Document 3"], corpus.titles)
+        self.assertListEqual(["Test 1", "Test 3"], corpus.documents)
         np.testing.assert_array_equal(
-            [["Document 1", "Test 1"], ["Document 3", "Test 3"], ["", ""]],
+            [["Document 1", "Test 1"], ["Document 3", "Test 3"]],
             corpus.metas,
         )
 
-        self.widget.editors[0].findChild(QPushButton).click()
-        corpus = self.get_output(self.widget.Outputs.corpus)
-        np.testing.assert_array_equal(["Document 3", "?"], corpus.titles)
-        self.assertListEqual(["Test 3", "?"], corpus.documents)
-        np.testing.assert_array_equal(
-            [["Document 3", "Test 3"], ["", ""]],
-            corpus.metas,
-        )
-
-        self.widget.editors[-1].findChild(QPushButton).click()
+        for editor in self.widget.editors:
+            if editor.title_le.text() == "Document 1":
+                editor.findChild(QPushButton).click()
+                break
+        self.widget.commit.now()
         corpus = self.get_output(self.widget.Outputs.corpus)
         np.testing.assert_array_equal(["Document 3"], corpus.titles)
         self.assertListEqual(["Test 3"], corpus.documents)
         np.testing.assert_array_equal([["Document 3", "Test 3"]], corpus.metas)
 
     def test_language(self):
+        self.add_document_btn.click()
+        editor = self.widget.editors[-1]
+        editor.title_le.setText("Title")
+        editor.text_area.setPlainText("Text")
+        editor.title_le.editingFinished.emit()
+        editor.text_area.editingFinished.emit()
+        self.widget.commit.now()  
         corpus = self.get_output(self.widget.Outputs.corpus)
+        self.assertIsNotNone(corpus, "Output corpus is None – maybe commit didn't trigger it")
         self.assertEqual("en", corpus.language)
 
         combo = self.widget.controlArea.findChild(QComboBox)
         simulate.combobox_activate_index(combo, 2)
+        self.widget.commit.now()
         corpus = self.get_output(self.widget.Outputs.corpus)
+        self.assertIsNotNone(corpus, "Output corpus is None after language change")
         self.assertEqual("sq", corpus.language)
 
     def test_migrate_settings(self):
@@ -219,7 +231,26 @@ class TestOWCreateCorpus(WidgetTest):
         settings = {"__version__": 1, "language": None}
         widget = self.create_widget(OWCreateCorpus, stored_settings=settings)
         self.assertIsNone(widget.language)
+    
+    def test_output_skips_empty_documents(self):
+        self.widget._add_document_editor("Doc1", " ")
+        self.widget._add_document_editor("Doc2", "Actual content")
 
+        self.widget.editors[0].title_le.setText("Doc1")
+        self.widget.editors[0].text_area.setPlainText(" ")
+        self.widget.editors[0].text_area.editingFinished.emit()
+        self.widget.editors[0].title_le.editingFinished.emit()
+
+        self.widget.editors[1].title_le.setText("Doc2")
+        self.widget.editors[1].text_area.setPlainText("Actual content")
+        self.widget.editors[1].text_area.editingFinished.emit()
+        self.widget.editors[1].title_le.editingFinished.emit()
+
+        self.widget.commit.now()
+        corpus = self.get_output(self.widget.Outputs.corpus)
+
+        self.assertListEqual(["Doc2"], corpus.titles.tolist())
+        self.assertListEqual(["Actual content"], corpus.documents)
 
 if __name__ == "__main__":
     unittest.main()
