@@ -6,6 +6,7 @@ import warnings
 from unittest import TestSuite
 
 from setuptools import setup, find_packages
+from setuptools.command.install import install
 
 try:
     # need recommonmark for build_htmlhelp command
@@ -62,6 +63,25 @@ ENTRY_POINTS = {
     "orange.canvas.help": (
         'html-index = orangecontrib.text.widgets:WIDGET_HELP_PATH',),
 }
+
+SETUP_REQUIRES = [
+    'trubar>=0.3.3',
+]
+
+class InstallMultilingualCommand(install):
+    def run(self):
+        install.run(self)
+        self.compile_to_multilingual()
+
+    def compile_to_multilingual(self):
+        from trubar import translate
+
+        package_dir = os.path.dirname(os.path.abspath(__file__))
+        translate(
+            "msgs.jaml",
+            source_dir=os.path.join(self.install_lib, "orangecontrib", "text"),
+            config_file=os.path.join(package_dir, "i18n", "trubar-config.yaml"), verbosity=1000)
+
 
 
 def git_version():
@@ -184,6 +204,10 @@ if __name__ == "__main__":
         data_files=DATA_FILES,
         entry_points=ENTRY_POINTS,
         keywords=KEYWORDS,
+        setup_requires=SETUP_REQUIRES,
+        cmdclass={
+        'install': InstallMultilingualCommand,
+        },
         namespace_packages=['orangecontrib'],
         zip_safe=False,
         test_suite="setup.temp_test_suite",

@@ -1,0 +1,5223 @@
+__init__.py:
+    NLTK_DATA: null
+annotate_documents.py:
+    def `annotate_documents`:
+        There are no clusters using current settings.: null
+    class `ClusterDocuments`:
+        covariance_type: null
+        full: null
+        max_iter: null
+        random_state: null
+    __main__: null
+    book-excerpts: null
+    \w+: null
+    en: null
+    '#377eb8': null
+    '#ff7f00': null
+    '#4daf4a': null
+    '#f781bf': null
+    '#a65628': null
+    '#984ea3': null
+    '#999999': null
+    '#e41a1c': null
+    '#dede00': null
+    \n: null
+    \n\n{label_ + 1}: null
+    center: null
+corpus.py:
+    def `get_sample_corpora_dir`:
+        datasets: null
+    def `_check_arrays`:
+        Argument {} should be of type np.array, sparse or None.: null
+        Leading dimension mismatch: null
+    class `Corpus`:
+        ' ': null
+        def `__new__`:
+            domain: null
+            'Signature of Corpus constructor when called with numpy ': null
+            'arrays will change in the future to be equal to Corpus.from_numpy. ': null
+            To avoid issues use Corpus.from_numpy instead.: null
+            X: null
+            Y: null
+            metas: null
+            W: null
+            text_features: null
+            ids: null
+        def `_setup_corpus`:
+            language: null
+        def `set_text_features`:
+            Feature "{}" not found.: null
+            Text features must be unique.: null
+            include: null
+        def `set_title_variable`:
+            title: null
+        def `_set_unique_titles`:
+            title: null
+            Document {}: null
+        def `_unique_titles`:
+            ' ({cur_appearances[t]})': null
+        def `_infer_text_features`:
+            include: null
+            True: null
+        def `language`:
+            language: null
+        def `__setstate__`:
+            language: null
+        def `documents_from_features`:
+            ' ': null
+        def `ngrams_iterator`:
+            _: null
+        def `from_documents`:
+            title: null
+            language: null
+        def `from_numpy`:
+            language: null
+        def `from_list`:
+            language: null
+        def `from_table_rows`:
+            _titles: null
+        def `from_file`:
+            .tab: null
+        def `retain_preprocessing`:
+            Indexing by type {} not supported.: null
+    def `summarize_corpus`:
+        '<br/><nobr>Tokens: {corpus.count_tokens()}, ': null
+        'Types: {corpus.count_unique_tokens()}</nobr>': null
+        <br/><nobr>Corpus is not preprocessed</nobr>: null
+        not set: null
+        '<br/><nobr>Language: {language}</nobr>': null
+corpus_to_network.py:
+    class `CorpusToNetwork`:
+        def `__init__`:
+            Given parameter must be instance of Corpus.: null
+        def `__call__`:
+            Threshold must be at least 1.: null
+            Window size must be at least 1.: null
+            Frequency threshold must be at least 1.: null
+            Document_nodes must be bool.: null
+        def `_generate_document_network`:
+            Document Network: null
+        def `_generate_word_network`:
+            Word Network: null
+            word_frequency: null
+            word: null
+country_codes.py:
+    _0: false
+    Kosovo: false
+    Kosovo, Republic of: false
+    -99: false
+    N. Cyprus: false
+    North Cyprus: false
+    AD: false
+    AND: false
+    Andorra: false
+    AL: false
+    ALB: false
+    Albania: false
+    AT: false
+    AUT: false
+    Austria: false
+    AX: false
+    ALA: false
+    Åland Islands: false
+    Aland: false
+    BA: false
+    BIH: false
+    Bosnia and Herzegovina: false
+    Bosnia and Herz.: false
+    BE: false
+    BEL: false
+    Belgium: false
+    BG: false
+    BGR: false
+    Bulgaria: false
+    BY: false
+    BLR: false
+    Belarus: false
+    CH: false
+    CHE: false
+    Switzerland: false
+    CY: false
+    CYP: false
+    Cyprus: false
+    CZ: false
+    CZE: false
+    Czech Republic: false
+    Czech Rep.: false
+    DE: false
+    DEU: false
+    Germany: false
+    DK: false
+    DNK: false
+    Denmark: false
+    DZ: false
+    DZA: false
+    Algeria: false
+    EE: false
+    EST: false
+    Estonia: false
+    EG: null
+    EGY: null
+    Egypt: null
+    ES: null
+    ESP: null
+    Spain: null
+    FI: null
+    FIN: null
+    Finland: null
+    FO: null
+    FRO: null
+    Faroe Islands: null
+    Faeroe Is.: null
+    FR: null
+    FRA: null
+    France: null
+    GB: null
+    GBR: null
+    United Kingdom: null
+    Great Britain: null
+    England: null
+    GE: null
+    GEO: null
+    Georgia: null
+    GG: null
+    GGY: null
+    Guernsey: null
+    GR: null
+    GRC: null
+    Greece: null
+    HR: null
+    HRV: null
+    Croatia: null
+    HU: null
+    HUN: null
+    Hungary: null
+    IE: null
+    IRL: null
+    Ireland: null
+    IL: null
+    ISR: null
+    Israel: null
+    IM: null
+    IMN: null
+    Isle of Man: null
+    IQ: null
+    IRQ: null
+    Iraq: null
+    IS: null
+    ISL: null
+    Iceland: null
+    IT: null
+    ITA: null
+    Italy: null
+    JE: null
+    JEY: null
+    Jersey: null
+    JO: null
+    JOR: null
+    Jordan: null
+    LB: null
+    LBN: null
+    Lebanon: null
+    LI: null
+    LIE: null
+    Liechtenstein: null
+    LT: null
+    LTU: null
+    Lithuania: null
+    LU: null
+    LUX: null
+    Luxembourg: null
+    LV: null
+    LVA: null
+    Latvia: null
+    LY: null
+    LBY: null
+    Libya: null
+    MA: null
+    MAR: null
+    Morocco: null
+    MD: null
+    MDA: null
+    Moldova, Republic of: null
+    Moldova: null
+    ME: null
+    MNE: null
+    Montenegro: null
+    MK: null
+    MKD: null
+    Macedonia, Republic of: null
+    Macedonia: null
+    MT: null
+    MLT: null
+    Malta: null
+    NL: null
+    NLD: null
+    Netherlands: null
+    NO: null
+    NOR: null
+    Norway: null
+    PL: null
+    POL: null
+    Poland: null
+    PS: null
+    PSE: null
+    Palestine, State of: null
+    Palestine: null
+    PT: null
+    PRT: null
+    Portugal: null
+    RO: null
+    ROU: null
+    Romania: null
+    RS: null
+    SRB: null
+    Serbia: null
+    RU: null
+    RUS: null
+    Russian Federation: null
+    Russia: null
+    SA: null
+    SAU: null
+    Saudi Arabia: null
+    SE: null
+    SWE: null
+    Sweden: null
+    SI: null
+    SVN: null
+    Slovenia: null
+    SK: null
+    SVK: null
+    Slovakia: null
+    SM: null
+    SMR: null
+    San Marino: null
+    SY: null
+    SYR: null
+    Syrian Arab Republic: null
+    Syria: null
+    TN: null
+    TUN: null
+    Tunisia: null
+    TR: null
+    TUR: null
+    Turkey: null
+    UA: null
+    UKR: null
+    Ukraine: null
+    _1: null
+    Somaliland: null
+    AE: null
+    ARE: null
+    United Arab Emirates: null
+    AF: null
+    AFG: null
+    Afghanistan: null
+    AM: null
+    ARM: null
+    Armenia: null
+    AO: null
+    AGO: null
+    Angola: null
+    AR: null
+    ARG: null
+    Argentina: null
+    AU: null
+    AUS: null
+    Australia: null
+    AZ: null
+    AZE: null
+    Azerbaijan: null
+    BD: null
+    BGD: null
+    Bangladesh: null
+    BF: null
+    BFA: null
+    Burkina Faso: null
+    BI: null
+    BDI: null
+    Burundi: null
+    BJ: null
+    BEN: null
+    Benin: null
+    BN: null
+    BRN: null
+    Brunei Darussalam: null
+    Brunei: null
+    BO: null
+    BOL: null
+    Bolivia, Plurinational State of: null
+    Bolivia: null
+    BR: null
+    BRA: null
+    Brazil: null
+    BS: null
+    BHS: null
+    Bahamas: null
+    BT: null
+    BTN: null
+    Bhutan: null
+    BW: null
+    BWA: null
+    Botswana: null
+    BZ: null
+    BLZ: null
+    Belize: null
+    CA: null
+    CAN: null
+    Canada: null
+    CD: null
+    COD: null
+    Congo, The Democratic Republic of the: null
+    Dem. Rep. Congo: null
+    CF: null
+    CAF: null
+    Central African Republic: null
+    Central African Rep.: null
+    CG: null
+    COG: null
+    Congo: null
+    CI: null
+    CIV: null
+    Côte d'Ivoire: null
+    CL: null
+    CHL: null
+    Chile: null
+    CM: null
+    CMR: null
+    Cameroon: null
+    CN: null
+    CHN: null
+    China: null
+    CO: null
+    COL: null
+    Colombia: null
+    CR: null
+    CRI: null
+    Costa Rica: null
+    CU: null
+    CUB: null
+    Cuba: null
+    DJ: null
+    DJI: null
+    Djibouti: null
+    DO: null
+    DOM: null
+    Dominican Republic: null
+    Dominican Rep.: null
+    EC: null
+    ECU: null
+    Ecuador: null
+    EH: null
+    ESH: null
+    Western Sahara: null
+    W. Sahara: null
+    ER: null
+    ERI: null
+    Eritrea: null
+    ET: null
+    ETH: null
+    Ethiopia: null
+    FJ: null
+    FJI: null
+    Fiji: null
+    FK: null
+    FLK: null
+    Falkland Islands [Malvinas]: null
+    Falkland Is.: null
+    GA: null
+    GAB: null
+    Gabon: null
+    GH: null
+    GHA: null
+    Ghana: null
+    GL: null
+    GRL: null
+    Greenland: null
+    GM: null
+    GMB: null
+    Gambia: null
+    GN: null
+    GIN: null
+    Guinea: null
+    GQ: null
+    GNQ: null
+    Equatorial Guinea: null
+    Eq. Guinea: null
+    GT: null
+    GTM: null
+    Guatemala: null
+    GW: null
+    GNB: null
+    Guinea-Bissau: null
+    GY: null
+    GUY: null
+    Guyana: null
+    HN: null
+    HND: null
+    Honduras: null
+    HT: null
+    HTI: null
+    Haiti: null
+    ID: null
+    IDN: null
+    Indonesia: null
+    IN: null
+    IND: null
+    India: null
+    IR: null
+    IRN: null
+    Iran, Islamic Republic of: null
+    Iran: null
+    JM: null
+    JAM: null
+    Jamaica: null
+    JP: null
+    JPN: null
+    Japan: null
+    KE: null
+    KEN: null
+    Kenya: null
+    KG: null
+    KGZ: null
+    Kyrgyzstan: null
+    KH: null
+    KHM: null
+    Cambodia: null
+    KP: null
+    PRK: null
+    Korea, Democratic People's Republic of: null
+    Dem. Rep. Korea: null
+    North Korea: null
+    KR: null
+    KOR: null
+    Korea, Republic of: null
+    Korea: null
+    South Korea: null
+    KW: null
+    KWT: null
+    Kuwait: null
+    KZ: null
+    KAZ: null
+    Kazakhstan: null
+    LA: null
+    LAO: null
+    Lao People's Democratic Republic: null
+    Lao PDR: null
+    LK: null
+    LKA: null
+    Sri Lanka: null
+    LR: null
+    LBR: null
+    Liberia: null
+    LS: null
+    LSO: null
+    Lesotho: null
+    MG: null
+    MDG: null
+    Madagascar: null
+    ML: null
+    MLI: null
+    Mali: null
+    MM: null
+    MMR: null
+    Myanmar: null
+    MN: null
+    MNG: null
+    Mongolia: null
+    MR: null
+    MRT: null
+    Mauritania: null
+    MW: null
+    MWI: null
+    Malawi: null
+    MX: null
+    MEX: null
+    Mexico: null
+    MY: null
+    MYS: null
+    Malaysia: null
+    MZ: null
+    MOZ: null
+    Mozambique: null
+    NA: null
+    NAM: null
+    Namibia: null
+    NC: null
+    NCL: null
+    New Caledonia: null
+    NE: null
+    NER: null
+    Niger: null
+    NG: null
+    NGA: null
+    Nigeria: null
+    NI: null
+    NIC: null
+    Nicaragua: null
+    NP: null
+    NPL: null
+    Nepal: null
+    NZ: null
+    NZL: null
+    New Zealand: null
+    OM: null
+    OMN: null
+    Oman: null
+    PA: null
+    PAN: null
+    Panama: null
+    PE: null
+    PER: null
+    Peru: null
+    PG: null
+    PNG: null
+    Papua New Guinea: null
+    PH: null
+    PHL: null
+    Philippines: null
+    PK: null
+    PAK: null
+    Pakistan: null
+    PR: null
+    PRI: null
+    Puerto Rico: null
+    PY: null
+    PRY: null
+    Paraguay: null
+    QA: null
+    QAT: null
+    Qatar: null
+    RW: null
+    RWA: null
+    Rwanda: null
+    SB: null
+    SLB: null
+    Solomon Islands: null
+    Solomon Is.: null
+    SD: null
+    SDN: null
+    Sudan: null
+    SL: null
+    SLE: null
+    Sierra Leone: null
+    SN: null
+    SEN: null
+    Senegal: null
+    SO: null
+    SOM: null
+    Somalia: null
+    SR: null
+    SUR: null
+    Suriname: null
+    SS: null
+    SSD: null
+    South Sudan: null
+    S. Sudan: null
+    SV: null
+    SLV: null
+    El Salvador: null
+    SZ: null
+    SWZ: null
+    Swaziland: null
+    TD: null
+    TCD: null
+    Chad: null
+    TF: null
+    ATF: null
+    French Southern Territories: null
+    Fr. S. Antarctic Lands: null
+    TG: null
+    TGO: null
+    Togo: null
+    TH: null
+    THA: null
+    Thailand: null
+    TJ: null
+    TJK: null
+    Tajikistan: null
+    TL: null
+    TLS: null
+    Timor-Leste: null
+    TM: null
+    TKM: null
+    Turkmenistan: null
+    TT: null
+    TTO: null
+    Trinidad and Tobago: null
+    TW: null
+    TWN: null
+    Taiwan, Province of China: null
+    Taiwan: null
+    TZ: null
+    TZA: null
+    Tanzania, United Republic of: null
+    Tanzania: null
+    UG: null
+    UGA: null
+    Uganda: null
+    US: null
+    USA: null
+    United States: null
+    United States of America: null
+    UY: null
+    URY: null
+    Uruguay: null
+    UZ: null
+    UZB: null
+    Uzbekistan: null
+    VE: null
+    VEN: null
+    Venezuela, Bolivarian Republic of: null
+    Venezuela: null
+    VN: null
+    VNM: null
+    Viet Nam: null
+    Vietnam: null
+    VU: null
+    VUT: null
+    Vanuatu: null
+    YE: null
+    YEM: null
+    Yemen: null
+    ZA: null
+    ZAF: null
+    South Africa: null
+    ZM: null
+    ZMB: null
+    Zambia: null
+    ZW: null
+    ZWE: null
+    Zimbabwe: null
+    US-AK: null
+    AK: null
+    Alaska: null
+    US-AL: null
+    Alabama: null
+    US-AR: null
+    Arkansas: null
+    US-AZ: null
+    Arizona: null
+    US-CA: null
+    California: null
+    US-CO: null
+    Colorado: null
+    US-CT: null
+    CT: null
+    Connecticut: null
+    US-DC: null
+    DC: null
+    District of Columbia: null
+    US-DE: null
+    Delaware: null
+    US-FL: null
+    FL: null
+    Florida: null
+    US-GA: null
+    US-HI: null
+    HI: null
+    Hawaii: null
+    US-IA: null
+    IA: null
+    Iowa: null
+    US-ID: null
+    Idaho: null
+    US-IL: null
+    Illinois: null
+    US-IN: null
+    Indiana: null
+    US-KS: null
+    KS: null
+    Kansas: null
+    US-KY: null
+    KY: null
+    Kentucky: null
+    US-LA: null
+    Louisiana: null
+    US-MA: null
+    Massachusetts: null
+    US-MD: null
+    Maryland: null
+    US-ME: null
+    Maine: null
+    US-MI: null
+    MI: null
+    Michigan: null
+    US-MN: null
+    Minnesota: null
+    US-MO: null
+    MO: null
+    Missouri: null
+    US-MS: null
+    MS: null
+    Mississippi: null
+    US-MT: null
+    Montana: null
+    US-NC: null
+    North Carolina: null
+    N. Carolina: null
+    US-ND: null
+    ND: null
+    North Dakota: null
+    N. Dakota: null
+    US-NE: null
+    Nebraska: null
+    US-NH: null
+    NH: null
+    New Hampshire: null
+    US-NJ: null
+    NJ: null
+    New Jersey: null
+    US-NM: null
+    NM: null
+    New Mexico: null
+    US-NV: null
+    NV: null
+    Nevada: null
+    US-NY: null
+    NY: null
+    New York: null
+    US-OH: null
+    OH: null
+    Ohio: null
+    US-OK: null
+    OK: null
+    Oklahoma: null
+    US-OR: null
+    OR: null
+    Oregon: null
+    US-PA: null
+    Pennsylvania: null
+    US-RI: null
+    RI: null
+    Rhode Island: null
+    US-SC: null
+    SC: null
+    South Carolina: null
+    S. Carolina: null
+    US-SD: null
+    South Dakota: null
+    S. Dakota: null
+    US-TN: null
+    Tennessee: null
+    US-TX: null
+    TX: null
+    Texas: null
+    US-UT: null
+    UT: null
+    Utah: null
+    US-VA: null
+    VA: null
+    Virginia: null
+    US-VT: null
+    VT: null
+    Vermont: null
+    US-WA: null
+    WA: null
+    Washington: null
+    US-WI: null
+    WI: null
+    Wisconsin: null
+    US-WV: null
+    WV: null
+    West Virginia: null
+    US-WY: null
+    WY: null
+    Wyoming: null
+    Anchorage: null
+    Birmingham: null
+    Montgomery: null
+    Mobile: null
+    Huntsville: null
+    Little Rock: null
+    Phoenix: null
+    Tucson: null
+    Mesa: null
+    Chandler: null
+    Gilbert: null
+    Glendale: null
+    Scottsdale: null
+    Tempe: null
+    Peoria: null
+    Surprise: null
+    Los Angeles: null
+    San Diego: null
+    San Jose: null
+    San Francisco: null
+    Fresno: null
+    Sacramento: null
+    Long Beach: null
+    Oakland: null
+    Bakersfield: null
+    Anaheim: null
+    Santa Ana: null
+    Riverside: null
+    Stockton: null
+    Chula Vista: null
+    Irvine: null
+    Fremont: null
+    San Bernardino: null
+    Modesto: null
+    Oxnard: null
+    Fontana: null
+    Moreno Valley: null
+    Huntington Beach: null
+    Santa Clarita: null
+    Garden Grove: null
+    Oceanside: null
+    Rancho Cucamonga: null
+    Santa Rosa: null
+    Ontario: null
+    Elk Grove: null
+    Corona: null
+    Lancaster: null
+    Palmdale: null
+    Salinas: null
+    Hayward: null
+    Pomona: null
+    Escondido: null
+    Sunnyvale: null
+    Torrance: null
+    Pasadena: null
+    Orange: null
+    Fullerton: null
+    Thousand Oaks: null
+    Visalia: null
+    Roseville: null
+    Concord: null
+    Simi Valley: null
+    Santa Clara: null
+    Victorville: null
+    Vallejo: null
+    Berkeley: null
+    El Monte: null
+    Downey: null
+    Costa Mesa: null
+    Carlsbad: null
+    Inglewood: null
+    Fairfield: null
+    Ventura: null
+    Temecula: null
+    Antioch: null
+    Richmond: null
+    West Covina: null
+    Murrieta: null
+    Norwalk: null
+    Daly City: null
+    Burbank: null
+    Santa Maria: null
+    El Cajon: null
+    San Mateo: null
+    Rialto: null
+    Clovis: null
+    East Los Angeles: null
+    Denver: null
+    Colorado Springs: null
+    Aurora: null
+    Fort Collins: null
+    Lakewood: null
+    Thornton: null
+    Arvada: null
+    Westminster: null
+    Pueblo: null
+    Centennial: null
+    Boulder: null
+    Bridgeport: null
+    New Haven: null
+    Stamford: null
+    Hartford: null
+    Waterbury: null
+    Jacksonville: null
+    Miami: null
+    Tampa: null
+    Orlando: null
+    St. Petersburg: null
+    Hialeah: null
+    Tallahassee: null
+    Fort Lauderdale: null
+    Port St. Lucie: null
+    Cape Coral: null
+    Pembroke Pines: null
+    Hollywood: null
+    Miramar: null
+    Gainesville: null
+    Coral Springs: null
+    Miami Gardens: null
+    Clearwater: null
+    Pompano Beach: null
+    Palm Bay: null
+    West Palm Beach: null
+    Lakeland: null
+    Brandon: null
+    Atlanta: null
+    Columbus: null
+    Augusta: null
+    Macon: null
+    Savannah: null
+    Athens: null
+    Sandy Springs: null
+    Honolulu: null
+    Des Moines: null
+    Cedar Rapids: null
+    Davenport: null
+    Boise: null
+    Chicago: null
+    Rockford: null
+    Joliet: null
+    Naperville: null
+    Springfield: null
+    Elgin: null
+    Indianapolis: null
+    Fort Wayne: null
+    Evansville: null
+    South Bend: null
+    Wichita: null
+    Overland Park: null
+    Kansas City: null
+    Olathe: null
+    Topeka: null
+    Louisville: null
+    Lexington: null
+    New Orleans: null
+    Baton Rouge: null
+    Shreveport: null
+    Lafayette: null
+    Metairie: null
+    Boston: null
+    Worcester: null
+    Lowell: null
+    Cambridge: null
+    Baltimore: null
+    Detroit: null
+    Grand Rapids: null
+    Warren: null
+    Sterling Heights: null
+    Ann Arbor: null
+    Lansing: null
+    Minneapolis: null
+    St. Paul: null
+    Rochester: null
+    St. Louis: null
+    Independence: null
+    Columbia: null
+    Jackson: null
+    Billings: null
+    Charlotte: null
+    Raleigh: null
+    Greensboro: null
+    Durham: null
+    Winston–Salem: null
+    Fayetteville: null
+    Cary: null
+    Wilmington: null
+    High Point: null
+    Fargo: null
+    Omaha: null
+    Lincoln: null
+    Manchester: null
+    Newark: null
+    Jersey City: null
+    Paterson: null
+    Elizabeth: null
+    Albuquerque: null
+    Las Cruces: null
+    Las Vegas: null
+    Henderson: null
+    Reno: null
+    North Las Vegas: null
+    Paradise: null
+    Sunrise Manor: null
+    Spring Valley: null
+    Enterprise: null
+    New York City: null
+    Buffalo: null
+    Yonkers: null
+    Syracuse: null
+    Cleveland: null
+    Cincinnati: null
+    Toledo: null
+    Akron: null
+    Dayton: null
+    Oklahoma City: null
+    Tulsa: null
+    Norman: null
+    Broken Arrow: null
+    Portland: null
+    Salem: null
+    Eugene: null
+    Gresham: null
+    Philadelphia: null
+    Pittsburgh: null
+    Allentown: null
+    Providence: null
+    Charleston: null
+    North Charleston: null
+    Sioux Falls: null
+    Memphis: null
+    Nashville: null
+    Knoxville: null
+    Chattanooga: null
+    Clarksville: null
+    Murfreesboro: null
+    Houston: null
+    San Antonio: null
+    Dallas: null
+    Austin: null
+    Fort Worth: null
+    El Paso: null
+    Arlington: null
+    Corpus Christi: null
+    Plano: null
+    Laredo: null
+    Lubbock: null
+    Garland: null
+    Irving: null
+    Amarillo: null
+    Grand Prairie: null
+    Brownsville: null
+    McKinney: null
+    Frisco: null
+    Mesquite: null
+    McAllen: null
+    Killeen: null
+    Waco: null
+    Carrollton: null
+    Denton: null
+    Midland: null
+    Abilene: null
+    Beaumont: null
+    Odessa: null
+    Round Rock: null
+    Richardson: null
+    Wichita Falls: null
+    College Station: null
+    Pearland: null
+    Lewisville: null
+    Tyler: null
+    Salt Lake City: null
+    West Valley City: null
+    Provo: null
+    West Jordan: null
+    Virginia Beach: null
+    Norfolk: null
+    Chesapeake: null
+    Newport News: null
+    Alexandria: null
+    Hampton: null
+    Arlington County: null
+    Seattle: null
+    Spokane: null
+    Tacoma: null
+    Vancouver: null
+    Bellevue: null
+    Kent: null
+    Everett: null
+    Milwaukee: null
+    Madison: null
+    Green Bay: null
+    Pristina: null
+    Priština: null
+    Prishtina: null
+    Prishtinë: null
+    North Nicosia: null
+    Andorra la Vella: null
+    Tirana: null
+    Vienna: null
+    Wien: null
+    Mariehamn: null
+    Sarajevo: null
+    Brussels: null
+    Bruxelles: null
+    Brussel: null
+    Sofia: null
+    Minsk: null
+    Bern: null
+    Zürich: null
+    Geneva: null
+    Nicosia: null
+    Prague: null
+    Praha: null
+    Praga: null
+    Berlin: null
+    Hanover: null
+    Hamburg: null
+    Munich: null
+    München: null
+    Stuttgart: null
+    Frankfurt: null
+    Düsseldorf: null
+    Cologne: null
+    Essen: null
+    Dresden: null
+    Leipzig: null
+    Copenhagen: null
+    København: null
+    Algiers: null
+    Tallinn: null
+    Cairo: null
+    Madrid: null
+    Barcelona: null
+    Murcia: null
+    Malaga: null
+    Seville: null
+    Bilbao: null
+    Zaragoza: null
+    Valencia: null
+    Helsinki: null
+    Tórshavn: null
+    Torshavn: null
+    Paris: null
+    Nice: null
+    Montpellier: null
+    Marseille: null
+    Lyon: null
+    Toulouse: null
+    Bordeaux: null
+    Nantes: null
+    London: null
+    London Heathrow: null
+    Liverpool: null
+    Bristol: null
+    Cardiff: null
+    Oxford: null
+    Glasgow: null
+    Edinburgh: null
+    Belfast: null
+    Tbilisi: null
+    Saint Peter Port: null
+    Thessaloniki: null
+    Zagreb: null
+    Budapest: null
+    Dublin: null
+    Jerusalem: null
+    Tel Aviv: null
+    Douglas: null
+    Baghdad: null
+    Reykjavik: null
+    Rome: null
+    Roma: null
+    Saint Helier: null
+    Amman: null
+    Beirut: null
+    Vaduz: null
+    Vilnius: null
+    Riga: null
+    Tripoli: null
+    Rabat: null
+    Fes: null
+    Casablanca: null
+    Marrakesh: null
+    Marrakech: null
+    Tangier: null
+    Chisinau: null
+    Chișinău: null
+    Podgorica: null
+    Skopje: null
+    Valletta: null
+    Amsterdam: null
+    The Hague: null
+    Rotterdam: null
+    Oslo: null
+    Bergen: null
+    Trondheim: null
+    Warsaw: null
+    Warszawa: null
+    Krakow: null
+    Lublin: null
+    Bialystok: null
+    Lodz: null
+    Gdansk: null
+    Wroclaw: null
+    Lisbon: null
+    Porto: null
+    Bucharest: null
+    București: null
+    Belgrade: null
+    Beograd: null
+    Moscow: null
+    Moskva: null
+    Saint Petersburg: null
+    Kazan: null
+    Vladivostok: null
+    Irkutsk: null
+    Novosibirsk: null
+    Krasnoyarsk: null
+    Nizhny Novgorod: null
+    Riyadh: null
+    Stockholm: null
+    Gothenburg: null
+    Malmo: null
+    Ljubljana: null
+    Bratislava: null
+    Damascus: null
+    Tunis: null
+    Ankara: null
+    Istanbul: null
+    Constantinople: null
+    Kyiv: null
+    Kiev: null
+    Kharkiv: null
+    Lviv: null
+    Hargeisa: null
+    Abu Dhabi: null
+    Kabul: null
+    Yerevan: null
+    Luanda: null
+    Buenos Aires: null
+    Canberra: null
+    Sydney: null
+    Melbourne: null
+    Cairns: null
+    Adelaide: null
+    Perth: null
+    Baku: null
+    Dhaka: null
+    Ouagadougou: null
+    Bujumbura: null
+    Porto-Novo: null
+    Porto Novo: null
+    Cotonou: null
+    Bandar Seri Begawani: null
+    La Paz: null
+    Sucre: null
+    Brasília: null
+    Brasilia: null
+    Sao Paulo: null
+    Rio de Janeiro: null
+    Nassau: null
+    Thimphu: null
+    Gaborone: null
+    Belmopan: null
+    Ottawa: null
+    Calgary: null
+    Edmonton: null
+    Winnipeg: null
+    Toronto: null
+    Montreal: null
+    Québec: null
+    Quebec: null
+    Kinshasa: null
+    Bangui: null
+    Brazzaville: null
+    Yamoussoukro: null
+    Abidjan: null
+    Santiago: null
+    Yaoundé: null
+    Yaounde: null
+    Beijing: null
+    Bogotá: null
+    Bogota: null
+    San José: null
+    Havana: null
+    Santo Domingo: null
+    Quito: null
+    Laayoune: null
+    Asmara: null
+    Addis Ababa: null
+    Suva: null
+    Stanley: null
+    Libreville: null
+    Accra: null
+    Nuuk: null
+    Banjul: null
+    Conakry: null
+    Malabo: null
+    Guatemala City: null
+    Bissau: null
+    Georgetown: null
+    Tegucigalpa: null
+    Port-au-Prince: null
+    Port au Prince: null
+    Jakarta: null
+    New Delhi: null
+    Mumbai: null
+    Bombay: null
+    Bengaluru: null
+    Hyderabad: null
+    Tehran: null
+    Kingston: null
+    Tokyo: null
+    Osaka: null
+    Hiroshima: null
+    Fukuoka: null
+    Sapporo: null
+    Nairobi: null
+    Bishkek: null
+    Phnom Penh: null
+    Pyongyang: null
+    Seoul: null
+    Kuwait City: null
+    Astana: null
+    Vientiane: null
+    Sri Jayawardenepura Kotte: null
+    Colombo: null
+    Monrovia: null
+    Maseru: null
+    Antananarivo: null
+    Bamako: null
+    Naypyidaw: null
+    Ulaanbaatar: null
+    Ulan Bator: null
+    Nouakchott: null
+    Lilongwe: null
+    Mexico City: null
+    Kuala Lumpur: null
+    Putrajaya: null
+    Maputo: null
+    Windhoek: null
+    Nouméa: null
+    Noumea: null
+    Niamey: null
+    Abuja: null
+    Managua: null
+    Kathmandu: null
+    Wellington: null
+    Auckland: null
+    Christchurch: null
+    Queenstown: null
+    Muscat: null
+    Panama City: null
+    Lima: null
+    Port Moresby: null
+    Manila: null
+    Islamabad: null
+    San Juan: null
+    Asunción: null
+    Asuncion: null
+    Doha: null
+    Kigali: null
+    Honiara: null
+    Khartoum: null
+    Freetown: null
+    Dakar: null
+    Mogadishu: null
+    Paramaribo: null
+    Juba: null
+    San Salvador: null
+    Mbabane: null
+    Lobamba: null
+    N\'Djamena: null
+    NDjamena: null
+    N Djamena: null
+    Lomé: null
+    Lome: null
+    Bangkok: null
+    Dushanbe: null
+    Dili: null
+    Ashgabat: null
+    Port of Spain: null
+    Taipei: null
+    Dodoma: null
+    Kampala: null
+    Washington, D.C.: null
+    Washington D.C.: null
+    Montevideo: null
+    Tashkent: null
+    Caracas: null
+    Hanoi: null
+    Ho Chi Minh: null
+    Port Vila: null
+    Sana\'a: null
+    Sanaa: null
+    Pretoria: null
+    Bloemfontein: null
+    Cape Town: null
+    Johannesburg: null
+    Lusaka: null
+    Harare: null
+guardian.py:
+    http://content.guardianapis.com/search: false
+    class `TheGuardianCredentials`:
+        def `valid`:
+            api-key: false
+    class `TheGuardianAPI`:
+        Section: false
+        sectionName: false
+        Headline: false
+        fields: false
+        headline: false
+        Content: false
+        bodyText: false
+        Trail Text: false
+        trailText: false
+        HTML: false
+        body: false
+        Publication Date: false
+        webPublicationDate: false
+        Type: false
+        type: false
+        Language: false
+        lang: false
+        Tags: false
+        ', ': false
+        webTitle: false
+        tags: false
+        URL: false
+        webUrl: false
+        Word Count: false
+        wordcount: false
+        def `_search`:
+            UTF-8: false
+            API limit exceeded: false
+            response: false
+            pages: false
+            results: false
+        def `_build_query`:
+            q: false
+            api-key: false
+            page: false
+            show-fields: false
+            headline,trailText,body,bodyText,lang,wordcount: false
+            show-tags: false
+            all: false
+            from-date: false
+            to-date: false
+        def `search`:
+            The Guardian: false
+            Language: false
+    __main__: false
+    THE_GUARDIAN_API_KEY: false
+    test: false
+    refugees: false
+import_documents.py:
+    docx: false
+    odt: false
+    txt: false
+    pdf: false
+    xml: false
+    conllu: false
+    Text: false
+    name: false
+    path: false
+    ext: false
+    category: false
+    content: false
+    TextDataError: false
+    error: false
+    error_str: false
+    class `Reader`:
+        def `read`:
+            Error reading failed: false
+        def `read_file`:
+            No reader for {}: false
+        def `make_text_data`:
+            None: false
+            \s+: false
+            ' ': false
+    class `TxtReader`:
+        .txt: false
+        def `read_file`:
+            r: false
+    class `DocxReader`:
+        .docx: false
+    class `OdtReader`:
+        .odt: false
+        def `read_file`:
+            ' ': false
+    class `PdfReader`:
+        .pdf: false
+        def `read_file`:
+            ' ': false
+            \uFFFD: false
+            PDF content is empty or corrupted: false
+    class `XmlReader`:
+        .xml: false
+        def `read_file`:
+            \n: false
+    class `CsvMetaReader`:
+        .csv: false
+    class `YamlMetaReader`:
+        .yaml: false
+        def `read_file`:
+            r: false
+    class `TsvMetaReader`:
+        .tsv: false
+        def `read_file`:
+            \t: false
+    def `quote_url`:
+        def `quote_byte`:
+            %{:02X}: false
+        utf-8: false
+    class `ConlluReader`:
+        Text: false
+        name: false
+        path: false
+        ext: false
+        category: false
+        doc_id: false
+        content: false
+        .conllu: false
+        def `parse_ner`:
+            misc: false
+            NER: false
+            O: false
+            lemma: false
+            ' ': false
+        def `read_file`:
+            r: false
+            utf-8: false
+            newdoc id: false
+            ' ': false
+            text: false
+            lemma: false
+            upos: false
+            ', ': false
+        def `make_text_data`:
+            None: false
+            text: false
+            \s+: false
+            ' ': false
+            newdoc id: false
+    class `ImportDocuments`:
+        Text file: false
+        ID: false
+        Text_ID: false
+        def `__init__`:
+            /: false
+        def `_retrieve_paths`:
+            *.{}: false
+            *.csv: false
+            *.yaml: false
+            *.yml: false
+            *.tsv: false
+        def `_create_corpus`:
+            name: false
+            path: false
+            content: false
+            utterance: false
+            category: false
+            NFC: false
+            title: false
+        def `_add_metadata`:
+            path: false
+            utterance: false
+            first: false
+        def `scan`:
+            *: false
+            .*: false
+        def `scan_url`:
+            *: false
+            .*: false
+            /: false
+language.py:
+    af: false
+    Afrikaans: false
+    am: false
+    Amharic: false
+    ar: false
+    Arabic: false
+    az: false
+    Azerbaijani: false
+    be: false
+    Belarusian: false
+    bg: false
+    Bulgarian: false
+    bn: false
+    Bengali: false
+    bo: false
+    Tibetan: false
+    br: false
+    Breton: false
+    bs: false
+    Bosnian: false
+    ca: false
+    Catalan: false
+    ckb: false
+    Central Kurdish: false
+    cop: false
+    Coptic: false
+    cs: false
+    Czech: false
+    cu: false
+    Old Church Slavonic: false
+    cy: false
+    Welsh: false
+    da: false
+    Danish: false
+    de: false
+    German: false
+    dv: false
+    Divehi: false
+    el: false
+    Greek: false
+    en: false
+    English: false
+    es: false
+    Spanish: false
+    et: false
+    Estonian: false
+    eu: false
+    Basque: false
+    fa: false
+    Persian: false
+    fi: false
+    Finnish: false
+    fr: false
+    French: false
+    ga: false
+    Irish: false
+    gl: false
+    Galician: false
+    got: false
+    Gothic: false
+    grc: false
+    Ancient Greek: false
+    gu: false
+    Gujarati: false
+    he: false
+    Hebrew: false
+    hi: false
+    Hindi: false
+    hi-Latn: false
+    Hindi (latin): false
+    hi_eng: false
+    Hinglish: false
+    hr: false
+    Croatian: false
+    ht: false
+    Haitian: false
+    hu: false
+    Hungarian: false
+    hy: false
+    Armenian: false
+    id: false
+    Indonesian: false
+    is: false
+    Icelandic: false
+    it: false
+    Italian: false
+    ja: false
+    Japanese: false
+    ka: false
+    Georgian: false
+    kk: false
+    Kazakh: false
+    km: false
+    Central Khmer: false
+    kn: false
+    Kannada: false
+    ko: false
+    Korean: false
+    la: false
+    Latin: false
+    lo: false
+    Lao: false
+    lt: false
+    Lithuanian: false
+    lv: false
+    Latvian: false
+    mk: false
+    Macedonian: false
+    ml: false
+    Malayalam: false
+    mr: false
+    Marathi: false
+    my: false
+    Burmese: false
+    nb: false
+    Norwegian Bokmål: false
+    ne: false
+    Nepali: false
+    nl: false
+    Dutch: false
+    nn: false
+    Norwegian Nynorsk: false
+    no: false
+    Norwegian: false
+    or: false
+    Oriya: false
+    pa: false
+    Punjabi: false
+    pl: false
+    Polish: false
+    ps: false
+    Pashto: false
+    pt: false
+    Portuguese: false
+    ro: false
+    Romanian: false
+    ru: false
+    Russian: false
+    sa: false
+    Sanskrit: false
+    sd: false
+    Sindhi: false
+    si: false
+    Sinhala: false
+    sk: false
+    Slovak: false
+    sl: false
+    Slovenian: false
+    sq: false
+    Albanian: false
+    sr: false
+    Serbian: false
+    sv: false
+    Swedish: false
+    ta: false
+    Tamil: false
+    te: false
+    Telugu: false
+    tg: false
+    Tajik: false
+    th: false
+    Thai: false
+    tl: false
+    Tagalog: false
+    tr: false
+    Turkish: false
+    ug: false
+    Uyghur: false
+    uk: false
+    Ukrainian: false
+    ur: false
+    Urdu: false
+    vi: false
+    Vietnamese: false
+    zh: false
+    Chinese: false
+    zh_char: false
+    Chinese - Chinese Characters: false
+    class `LanguageModel`:
+        def `data`:
+            (no language): false
+    def `detect_language`:
+        Corpus: false
+        ' ': false
+        \n: false
+    Ancient greek: false
+nyt.py:
+    http://api.nytimes.com/svc/search/v2/articlesearch.json: false
+    def `keywords`:
+        keywords: false
+        ', ': false
+        value: false
+        name: false
+    def `parse_date`:
+        pub_date: false
+    class `NYT`:
+        Section: false
+        section_name: false
+        Headline: false
+        headline: false
+        main: false
+        Abstract: false
+        abstract: false
+        Snippet: false
+        snippet: false
+        Lead Paragraph: false
+        lead_paragraph: false
+        Subject Keywords: false
+        subject: false
+        URL: false
+        web_url: false
+        Locations: false
+        glocations: false
+        Persons: false
+        persons: false
+        Organizations: false
+        organizations: false
+        Creative Works: false
+        creative_works: false
+        Publication Date: false
+        Article Type: false
+        type_of_material: false
+        Word Count: false
+        word_count: false
+        def `api_key_valid`:
+            test: false
+        def `search`:
+            response: false
+            docs: false
+            meta: false
+            hits: false
+            NY Times: false
+            language: false
+            en: false
+        def `_cache_init`:
+            nytcache: false
+            query_cache: false
+            'Could not initialize NYT cache: {}': false
+        def `_fetch_page`:
+            utf-8: false
+            'NYT api returned HTTPError with code 403 ': false
+            (Forbidden)! Skipping this page ...: false
+            response: false
+            docs: false
+        def `_encode_url`:
+            fq: false
+            The New York Times: false
+            api-key: false
+            q: false
+            page: false
+            begin_date: false
+            %Y%m%d: false
+            end_date: false
+            {}?{}: false
+ontology.py:
+    class `Tree`:
+        def `__init__`:
+            Vertices must be enumerated from 0 to n.: false
+            adj_list and labels must be of same length: false
+        def `from_dict`:
+            Not a tree: false
+    class `FitnessFunction`:
+        def `score`:
+            ' ': false
+    class `OntologyHandler`:
+        <R-O-O-T>: false
+pubmed.py:
+    http://www.ncbi.nlm.nih.gov/pubmed/?term=: false
+    authors: false
+    title: false
+    MESH headings: false
+    abstract: false
+    url: false
+    date: false
+    FAU: false
+    TI: false
+    MH: false
+    AB: false
+    PMID: false
+    DP: false
+    def `_mesh_headings_to_class`:
+        /: false
+        ' ': false
+        *: false
+    def `_date_to_iso`:
+        %Y %b %d: false
+        %Y %b: false
+        %Y: false
+        fall: false
+        Sep: false
+        autumn: false
+        winter: false
+        Dec: false
+        spring: false
+        Mar: false
+        summer: false
+        Jun: false
+        -: false
+        Could not parse "{}" into a date.: false
+    def `_records_to_corpus_entries`:
+        ' ': false
+        {}{}: false
+        MH: false
+        OT: false
+    def `_corpus_from_records`:
+        title: false
+        section: false
+        en: false
+    class `Pubmed`:
+        def `__init__`:
+            pubmedcache: false
+            query_cache: false
+        def `_search_for_records`:
+            db: false
+            pubmed: false
+            usehistory: false
+            y: false
+            retmax: false
+            term: false
+            Author: false
+            ' AND ': false
+            {} is not a valid data type for the field "authors".: false
+            All fields: false
+            ' OR ': false
+            {} is not a valid data type for the field "terms".: false
+            {}[{}]: false
+            ({}): false
+            mindate: false
+            -: false
+            /: false
+            maxdate: false
+            datetype: false
+            pdat: false
+            An exception occurred ({0}).: false
+            IdList: false
+            Count: false
+            WebEnv: false
+            QueryKey: false
+        def `_retrieve_record_batch`:
+            No WebEnv or QueryKey data in this PubMed class instance.: false
+            pubmed: false
+            medline: false
+            text: false
+        def `_retrieve_records`:
+            pubmed: false
+            ,: false
+            An exception occurred ({0}).: false
+            WebEnv: false
+            QueryKey: false
+            PMID: false
+semantic_search.py:
+    class `SemanticSearch`:
+        def `__init__`:
+            semantic-search: false
+            https://api.garaza.io: false
+            text: false
+        def `encode_queries`:
+            utf-8: false
+            replace: false
+        def `encode_text`:
+            utf-8: false
+            replace: false
+    class `_ServerCommunicator`:
+        def `__init__`:
+            application/json: false
+        def `_encode_data_instance`:
+            utf-8: false
+            replace: false
+    __main__: false
+    grimm-tales-selected: false
+    book: false
+    is: false
+    rum: false
+    are: false
+stats.py:
+    def `hypergeom_p_values`:
+        Number of columns does not match.: false
+tweet_profiler.py:
+    class `TweetProfiler`:
+        https://raw.githubusercontent.com/biolab/: false
+        orange3-text/master/SERVERS.txt: false
+        def `transform`:
+            tweets: false
+            model_name: false
+            output_mode: false
+            tweet_profiler: false
+            classes: false
+            profile: false
+            target_mode: false
+            Embeddings: false
+            hidden: false
+            Probabilities: false
+            Classes: false
+            mc: false
+            Emotion: false
+            ml: false
+            no: false
+            yes: false
+        def `get_server_address`:
+            'Could not access server list at: {}\n.': false
+            \n: false
+        def `check_server_alive`:
+            Server {} is not responding.: false
+        def `server_call`:
+            /: false
+        def `set_configuration`:
+            get_configurations: false
+            models: false
+            output_modes: false
+twitter.py:
+    am: false
+    ar: false
+    bg: false
+    bn: false
+    bo: false
+    ca: false
+    ckb: false
+    cs: false
+    cy: false
+    da: false
+    de: false
+    dv: false
+    el: false
+    en: false
+    es: false
+    et: false
+    eu: false
+    fa: false
+    fi: false
+    fr: false
+    gu: false
+    he: false
+    hi: false
+    hi-Latn: false
+    ht: false
+    hu: false
+    hy: false
+    id: false
+    is: false
+    it: false
+    ja: false
+    ka: false
+    km: false
+    kn: false
+    ko: false
+    lo: false
+    lt: false
+    lv: false
+    ml: false
+    mr: false
+    my: false
+    ne: false
+    nl: false
+    no: false
+    or: false
+    pa: false
+    pl: false
+    ps: false
+    pt: false
+    ro: false
+    ru: false
+    sd: false
+    si: false
+    sl: false
+    sr: false
+    sv: false
+    ta: false
+    te: false
+    th: false
+    tl: false
+    tr: false
+    ug: false
+    uk: false
+    ur: false
+    vi: false
+    zh: false
+    def `coordinates`:
+        coordinates: false
+    def `country_code`:
+        place_id: false
+    Content: false
+    Author: false
+    @: false
+    Date: false
+    Language: false
+    Location: false
+    Number of Likes: false
+    like_count: false
+    Number of Retweets: false
+    retweet_count: false
+    In Reply To: false
+    Author Name: false
+    Author Description: false
+    Author Tweets Count: false
+    tweet_count: false
+    Author Following Count: false
+    following_count: false
+    Author Followers Count: false
+    followers_count: false
+    Author Listed Count: false
+    listed_count: false
+    Author Verified: false
+    Longitude: false
+    Latitude: false
+    tweet_fields: false
+    lang: false
+    public_metrics: false
+    in_reply_to_user_id: false
+    author_id: false
+    geo: false
+    created_at: false
+    user_fields: false
+    description: false
+    verified: false
+    place_fields: false
+    country_code: false
+    expansions: false
+    geo.place_id: false
+    max_results: false
+    class `TwitterAPI`:
+        def `search_content`:
+            def `build_query`:
+                At leas one keyword required: false
+                ' OR ': false
+                '"{}"': false
+                ' -is:retweet': false
+                ' lang:{lang}': false
+            Content: false
+            Any: false
+        def `search_authors`:
+            Author: false
+        def `_fetch`:
+            users: false
+            places: false
+            TooManyRequests raised: false
+        def `_create_corpus`:
+            Language: false
+            Content: false
+        def `append_history`:
+            Query: false
+            Search by: false
+            Language: false
+            Allow retweets: false
+            Tweets count: false
+util.py:
+    def `create_corpus`:
+        title: false
+version.py:
+    1.16.3: false
+    8831881e6a409e0de974c51e2df0c0dd194ac974: false
+    .dev: false
+wikipedia_api.py:
+    class `WikipediaAPI`:
+        Title: false
+        title: false
+        Content: false
+        content: false
+        Summary: false
+        summary: false
+        Url: false
+        url: false
+        Page ID: false
+        pageid: false
+        Revision ID: false
+        revision_id: false
+        Query: false
+        query: false
+        def `search`:
+            Wikipedia: false
+hull/cluster_hull.py:
+    def `compute_hulls`:
+        Embedding must have two columns: false
+    __main__: false
+    iris: false
+    o: false
+hull/concave_hull.py:
+    def `_handle_special_cases`:
+        euclidean: false
+    __main__: false
+    Hull computed in: false
+    s: false
+    o: false
+hull/alphashape/alphashape.py:
+    alphashape: false
+    def `alphasimplices`:
+        'Singular matrix. Likely caused by all points ': false
+        lying in an N-1 space.: false
+hull/alphashape/optimizealpha.py:
+    optimizealpha: false
+    def `optimizealpha`:
+        The lower bounds must be at least 0: false
+        'The upper bounds must be less than or equal to {sys.float_info.max} ': false
+        on your system: false
+        'maximum allowed iterations reached while ': false
+        optimizing the alpha parameter: false
+keywords/__init__.py:
+    ar: false
+    hy: false
+    br: false
+    bg: false
+    zh: false
+    hr: false
+    cs: false
+    da: false
+    nl: false
+    en: false
+    et: false
+    fi: false
+    fr: false
+    de: false
+    el: false
+    hi: false
+    hu: false
+    id: false
+    it: false
+    ja: false
+    lv: false
+    lt: false
+    no: false
+    fa: false
+    pl: false
+    pt: false
+    ro: false
+    ru: false
+    sk: false
+    sl: false
+    es: false
+    sv: false
+    tr: false
+    uk: false
+    def `yake_keywords`:
+        en: false
+    def `rake_keywords`:
+        en: false
+        'Language must be one of: {RAKE_LANGUAGES}': false
+    class `ScoringMethods`:
+        TF-IDF: false
+        Rake: false
+        YAKE!: false
+        mBERT: false
+    class `AggregationMethods`:
+        Mean: false
+        Median: false
+        Min: false
+        Max: false
+keywords/mbert.py:
+    def `_split_key_phrases`:
+        ' ': false
+    def `mbert_keywords`:
+        mbert-keywords: false
+        https://api.garaza.io: false
+        text: false
+    class `_BertServerCommunicator`:
+        def `__init__`:
+            application/octet-stream: false
+        def `_encode_data_instance`:
+            utf-8: false
+            replace: false
+    __main__: false
+    "
+    I propose that an employer who orders workers to work overtime, and who also has people working part-time because they cannot be put in other jobs, must pay those whom he orders to work overtime at least double the crisis allowance.
+    This would avoid the employer milking the state at the expense of the corona of a law that is designed to address a shortage of work, and would really only order overtime when it could not be done otherwise. Because the reality is that the picture is very different now, and employers are exploiting some workers with overtime, while keeping others on part-time contracts. I believe that the corona law to help businesses is not intended to do this, but to keep businesses alive with as few redundancies as possible.
+    The loophole in the law which reads 'During the subsidy period and for one month thereafter, an employer may not order overtime, unevenly distribute or temporarily reallocate working time, provided that he can carry out this work with workers who are ordered to work part-time.'. has come in very handy for some employers to make additional use of, as it is an individual judgement.
+    However, a double allowance would prevent such exploitation of both the State and
+    ": false
+    Text: false
+keywords/rake.py:
+    def `is_number`:
+        .: false
+    def `separate_words`:
+        [^a-zA-Z0-9_\\+\\-/]: false
+    def `split_sentences`:
+        [\\[\\]\n.!?,;:\t\\-\\"\\(\\)\\\'\u2019\u2013]: false
+    def `build_stop_word_regex`:
+        \\b: false
+        '|': false
+    def `adjoined_candidates_from_sentence`:
+        ' ': false
+    def `generate_candidate_keywords`:
+        '|': false
+misc/nltk_data_download.py:
+    wait_nltk_data: false
+    nltk_data_dir: false
+    wordnet: false
+    stopwords: false
+    punkt: false
+    opinion_lexicon: false
+    vader_lexicon: false
+    averaged_perceptron_tagger_eng: false
+    maxent_treebank_pos_tagger_tab: false
+    omw-1.4: false
+    def `nltk_data_dir`:
+        Orange: false
+        nltk_data: false
+    http: false
+    80: false
+    https: false
+    443: false
+    socks4: false
+    1080: false
+    socks: false
+    quic: false
+    def `_get_proxy_address`:
+        https://: false
+        'Using proxy for NLTK: {proxy}': false
+        {}:{}: false
+preprocess/filter.py:
+    BaseTokenFilter: false
+    StopwordsFilter: false
+    LexiconFilter: false
+    RegexpFilter: false
+    FrequencyFilter: false
+    MostFrequentTokensFilter: false
+    PosTagFilter: false
+    NumbersFilter: false
+    WithNumbersFilter: false
+    class `BaseTokenFilter`:
+        def `_filter_tokens`:
+            Filtering...: false
+    class `FileWordListMixin`:
+        def `from_file`:
+            utf-8-sig: false
+            Couldn't determine file encoding: false
+    class `StopwordsFilter`:
+        Stopwords: false
+        Slovenian: false
+        Slovene: false
+        def `__init__`:
+            en: false
+    class `LexiconFilter`:
+        Lexicon: false
+    class `RegexpFilter`:
+        Regexp: false
+        def `__init__`:
+            \.|,|:|!|\?: false
+    class `NumbersFilter`:
+        Numbers: false
+    class `WithNumbersFilter`:
+        Includes Numbers: false
+        def `__init__`:
+            [0-9]: false
+    class `FitDictionaryFilter`:
+        def `__call__`:
+            Fitting filter...: false
+    class `FrequencyFilter`:
+        Document frequency: false
+    class `MostFrequentTokensFilter`:
+        Most frequent tokens: false
+    class `PosTagFilter`:
+        POS tags: false
+        def `__init__`:
+            ,: false
+        def `validate_tags`:
+            ,: false
+        def `_filter_tokens`:
+            Filtering...: false
+preprocess/normalize.py:
+    BaseNormalizer: false
+    WordNetLemmatizer: false
+    PorterStemmer: false
+    SnowballStemmer: false
+    UDPipeLemmatizer: false
+    LemmagenLemmatizer: false
+    class `BaseNormalizer`:
+        def `__call__`:
+            Normalizing...: false
+        def `__getstate__`:
+            _normalization_cache: false
+    class `WordNetLemmatizer`:
+        WordNet Lemmatizer: false
+    class `PorterStemmer`:
+        Porter Stemmer: false
+    class `SnowballStemmer`:
+        Snowball Stemmer: false
+        porter: false
+        def `__init__`:
+            en: false
+    class `UDPipeModels`:
+        https://file.biolab.si/files/udpipe/: false
+        Norwegian Bokmaal: false
+        Norwegian Bokmål: false
+        def `__init__`:
+            udpipe/: false
+        def `__file_to_language`:
+            ud: false
+            -: false
+            _: false
+            ' ': false
+            {lg} ({name_split[1]}): false
+        def `__lang2iso`:
+            _: false
+        def `language_to_iso`:
+            Ancient greek proiel: false
+            Ancient Greek (proiel): false
+            Ancient greek: false
+            Ancient Greek: false
+            Czech cac: false
+            Czech (cac): false
+            Czech cltt: false
+            Czech (cltt): false
+            Dutch lassysmall: false
+            Dutch (lassysmall): false
+            English lines: false
+            English (lines): false
+            English partut: false
+            English (partut): false
+            Finnish ftb: false
+            Finnish (ftb): false
+            French partut: false
+            French (partut): false
+            French sequoia: false
+            French (sequoia): false
+            Galician treegal: false
+            Galician (treegal): false
+            Latin ittb: false
+            Latin (ittb): false
+            Latin proiel: false
+            Latin (proiel): false
+            Norwegian bokmaal: false
+            Norwegian Bokmål: false
+            Norwegian nynorsk: false
+            Norwegian Nynorsk: false
+            Old church slavonic: false
+            Old Church Slavonic: false
+            Portuguese br: false
+            Portuguese (br): false
+            Russian syntagrus: false
+            Russian (syntagrus): false
+            Slovenian sst: false
+            Slovenian (sst): false
+            Spanish ancora: false
+            Spanish (ancora): false
+            Swedish lines: false
+            Swedish (lines): false
+    class `UDPipeLemmatizer`:
+        UDPipe Lemmatizer: false
+        def `__init__`:
+            en: false
+        def `__call__`:
+            Normalizing...: false
+        def `__getstate__`:
+            _UDPipeLemmatizer__model: false
+            models: false
+    class `LemmagenLemmatizer`:
+        Lemmagen Lemmatizer: false
+        def `__init__`:
+            en: false
+        def `__getstate__`:
+            lemmatizer: false
+preprocess/preprocess.py:
+    Preprocessor: false
+    TokenizedPreprocessor: false
+    NGrams: false
+    PreprocessorList: false
+    class `NGrams`:
+        N-grams Range: false
+preprocess/tokenize.py:
+    BaseTokenizer: false
+    WordPunctTokenizer: false
+    PunktSentenceTokenizer: false
+    RegexpTokenizer: false
+    WhitespaceTokenizer: false
+    TweetTokenizer: false
+    BASE_TOKENIZER: false
+    class `BaseTokenizer`:
+        def `__call__`:
+            Tokenizing...: false
+    class `WordPunctTokenizer`:
+        Word & Punctuation: false
+    class `PunktSentenceTokenizer`:
+        Sentence: false
+    class `WhitespaceTokenizer`:
+        Whitespace: false
+    class `RegexpTokenizer`:
+        Regexp: false
+        def `__init__`:
+            \w+: false
+        def `__call__`:
+            Tokenizing...: false
+    class `TweetTokenizer`:
+        Tweet: false
+preprocess/transform.py:
+    BaseTransformer: false
+    HtmlTransformer: false
+    LowercaseTransformer: false
+    StripAccentsTransformer: false
+    UrlRemover: false
+    BASE_TRANSFORMER: false
+    class `BaseTransformer`:
+        def `__call__`:
+            Transforming...: false
+    class `LowercaseTransformer`:
+        Lowercase: false
+    class `StripAccentsTransformer`:
+        Remove accents: false
+    class `HtmlTransformer`:
+        Parse html: false
+        def `_preprocess`:
+            html.parser: false
+    class `UrlRemover`:
+        Remove urls: false
+        def `__call__`:
+            ((https?):((//)|(\\\\))+([\w\d:#@%/;$()~_?\+-=\\\.&](#!)?)*): false
+sentiment/__init__.py:
+    def `read_file`:
+        r: false
+        utf8: false
+        \n: false
+    def `read_pickle`:
+        rb: false
+    class `LiuHuSentiment`:
+        sentiment: false
+        Liu Hu: false
+        class `SloSentiment`:
+            def `positive`:
+                resources/positive_words_Slolex.txt: false
+            def `negative`:
+                resources/negative_words_Slolex.txt: false
+        en: false
+        sl: false
+    class `VaderSentiment`:
+        positive: false
+        negative: false
+        neutral: false
+        compound: false
+        Vader: false
+        def `get_scores`:
+            pos: false
+            neg: false
+            neu: false
+            compound: false
+    class `SentimentDictionaries`:
+        def `__init__`:
+            sentiment/: false
+    class `MultisentimentDictionaries`:
+        http://file.biolab.si/files/sentiment/: false
+        def `__getitem__`:
+            positive_words_{language}.txt: false
+            negative_words_{language}.txt: false
+    class `MultiSentiment`:
+        sentiment: false
+        Multilingual Sentiment: false
+        en: false
+        af: false
+        ar: false
+        az: false
+        be: false
+        bg: false
+        bs: false
+        ca: false
+        cs: false
+        da: false
+        de: false
+        el: false
+        es: false
+        et: false
+        fa: false
+        fi: false
+        fr: false
+        ga: false
+        he: false
+        hi: false
+        hr: false
+        hu: false
+        id: false
+        it: false
+        ja: false
+        ko: false
+        la: false
+        lt: false
+        lv: false
+        mk: false
+        nl: false
+        nn: false
+        no: false
+        pl: false
+        pt: false
+        ro: false
+        ru: false
+        sk: false
+        sl: false
+        sr: false
+        sv: false
+        tr: false
+        uk: false
+        zh: false
+        zh_char: false
+    class `SentiArtDictionaries`:
+        http://file.biolab.si/files/sentiart/: false
+        def `__getitem__`:
+            SentiArt_{language}.pickle: false
+    class `SentiArt`:
+        sentiment: false
+        anger: false
+        fear: false
+        disgust: false
+        happiness: false
+        sadness: false
+        surprise: false
+        SentiArt: false
+        en: false
+        de: false
+    class `LilahDictionaries`:
+        http://file.biolab.si/files/sentiment-lilah/: false
+        def `__getitem__`:
+            LiLaH-{language}.pickle: false
+    class `LilahSentiment`:
+        Positive: false
+        Negative: false
+        Anger: false
+        Anticipation: false
+        Disgust: false
+        Fear: false
+        Joy: false
+        Sadness: false
+        Surprise: false
+        Trust: false
+        LiLaH Sentiment: false
+        sl: false
+        hr: false
+        nl: false
+    class `CustomDictionaries`:
+        sentiment: false
+        Custom Dictionaries: false
+    __main__: false
+    deerwester: false
+sentiment/filter_lexicon.py:
+    class `FilterSentiment`:
+        def `read_file`:
+            *.pickle: false
+            rb: false
+            r: false
+            \n: false
+    class `SloSentiment`:
+        def `positive`:
+            resources/positive_words_Slolex.txt: false
+        def `negative`:
+            resources/negative_words_Slolex.txt: false
+tag/pos.py:
+    POSTagger: false
+    AveragedPerceptronTagger: false
+    MaxEntTagger: false
+    class `POSTagger`:
+        def `__call__`:
+            POS Tagging...: false
+    class `AveragedPerceptronTagger`:
+        Averaged Perceptron Tagger: false
+    class `MaxEntTagger`:
+        Treebank POS Tagger (MaxEnt): false
+        def `__init__`:
+            taggers/maxent_treebank_pos_tagger/english.pickle: false
+topics/hdp.py:
+    class `HdpWrapper`:
+        Hierarchical Dirichlet Process: false
+topics/lda.py:
+    class `LdaWrapper`:
+        Latent Dirichlet Allocation: false
+topics/lsi.py:
+    class `LsiWrapper`:
+        Latent Semantic Indexing: false
+topics/nmf.py:
+    class `NmfWrapper`:
+        Negative Matrix Factorization: false
+topics/topics.py:
+    class `GensimProgressCallback`:
+        def `__init__`:
+            shell: false
+            Progress: false
+    def `infer_ngrams_corpus`:
+        bow-feature: false
+    class `GensimWrapper`:
+        def `fit`:
+            callbacks: false
+            Topic {}: false
+        def `get_topics_table_by_id`:
+            Too large topic ID.: false
+            Topic {} weights: false
+            %.2e: false
+            Topic {}: false
+            topic-method-name: false
+        def `get_all_topics_table`:
+            Topics: false
+            Marginal Topic Probability: false
+            All topics: false
+            Model: false
+            {self.name}: false
+            Number of tokens: false
+        def `get_top_words_by_id`:
+            Invalid {}: false
+vectorization/bagofwords.py:
+    class `BowVectorizer`:
+        BoW Vectorizer: false
+        Count: false
+        Binary: false
+        Sublinear: false
+        (None): false
+        IDF: false
+        Smooth IDF: false
+        L1 (Sum of elements): false
+        L2 (Euclidean): false
+        l1: false
+        l2: false
+        def `_transform`:
+            ' ': false
+            bow-feature: false
+vectorization/base.py:
+    class `BaseVectorizer`:
+        def `add_features`:
+            hidden: false
+            skip-normalization: false
+    class `VectorizationComputeValue`:
+        def `__setstate__`:
+            variable: false
+vectorization/document_embedder.py:
+    mean: false
+    sum: false
+    max: false
+    min: false
+    Mean: false
+    Sum: false
+    Max: false
+    Min: false
+    en: false
+    sl: false
+    de: false
+    ar: false
+    az: false
+    bn: false
+    zh: false
+    da: false
+    nl: false
+    fi: false
+    fr: false
+    el: false
+    he: false
+    hi: false
+    hu: false
+    id: false
+    it: false
+    ja: false
+    kk: false
+    ko: false
+    ne: false
+    no: false
+    nn: false
+    pl: false
+    pt: false
+    ro: false
+    ru: false
+    es: false
+    sv: false
+    tg: false
+    tr: false
+    class `DocumentEmbedder`:
+        def `__init__`:
+            Mean: false
+            'Language should be one of: {LANGUAGES}': false
+            'Aggregator should be one of: {AGGREGATORS_ITEMS}': false
+        def `_transform`:
+            The FastText embedding does not support the Corpus's language.: false
+            fasttext-: false
+            https://api.garaza.io: false
+            text: false
+            Dim{}: false
+            embedding-feature: false
+            hidden: false
+            Skipped documents: false
+            'Some documents were not embedded for unknown reason. Those ': false
+            documents are skipped.: false
+        def `clear_cache`:
+            fasttext-{language}: false
+    class `_ServerEmbedder`:
+        def `__init__`:
+            application/json: false
+        def `_encode_data_instance`:
+            utf-8: false
+            replace: false
+            data: false
+            aggregator: false
+    __main__: false
+    deerwester: false
+vectorization/sbert.py:
+    class `SBERT`:
+        def `__init__`:
+            sbert: false
+            https://api.garaza.io: false
+            text: false
+        def `_transform`:
+            Dim{}: false
+            embedding-feature: false
+            hidden: false
+            Skipped documents: false
+            'Some documents were not embedded for unknown reason. Those ': false
+            documents are skipped.: false
+        def `report`:
+            Embedder: false
+            Multilingual SBERT: false
+    class `_ServerCommunicator`:
+        def `__init__`:
+            application/json: false
+        def `_encode_data_instance`:
+            def `compress_text`:
+                utf-8: false
+                replace: false
+            utf-8: false
+            replace: false
+widgets/__init__.py:
+    icons/category.svg: false
+    light-blue: false
+    {DEVELOP_ROOT}/doc/_build/html/index.html: false
+    {}/help/orange3-text/index.html: false
+    data: false
+    https://orange3-text.readthedocs.io/en/latest/: false
+widgets/owannotator.py:
+    def `run`:
+        Calculating...: Računam ...
+    def `index_to_cluster_label`:
+        C{int(index) + 1}: G{int(index) + 1}
+    class `CenteredTextItem`:
+        def `__init__`:
+            <br>: false
+    class `OWAnnotatorGraph`:
+        def `_update_cluster_labels`:
+            \n: false
+            {round(p * 100)}%  {label}: false
+    class `AnnotatorContextHandler`:
+        def `match`:
+            cluster_var: false
+    class `OWAnnotator`:
+        Annotated Corpus Map: Označena karta dokumentov
+        Annotates projection clusters.: Označi projekcijo gruč.
+        icons/Annotator.svg: false
+        annotated corpus map, annotator: označena karta dokumentov, označevalnik
+        class `Inputs`:
+            Corpus: Korpus
+        class `Outputs`:
+            Selected Docs: Izbrani dokumenti
+            Corpus: Korpus
+            Scores: Ocene
+        class `Warning`:
+            'Selected features for Axis x ': 'Izbrani spremenljivki za os x '
+            and Axis y should differ.: in os y morata biti različni.
+        class `Error`:
+            Data has no continuous variables.: Podatki nimajo številskih spremenljivk.
+            Not enough instances in data.: V podatkih ni dovolj primerov.
+            An error occurred while annotating data.\n{}: Pri označevanju podatkov je prišlo do napake.\n{}
+        def `_add_controls`:
+            Cluster labels:: Oznake gruč:
+            n_cluster_labels: false
+            show_cluster_hull: false
+            Show cluster hull: Prikaži obris gruče
+            color_by_cluster: false
+            Color points by cluster: Pobarvaj točke po gručah
+        def `__add_annotation_controls`:
+            labelWidth: false
+            orientation: false
+            searchable: false
+            sendSelectedValue: false
+            contentsLength: false
+            Axes: Osi
+            attr_x: false
+            Axis x:: Os x:
+            attr_y: false
+            Axis y:: Os y:
+            Annotation: Oznake
+            clustering_type: false
+            DBSCAN: false
+            use_epsilon: false
+            epsilon:: false
+            epsilon: false
+            Gaussian mixture models: Gausovski mešani modeli
+            use_n_components: false
+            clusters:: gruče:
+            n_components: false
+            From variable: Iz spremenljivke
+            cluster_var: false
+            p_threshold: false
+            FDR threshold:: Meja FDR:
+        def `_run`:
+            No valid embedding data.: Podatki niso ustrezno vloženi.
+        def `init_attr_values`:
+            t-SNE-x: false
+            t-SNE-y: false
+        def `send_scores`:
+            Scores: Ocene
+            Score({label}): Ocena({label})
+            p_value({label}): p-vrednost({label})
+        def `_get_projection_data`:
+            Cluster: Gruča
+        def `_get_send_report_caption`:
+            Clusters: Gruča
+            Color: Barva
+            Label: Oznaka
+            Shape: Oblika
+            Size: Velikost
+            Jittering: Razpršenost
+            {} %: false
+    __main__: false
+    book-excerpts: false
+    \w+: false
+    en: false
+widgets/owbagofwords.py:
+    class `OWTBagOfWords`:
+        Bag of Words: Vreča besed
+        Generates a bag of words from the input corpus.: Ustvari vrečo besed iz vhodnega korpusa.
+        icons/BagOfWords.svg: false
+        bag of words, bow: vreča besed, bow
+        Count: Frekvenca
+        Binary: Binarno
+        Sublinear: Podlinearno
+        (None): (Brez)
+        IDF: false
+        Smooth IDF: Zglajen IDF
+        L1 (Sum of elements): L1 (Vsota elementov)
+        L2 (Euclidean): L2 (Evklidska)
+        def `create_configuration_layout`:
+            wlocal: false
+            Term Frequency:: Frekvenca pojavnic:
+            wglobal: false
+            Document Frequency:: Frekvenca v dokumentu:
+            normalization: false
+            Regularization:: Regularizacija:
+        def `send_report`:
+            Term Frequency: Frekvenca pojavnic
+            Document Frequency: Frekvenca v dokumentu
+            Regularization: Regularizacija
+    __main__: false
+    book-excerpts: false
+widgets/owcollocations.py:
+    score_meta: false
+    name: false
+    scorer: false
+    Pointwise Mutual Information: Točkovna vzajemna informacija (PMI)
+    Chi Square: Hi kvadart
+    Dice: false
+    Fisher: false
+    Jaccard: false
+    Likelihood ratio: Logaritemsko razmerje verjetij
+    Mi Like: false
+    Phi Square: Fi kvadrat
+    Poisson Stirling: false
+    Raw Frequency: surova frekvenca
+    Student's T: Studentov T
+    class `OWCollocations`:
+        Collocations: Kolokacije
+        Compute significant bigrams and trigrams.: Izračuna signifikantne bi- in tri-grame.
+        collocations, pmi: kolokacije, pmi
+        icons/Collocations.svg: false
+        class `Inputs`:
+            Corpus: Korpus
+        class `Outputs`:
+            Table: Tabela
+        def `__init__`:
+            Settings: Nastavitve
+            type_index: false
+            Bigrams: Bigrami
+            Trigrams: Trigrami
+            freq_filter: false
+            Frequency: Frekvenca
+            Scoring Method: Metoda ocenjevanja
+            selected_method: false
+            Restore Original Order: Ponastavi vrstni red
+            Show rows in the original order: Prikaži vrstice v izvornem vrstnem redu
+            Collocation: Kolokacije
+            Score: Ocena
+        def `compute_scores`:
+            ' ': false
+        def `create_scores_table`:
+            Scores: Ocena
+            Collocations: Kolokacije
+            Collocation Scores: Ocene kolokacij
+        def `send_report`:
+            Collocations: Kolokacije
+            N-grams: N-grami
+            Bigrams: Bigrami
+            Trigrams: Trigrami
+            Method: Metoda
+            Frequency: Frekvenca
+    __main__: null
+    deerwester.tab: false
+widgets/owconcordance.py:
+    class `ConcordanceModel`:
+        def `data`:
+            ' ': false
+        def `get_data`:
+            Conc. {}: false
+            Document: false
+            ' ': false
+    class `OWConcordance`:
+        Concordance: Konkordance
+        Display the context of the word.: Prikaži kontekst besede.
+        icons/Concordance.svg: false
+        concordance, context: konkordance, kontekst
+        class `Inputs`:
+            Corpus: Korpus
+            Query Word: Iskana beseda
+        class `Outputs`:
+            Selected Documents: Izbrani dokumenti
+            Concordances: Konkordance
+        class `Warning`:
+            'Multiple query words on input. ': 'Več iskanih besed na vhodu. '
+            Only the first one is considered!: Upošteva se zgolj prva!
+        def `__init__`:
+            Info: false
+            'Tokens: %(n_tokens)s': 'Pojavnice: %(n_tokens)s'
+            'Types: %(n_types)s': 'Tipi: %(n_types)s'
+            'Matching: %(n_matching)s': 'Ujemajočih: %(n_matching)s'
+            context_width: false
+            Number of words:: Število besed:
+            word: false
+            Query:: Iskana beseda:
+            autocommit: false
+            Commit: Uveljavi
+            Auto commit is on: Samodejno uveljavi
+        def `update_widget`:
+            {}/{}: false
+        def `send_report`:
+            Concordances: Konkordance
+            Query: Iskana beseda
+            Tokens: Pojavnice
+            Types: Tipi
+            Matching: Ujemajoče
+    __main__: false
+    book-excerpts: false
+widgets/owcorpus.py:
+    class `CorpusContextHandler`:
+        def `match`:
+            documents_hash: false
+            language: false
+        def `__compute_hash`:
+            ' ': false
+            utf-8: false
+    class `OWCorpus`:
+        Corpus: Korpus
+        Load a corpus of text documents.: Naloži korpus besedil.
+        icons/TextFile.svg: false
+        corpus, text: korpus, besedila
+        orangecontrib.text.widgets.owloadcorpus.OWLoadCorpus: false
+        class `Inputs`:
+            Data: Podatki
+        class `Outputs`:
+            Corpus: Korpus
+        All readable files ({});;: Vse berljive datoteke ({});;
+        *: false
+        ' *': false
+        ;;: false
+        {} (*{}): false
+        book-excerpts.tab: false
+        grimm-tales-selected.tab: false
+        election-tweets-2016.tab: false
+        friends-transcripts.tab: false
+        andersen.tab: false
+        en: false
+        class `Error`:
+            Can't read file ({}): Ne morem prebrati datoteke ({})
+            At least one text feature must be used.: Nastavljena mora biti vsaj ena besedilna spremenljivka.
+            Corpus doesn't have any textual features.: Korpus je brez besedilnih spremenljivk.
+        def `__init__`:
+            Corpus file: Datoteka korpusa
+            Open Orange Document Corpus: Odpri Orangevo zbirko korpusov
+            Reload: Ponovno naloži
+            Browse: Išči
+            (no title): (brez naslova)
+            Corpus settings: Nastavitve korpusa
+            title_variable: false
+            Title variable: Spremenljivka za naslov
+            language: false
+            Language: Jezik
+            Used text features: Uporabljene besedilne spremenljivke
+            Ignored text features: Izpuščene besedilne spremenljivke
+            Browse documentation corpora: Išči med korpusi iz dokumentacija
+        def `_load_corpus`:
+            Loading: Nalagam
+            name: false
+        def `_setup_title_dropdown`:
+            title: false
+            heading: false
+            filename: false
+        def `update_feature_selection`:
+            language: false
+        def `send_report`:
+            def `describe`:
+                ', ': false
+                (none): (brez)
+            Corpus: Korpus
+            File: Datoteka
+            Documents: Dokumenti
+            Used text features: Uporabljene besedilne spremenljivke
+            Ignored text features: Izpuščene besedilne spremenljivke
+            Other features: Druge spremenljivke
+            Target: Ciljna spremenljivka
+        def `migrate_context`:
+            language: false
+    __main__: false
+widgets/owcorpustonetwork.py:
+    class `OWCorpusToNetwork`:
+        Corpus to Network: Korpus v omrežje
+        Constructs network from given corpus.: Zgradi omrežje iz danega korpusa.
+        corpus to network, network: korpus v omrežje, mreža
+        icons/CorpusToNetwork.svg: false
+        class `Inputs`:
+            Corpus: Korpus
+        class `Outputs`:
+            Network: Omrežje
+            orangecontrib.network.Network: false
+            Node Data: Podatki vozlišč
+        class `Error`:
+            'Unknown error: {}': 'Neznana napaka: {}'
+            Please install network add-on to use this widget.: Za uporabo gradnika prosim namestite dodatek Network.
+        class `Information`:
+            Parameters have been changed. Press Start to: Nastavitve so se spremenile. Kliknite Začni za
+            ' run with new parameters.': ' zagon z novimi nastavitvami.'
+        def `__init__`:
+            Document: null
+            Word: null
+            waiting: null
+        def `_setup_layout`:
+            Settings: null
+            node_type: null
+            Node type: null
+            threshold: null
+            Threshold: null
+            window_size: null
+            Window size: null
+            freq_threshold: null
+            Frequency Threshold: null
+            Start: null
+        def `set_data`:
+            running: null
+            Stop: null
+        def `_option_changed`:
+            running: null
+        def `_toggle`:
+            waiting: null
+            running: null
+            Stop: null
+        def `cancel`:
+            waiting: null
+            Start: null
+        def `on_done`:
+            waiting: null
+            Start: null
+    __main__: null
+    book-excerpts: null
+widgets/owcorpusviewer.py:
+    "
+<!doctype html>
+<html>
+<head>
+<script type=""text/javascript"" src=""resources/jquery-3.1.1.min.js"">
+</script>
+<script type=""text/javascript"" src=""resources/jquery.mark.min.js"">
+</script>
+<script type=""text/javascript"" src=""resources/highlighter.js"">
+</script>
+<meta charset='utf-8'>
+<style>
+
+table {{ border-collapse: collapse; }}
+mark {{ background: #FFCD28; }}
+
+tr > td {{
+    padding-bottom: 3px;
+    padding-top: 3px;
+}}
+
+body {{
+    font-family: Helvetica;
+    font-size: 10pt;
+}}
+
+.line {{ border-bottom: 1px solid #000; }}
+.separator {{ height: 5px; }}
+
+.variables {{
+    vertical-align: top;
+    padding-right: 10px;
+}}
+
+.content {{
+    /* Adopted from https://css-tricks.com/snippets/css/prevent-long-urls-from-breaking-out-of-container/ */
+
+    /* These are technically the same, but use both */
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+
+    -ms-word-break: break-all;
+    /* This is the dangerous one in WebKit, as it breaks things wherever */
+    word-break: break-all;
+    /* Instead use this non-standard one: */
+    word-break: break-word;
+
+    /* Adds a hyphen where the word breaks, if supported (No Blink) */
+    -ms-hyphens: auto;
+    -moz-hyphens: auto;
+    -webkit-hyphens: auto;
+    hyphens: auto;
+}}
+
+.token {{
+    padding: 3px;
+    border: 1px #B0B0B0 solid;
+    margin-right: 5px;
+    margin-bottom: 5px;
+    display: inline-block;
+}}
+
+img {{
+    max-width: 100%;
+}}
+
+</style>
+</head>
+<body>
+{}
+</body>
+</html>
+": null
+    "
+    '<tr class=""line separator""><td/><td/></tr><tr class=""separator""><td/><td/></tr>'
+": null
+    class `DocumentsFilterProxyModel`:
+        def `set_filter_string`:
+            '|': null
+    class `OWCorpusViewer`:
+        Corpus Viewer: null
+        Display corpus contents.: null
+        icons/CorpusViewer.svg: null
+        corpus viewer, display: null
+        class `Inputs`:
+            Corpus: Korpus
+            Data: null
+        class `Outputs`:
+            Matching Docs: null
+            Other Docs: null
+            Corpus: Korpus
+        class `Warning`:
+            No features included in search.: null
+            No features selected for display.: null
+        class `Error`:
+            Invalid regular expression.: null
+        def `__init__`:
+            Info: null
+            'Tokens: %(n_tokens)s': null
+            'Types: %(n_types)s': null
+            'Matching documents: %(n_matching)s': null
+            'Matches: %(n_matches)s': null
+            Search features: null
+            Display features: null
+            show_tokens: null
+            Show Tokens && Tags: null
+            autocommit: null
+            Send data: null
+            Auto send is on: null
+            regexp_filter: null
+            RegExp Filter:: null
+        def `show_docs`:
+            \n: null
+            <br/>: null
+            type: null
+            image: null
+            ?: null
+            origin: null
+            <img src="{}"></img>: null
+            <tr><td class="variables"><strong>{feature.name}:</strong></td>: null
+            <td class="content">{value}</td></tr>: null
+            <span class="token">{token}</span>: null
+            <tr><td class="variables"><strong>Tokens & Tags:</strong></td>: null
+            <td>{tokens_}</td></tr>: null
+            <table>{joined}</table>: null
+        def `__mark_text`:
+            '|': null
+            '<mark data-markjs="true">{"".join(text[m.start(): m.end()])}</mark>': null
+        def `refresh_search`:
+            '|': null
+            n/a: null
+        def `on_done`:
+            {int(res):,}: null
+            n/a: null
+        def `update_info`:
+            {self.doc_list.model().rowCount()}/{len(self.corpus)}: null
+            {int(self.corpus.count_tokens()):,}: null
+            n/a: null
+            {int(self.corpus.count_unique_tokens()):,}: null
+        def `send_report`:
+            Query: null
+            Matching documents: null
+            Matches: null
+        def `migrate_context`:
+            display_features: null
+            display_indices: null
+            search_indices: null
+            search_features: null
+            class_vars: null
+    __main__: null
+    book-excerpts: null
+widgets/owcreatecorpus.py:
+    class `DocumentEditor`:
+        def `__init__`:
+            Document title: null
+            Document text: null
+            x: null
+    class `OWCreateCorpus`:
+        Create Corpus: Korpus
+        Write/paste documents to create a corpus: null
+        icons/CreateCorpus.svg: null
+        create corpus, write: null
+        class `Outputs`:
+            Corpus: Korpus
+        def `__init__`:
+            language: null
+            Language: null
+            Add document: null
+            auto_commit: null
+        def `commit`:
+            Document: null
+            Title: null
+        def `migrate_settings`:
+            language: null
+    __main__: null
+widgets/owdocmap.py:
+    [\w\s\.\-]+: null
+    class `Map`:
+        world_mill_en: null
+        europe_mill_en: null
+        us_aea_en: null
+        World: null
+        Europe: null
+        USA: null
+    class `OWDocMap`:
+        Document Map: null
+        icons/DocMap.svg: null
+        orangecontrib.text.widgets.owgeomap.OWGeoMap: null
+        document map, geomap: null
+        class `Inputs`:
+            Data: null
+        class `Outputs`:
+            Corpus: Korpus
+        def `region_selected`:
+            ,: null
+            \b{}\b: null
+            \b|\b: null
+        def `_create_layout`:
+            horizontal: null
+            selected_attr: null
+            Region attribute:: null
+            selected_map: null
+            Map type:: null
+            file:: null
+            resources: null
+            owdocmap.html: null
+            REGIONS = {};: null
+        def `_repopulate_attr_combo`:
+            country: null
+            location: null
+            region: null
+        def `on_data`:
+            DATA = {}; renderMap();: null
+        def `on_map_change`:
+            DATA = {};: null
+            MAP_CODE = "{}";: null
+            SELECTED_REGIONS = {};: null
+            renderMap();: null
+    def `main`:
+        Slovenia Slovenia SVN USA Iraq Iraq Iraq Iraq France FR: null
+        Slovenia Slovenia SVN France FR Austria NL GB GB GB: null
+        Alabama AL Texas TX TX TX MS Montana US-MT MT: null
+        World: null
+        Europe: null
+        USA: null
+    __main__: null
+widgets/owdocumentembedding.py:
+    class `OWDocumentEmbedding`:
+        Document Embedding: null
+        Document embedding using pretrained models.: null
+        embedding, document embedding, fasttext, bert, sbert: null
+        icons/TextEmbedding.svg: null
+        class `Outputs`:
+            Skipped documents: null
+        class `Error`:
+            'No internet connection. Please establish a connection or use ': null
+            another vectorizer.: null
+            'Embedding error: {}': null
+        class `Warning`:
+            Some embeddings were unsuccessful.: null
+        Mean: null
+        def `__init__`:
+            Cancel: null
+        def `create_configuration_layout`:
+            method: null
+            Multilingual SBERT: null
+            fastText:: null
+            language: null
+            Language:: null
+            aggregator: null
+            Aggregator:: null
+        def `migrate_settings`:
+            language: null
+            aggregator: null
+        def `send_report`:
+            Embedder: null
+            Multilingual SBERT: null
+            fastText: null
+            Language: null
+            Aggregator: null
+    __main__: null
+    book-excerpts: null
+widgets/owduplicates.py:
+    class `OWDuplicates`:
+        Duplicate Detection: null
+        Detect & remove duplicates from a corpus.: null
+        icons/Duplicates.svg: null
+        duplicate detection, detect, remove: null
+        class `Inputs`:
+            Distances: null
+        class `Outputs`:
+            Corpus Without Duplicates: null
+            Duplicates Cluster: null
+            Corpus: Korpus
+        class `Error`:
+            'Duplicate detection only supports ': null
+            distances calculated between rows.: null
+            More than one document is required.: null
+        Single: null
+        Average: null
+        Complete: null
+        Weighted: null
+        Ward: null
+        def `__init__`:
+            Info: null
+            'Documents: %(n_documents)s': null
+            '  ◦ unique: %(n_unique)s': null
+            '  ◦ duplicates: %(n_duplicates)s': null
+            Cluster: null
+            Size: null
+            linkage_method: null
+            Linkage: null
+            threshold: null
+            inf: null
+            Distance threshold: null
+            Distances: null
+        def `send_corpus`:
+            Duplicates Cluster: null
+        def `send_corpus_without_duplicates`:
+            {} (Without Duplicates): null
+        def `send_duplicates`:
+            {} {}: null
+        def `send_report`:
+            Linkage: null
+            Distance threshold: null
+            {:.2f}: null
+            Documents: null
+            Unique: null
+            Duplicates: null
+    class `Cluster`:
+        def `__str__`:
+            C{}: null
+    background: null
+    w: null
+    foreground: null
+    k: null
+    class `Histogram`:
+        def `__init__`:
+            b: null
+            center: null
+            '#02f1': null
+            '#02f3': null
+        def `_update_region`:
+            right: null
+    __main__: null
+    iris: null
+widgets/owguardian.py:
+    class `OWGuardian`:
+        class `CredentialsDialog`:
+            The Guardian Credentials: null
+            test: null
+            class `Error`:
+                These credentials are invalid.: null
+            def `__init__`:
+                The Guardian API Key: null
+                key_input: null
+                Key:: null
+                OK: null
+        The Guardian: null
+        Fetch articles from The Guardian API.: null
+        icons/TheGuardian.svg: null
+        the guardian, articles: null
+        class `Outputs`:
+            Corpus: Korpus
+        class `Warning`:
+            Text features are inferred when none are selected.: null
+        class `Error`:
+            Please provide a valid API key.: null
+            Please provide a query.: null
+            Requests limit reached.: null
+        def `__init__`:
+            The Guardian API Key: null
+            Query: null
+            date_from: null
+            date_to: null
+            Text includes: null
+            text_includes: null
+            Output: null
+            'Articles: %(output_info)s': null
+            Search: null
+        def `run_search`:
+            api: null
+            no_api: null
+            recent_queries: null
+            no_query: null
+        def `progress_with_info`:
+            {}/{}: null
+        def `on_start`:
+            Stop: null
+        def `on_result`:
+            Search: null
+        def `send_report`:
+            Query: null
+            Date from: null
+            Date to: null
+            Text includes: null
+            ', ': null
+            Output: null
+            Nothing: null
+    __main__: null
+widgets/owimportdocuments.py:
+    name: null
+    path: null
+    def `prettifypath`:
+        ~/: null
+        ~: null
+    class `OWImportDocuments`:
+        Import Documents: null
+        Import text documents from folders.: null
+        icons/ImportDocuments.svg: null
+        import documents: null
+        class `Outputs`:
+            Corpus: Korpus
+            Skipped documents: null
+        class `Warning`:
+            {} couldn't be read.: null
+        def `__init__`:
+            Source: null
+            source: null
+            Folder:: null
+            Open/Load Documents: null
+            \N{HORIZONTAL ELLIPSIS}: null
+            Select a folder from which to load the documents: null
+            Reload: Ponovno naloži
+            Reload current document set: null
+            URL:: null
+            language: null
+            Language: null
+            Conllu import options: null
+            lemma_cb: null
+            Lemma: null
+            pos_cb: null
+            POS tags: null
+            ner_cb: null
+            NER: null
+            Info: null
+            No document set selected: null
+            Cancel: null
+        def `_url_set`:
+            http://: null
+        def `__runOpenDialog`:
+            ~/: null
+            Select Top Level Folder: null
+        def `__updateInfo`:
+            No document set selected: null
+            Processing: null
+            {nvalid} {pl(nvalid, "document")}: null
+            {nvalid} {pl(nvalid, "document")} / {ncategories} {pl(ncategories, "category")}: null
+            , {n_skipped} skipped: null
+            Cancelled: null
+            Error state: null
+        def `setCurrentPath`:
+            "'{}' does not exist": null
+            "'{}' is not a folder": null
+        def `__setRuntimeState`:
+            Processing: null
+            Cancelled: null
+            Error during processing: null
+        def `start`:
+            'Starting a new task while one is in progress. ': null
+            Cancel the existing task (dir:'{}'): null
+            __onReportProgress: null
+            def `cancel`:
+                The task did not stop in in a timely manner: null
+        def `__onRunFinished`:
+            Folder contains no readable files.: null
+            Documents: null
+            Some files: null
+            One file: null
+        def `add_features`:
+            named entities: null
+        def `commit`:
+            language: null
+            Skipped documents: null
+        def `send_report`:
+            Path: null
+            Number of documents: null
+            Categories: null
+            Number of skipped: null
+        def `migrate_context`:
+            language: null
+    __main__: null
+widgets/owkeywords.py:
+    '{ScoringMethods.MBERT} could not extract keywords from some ': null
+    documents due to connection error. Please rerun keyword extraction.: null
+    def `run`:
+        Calculating...: null
+        progress_callback: null
+        Words: null
+        index: null
+    class `SelectionMethods`:
+        None: null
+        All: null
+        Manual: null
+        Top words: null
+    class `KeywordsTableModel`:
+        def `_argsortData`:
+            mergesort: null
+    class `OWKeywords`:
+        Extract Keywords: null
+        Infers characteristic words from the input corpus.: null
+        icons/Keywords.svg: null
+        extract keywords, characteristic, term: null
+        en: null
+        class `Inputs`:
+            Corpus: Korpus
+            Words: null
+        class `Outputs`:
+            Words: null
+        class `Warning`:
+            Input is missing 'Words' column.: null
+            {}: null
+        def `_setup_gui`:
+            Scoring Methods: null
+            yake_language: null
+            rake_language: null
+            Aggregation: null
+            agg_method: null
+            Select Words: null
+            n_selected: null
+            auto_apply: null
+            Filter...: null
+        def `set_words`:
+            type: null
+            words: null
+        def `update_scores`:
+            language: null
+            max_len: null
+        def `on_done`:
+            Word: null
+            \n: null
+        def `send_report`:
+            Corpus: Korpus
+            Words: null
+            ', ': null
+            Keywords: null
+            {:.3f}: null
+        def `migrate_settings`:
+            yake_lang_index: null
+            yake_language: null
+            rake_lang_index: null
+            ar: null
+            az: null
+            eu: null
+            bn: null
+            ca: null
+            zh: null
+            da: null
+            nl: null
+            en: null
+            fi: null
+            fr: null
+            de: null
+            el: null
+            he: null
+            hi_eng: null
+            hu: null
+            id: null
+            it: null
+            kk: null
+            ne: null
+            no: null
+            pt: null
+            ro: null
+            ru: null
+            sl: null
+            es: null
+            sv: null
+            tg: null
+            tr: null
+            rake_language: null
+    __main__: null
+    human: null
+    graph: null
+    minors: null
+    trees: null
+    deerwester: null
+widgets/owldavis.py:
+    class `ParameterSetter`:
+        Gridlines: null
+        Show: null
+        def `axis_items`:
+            item: null
+    class `BarPlotGraph`:
+        Overall term frequency: null
+        Term frequency within topic: null
+        def `__init__`:
+            w: null
+            left: null
+            top: null
+            bottom: null
+        def `clear_all`:
+            left: null
+            top: null
+        def `update_graph`:
+            Overall term frequency: null
+            Term frequency within topic: null
+            '{w} - Frequency withing topic: {tf:.3f}, Overall frequency {mp:.3f}': null
+        def `update_axes`:
+            left: null
+            top: null
+            words: null
+            weights: null
+        def `__get_index_at`:
+            width: null
+    class `OWLDAvis`:
+        LDAvis: null
+        Interactive exploration of LDA topics.: null
+        icons/LDAvis.svg: null
+        ldavis: null
+        graph.plotItem: null
+        class `Inputs`:
+            Topics: null
+        class `Error`:
+            Relevant Terms only accepts output from LDA.: null
+        def `_create_layout`:
+            Relevance: null
+            relevance: null
+            %.1f: null
+            selected_topic: null
+            topic_list: null
+            Topics: null
+        def `compute_distributions`:
+            Marginal Topic Probability: null
+        def `set_data`:
+            Model: null
+            Latent Dirichlet Allocation: null
+            Topics: null
+            Words: null
+            Number of tokens: null
+        def `send_report`:
+            Relevance: null
+            Shown topic: null
+    __main__: null
+    deerwester: null
+widgets/ownyt.py:
+    class `OWNYT`:
+        class `APICredentialsDialog`:
+            New York Times API key: null
+            class `Error`:
+                'This credentials are invalid. ': null
+                Check the key and your internet connection.: null
+            def `__init__`:
+                NY Times API Key: null
+                key_input: null
+                Key:: null
+                OK: null
+        NY Times: null
+        Fetch articles from the New York Times search API.: null
+        icons/NYTimes.svg: null
+        new york times, ny times, articles: null
+        class `Outputs`:
+            Corpus: Korpus
+        class `Warning`:
+            Text features are inferred when none are selected.: null
+        class `Error`:
+            Please provide a valid API key.: null
+            Please provide a query.: null
+            No internet connection.: null
+            'API error: {}': null
+            Rate limit exceeded. Please try again later.: null
+        def `__init__`:
+            Article API Key: null
+            Query: null
+            date_from: null
+            date_to: null
+            Text includes: null
+            text_includes: null
+            Output: null
+            'Articles: %(output_info)s': null
+            Search: null
+        def `run_search`:
+            nyt_api: null
+            no_api: null
+            recent_queries: null
+            no_query: null
+        def `on_start`:
+            Stop: null
+        def `on_result`:
+            Search: null
+        def `update_info_label`:
+            {}/{}: null
+        def `send_report`:
+            Query: null
+            Date from: null
+            Date to: null
+            Text includes: null
+            ', ': null
+            Output: null
+            Nothing: null
+    __main__: null
+widgets/owontology.py:
+    OntoType: null
+    resources: null
+    def `_run`:
+        Calculating...: null
+    def `_tree_to_html`:
+        <ul>: null
+        <li>{k}{_tree_to_html(v)}</li>: null
+        </ul>: null
+    def `_onto_to_tree`:
+        \n: null
+        ' ': null
+    class `TreeView`:
+        '
+    QTreeView::branch {{
+        background: palette(base);
+    }}
+    QTreeView::branch:has-siblings:!adjoins-item {{
+        border-image: url({resources_path}/vline.png) 0;
+    }}
+
+    QTreeView::branch:has-siblings:adjoins-item {{
+        border-image: url({resources_path}/branch-more.png) 0;
+    }}
+
+    QTreeView::branch:!has-children:!has-siblings:adjoins-item {{
+        border-image: url({resources_path}/branch-end.png) 0;
+    }}
+
+    QTreeView::branch:has-children:!has-siblings:closed,
+    QTreeView::branch:closed:has-children:has-siblings {{
+            border-image: none;
+            image: url({resources_path}/branch-closed.png);
+    }}
+
+    QTreeView::branch:open:has-children:!has-siblings,
+    QTreeView::branch:open:has-children:has-siblings  {{
+            border-image: none;
+            image: url({resources_path}/branch-open.png);
+    }}
+    ': null
+    class `EditableTreeView`:
+        def `__init__`:
+            +: null
+            Add a new word: null
+            \N{MINUS SIGN}: null
+            Remove word: null
+            \N{MINUS SIGN}R: null
+            Remove word recursively (incl. children): null
+            Undo: null
+            Redo: null
+    class `Ontology`:
+        def `as_dict`:
+            name: null
+            ontology: null
+            filename: null
+            error_msg: null
+        def `from_dict`:
+            Ontology: null
+            name: null
+            ontology: null
+            filename: null
+            error_msg: null
+        def `generate_name`:
+            Untitled: null
+            {default_name} {index}: null
+    class `UrlDialog`:
+        def `__init__`:
+            Open: null
+            URL:: null
+    JSON file (*.json): null
+    Pickled Python object file (*.pkl): null
+    OWL file (*.owl): null
+    def `read_from_url`:
+        Open Ontology: null
+        wb: null
+    def `read_from_file`:
+        Open Ontology: null
+        ~/: null
+        ;;: null
+    def `_read_from_source`:
+        .json: null
+        .pkl: null
+        rb: null
+        .owl: null
+        No readers for file {name}: null
+    def `save_ontology`:
+        Save Ontology: null
+        ;;: null
+        .json: null
+        w: null
+        .pkl: null
+        wb: null
+    class `LibraryItemDelegate`:
+        def `displayText`:
+            *: null
+    class `OWOntology`:
+        Ontology: null
+        icons/Ontology.svg: null
+        ontology, hierarchy: null
+        Generate: null
+        Include: null
+        name: null
+        ontology: null
+        class `Inputs`:
+            Words: null
+        class `Outputs`:
+            Words: null
+        class `Warning`:
+            Input is missing 'Words' column.: null
+            {} terms are skipped due to server connection error.: null
+        class `Error`:
+            {}: null
+        def `_setup_gui`:
+            Library: null
+            Add a new ontology to the library: null
+            +: null
+            Remove the ontology from the library: null
+            \N{MINUS SIGN}: null
+            Save changes in the editor to the library: null
+            Update: null
+            More: null
+            More actions: null
+            Import Ontology from File: null
+            Import Ontology from URL: null
+            Save Ontology to File: null
+            Input: null
+            Include selected words into the ontology: null
+            include_children: null
+            Include subtree: null
+            Output: null
+            Ontology info: null
+            %(ontology_info)s: null
+            auto_commit: null
+        def `__on_save`:
+            ~/: null
+        def `set_words`:
+            type: null
+            words: null
+        def `_run`:
+            Stop: null
+        def `_run_insert`:
+            Stop: null
+        def `__update_score`:
+            /: null
+            'Score: {score}': null
+        def `send_report`:
+            /: null
+            Settings: null
+            Library: null
+            '
+        <style>
+            ul {
+                padding-top: 0px;
+                padding-right: 0px;
+                padding-bottom: 0px;
+                padding-left: 20px;
+            }
+        </style>
+        ': null
+            Ontology: null
+    __main__: null
+    Stvar: null
+    Agent: null
+    Organ: null
+    Državni organ: null
+    Drug državni organ: null
+    Organ državne uprave: null
+    Organ lokalne skupnosti: null
+    Organ občine: null
+    Organ upravljanja: null
+    Registrski organ: null
+    Nadzorni organ: null
+    Upravni organ: null
+    Ministrstvo: null
+    Organ v sestavi ministrstva: null
+    Upravna enota: null
+    Bančni račun: null
+    Transakcijski račun: null
+    Delež: null
+    Delež v družbi: null
+    Lastniški delež: null
+    Dovoljenje: null
+    Dražba: null
+    Izplačilo: null
+    Plača: null
+    Pravni akt: null
+    Odločba: null
+    Sklep: null
+widgets/owpreprocess.py:
+    (none): null
+    def `icon_path`:
+        icons: null
+    class `ValidatedLineEdit`:
+        def `__validate`:
+            gray: null
+            red: null
+            'QLineEdit {{ border : 1px solid {color};}}': null
+    class `RangeSpecialValueSpins`:
+        def `__init__`:
+            max: null
+    class `FileLoader`:
+        def `__init__`:
+            ...: null
+        def `browse`:
+            ~/: null
+            Text files (*.txt): null
+            All files (*): null
+            Open...: null
+            ;;: null
+        def `set_current_file`:
+            (none): null
+    class `PreprocessorModule`:
+        def `get_tooltip`:
+            ' ': null
+            \n: null
+            .: null
+    class `SingleMethodModule`:
+        def `setParameters`:
+            method: null
+        def `parameters`:
+            method: null
+    class `MultipleMethodModule`:
+        def `setParameters`:
+            methods: null
+        def `parameters`:
+            methods: null
+        def `__repr__`:
+            ', ': null
+    class `TransformationModule`:
+        def `createinstance`:
+            methods: null
+    class `TokenizerModule`:
+        \w+: null
+        def `__init__`:
+            Pattern:: null
+        def `setParameters`:
+            pattern: null
+        def `parameters`:
+            pattern: null
+        def `createinstance`:
+            method: null
+            pattern: null
+        def `__repr__`:
+            {text} ({self.__pattern}): null
+    class `NormalizationModule`:
+        en: null
+        def `__init__`:
+            UDPipe tokenizer: null
+            Language:: null
+        def `setParameters`:
+            snowball_language: null
+            udpipe_language: null
+            udpipe_tokenizer: null
+            lemmagen_language: null
+        def `parameters`:
+            snowball_language: null
+            udpipe_language: null
+            udpipe_tokenizer: null
+            lemmagen_language: null
+        def `createinstance`:
+            method: null
+            language: null
+            snowball_language: null
+            udpipe_language: null
+            use_tokenizer: null
+            udpipe_tokenizer: null
+            lemmagen_language: null
+        def `__repr__`:
+            {text} ({self.__snowball_lang}): null
+            '{text} ({self.__udpipe_lang}, ': null
+            "Tokenize: {['No', 'Yes'][self.__use_tokenizer]})": null
+            {text} ({self.__lemmagen_lang}): null
+    class `FilteringModule`:
+        en: null
+        \.|,|:|;|!|\?|\(|\)|\||\+|\'|\"|‘|’|“|”|\'|: null
+        \’|…|\-|–|—|\$|&|\*|>|<|\/|\[|\]: null
+        NOUN,VERB: null
+        def `__init__`:
+            Relative:: null
+            Absolute:: null
+        def `setParameters`:
+            language: null
+            sw_path: null
+            sw_list: null
+            lx_path: null
+            lx_list: null
+            incl_num: null
+            pattern: null
+            freq_type: null
+            rel_start: null
+            rel_end: null
+            abs_start: null
+            abs_end: null
+            n_tokens: null
+            pos_tags: null
+        def `parameters`:
+            language: null
+            sw_path: null
+            sw_list: null
+            lx_path: null
+            lx_list: null
+            incl_num: null
+            pattern: null
+            freq_type: null
+            rel_start: null
+            rel_end: null
+            abs_start: null
+            abs_end: null
+            n_tokens: null
+            pos_tags: null
+            invalidated: null
+        def `createinstance`:
+            methods: null
+            language: null
+            sw_path: null
+            lx_path: null
+            incl_num: null
+            pattern: null
+            freq_type: null
+            rel_start: null
+            rel_end: null
+            abs_start: null
+            abs_end: null
+            n_tokens: null
+            pos_tags: null
+        def `__repr__`:
+            'Language: {language}, File: {_to_abspath(self.__sw_file)}': null
+            'File: {_to_abspath(self.__lx_file)}': null
+            "Includes numbers: {['No', 'Yes'][self.__incl_num]})": null
+            {self.__pattern}: null
+            [{self.__rel_freq_st}, {self.__rel_freq_en}]: null
+            [{self.__abs_freq_st}, {self.__abs_freq_en}]: null
+            {self.__n_token}: null
+            {self.__pos_tag}: null
+            {self.Methods[method].name} ({append}): null
+            ', ': null
+    class `NgramsModule`:
+        def `__init__`:
+            Range:: null
+        def `setParameters`:
+            start: null
+            end: null
+        def `parameters`:
+            start: null
+            end: null
+        def `__repr__`:
+            ({self.__start}, {self.__end}): null
+        def `createinstance`:
+            start: null
+            end: null
+    class `POSTaggingModule`:
+        def `createinstance`:
+            method: null
+    class `PreprocessSettingsHandler`:
+        def `_remove_schema_only`:
+            storedsettings: null
+            preprocessors: null
+            language: null
+    Transformation: null
+    preprocess.transform: null
+    Transform.svg: null
+    Tokenization: null
+    preprocess.tokenize: null
+    Tokenize.svg: null
+    Normalization: null
+    preprocess.normalize: null
+    Normalize.svg: null
+    Filtering: null
+    preprocess.filter: null
+    Filter.svg: null
+    N-grams Range: null
+    preprocess.ngrams: null
+    NGrams.svg: null
+    POS Tagger: null
+    tag.pos: null
+    POSTag.svg: null
+    class `OWPreprocess`:
+        Preprocess Text: null
+        Construct a text pre-processing pipeline.: null
+        icons/TextPreprocess.svg: null
+        preprocess text, text: null
+        class `Inputs`:
+            Corpus: Korpus
+        class `Outputs`:
+            Corpus: Korpus
+        class `Error`:
+            {}: null
+            No UDPipe model is selected.: null
+            File not found.: null
+            'Invalid file encoding. Please save the ': null
+            file as UTF-8 and try again.: null
+        class `Warning`:
+            No tokens on the output.: null
+            No internet connection. UDPipe: null
+            ' works with local models.': null
+            'No internet connection. ': null
+            UDPipe model is not available.: null
+            'Tokenization should be placed before ': null
+            'Normalization, Filtering, n-grams and ': null
+            POS Tagger.: null
+            'Tokenization has been ignored due to ': null
+            UDPipe tokenizer.: null
+            'Filtering has been ignored due to ': null
+        'Some preprocessing methods require data (like word ': null
+        'relationships, stop words, punctuation rules etc.) ': null
+        from the NLTK package. This data was downloaded to:: null
+        ' {nltk_data_dir()}': null
+        nltk_data: null
+        preprocessors: null
+        preprocess.transform: null
+        preprocess.tokenize: null
+        preprocess.filter: null
+        def `__init__`:
+            Preview: null
+            %(preview)s: null
+            Output: null
+            %(output_info)s: null
+        def `load`:
+            preprocessors: null
+            preprocess.filter: null
+        def `__update_filtering_params`:
+            sw_path: null
+            sw_list: null
+            lx_path: null
+            lx_list: null
+        def `__relocate_file`:
+            basedir: null
+        preprocess.normalize: null
+        snowball_language: null
+        udpipe_language: null
+        lemmagen_language: null
+        language: null
+        def `__store_pending_languages`:
+            preprocessors: null
+            language: null
+        def `update_preview`:
+            ', ': null
+            'Tokens: {n_tokens:,}\nTypes: {n_types:,}': null
+        def `workflowEnvChanged`:
+            basedir: null
+            sw_path: null
+            lx_path: null
+        def `migrate_settings`:
+            storedsettings: null
+            preprocessors: null
+            transformers: null
+            enabled: null
+            methods: null
+            checked: null
+            preprocess.transform: null
+            tokenizer: null
+            method: null
+            method_index: null
+            pattern: null
+            preprocess.tokenize: null
+            normalizer: null
+            snowball_language: null
+            udpipe_language: null
+            udpipe_tokenizer: null
+            preprocess.normalize: null
+            filters: null
+            recent_sw_files: null
+            recent_lexicon_files: null
+            language: null
+            stopwords_language: null
+            sw_path: null
+            sw_list: null
+            lx_path: null
+            lx_list: null
+            start: null
+            min_df: null
+            end: null
+            max_df: null
+            n_tokens: null
+            keep_n: null
+            preprocess.filter: null
+            ngrams_range: null
+            preprocess.ngrams: null
+            pos_tagger: null
+            tag.pos: null
+            rel_start: null
+            rel_end: null
+            abs_start: null
+            abs_end: null
+            lemmagen_language: null
+    __main__: null
+    deerwester: null
+widgets/owpubmed.py:
+    def `_i`:
+        icons: null
+    [^@]+@[^@]+\.[^@]+: null
+    class `OWPubmed`:
+        class `EmailCredentialsDialog`:
+            Pubmed Email: null
+            class `Error`:
+                This email is invalid.: null
+            def `__init__`:
+                Email: null
+                email_input: null
+                Email:: null
+                OK: null
+        Pubmed: null
+        Fetch data from Pubmed.: null
+        icons/Pubmed.svg: null
+        pubmed: null
+        yyyy-MM-dd: null
+        %Y-%m-%d: null
+        class `Outputs`:
+            Corpus: Korpus
+        class `Warning`:
+            Please specify the keywords for this query.: null
+        class `Error`:
+            'API error: {}.': null
+            Email not set. Pleas set it with the email button.: null
+        def `__init__`:
+            Email: null
+            author: null
+            Author:: null
+            pub_date_from: null
+            pub_date_to: null
+            From:: null
+            to:: null
+            Query:: null
+            Regular search: null
+            Advanced search: null
+            'Number of records found: /': null
+            Find records: null
+            'Performs a search for articles that fit the ': null
+            specified parameters.: null
+            Text includes: null
+            includes_authors: null
+            Authors: null
+            includes_title: null
+            Article title: null
+            includes_mesh: null
+            Mesh headings: null
+            includes_abstract: null
+            Abstract: null
+            includes_url: null
+            URL: null
+            Retrieve: null
+            num_records: null
+            records from /.: null
+            Retrieve records: null
+            Retrieves the specified documents.: null
+            'Number of records retrieved: /': null
+        def `retrieve_records`:
+            Retrieve records: null
+            Stop retrieving: null
+        def `update_search_info`:
+            'Number of retrievable records for ': null
+            'this search query: {} ': null
+            records from {}.: null
+        def `update_retrieval_info`:
+            'Number of records retrieved: {} ': null
+        def `set_keyword_list`:
+            orchid: null
+            hypertension: null
+            blood pressure: null
+            radiology: null
+        def `open_calendar`:
+            Date picker: null
+        def `send_report`:
+            Query: null
+            Authors: null
+            Date: null
+            from {} to {}: null
+            Number of records retrieved: null
+            {}/{}: null
+    class `CalendarDialog`:
+        def `__init__`:
+            Date picker: null
+            yyyy/MM/dd: null
+            OK: null
+        def `set_date`:
+            yyyy/MM/dd: null
+    __main__: null
+widgets/owscoredocuments.py:
+    def `_embedding_similarity`:
+        Some documents not embedded; try to rerun scoring: null
+        Some words not embedded; try to rerun scoring: null
+    word_frequency: null
+    Word count: null
+    Frequency of the word in the document.: null
+    word_appearance: null
+    Word presence: null
+    Score word with one if it appears in the document, with zero otherwise.: null
+    embedding_similarity: null
+    Similarity: null
+    Cosine similarity between the document embedding and the word embedding.: null
+    Mean: null
+    Median: null
+    Min: null
+    Max: null
+    def `_preprocess_words`:
+        words: null
+    def `_run`:
+        Empty word list after preprocessing. Please provide a valid set of words.: null
+    class `SelectionMethods`:
+        None: null
+        All: null
+        Manual: null
+        Top documents: null
+    class `ScoreDocumentsProxyModel`:
+        def `_alphanum_key`:
+            ([0-9]+): null
+    class `ScoreDocumentsTableModel`:
+        def `simplify`:
+            \n\t\r: null
+            ' ': null
+    class `OWScoreDocuments`:
+        Score Documents: null
+        icons/ScoreDocuments.svg: null
+        score documents: null
+        class `Inputs`:
+            Corpus: Korpus
+            Words: null
+        class `Outputs`:
+            Selected documents: null
+            Corpus: Korpus
+        class `Warning`:
+            Use Preprocess Text to normalize corpus.: null
+            {}: null
+        class `Error`:
+            {}: null
+        def `_setup_control_area`:
+            Word Scoring Methods: null
+            Aggregation: null
+            aggregation: null
+            Select Documents: null
+            n_selected: null
+            auto_commit: null
+        def `_setup_main_area`:
+            Filter...: null
+            Document: null
+        def `_get_word_attribute`:
+            type: null
+            words: null
+        def `_fill_table`:
+            Document: null
+        def `on_partial_result`:
+            '{SCORING_METHODS[sc_method][0]} failed: {scores}': null
+    __main__: null
+    book-excerpts: null
+    house: null
+    doctor: null
+    boy: null
+    way: null
+    Rum: null
+widgets/owsemanticviewer.py:
+    "
+<!doctype html>
+<html>
+<head>
+<script type=""text/javascript"" src=""resources/jquery-3.1.1.min.js"">
+</script>
+<script type=""text/javascript"" src=""resources/jquery.mark.min.js"">
+</script>
+<script type=""text/javascript"" src=""resources/highlighter.js"">
+</script>
+<meta charset='utf-8'>
+<style>
+
+mark {{ 
+    background: #FFCD28;
+}}
+body {{
+    font-family: Helvetica;
+    font-size: 10pt;
+}}
+hr {{
+    border: none;
+    height: 1px;
+    background-color: #000;
+
+}}
+
+</style>
+</head>
+<body>
+{}
+</body>
+</html>
+": null
+    def `run`:
+        Calculating...: null
+    class `DocumentsModel`:
+        def `_argsortData`:
+            mergesort: null
+    class `DisplayDocument`:
+        Document: null
+        Section: null
+        Sentence: null
+        <mark data-markjs='true'>: null
+        </mark>: null
+        {START_TAG}{{}}{END_TAG}: null
+        \n: null
+        ...: null
+        def `__call__`:
+            {self.SECTION_SEP}+: null
+            ' ': null
+        def `_replace_sentences`:
+            def `replace_unmatched`:
+                ' ': null
+    class `OWSemanticViewer`:
+        Semantic Viewer: null
+        Find documents and parts of documents semantically similar to input words: null
+        icons/SemanticViewer.svg: null
+        semantic viewer, search: null
+        class `Inputs`:
+            Corpus: Korpus
+            Words: null
+        class `Outputs`:
+            Matching Docs: null
+            Other Docs: null
+            Corpus: Korpus
+        class `Warning`:
+            Input is missing 'Words' column.: null
+        def `_setup_gui`:
+            Filtering: null
+            threshold: null
+            'Threshold: ': null
+            Display: null
+            display_index: null
+        def `set_words`:
+            type: null
+            words: null
+        def `_list_documents`:
+            Match: null
+            Score: null
+            Document: null
+            def `get_avg_score`:
+                NA: null
+        def `_show_documents`:
+            \n: null
+            <br/>: null
+            <p>{text}</p>: null
+            <hr>: null
+        def `send_report`:
+            Corpus: Korpus
+            Words: null
+            ', ': null
+            {:.3f}: null
+    __main__: null
+    human: null
+    graph: null
+    minors: null
+    trees: null
+    deerwester: null
+widgets/owsentimentanalysis.py:
+    class `OWSentimentAnalysis`:
+        Sentiment Analysis: null
+        Compute sentiment from text.: null
+        icons/SentimentAnalysis.svg: null
+        sentiment analysis, emotion: null
+        class `Inputs`:
+            Corpus: Korpus
+        class `Outputs`:
+            Corpus: Korpus
+        class `Warning`:
+            Only one dictionary loaded.: null
+            No dictionaries loaded.: null
+        class `Error`:
+            'Sentiment cannot be computed since you are offline and the ': null
+            required dictionary is unavailable locally.: null
+        def `__init__`:
+            method_idx: null
+            Method: null
+            Liu Hu: null
+            liu_language: null
+            VADER: null
+            'Multilingual ': null
+            sentiment: null
+            multi_language: null
+            SentiArt: null
+            senti_language: null
+            Lilah sentiment: null
+            lilah_language: null
+            Custom dictionary: null
+            Language:: null
+            '   English': null
+            Positive:: null
+            Negative:: null
+            autocommit: null
+        def `__set_language_settings`:
+            liu_language: null
+            multi_language: null
+            senti_language: null
+            lilah_language: null
+        def `_compute_sentiment`:
+            Liu Hu: null
+            Multilingual Sentiment: null
+            SentiArt: null
+            LiLaH Sentiment: null
+            Custom Dictionaries: null
+        def `send_report`:
+            Method: null
+        def `migrate_settings`:
+            method_idx: null
+            metric_idx: null
+            liu_language: null
+            lilah_language: null
+            multi_language: null
+            senti_language: null
+    __main__: null
+    book-excerpts: null
+widgets/owstatistics.py:
+    class `Sources`:
+        Documents: null
+        Tokens: null
+    def `get_source`:
+        Wrong source {source}: null
+    def `words_count`:
+        Word count: null
+    def `characters_count`:
+        Character count: null
+    def `n_gram_count`:
+        N-gram count: null
+    def `average_word_len`:
+        Average word length: null
+    def `punctuation_count`:
+        Punctuation count: null
+    def `capital_count`:
+        Capital letter count: null
+    def `vowel_count`:
+        ,: null
+        Vowel count: null
+    def `consonant_count`:
+        ,: null
+        Consonant count: null
+    def `per_cent_unique_words`:
+        % unique words: null
+    def `starts_with`:
+        Starts with {prefix}: null
+    def `ends_with`:
+        Ends with {postfix}: null
+    def `contains`:
+        Contains {text}: null
+    def `regex`:
+        Regex {expression}: null
+    def `pos_tags`:
+        ,: null
+        POS tags {pos_tags}: null
+    def `yule`:
+        Yule's I: null
+    def `lix`:
+        LIX index: null
+    Word count: null
+    Character count: null
+    N-gram count: null
+    Average term length: null
+    Punctuation count: null
+    Capital letter count: null
+    Vowel count: null
+    a,e,i,o,u: null
+    Consonant count: null
+    b,c,d,f,g,h,j,k,l,m,n,p,q,r,s,t,v,w,x,y,z: null
+    Per cent unique terms: null
+    Starts with: null
+    Ends with: null
+    Contains: null
+    Regex: null
+    POS tag: null
+    NN,VV,JJ: null
+    Yule's I: null
+    LIX index: null
+    class `OWStatistics`:
+        Statistics: null
+        Create new statistic variables for documents.: null
+        statistics: null
+        icons/Statistics.svg: null
+        class `Inputs`:
+            Corpus: Korpus
+        class `Outputs`:
+            Corpus: Korpus
+        class `Warning`:
+            {} statistics cannot be computed and is omitted from results.: null
+        def `_init_controls`:
+            Apply: null
+        def `_init_statistics_box`:
+            Feature: null
+            Pattern: null
+            Compute for: null
+            +: null
+        def `adjust_n_rule_rows`:
+            def `_add_line`:
+                ×: null
+        def `output_results`:
+            ', ': null
+        def `migrate_settings`:
+            def `def_source`:
+                Regex: null
+            active_rules: null
+    __main__: null
+    book-excerpts: null
+widgets/owtopicmodeling.py:
+    class `TopicWidget`:
+        {description}:: null
+    class `LdaWidget`:
+        num_topics: null
+        Number of topics: null
+    class `LsiWidget`:
+        num_topics: null
+        Number of topics: null
+    class `HdpWidget`:
+        {description}:: null
+        gamma: null
+        First level concentration (γ): null
+        alpha: null
+        Second level concentration (α): null
+        eta: null
+        The topic Dirichlet (α): null
+        T: null
+        Top level truncation level (Τ): null
+        K: null
+        Second level truncation level (Κ): null
+        kappa: null
+        Learning rate (κ): null
+        tau: null
+        Slow down parameter (τ): null
+    class `NmfWidget`:
+        num_topics: null
+        Number of topics: null
+    class `OWTopicModeling`:
+        Topic Modelling: null
+        Uncover the hidden thematic structure in a corpus.: null
+        icons/TopicModeling.svg: null
+        topic modelling, lda: null
+        class `Inputs`:
+            Corpus: Korpus
+        class `Outputs`:
+            Corpus: Korpus
+            Selected Topic: null
+            All Topics: null
+        lda: null
+        lsi: null
+        hdp: null
+        nmf: null
+        class `Warning`:
+            Less topics found than requested.: null
+        class `Error`:
+            {}: null
+        def `__init__`:
+            n/a: null
+            autocommit: null
+            Commit: Uveljavi
+            Options: null
+            Topic evaluation: null
+            'Log perplexity: %(perplexity)s': null
+            'Topic coherence: %(coherence)s': null
+        def `on_done`:
+            Latent Dirichlet Allocation: null
+            {:.2f}: null
+            n/a: null
+            c_v: null
+        def `send_report`:
+            Topics: null
+        def `migrate_settings`:
+            method_index: null
+    class `TopicViewerTreeWidgetItem`:
+        def `__init__`:
+            {:d}: null
+            ', ': null
+            _: null
+        def `_color`:
+            '#ff6600': null
+            '#00cc00': null
+            '<span style="color: {}">{}</span>': null
+    class `TopicViewer`:
+        Topic: null
+        Topic keywords: null
+    __main__: null
+    deerwester: null
+widgets/owtweetprofiler.py:
+    class `OWTweetProfiler`:
+        Tweet Profiler: null
+        "Detect Ekman's, Plutchik's or Profile of Mood States's ": null
+        emotions in tweets.: null
+        icons/TweetProfiler.svg: null
+        tweet profiler, twitter: null
+        class `Inputs`:
+            Corpus: Korpus
+        class `Outputs`:
+            Corpus: Korpus
+        class `Error`:
+            'Our servers are not responding. ': null
+            Please try again later.: null
+            'Unknown error: {}': null
+        def `__init__`:
+            auto_commit: null
+            Commit: Uveljavi
+            Cancel: null
+        def `generate_grid_layout`:
+            Options: null
+            tweet_attr: null
+            Attribute:: null
+            model_name: null
+            Emotions:: null
+            output_mode: null
+            Output:: null
+        def `send_report`:
+            Attribute: null
+            Emotions: null
+            Output: null
+    __main__: null
+    election-tweets-2016.tab: null
+widgets/owtwitter.py:
+    def `search`:
+        content: null
+        @: null
+    class `OWTwitter`:
+        Twitter: null
+        Load tweets from the Twitter API.: null
+        icons/Twitter.svg: null
+        twitter, tweet: null
+        class `Outputs`:
+            Corpus: Korpus
+        class `Info`:
+            Downloaded fewer tweets than requested, since not enough tweets or rate limit reached: null
+        class `Error`:
+            'Api error: {}. Check if your API plan includes Tweets retrieval. ': null
+            The free plan doesn't allow Tweets retrieval anymore.: null
+            Please provide {}.: null
+            Please provide a valid API token.: null
+            Author '{}' does not exist.: null
+        Content: null
+        Author: null
+        class `APICredentialsDialog`:
+            Twitter API Credentials: null
+            def `__init__`:
+                Twitter Bearer Token: null
+                Bearer Token: null
+                OK: null
+        def `__init__`:
+            Twitter API Key: null
+            Set the API key for this widget.: null
+            Query: null
+            Query word list:: null
+            word_list: null
+            Multiple lines are joined with OR.: null
+            Search by:: null
+            mode: null
+            Any: null
+            language: null
+            Language:: null
+            Max tweets:: null
+            max_tweets: null
+            limited_search: null
+            allow_retweets: null
+            Allow retweets:: null
+            Collect results:: null
+            collecting: null
+            Search: null
+        def `start_stop`:
+            Search: null
+        def `run_search`:
+            api: null
+            key_missing: null
+        def `search`:
+            keywords: null
+            authors: null
+            content: null
+            Stop: null
+        def `on_done`:
+            Search: null
+        def `on_exception`:
+            Search: null
+            \n: null
+            ' ': null
+        def `send_report`:
+            api: null
+            key_missing: null
+    __main__: null
+widgets/owwikipedia.py:
+    class `OWWikipedia`:
+        Wikipedia: null
+        icons/Wikipedia.svg: null
+        wikipedia: null
+        class `Outputs`:
+            Corpus: Korpus
+        en: null
+        Articles count {:d}: null
+        class `Error`:
+            'API error: {}': null
+        class `Warning`:
+            Text features are inferred when none are selected.: null
+        def `__init__`:
+            Query: null
+            query_list: null
+            'Each line represents a ': null
+            separate query.: null
+            Query word list:: null
+            language: null
+            Language:: null
+            Articles per query:: null
+            articles_per_query: null
+            Text includes: null
+            text_includes: null
+            Info: null
+            Search: null
+        def `on_start`:
+            Stop: null
+        def `on_result`:
+            Search: null
+        def `send_report`:
+            Language: null
+            Query: null
+            Articles count: null
+    __main__: null
+widgets/owwordcloud.py:
+    '#da1': null
+    '#629': null
+    '#787': null
+    '#000': null
+    '#444': null
+    '#777': null
+    '#aaa': null
+    '#ff6600': null
+    '#00cc00': null
+    no: null
+    30°: null
+    45°: null
+    60°: null
+    def `_bow_words`:
+        bow-feature: null
+    def `count_words`:
+        Calculating...: null
+    class `TableModel`:
+        def `data`:
+            {value:.{self.precision}f}: null
+    class `OWWordCloud`:
+        Word Cloud: null
+        icons/WordCloud.svg: null
+        word cloud: null
+        class `Inputs`:
+            Corpus: Korpus
+            Topic: null
+        class `Outputs`:
+            Corpus: Korpus
+            Selected Words: null
+            Word Counts: null
+        webview: null
+        class `Warning`:
+            Input signal Topic takes priority over Corpus: Korpus
+        class `Info`:
+            Showing bag of words weights.: null
+        def `_new_webview`:
+            '
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+html, body {margin:0px;padding:0px;width:100%;height:100%;
+            cursor:default; -webkit-user-select: none; user-select: none;
+            overflow: hidden;}
+span:hover {color:OrangeRed !important}
+span.selected {color:red !important}
+</style>
+</head>
+<body id="canvas">
+<script src="resources/wordcloud2.js"></script>
+<script src="resources/wordcloud-script.js"></script>
+</body>
+</html>': null
+            class `Bridge`:
+                def `update_selection`:
+                    QVariantList: null
+            class `Webview`:
+                def `update_selection`:
+                    SELECTED_WORDS = {}; selectWords();: null
+        def `_create_layout`:
+            Cloud preferences: null
+            words_color: null
+            Color words: null
+            words_tilt: null
+            Words tilt:: null
+            Words && weights: null
+            Weight: null
+            Word: null
+        def `define_colors`:
+            topic-method-name: null
+            LsiModel: null
+        def `on_cloud_pref_change`:
+            colorList = {colors_dict}: null
+            'OPTIONS["color"] = function (word) {
+            return colorList[word];
+            }': null
+            textAreaEstimation = {self.combined_size_length}: null
+            'OPTIONS["minRotation"] = {}; \
+                             OPTIONS["maxRotation"] = {};': null
+            OPTIONS["rotateRatio"] = {};: null
+            OPTIONS["list"] = {};: null
+            redrawWordCloud();: null
+        def `_apply_topic`:
+            weights: null
+        def `create_weight_list`:
+            Word Count: null
+            Document Count: null
+            Word: null
+            Word Counts: null
+        def `commit`:
+            Selected Words: null
+        def `send_report`:
+            >: null
+            <body: null
+            </body>: null
+            document.getElementById('canvas').clientHeight: null
+            "<div style='position: relative; height: ": null
+            {height}px;'>{body}</div>: null
+    __main__: null
+    book-excerpts: null
+widgets/owwordenrichment.py:
+    class `Runner`:
+        def `run`:
+            Listing words: null
+            Computing p-values: null
+            Computing FDR values: null
+    class `OWWordEnrichment`:
+        Word Enrichment: null
+        Word enrichment analysis for selected documents.: null
+        icons/SetEnrichment.svg: null
+        word enrichment: null
+        class `Inputs`:
+            Selected Data: null
+            Data: null
+        class `Outputs`:
+            Words: null
+        class `Error`:
+            No bag-of-words features!: null
+            No words overlap!: null
+            Selected data is empty!: null
+            All examples can not be selected!: null
+        def `__init__`:
+            Info: null
+            'Words displayed: 0': null
+            Filter: null
+            filter_by_p: null
+            p-value: null
+            Filter by word p-value: null
+            filter_p_value: null
+            Max p-value for word: null
+            filter_by_fdr: null
+            FDR: null
+            Filter by word FDR: null
+            filter_fdr_value: null
+            auto_apply: null
+            Word: null
+        def `get_bow_domain`:
+            bow-feature: null
+        def `set_displayed_info`:
+            'Words displayed: {count}': null
+        def `commit`:
+            p-values: null
+            FDR values: null
+        def `send_report`:
+            Enriched words: null
+    %0.5f: null
+    %0.1e: null
+    %0.9f: null
+    %0.5e: null
+    __main__: null
+    book-excerpts: null
+widgets/owwordlist.py:
+    class `WordList`:
+        def `as_dict`:
+            name: null
+            words: null
+            filename: null
+        def `from_dict`:
+            WordList: null
+            name: null
+            words: null
+            filename: null
+        def `generate_word_list_name`:
+            Untitled: null
+            {default_name} {index}: null
+    class `UpdateRules`:
+        Intersection: null
+        Union: null
+        Only input: null
+        Ignore input: null
+    class `WordListItemDelegate`:
+        def `displayText`:
+            *: null
+    class `OWWordList`:
+        Word List: null
+        Create a list of words.: null
+        icons/WordList.svg: null
+        word list: null
+        class `Inputs`:
+            Words: null
+        class `Outputs`:
+            Selected Words: null
+            Words: null
+        class `Warning`:
+            Input needs at least one Text variable.: null
+        name: null
+        words: null
+        def `__init__`:
+            Library: null
+            Input: null
+        def `_setup_library_box`:
+            +: null
+            Add a new word list to the library: null
+            \N{MINUS SIGN}: null
+            Remove word list from library: null
+            C: null
+            Copy word list from library: null
+            Update: null
+            Save changes in the editor to library: null
+            More: null
+            More actions: null
+            Import Words from File: null
+            Save Words to File: null
+        def `__on_import_word_list`:
+            Open Word List: null
+            ~/: null
+            Text files (*.txt)\nAll files(*.*): null
+            utf-8: null
+        def `__on_save_word_list`:
+            ~/: null
+            Save Word List: null
+            Text files (*.txt)\nAll files(*.*): null
+            .txt: null
+            w: null
+            utf-8: null
+            {word}\n: null
+        def `_setup_input_box`:
+            words_var: null
+            Word variable:: null
+            update_rule_index: null
+            'Update: ': null
+        def `_setup_words_box`:
+            +: null
+            Add a new word: null
+            \N{MINUS SIGN}: null
+            Remove word: null
+            Sort: null
+            Sort words alphabetically: null
+        def `send_report`:
+            /: null
+            Library: null
+            Input Words: null
+            Word variable: null
+            Update: null
+            Settings: null
+            Words: null
+            ', ': null
+    __main__: null
+    S1: null
+    S2: null
+    foo: null
+    A: null
+    bar: null
+    B: null
+    foobar: null
+    C: null
+widgets/utils/concurrent.py:
+    class `CallbackMethod`:
+        def `__call__`:
+            call: null
+widgets/utils/owbasevectorizer.py:
+    class `Vectorizer`:
+        def `_hide_attrs`:
+            hidden: null
+    class `OWBaseVectorizer`:
+        class `Inputs`:
+            Corpus: Korpus
+        class `Outputs`:
+            Corpus: Korpus
+            Embeddings: null
+        def `__init__`:
+            Options: null
+            hidden_cb: null
+            Hide bow attributes: null
+            autocommit: null
+            Commit: Uveljavi
+widgets/utils/widgets.py:
+    class `ListEdit`:
+        def `__init__`:
+            \n: null
+        def `value`:
+            \n: null
+    class `DatePicker`:
+        yyyy-MM-dd: null
+        %Y-%m-%d: null
+    class `DatePickerInterval`:
+        def `__init__`:
+            From:: null
+            To:: null
+    class `FileWidget`:
+        def `__init__`:
+            Browse: null
+            Reload: Ponovno naloži
+            (none): null
+        def `__start_dir`:
+            ~/: null
+widgets/utils/words.py:
+    Words: null
+    def `create_words_table`:
+        type: null
+        words: null
+        Words: null
