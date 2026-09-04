@@ -6,7 +6,6 @@ import json
 import sys
 import warnings
 import zlib
-import re
 from typing import Any, Optional, Tuple, Callable
 
 import numpy as np
@@ -17,6 +16,7 @@ from Orange.misc.utils.embedder_utils import EmbedderCache
 from Orange.util import dummy_callback
 
 from orangecontrib.text import Corpus
+from orangecontrib.text.misc import url_to_safe_filename
 from orangecontrib.text.vectorization.base import BaseVectorizer
 
 AGGREGATORS = ["mean", "sum", "max", "min"]
@@ -165,28 +165,6 @@ class _ServerEmbedder(ServerEmbedderCommunicator):
 
         json_string = json.dumps(data_dict)
         return json_string.encode('utf-8', 'replace')
-
-
-def url_to_safe_filename(url: str) -> str:
-    """
-    Convert an URL into a safe, cross-platform single filesystem filename.
-    Args:
-        url: The input URL string
-
-    Returns:
-        A sanitized, valid single-file filename.
-    """
-    if not url or not url.strip():
-        raise ValueError("'url' cannot be empty")
-
-    # Replace all Windows/POSIX invalid characters and control chars with underscore
-    safe = re.sub(r'[<>:"/\\|?*]', '_', url)
-    safe = re.sub(r'[\x00-\x1f]', '_', safe)
-    # Handle Windows reserved names (CON, PRN, etc.)
-    safe = re.sub(
-        r'^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-3])$', r'_\1', safe, flags=re.IGNORECASE
-    )
-    return safe
 
 
 class OAIDocumentEmbedder(BaseVectorizer):
