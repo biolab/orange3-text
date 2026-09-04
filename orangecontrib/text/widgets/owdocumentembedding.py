@@ -1,17 +1,20 @@
+from __future__ import annotations
+
 import json
 import enum
 import os
-from typing import Dict, Optional, Any
+from typing import Any
 
 import openai
 
 from AnyQt.QtCore import Qt, QSettings
-from AnyQt.QtWidgets import QVBoxLayout, QPushButton, QStyle
+from AnyQt.QtWidgets import QVBoxLayout, QPushButton, QStyle, QFormLayout
 
 from Orange.misc.utils.embedder_utils import EmbeddingConnectionError
 from Orange.widgets import gui, settings
 from Orange.widgets.settings import Setting
 from Orange.widgets.utils import qname
+from Orange.widgets.utils.concurrent import TaskState
 from Orange.widgets.utils.settings import QSettings_writeArray, QSettings_readArray
 from Orange.widgets.widget import Msg, Output, OWWidget
 from orangecanvas.utils import findf
@@ -27,6 +30,7 @@ from orangecontrib.text.vectorization.document_embedder import (
     LANGUAGES, OAIDocumentEmbedder,
 )
 from orangecontrib.text.vectorization.sbert import SBERT
+from orangecontrib.text.vectorization.onnx_embedder import ONNXEmbedder
 from orangecontrib.text.widgets.utils.owbasevectorizer import (
     OWBaseVectorizer,
     Vectorizer,
@@ -42,11 +46,83 @@ class EmbeddingVectorizer(Vectorizer):
         self.new_corpus = embeddings
         self.skipped_documents = skipped
 
+    def run(self, hidden: bool, task_state: TaskState):
+        if isinstance(self.method, ONNXEmbedder):
+            did_download = False
+            def callback(progress):
+                nonlocal did_download
+                if not did_download:
+                    did_download = True
+                    task_state.set_status(f"Downloading model")
+                if task_state.is_interruption_requested():
+                    raise Exception
+                task_state.set_progress_value(progress * 100)
+            # Use ONNXEmbedder as a context manager to ensure the subprocess
+            # pool is always cleaned up, even on interruption or exception.
+            with self.method:
+                self.method._ensure_initialized(callback)
+                if did_download:  # Clear download status
+                    task_state.set_status("")
+                    task_state.set_progress_value(0.0)
+                super().run(hidden, task_state)
+        else:
+            super().run(hidden, task_state)
+
+
+class OnnxModel(enum.Enum):
+    """Available ONNX embedding models.
+
+    The enum value is the HuggingFace model ID, used as the display name
+    in the combo box and for model identification throughout the widget.
+    """
+    SENTENCE_TRANSFORMERS_ALL_MINILM_L6_V2 = "sentence-transformers/all-MiniLM-L6-v2"
+    PARAPHRASE_MULTILINGUAL_MINILM_L12_V2 = (
+        "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+    )
+    IBM_GRANITE_97M_MULTILINGUAL = "ibm-granite/granite-embedding-97m-multilingual-r2"
+    SNOWFLAKE_ARCTIC_EMBED_XS = "Snowflake/snowflake-arctic-embed-xs"
+
+    @property
+    def model_id(self) -> str:
+        return self.value
+
+# Registry mapping OnnxModel members to their ONNXEmbedder configuration.
+# model_id is derived from the enum value (self.value) and not stored here
+# to maintain a single source of truth.
+ONNX_MODEL_CONFIGS: dict[OnnxModel, dict[str, Any]] = {
+    OnnxModel.SENTENCE_TRANSFORMERS_ALL_MINILM_L6_V2: {
+        "model_filename": ONNXEmbedder.model_filename,
+        "batch_size": 32,
+        "pooling": "mean",
+    },
+    OnnxModel.PARAPHRASE_MULTILINGUAL_MINILM_L12_V2: {
+        "model_filename": ONNXEmbedder.model_filename,
+        "batch_size": 32,
+        "pooling": "mean",
+    },
+    OnnxModel.IBM_GRANITE_97M_MULTILINGUAL: {
+        "model_filename": "onnx/model_quint8_avx2.onnx",
+        "batch_size": 8,
+        "pooling": "cls",
+    },
+    OnnxModel.SNOWFLAKE_ARCTIC_EMBED_XS: {
+        "model_filename": "onnx/model_uint8.onnx",
+        "batch_size": 32,
+        "pooling": "cls",
+    },
+}
+
+
+def _onnx_model_items() -> list[str]:
+    """Return the display names for the ONNX model combo box."""
+    return [config.value for config in OnnxModel]
+
 
 class Methods(enum.Enum):
     SBERT = 0
     FastText = 1
     OpenAIEmbedder = 2
+    ONNXEmbedder = 3
 
 
 Providers = {
@@ -82,7 +158,7 @@ class OWDocumentEmbedding(OWBaseVectorizer):
     buttons_area_orientation = Qt.Vertical
     settings_version = 3
 
-    Methods = [SBERT, DocumentEmbedder, OAIDocumentEmbedder]
+    Methods = [SBERT, DocumentEmbedder, OAIDocumentEmbedder, ONNXEmbedder]
 
     class Outputs(OWBaseVectorizer.Outputs):
         skipped = Output("Skipped documents", Corpus)
@@ -104,11 +180,15 @@ class OWDocumentEmbedding(OWBaseVectorizer):
     language: str = Setting(default=DEFAULT_LANGUAGE, schema_only=True)
     aggregator: str = Setting(default="Mean")
 
+    onnx_model: str = Setting(default=OnnxModel.SENTENCE_TRANSFORMERS_ALL_MINILM_L6_V2.value)
+
     base_url = Setting("", schema_only=True)
     api_key = ""
     model = Setting("", schema_only=True)
 
     def __init__(self):
+        if self.onnx_model not in _onnx_model_items():
+            self.onnx_model = OnnxModel.SENTENCE_TRANSFORMERS_ALL_MINILM_L6_V2.value
         super().__init__()
         self.cancel_button = QPushButton(
             "Cancel", icon=self.style().standardIcon(QStyle.SP_DialogCancelButton)
@@ -169,6 +249,24 @@ class OWDocumentEmbedding(OWBaseVectorizer):
             self.llmapiwidget.setModelId(self.model)
         self.api_key = self.llmapiwidget.apiKey()
         self.llmapiwidget.changed.connect(self.on_api_param_change)
+
+        gui.appendRadioButton(rbtns, "Local ONNX Embedder:")
+        self.onnx_controls = ibox = gui.indentedBox(rbtns)
+        onnx_layout = QVBoxLayout()
+        onnx_form = QFormLayout()
+        self.onnx_model_cb = gui.comboBox(
+            None,
+            self,
+            "onnx_model",
+            items=_onnx_model_items(),
+            label="Model:",
+            sendSelectedValue=True,
+            orientation=Qt.Horizontal,
+            callback=self.on_change,
+        )
+        onnx_form.addRow(self.onnx_model_cb)
+        onnx_layout.addLayout(onnx_form)
+        ibox.layout().addLayout(onnx_layout)
         return layout
 
     @OWBaseVectorizer.Inputs.corpus
@@ -191,6 +289,7 @@ class OWDocumentEmbedding(OWBaseVectorizer):
         method = Methods(self.method)
         self.fast_text_controls.setEnabled(method == Methods.FastText)
         self.oai_controls.setEnabled(method == Methods.OpenAIEmbedder)
+        self.onnx_controls.setEnabled(method == Methods.ONNXEmbedder)
         self.vectorizer = EmbeddingVectorizer(self.init_method(), self.corpus)
 
     def on_change(self):
@@ -245,6 +344,17 @@ class OWDocumentEmbedding(OWBaseVectorizer):
     def set_model(self, model):
         self.llmapiwidget.setModelId(model)
 
+    def set_method(self, method: Methods) -> None:
+        """Set the embedding method and update the widget state.
+
+        Parameters
+        ----------
+        method : Methods
+            The embedding method to select (SBERT, FastText, OpenAIEmbedder, ONNXEmbedder).
+        """
+        self.method = method.value
+        self.on_change()
+
     def init_method(self):
         method = Methods(self.method)
         match method:
@@ -262,6 +372,15 @@ class OWDocumentEmbedding(OWBaseVectorizer):
                     # `openai.Client` still complains about it.
                     api_key = "sk-no-key-required"
                 kwargs = dict(base_url=base_url, api_key=api_key, model=model)
+            case Methods.ONNXEmbedder:
+                onnx_model = OnnxModel(self.onnx_model)
+                config = ONNX_MODEL_CONFIGS[onnx_model]
+                kwargs = dict(
+                    model_id=onnx_model.value,  # derived from enum (single source of truth)
+                    model_filename=config["model_filename"],
+                    batch_size=config["batch_size"],
+                    pooling=config["pooling"],
+                )
             case _:
                 raise NameError
         return self.Methods[self.method](**kwargs)
@@ -310,7 +429,7 @@ class OWDocumentEmbedding(OWBaseVectorizer):
         super().cancel()
 
     @classmethod
-    def migrate_settings(cls, settings: Dict[str, Any], version: Optional[int]):
+    def migrate_settings(cls, settings: dict[str, Any], version: int | None):
         if version is None or version < 2:
             # before version 2 settings were indexes now they are strings
             # with language name and selected aggregator name
@@ -338,6 +457,10 @@ class OWDocumentEmbedding(OWBaseVectorizer):
                 self.report_items ((
                     ("Base Api", self.base_url),
                     ("Model", self.model),
+                ))
+            case Methods.ONNXEmbedder:
+                self.report_items((
+                    ("Embedder", f"ONNX ({self.onnx_model})"),
                 ))
 
 
