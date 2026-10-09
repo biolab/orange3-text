@@ -3,84 +3,60 @@ import multiprocessing as mp
 import unittest
 from unittest.mock import patch
 
-from tqdm.auto import tqdm
 
-from orangecontrib.text.misc import download_model_in_subprocess
+from orangecontrib.text.misc.huggingface_hub_download import (
+    download_model_in_subprocess, download_model_with_progress
+)
+
+_spawn_ctx = mp.get_context("spawn")
+_spawn_ctx_Process = _spawn_ctx.Process
+
+def mock_hf_hub_download_progress(repo_id, filename, **kwargs):
+    """Mock that simulates tqdm progress updates."""
+    tqdm_class = kwargs.get("tqdm_class")
+    # Instantiate the tqdm class and simulate progress updates
+    pbar = tqdm_class(desc=filename, total=100, unit="B")
+    for progress in [0.25, 0.5, 0.75, 1.0]:
+        pbar.update(int(progress * 100) - pbar.n)
+    pbar.close()
+    return "/fake/path/" + filename
+
+def mock_hf_hub_download_raise_error(*args, **kwargs):
+    """Mock that simulates error"""
+    raise RuntimeError("network error")
 
 
-class DownloadModelWorkerTest(unittest.TestCase):
-    """Tests for the ``download_model_in_subprocess`` function."""
+def _bootstrap_download_model_with_progress(
+        mock_hf_hub_download, *args
+):
+    """Bootstrap the test on subprocess side `mock_hf_hub_download`"""
+    with patch("huggingface_hub.hf_hub_download") as mock:
+        mock.side_effect = mock_hf_hub_download
+        download_model_in_subprocess(*args)
 
-    def test_worker_sends_success_message(self):
-        """Test that worker sends a success message with the model path."""
-        parent_conn, child_conn = mp.Pipe(duplex=False)
-        mock_path = "/fake/path/model.onnx"
 
-        with patch(
-            "huggingface_hub.hf_hub_download",
-            return_value=mock_path,
-        ):
-            download_model_in_subprocess("test/repo", "model.onnx", child_conn)
+class DownloadInSubprocessTest(unittest.TestCase):
+    @patch("orangecontrib.text.misc.huggingface_hub_download._spawn_ctx.Process")
+    def test(self, mock_ctx):
+        def Process(target, args):
+            return _spawn_ctx_Process(
+                target=_bootstrap_download_model_with_progress,
+                args=(mock_hf_hub_download_progress, *args)
+            )
+        mock_ctx.side_effect = Process
 
-        child_conn.close()
-        msg_type, msg_data = parent_conn.recv()
-        parent_conn.close()
-        self.assertEqual(msg_type, "success")
-        self.assertEqual(msg_data, mock_path)
+        progress_values = []
+        download_model_with_progress("repo", "model.onnx", progress_callback=progress_values.append)
+        self.assertEqual(progress_values, [0.25, 0.5, 0.75, 1.0])
 
-    def test_worker_sends_error_message_on_exception(self):
-        """Test that worker sends an error message when download fails."""
-        parent_conn, child_conn = mp.Pipe(duplex=False)
-
-        with patch(
-            "huggingface_hub.hf_hub_download",
-            side_effect=RuntimeError("network error"),
-        ):
-            download_model_in_subprocess("test/repo", "model.onnx", child_conn)
-
-        child_conn.close()
-        msg_type, msg_data = parent_conn.recv()
-        parent_conn.close()
-        self.assertEqual(msg_type, "error")
-        self.assertIn("network error", msg_data)
-
-    def test_worker_streams_progress_messages(self):
-        """Test that worker streams progress messages through the pipe."""
-        parent_conn, child_conn = mp.Pipe(duplex=False)
-
-        def mock_hf_hub_download(**kwargs):
-            """Mock that simulates tqdm progress updates."""
-            tqdm_class = kwargs.get("tqdm_class")
-            # Instantiate the tqdm class and simulate progress updates
-            pbar = tqdm_class(desc="model.onnx", total=100, unit="B")
-            for progress in [0.25, 0.5, 0.75, 1.0]:
-                pbar.update(int(progress * 100) - pbar.n)
-            pbar.close()
-            return "/fake/path/model.onnx"
-
-        with patch(
-            "huggingface_hub.hf_hub_download",
-            side_effect=mock_hf_hub_download,
-        ):
-            download_model_in_subprocess("test/repo", "model.onnx", child_conn)
-
-        child_conn.close()
-        # Drain all messages
-        messages = []
-        while parent_conn.poll(0):
-            try:
-                messages.append(parent_conn.recv())
-            except EOFError:
-                break
-        parent_conn.close()
-
-        # Check that progress messages were sent
-        progress_msgs = [m for m in messages if m[0] == "progress"]
-        self.assertEqual(len(progress_msgs), 4)
-        self.assertEqual(progress_msgs[0], ("progress", 0.25))
-        self.assertEqual(progress_msgs[1], ("progress", 0.5))
-        self.assertEqual(progress_msgs[2], ("progress", 0.75))
-        self.assertEqual(progress_msgs[3], ("progress", 1.0))
+        def Process(target, args):
+            return _spawn_ctx_Process(
+                target=_bootstrap_download_model_with_progress,
+                args=(mock_hf_hub_download_raise_error, *args)
+            )
+        mock_ctx.side_effect = Process
+        with self.assertRaisesRegex(Exception, "network error"):
+            download_model_with_progress("repo", "model.onnx")
 
 
 if __name__ == "__main__":
