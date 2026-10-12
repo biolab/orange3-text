@@ -188,7 +188,11 @@ if __name__ == "__main__":
         zip_safe=False,
         test_suite="setup.temp_test_suite",
         extras_require={
-            'test': ['coverage'],
+            'test': [
+                'coverage',
+                'torch',  # for transformers; `assertWarns` walks sys.modules
+                'torchvision', # triggering all its lazy imports
+            ],
             'doc': ['sphinx', 'recommonmark', 'sphinx_rtd_theme', 'docutils'],
         },
     )
