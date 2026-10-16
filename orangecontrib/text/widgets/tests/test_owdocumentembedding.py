@@ -1,5 +1,8 @@
+import json
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, MagicMock
+
+import openai
 
 import numpy as np
 from AnyQt.QtWidgets import QComboBox, QRadioButton
@@ -9,12 +12,14 @@ from Orange.misc.utils.embedder_utils import EmbeddingConnectionError
 
 from orangecontrib.text.language import DEFAULT_LANGUAGE, ISO2LANG
 from orangecontrib.text.tests.test_documentembedder import PATCH_METHOD, make_dummy_post
+from orangecontrib.text.vectorization import document_embedder
 from orangecontrib.text.vectorization.document_embedder import (
     DocumentEmbedder,
     LANGUAGES,
 )
 from orangecontrib.text.vectorization.sbert import EMB_DIM, SBERT
-from orangecontrib.text.widgets.owdocumentembedding import OWDocumentEmbedding
+from orangecontrib.text.vectorization.onnx_embedder import ONNXEmbedder
+from orangecontrib.text.widgets.owdocumentembedding import OWDocumentEmbedding, Methods, OnnxModel
 from orangecontrib.text import Corpus
 
 
@@ -32,7 +37,7 @@ class TestOWDocumentEmbedding(WidgetTest):
         self.larger_corpus = Corpus.from_file('book-excerpts')
 
         # test on fastText, except for tests that change the setting
-        self.widget.findChildren(QRadioButton)[1].click()
+        self.widget.set_method(Methods.FastText)
         SBERT().clear_cache()
         DocumentEmbedder.clear_cache("en")
         DocumentEmbedder.clear_cache("sl")
@@ -131,7 +136,7 @@ class TestOWDocumentEmbedding(WidgetTest):
 
     @patch(PATCH_METHOD, make_dummy_post(SBERT_RESPONSE))
     def test_sbert(self):
-        self.widget.findChildren(QRadioButton)[0].click()
+        self.widget.set_method(Methods.SBERT)
         SBERT().clear_cache()
 
         self.send_signal("Corpus", self.corpus)
@@ -152,7 +157,7 @@ class TestOWDocumentEmbedding(WidgetTest):
         self.assertEqual("deerwester", result.name)
 
         # test on sbert
-        self.widget.findChildren(QRadioButton)[0].click()
+        self.widget.set_method(Methods.SBERT)
         result = self.get_output(self.widget.Outputs.corpus)
         self.assertIsNotNone(result)
         self.assertEqual("deerwester", result.name)
@@ -222,14 +227,14 @@ class TestOWDocumentEmbedding(WidgetTest):
     @patch(PATCH_METHOD, make_dummy_post(b'{"embedding": [1.3, 1]}'))
     @patch("orangecontrib.text.widgets.owdocumentembedding.OWDocumentEmbedding.report_items")
     def test_report(self, mocked_items: Mock):
-        self.widget.findChildren(QRadioButton)[0].click()
+        self.widget.set_method(Methods.SBERT)
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
         self.wait_until_finished()
         self.widget.send_report()
         mocked_items.assert_called_once()
         mocked_items.reset_mock()
 
-        self.widget.findChildren(QRadioButton)[1].click()
+        self.widget.set_method(Methods.FastText)
         self.send_signal(self.widget.Inputs.corpus, self.corpus)
         self.wait_until_finished()
         self.widget.send_report()
@@ -241,6 +246,166 @@ class TestOWDocumentEmbedding(WidgetTest):
             settings = {"__version__": 2, "language": ISO2LANG[iso_lang]}
             widget = self.create_widget(OWDocumentEmbedding, stored_settings=settings)
             self.assertEqual(iso_lang, widget.language)
+
+
+class TestOWDocumentEmbeddingOAI(WidgetTest):
+    def setUp(self):
+        super().setUp()
+        self.widget = self.create_widget(OWDocumentEmbedding, stored_settings={
+            "base_url": "localhost:8000", "model": "embedder", "method": 2
+        })
+        self.corpus = Corpus.from_file('deerwester')
+        self.larger_corpus = Corpus.from_file('book-excerpts')
+
+        # Disable embedder caches.
+        cache = MagicMock()
+        cache.md5_hash = lambda _: b""
+        cache.get_cached_result_or_none = lambda _: None
+        self._patch = patch.object(
+            document_embedder, "EmbedderCache", MagicMock(return_value=cache)
+        )
+        self._patch.__enter__()
+
+    def tearDown(self):
+        self._patch.__exit__(None, None, None)
+        super().tearDown()
+
+    @patch("openai.OpenAI")
+    def test_openai_output(self, mock_openai):
+        """Test that OpenAI embedder (method 2) produces correct output."""
+        # Mock the OpenAI client response
+        mock_embedding = MagicMock()
+        mock_embedding.embedding = np.arange(EMB_DIM, dtype=float).tolist()
+        mock_response = MagicMock()
+        mock_response.data = [mock_embedding] * len(self.corpus)
+        mock_client = MagicMock()
+        mock_client.embeddings.create.return_value = mock_response
+        mock_openai.return_value = mock_embedding
+
+        # Select OpenAI embedder (fourth radio button, index 3)
+        self.widget.set_method(Methods.OpenAIEmbedder)
+        self.send_signal("Corpus", self.corpus)
+        self.wait_until_finished()
+        result = self.get_output(self.widget.Outputs.corpus)
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, Corpus)
+        self.assertEqual(len(self.corpus), len(result))
+
+    @patch("openai.OpenAI")
+    def test_openai_authentication_error(self, mock_openai):
+        """Test authentication error handling for OpenAI embedder."""
+        mock_response = MagicMock()
+        mock_response.content = json.dumps(
+            {"error": {"message": "Invalid API key"}}
+        ).encode()
+        error = openai.AuthenticationError(
+            "Invalid API key", response=mock_response, body=None
+        )
+        mock_client = MagicMock()
+        mock_client.embeddings.create.side_effect = error
+        mock_openai.return_value = mock_client
+
+        self.widget.set_method(Methods.OpenAIEmbedder)
+        self.send_signal("Corpus", self.corpus)
+        self.wait_until_finished()
+        self.assertIsNone(self.get_output(self.widget.Outputs.corpus))
+        self.assertTrue(self.widget.Error.authentication_error.is_shown())
+
+    @patch("openai.OpenAI")
+    def test_openai_api_spec_error(self, mock_openai):
+        """Test API spec error handling for OpenAI embedder."""
+        mock_response = MagicMock()
+        mock_response.content = json.dumps(
+            {"error": {"message": "Invalid model: bad-model"}}
+        ).encode()
+        error = openai.BadRequestError(
+            "Bad request", response=mock_response, body=None
+        )
+        mock_client = MagicMock()
+        mock_client.embeddings.create.side_effect = error
+        mock_openai.return_value = mock_client
+
+        self.widget.set_method(Methods.OpenAIEmbedder)
+        self.send_signal("Corpus", self.corpus)
+        self.wait_until_finished()
+        self.assertIsNone(self.get_output(self.widget.Outputs.corpus))
+        self.assertTrue(self.widget.Error.api_spec_error.is_shown())
+
+    @patch("openai.OpenAI")
+    def test_openai_connection_error(self, mock_openai):
+        """Test connection error handling for OpenAI embedder."""
+        mock_request = MagicMock()
+        error = openai.APIConnectionError(message="Connection refused", request=mock_request)
+        mock_client = MagicMock()
+        mock_client.embeddings.create.side_effect = error
+        mock_openai.return_value = mock_client
+
+        self.widget.set_method(Methods.OpenAIEmbedder)
+        self.send_signal("Corpus", self.corpus)
+        self.wait_until_finished()
+        self.assertIsNone(self.get_output(self.widget.Outputs.corpus))
+        self.assertTrue(self.widget.Error.connection_error.is_shown())
+
+    def test_report(self):
+        self.widget.set_method(Methods.OpenAIEmbedder)
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.widget.send_report()
+
+    def test_onnx_radio_button_exists(self):
+        """Test that the ONNX radio button is present."""
+        rbs = self.widget.findChildren(QRadioButton)
+        # Should have 4 radio buttons: SBERT, FastText, OpenAI, ONNX
+        self.assertEqual(len(rbs), 4)
+        # ONNX is the 4th radio button (index 3)
+        self.assertEqual(rbs[3].text(), "Local ONNX Embedder:")
+
+    @patch("huggingface_hub.hf_hub_download")
+    @patch("onnxruntime.InferenceSession")
+    @patch("transformers.AutoTokenizer.from_pretrained")
+    def test_onnx_init_method(self, mock_tokenizer, mock_session, mock_download):
+        """Test that ONNX embedder is correctly configured via init_method."""
+        # Mock the tokenizer
+        mock_tokenizer.return_value = {
+            "input_ids": np.array([[1, 2, 3]] * len(self.corpus)),
+            "attention_mask": np.array([[1, 1, 1]] * len(self.corpus)),
+        }
+        # Mock the ONNX session
+        mock_session.return_value.get_inputs.return_value = [MagicMock(name="input_ids"), MagicMock(name="attention_mask")]
+        mock_session.return_value.get_outputs.return_value = [MagicMock()]
+        mock_session.return_value.get_outputs()[0].shape = (1, 1, 384)
+        mock_session.return_value.run.return_value = [
+            np.random.randn(len(self.corpus), 256, 384).astype(np.float32)
+        ]
+
+        # Select ONNX embedder
+        self.widget.set_method(Methods.ONNXEmbedder)
+        # Verify init_method returns an ONNXEmbedder instance
+        method = self.widget.init_method()
+        self.assertIsInstance(method, ONNXEmbedder)
+        # Verify default model is sentence-transformers/all-MiniLM-L6-v2
+        self.assertEqual(method.model_id, "sentence-transformers/all-MiniLM-L6-v2")
+        self.assertEqual(method.model_filename, "onnx/model_quint8_avx2.onnx")
+
+        # Switch to IBM Granite (index 1)
+        self.widget.onnx_model = OnnxModel.IBM_GRANITE_97M_MULTILINGUAL.value
+        self.widget.on_change()
+        method = self.widget.init_method()
+        self.assertEqual(method.model_id, "ibm-granite/granite-embedding-97m-multilingual-r2")
+        self.assertEqual(method.model_filename, "onnx/model_quint8_avx2.onnx")
+
+        # Switch to Snowflake (index 2)
+        self.widget.onnx_model = OnnxModel.SNOWFLAKE_ARCTIC_EMBED_XS.value
+        self.widget.on_change()
+        method = self.widget.init_method()
+        self.assertEqual(method.model_id, "Snowflake/snowflake-arctic-embed-xs")
+        self.assertEqual(method.model_filename, "onnx/model_uint8.onnx")
+
+    def test_onnx_report(self):
+        """Test ONNX embedder report content."""
+        self.widget.set_method(Methods.ONNXEmbedder)
+        self.send_signal(self.widget.Inputs.corpus, self.corpus)
+        self.wait_until_finished()
+        self.widget.send_report()
 
 
 if __name__ == "__main__":
