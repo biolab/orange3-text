@@ -7,7 +7,6 @@ import numpy as np
 from gensim import corpora
 from nltk.corpus import stopwords
 
-from orangewidget.io import classproperty
 from Orange.data.io import detect_encoding
 from Orange.util import wrap_callback, dummy_callback
 
@@ -116,9 +115,9 @@ class StopwordsFilter(BaseTokenFilter, FileWordListMixin):
         """
         return LANG2ISO.get(StopwordsFilter.NLTK2LANG.get(language, language))
 
-    @classproperty
+    @staticmethod
     @wait_nltk_data
-    def supported_languages(_) -> Set[str]:
+    def _supported_languages() -> Set[str]:
         """
         List all languages supported by NLTK
 
@@ -134,6 +133,10 @@ class StopwordsFilter(BaseTokenFilter, FileWordListMixin):
             } - {None}
         except LookupError:  # when no NLTK data is available
             return set()
+
+    supported_languages = type('cls-prop', (), {
+        "__get__": lambda *_: StopwordsFilter._supported_languages()
+    })() # noqa
 
     def _check(self, token):
         return token not in self.__stopwords and token not in self._lexicon
