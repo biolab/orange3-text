@@ -1,8 +1,7 @@
 Document Embedding
 ==================
 
-Embeds documents from input corpus into vector space by using pre-trained
-[fastText](https://fasttext.cc/docs/en/crawl-vectors.html) models described in E. Grave et al. (2018).
+Embeds documents from input corpus into vector space.
 
 **Inputs**
 
@@ -12,8 +11,7 @@ Embeds documents from input corpus into vector space by using pre-trained
 
 - Corpus: Corpus with new features appended.
 
-**Document Embedding** parses n-grams of each document in corpus, obtains embedding 
-for each n-gram using pre-trained model for chosen language and obtains one vector for each document by aggregating n-gram embeddings using one of offered aggregators. Note that method will work on any n-grams but it will give best results if corpus is preprocessed such that n-grams are words (because model was trained to embed words).
+**Document Embedding** parses sentences or n-grams of each document in the corpus, obtains an embedding for each token using a pre-trained model and obtains one vector for each document by aggregating the embeddings using one of the offered aggregators. Note that fastText will work with any n-grams, but it will give the best results if the corpus is preprocessed so that n-grams are words (because the model was trained to embed words).
 
 ![](images/Document-Embedding-stamped.png)
 
@@ -26,7 +24,13 @@ for each n-gram using pre-trained model for chosen language and obtains one vect
 Embedding retrieval
 -------------------
 
-**Document Embedding** takes n-grams (tokens), usually produced by the [Preprocess Text](preprocesstext.md) widget. One can see tokens in the [Corpus Viewer](corpusviewer.md) widget by selection *Show tokens and tags* or in [Word Cloud](wordcloud.md). Tokens are sent to the server where each token is [vectorized](https://fasttext.cc/docs/en/python-module.html#model-object) separately and then the aggregation function is used to compute the document embedding. The server returns the vector for each document. Currently, the server runs `fasttext==0.9.1`. For out-of-vocabulary (OOV) words, fastText obtain vectors by summing up vectors for its component character n-grams.
+The two available pre-trained models are [Sentence Bert](https://huggingface.co/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2) and [fastText](https://fasttext.cc/docs/en/crawl-vectors.html) described in E. Grave et al. (2018).
+
+**SBERT** takes the text sent to the server and embeds each sentence separately, thereby capturing the full semantic profile.
+
+**fastText** takes n-grams (tokens), usually produced by the [Preprocess Text](preprocesstext.md) widget. One can see tokens in the [Corpus Viewer](corpusviewer.md) widget by selecting *Show tokens and tags* or in [Word Cloud](wordcloud.md). Tokens are sent to the server where each token is [vectorized](https://fasttext.cc/docs/en/python-module.html#model-object) separately.
+
+For both models, the aggregation function is used to compute the document embedding. The server returns the vector for each document. Currently, the server runs `paraphrase-multilingual-MiniLM-L12-v2` and `fasttext==0.9.1`. For out-of-vocabulary (OOV) words, fastText obtains vectors by summing up vectors for its component character n-grams.
 
 Examples
 --------
