@@ -22,3 +22,5 @@ include SERVERS.txt
 include .coveragerc
 include codecov.yml
 include conda_environment.yml
+
+recursive-include i18n *.jaml *.yaml
