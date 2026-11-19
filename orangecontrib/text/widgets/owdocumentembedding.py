@@ -1,11 +1,12 @@
 from typing import Dict, Optional, Any
-
 from AnyQt.QtCore import Qt
 from AnyQt.QtWidgets import QVBoxLayout, QPushButton, QStyle
 from Orange.misc.utils.embedder_utils import EmbeddingConnectionError
 from Orange.widgets import gui
 from Orange.widgets.settings import Setting
 from Orange.widgets.widget import Msg, Output, OWWidget
+import os 
+import socket
 
 from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.language import (
@@ -50,8 +51,10 @@ class OWDocumentEmbedding(OWBaseVectorizer):
 
     class Error(OWWidget.Error):
         no_connection = Msg(
-            "No internet connection. Please establish a connection or use "
-            "another vectorizer."
+        "No internet connection. Please establish a connection or use another vectorizer."
+        )
+        server_unresponsive = Msg(
+            "The server at {server} is not responding. Please check the address or try again later."
         )
         unexpected_error = Msg("Embedding error: {}")
 
@@ -150,8 +153,23 @@ class OWDocumentEmbedding(OWBaseVectorizer):
     def on_exception(self, ex: Exception):
         self.cancel_button.setDisabled(True)
         if isinstance(ex, EmbeddingConnectionError):
-            self.Error.no_connection()
+            # check basic internet connectivity (attempt connection to 8.8.8.8:53)
+            internet_available = False
+            try:
+                socket.create_connection(("8.8.8.8", 53), timeout=3)
+                internet_available = True
+            except OSError:
+                internet_available = False
+
+            if internet_available:
+                # internet works → the server may be invalid or unresponsive
+                server_url = os.getenv("ORANGE_EMBEDDING_API_URL", "https://api.garaza.io")
+                self.Error.server_unresponsive(server=server_url)
+            else:
+                # general lack of internet connection
+                self.Error.no_connection()
         else:
+             # delegate other errors to the original handler
             self.Error.unexpected_error(str(ex))
         self.cancel()
 
