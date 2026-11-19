@@ -101,6 +101,8 @@ ISO2LANG = {
     "ur": "Urdu",
     "uz": "Uzbek",
     "vi": "Vietnamese",
+    # Spacy code for multi-language model
+    "xx": "Multi-language",
     "zh": "Chinese",
     "zh_char": "Chinese - Chinese Characters",
     None: None,

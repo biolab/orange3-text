@@ -13,7 +13,8 @@ from orangecontrib.text.corpus import Corpus
 from orangecontrib.text.preprocess import RegexpTokenizer, WhitespaceTokenizer, \
     LowercaseTransformer, HtmlTransformer, PorterStemmer, SnowballStemmer, \
     UDPipeLemmatizer, StopwordsFilter, MostFrequentTokensFilter, NGrams
-from orangecontrib.text.tag import AveragedPerceptronTagger, MaxEntTagger
+from orangecontrib.text.tag import (AveragedPerceptronTagger, MaxEntTagger,
+                                    SpacyPOSTagger)
 from orangecontrib.text.tests.test_preprocess import SF_LIST, SERVER_FILES
 from orangecontrib.text.widgets.owpreprocess import (
     OWPreprocess,
@@ -1033,20 +1034,21 @@ class TestPOSTaggerModule(WidgetTest):
 
     def test_init(self):
         self.assertTrue(self.buttons[0].isChecked())
-        for i in range(1, 2):
+        for i in range(1, 3):
             self.assertFalse(self.buttons[i].isChecked())
 
     def test_parameters(self):
-        params = {"method": POSTaggingModule.Averaged}
+        params = {"method": POSTaggingModule.Averaged, "spacy_language":
+                  POSTaggingModule.DEFAULT_LANGUAGE}
         self.assertDictEqual(self.editor.parameters(), params)
 
     def test_set_parameters(self):
-        params = {"method": POSTaggingModule.MaxEnt}
+        params = {"method": POSTaggingModule.Spacy, "spacy_language": "sl"}
         self.editor.setParameters(params)
         self.assertDictEqual(self.editor.parameters(), params)
 
-        self.assertTrue(self.buttons[1].isChecked())
-        for i in range(1):
+        self.assertTrue(self.buttons[2].isChecked())
+        for i in range(0, 2):
             self.assertFalse(self.buttons[i].isChecked())
 
     def test_createinstance(self):
@@ -1056,8 +1058,17 @@ class TestPOSTaggerModule(WidgetTest):
         pp = self.editor.createinstance({"method": POSTaggingModule.MaxEnt})
         self.assertIsInstance(pp, MaxEntTagger)
 
+        pp = self.editor.createinstance({"method": POSTaggingModule.Spacy})
+        self.assertIsInstance(pp, SpacyPOSTagger)
+
     def test_repr(self):
         self.assertEqual(str(self.editor), "Averaged Perceptron Tagger")
+
+        params = {"method": POSTaggingModule.Spacy, "spacy_language":
+                  POSTaggingModule.DEFAULT_LANGUAGE}
+        self.editor.setParameters(params)
+        self.assertEqual(str(self.editor),
+                         f"Spacy POS Tagger ({params['spacy_language']})")
 
 
 class TestLanguageComboBox(WidgetTest):
