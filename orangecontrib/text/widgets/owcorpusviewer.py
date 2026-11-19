@@ -683,8 +683,16 @@ class OWCorpusViewer(OWWidget, ConcurrentWidgetMixin):
             f_order = context.values.pop("display_features", None)
             display_idx = context.values.pop("display_indices", [])
             search_ids = context.values.pop("search_indices", [])
-            if f_order is not None:
+            # Version-1 workflows can store a list of Variable objects
+            # directly, rather than the encoded (feature_list, type) pair.
+            if isinstance(f_order, tuple):
                 f_order = f_order[0]
+            if f_order is not None:
+                f_order = [
+                    DomainContextHandler.encode_variable(feature)
+                    if isinstance(feature, Variable) else feature
+                    for feature in f_order
+                ]
                 display_features = [f_order[i] for i in display_idx if i < len(f_order)]
                 search_features = [f_order[i] for i in search_ids if i < len(f_order)]
                 context.values["display_features"] = (display_features, -3)
@@ -702,7 +710,10 @@ class OWCorpusViewer(OWWidget, ConcurrentWidgetMixin):
                     attr: 1 if isinstance(v, list) else v
                     for attr, v in context.attributes + context.class_vars
                 }
-                context.metas = dict(context.metas)
+                context.metas = {
+                    attr: 1 if isinstance(v, list) else v
+                    for attr, v in context.metas
+                }
                 delattr(context, "class_vars")
 
 

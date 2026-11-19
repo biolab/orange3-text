@@ -5,7 +5,8 @@ import numpy as np
 from AnyQt.QtCore import QItemSelectionModel, Qt
 from AnyQt.QtTest import QSignalSpy
 
-from Orange.data import StringVariable, Domain
+from Orange.data import DiscreteVariable, StringVariable, Domain
+from Orange.widgets.settings import Context, DomainContextHandler
 from Orange.widgets.tests.base import WidgetTest
 
 from orangecontrib.text.corpus import Corpus
@@ -98,6 +99,36 @@ class TestFilterModel(TestCase):
         filter_model = DocumentsFilterProxyModel()
         filter_model.setSourceModel(model)
         self.assertEqual(filter_model.rowCount(), 0)
+
+
+class TestCorpusViewerSettingsMigration(TestCase):
+    def test_migrate_legacy_feature_list(self):
+        topic = DiscreteVariable("ATU Topic",
+                                 values=("Animal Tales", "Tales of Magic"))
+        text = StringVariable("Text")
+        tale_type = DiscreteVariable("ATU Type", values=("Wild Animals", "Other"))
+        context = Context()
+        context.attributes = ()
+        context.class_vars = (("ATU Topic", list(topic.values)),)
+        context.metas = (("Text", 3), ("ATU Type", list(tale_type.values)))
+        context.values = {
+            "display_features": [topic, text, tale_type],
+            "display_indices": [1, 0, 3],
+            "search_indices": [2],
+            "regexp_filter": ("king", -2),
+        }
+
+        OWCorpusViewer.migrate_context(context, 1)
+
+        encode = DomainContextHandler.encode_variable
+        self.assertEqual(context.values, {
+            "display_features": ([encode(text), encode(topic)], -3),
+            "search_features": ([encode(tale_type)], -3),
+            "regexp_filter": ("king", -2),
+        })
+        self.assertEqual(context.attributes, {"ATU Topic": 1})
+        self.assertEqual(context.metas, {"Text": 3, "ATU Type": 1})
+        self.assertFalse(hasattr(context, "class_vars"))
 
 
 class TestCorpusViewerWidget(WidgetTest):
