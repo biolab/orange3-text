@@ -26,6 +26,7 @@ from Orange.data.util import get_unique_names
 from Orange.misc.utils.embedder_utils import get_proxies
 from Orange.util import Registry, dummy_callback
 from pypdf import PdfReader as PyPDFReader
+from pypdf.errors import PdfReadError
 from requests.exceptions import ConnectionError
 
 from orangecontrib.text.corpus import Corpus
@@ -73,7 +74,7 @@ class Reader(metaclass=Registry):
         except Exception as ex:
             textdata = None
             error = pathlib.Path(self.path).name
-            log.exception('Error reading failed', exc_info=ex)
+            log.debug("Error reading %s: %s", error, ex)
         else:
             textdata = self.make_text_data()
         return textdata, error
@@ -127,12 +128,26 @@ class PdfReader(Reader):
     ext = [".pdf"]
 
     def read_file(self):
-        reader = PyPDFReader(self.path)
-        texts = [page.extract_text() or "" for page in reader.pages]
-        joined = " ".join(texts).strip()
-        if not joined or all(ch == "\uFFFD" for ch in joined if not ch.isspace()):
-            raise ValueError("PDF content is empty or corrupted")
-        self.content = joined
+        try:
+            reader = PyPDFReader(self.path, strict=True)
+            text_parts = []
+            for page in reader.pages:
+                try:
+                    text_parts.append(page.extract_text() or "")
+                except ValueError:
+                    raise ValueError("Unable to extract text from one or more pages")
+            joined = " ".join(text_parts).strip()
+            if not joined:
+                raise ValueError("Empty PDF")
+            if all(
+                ch == "\uFFFD" or not ch.isprintable()
+                for ch in joined if not ch.isspace()
+            ):
+                raise ValueError("Only replacement or non-printable characters found")
+            self.content = joined
+            return
+        except (PdfReadError, ValueError) as e:
+            raise ValueError(f"Corrupted or unreadable PDF: {e}")
 
 
 class XmlReader(Reader):
