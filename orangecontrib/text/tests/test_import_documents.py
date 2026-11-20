@@ -321,7 +321,7 @@ class TestPdfReader(unittest.TestCase):
         self.assertListEqual([".pdf"], res.ext)
         self.assertEqual("good", res.category)
 
-    def test_error(self):
+    def test_corrupted_pdf_with_non_printable_text(self):
         reader = PdfReader(
             os.path.join(DATA_PATH, "corrupted", "sample_pdf_corrupted.pdf")
         )
