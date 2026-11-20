@@ -22,13 +22,12 @@ Then create :class:`BowVectorizer` object and call transform:
 """
 
 from collections import OrderedDict
-from functools import partial
-
 import numpy as np
-from Orange.util import dummy_callback
-from gensim import corpora, models, matutils
-from sklearn.preprocessing import normalize
 
+from Orange.util import dummy_callback
+from sklearn.feature_extraction.text import TfidfTransformer, CountVectorizer
+
+from orangecontrib.text.preprocess.dictionary import Dictionary
 from orangecontrib.text.vectorization.base import BaseVectorizer,\
     SharedTransform, VectorizationComputeValue
 
@@ -46,22 +45,21 @@ class BowVectorizer(BaseVectorizer):
     L2 = 'L2 (Euclidean)'
 
     wlocals = OrderedDict((
-        (COUNT, lambda tf: tf),
-        (BINARY, lambda tf: np.greater(tf, 0).astype(int) if tf.size
-                            else np.array([], dtype=int)),
-        (SUBLINEAR, lambda tf: 1 + np.log(tf)),
+        (COUNT, True),
+        (BINARY, True),
+        (SUBLINEAR, True),
     ))
 
     wglobals = OrderedDict((
-        (NONE, lambda df, N: 1),
-        (IDF, lambda df, N: np.log(N/df)),
-        (SMOOTH, lambda df, N: np.log(1 + N/df)),
+        (NONE, True),
+        (IDF, True),
+        (SMOOTH, True),
     ))
 
     norms = OrderedDict((
         (NONE, None),
-        (L1, partial(normalize, norm='l1')),
-        (L2, partial(normalize, norm='l2')),
+        (L1, 'l1'),
+        (L2, 'l2'),
     ))
 
     def __init__(self, norm=NONE, wlocal=COUNT, wglobal=NONE):
@@ -73,24 +71,78 @@ class BowVectorizer(BaseVectorizer):
         if len(corpus) == 0:
             return corpus
         temp_corpus = list(corpus.ngrams_iterator(' ', include_postags=True))
+        norm = self.norms[self.norm]
+        binary = self.wlocal == self.BINARY
+        use_idf = self.wglobal != self.NONE
+        smooth_idf = self.wglobal == self.SMOOTH
+        sublinear_tf = self.wlocal == self.SUBLINEAR
         if not source_dict:
             corpus.store_tokens(temp_corpus)
-            dic = corpora.Dictionary(temp_corpus, prune_at=None)
+            dic = Dictionary(temp_corpus, prune_at=None)
+            if len(dic) == 0:
+                return corpus
+            callback(0.3)
+            vectorizer = CountVectorizer(
+                tokenizer=lambda x: x,
+                preprocessor=lambda x: x,
+                token_pattern=None,
+                lowercase=False,
+                binary=binary,
+                vocabulary=dic.token2id,
+            )
+            X_counts = vectorizer.fit_transform(temp_corpus)
+
+            callback(0.6)
+
+            transformer = TfidfTransformer(
+                norm=norm,
+                use_idf=use_idf,
+                smooth_idf=smooth_idf,
+                sublinear_tf=sublinear_tf
+            )
+            X = transformer.fit_transform(X_counts)
         else:
             dic = source_dict
-        if len(dic) == 0:
-            return corpus
-        callback(0.3)
-        temp_corpus = [dic.doc2bow(doc) for doc in temp_corpus]
-        model = models.TfidfModel(dictionary=dic, normalize=False,
-                                  wlocal=self.wlocals[self.wlocal],
-                                  wglobal=self.wglobals[self.wglobal])
-        callback(0.6)
+            callback(0.3)
+            vectorizer = CountVectorizer(
+                tokenizer=lambda x: x,
+                preprocessor=lambda x: x,
+                token_pattern=None,
+                lowercase=False,
+                binary=binary,
+                vocabulary=dic.token2id,
+            )
+            X_counts = vectorizer.transform(temp_corpus)
 
-        X = matutils.corpus2csc(model[temp_corpus], dtype=float, num_terms=len(dic)).T
-        norm = self.norms[self.norm]
-        if norm:
-            X = norm(X)
+            callback(0.6)
+
+            # Fit the transformer directly on source_dict counts
+            transformer = TfidfTransformer(
+                norm=norm,
+                use_idf=use_idf,
+                smooth_idf=smooth_idf,
+                sublinear_tf=sublinear_tf
+            )
+
+            if use_idf:
+                # Manually set IDF values from gensim Dictionary
+                num_tokens = len(dic.token2id)
+                idf_values = np.ones(num_tokens)
+
+                for token_id, doc_freq in dic.dfs.items():
+                    if smooth_idf:
+                        idf_values[token_id] = np.log(
+                            (dic.num_docs + 1) / (doc_freq + 1)) + 1
+                    else:
+                        idf_values[token_id] = np.log(dic.num_docs / doc_freq) + 1
+
+                transformer.idf_ = idf_values
+            else:
+                # Fit on current data when not using pre-computed IDF
+                transformer.fit(X_counts)
+
+            X = transformer.transform(X_counts)
+
         callback(0.9)
 
         # set compute values

@@ -1,10 +1,9 @@
 from typing import Dict
-
 import numpy as np
-from gensim.corpora import Dictionary
 
 from Orange.data.util import SharedComputeValue
 from Orange.util import dummy_callback
+from orangecontrib.text.preprocess.dictionary import Dictionary
 
 
 class BaseVectorizer:
@@ -72,7 +71,7 @@ class SharedTransform:
     @staticmethod
     def __hashable_dict(kwargs: Dict) -> Dict:
         """
-        Gensim Dictionary is not hashable. Replace Dictionary with its id when
+        Dictionary is not hashable. Replace Dictionary with its id when
         in kwargs
         """
         return {k: (id(v) if isinstance(v, Dictionary) else v) for k, v in kwargs.items()}
@@ -88,7 +87,7 @@ class SharedTransform:
         )
 
     def __hash__(self):
-        kwargs = frozenset(self.__hashable_dict(self.kwargs).items())
+        kwargs = frozenset(self.__hashable_dict(self.kwargs['source_dict']).items())
         return hash((type(self), self.preprocessor, self.vectorizer, kwargs))
 
 

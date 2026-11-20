@@ -1,14 +1,18 @@
 from numpy import float64
-from gensim import models
+from sklearn.decomposition import LatentDirichletAllocation
 
-from .topics import GensimWrapper
+from .topics import SklearnWrapper
 
 
-class LdaWrapper(GensimWrapper):
+class LdaWrapper(SklearnWrapper):
     name = 'Latent Dirichlet Allocation'
-    Model = models.LdaModel
+    Model = LatentDirichletAllocation
 
     def __init__(self, **kwargs):
-        # with 200 iterations on pass (default) is usually not enough for all
-        # documents to converge - with 5 it converged in all my cases
-        super().__init__(random_state=0, **kwargs, dtype=float64, iterations=200, passes=5)
+        # default max_iter=10 is often too low, 200 is more robust
+        super().__init__(
+            random_state=0,
+            max_iter=200,
+            learning_method='online',  # similar to gensim's passes
+            **kwargs
+        )

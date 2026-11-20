@@ -66,24 +66,23 @@ class BowVectorizationTest(unittest.TestCase):
     def test_args(self):
         corpus = Corpus.from_file('deerwester')
 
-        BowVectorizer.wglobals['const'] = lambda df, N: 1
 
         vect = BowVectorizer(norm=BowVectorizer.NONE,
                              wlocal=BowVectorizer.COUNT,
-                             wglobal='const')
+                             wglobal=BowVectorizer.NONE)
 
         self.assertEqualCorpus(vect.transform(corpus),
                                BowVectorizer(wlocal=BowVectorizer.COUNT).transform(corpus))
 
         vect = BowVectorizer(norm=BowVectorizer.NONE,
                              wlocal=BowVectorizer.BINARY,
-                             wglobal='const')
+                             wglobal=BowVectorizer.NONE)
         self.assertEqualCorpus(vect.transform(corpus),
                                BowVectorizer(wlocal=BowVectorizer.BINARY).transform(corpus))
 
         vect = BowVectorizer(norm=BowVectorizer.L1,
                              wlocal=BowVectorizer.COUNT,
-                             wglobal='const')
+                             wglobal=BowVectorizer.NONE)
         x = vect.transform(corpus).X
         self.assertAlmostEqual(abs(x.sum(axis=1) - 1).sum(), 0)
 
@@ -229,12 +228,12 @@ class BowVectorizationTest(unittest.TestCase):
 
         document_appearance = (self.train_counts != 0).sum(0)
         n = len(self.train_counts)
-        idfs_train = self.train_counts * np.log(n / document_appearance)
+        idfs_train = self.train_counts * (np.log(n / document_appearance) + 1)
         self.assert_bow_same(bow, idfs_train, self.terms)
 
         bow_test = Corpus.from_table(bow.domain, self.small_corpus_test)
         # weights computed based on numbers from training dataset
-        idfs_test = self.test_counts * np.log(n / document_appearance)
+        idfs_test = self.test_counts * (np.log(n / document_appearance) + 1)
         self.assert_bow_same(bow_test, idfs_test, self.terms)
 
     def test_callback(self):

@@ -33,16 +33,16 @@ class TestRunner(unittest.TestCase):
     def test_run_default(self):
         results = run(self.corpus, None, {}, {ScoringMethods.TF_IDF}, {},
                       AggregationMethods.MEAN, self.state)
-        self.assertEqual(results.scores[0][0], "system")
-        self.assertAlmostEqual(results.scores[0][1], 0.114, 2)
+        self.assertEqual(results.scores[0][0], "of")
+        self.assertAlmostEqual(results.scores[0][1], 0.142, 2)
         self.assertEqual(results.labels, ["TF-IDF"])
 
     def test_run_multiple_methods(self):
         results = run(self.corpus, None, {},
                       {ScoringMethods.TF_IDF, ScoringMethods.YAKE}, {},
                       AggregationMethods.MEAN, self.state)
-        self.assertEqual(results.scores[0][0], "system")
-        self.assertAlmostEqual(results.scores[0][1], 0.114, 2)
+        self.assertEqual(results.scores[0][0], "of")
+        self.assertAlmostEqual(results.scores[0][1], 0.142, 2)
         self.assertTrue(np.isnan(np.nan))
         self.assertEqual(results.labels, ["TF-IDF", "YAKE!"])
 
@@ -161,7 +161,7 @@ class TestOWKeywords(WidgetTest):
         self.assertDictEqual(output.domain.metas[0].attributes,
                              {"type": "words"})
         self.assertListEqual(list(output.metas[:, 0]),
-                             ['system', 'a', 'survey'])
+                             ['of', 'system', 'graph'])
 
     def test_input_words(self):
         words = create_words_table(["foo", "graph", "minors", "trees"])
@@ -170,7 +170,7 @@ class TestOWKeywords(WidgetTest):
         self.wait_until_finished()
         output = self.get_output(self.widget.Outputs.words)
         self.assertListEqual(list(output.metas[:, 0]),
-                             ['graph', 'minors', 'trees'])
+                             ['graph', 'trees', 'minors'])
 
     def test_input_words_no_type(self):
         words = Table("zoo")
@@ -188,7 +188,7 @@ class TestOWKeywords(WidgetTest):
         self.wait_until_finished(widget=widget)
         output = self.get_output(widget.Outputs.words, widget=widget)
         self.assertListEqual(list(output.metas[:, 0]),
-                             ['user', 'minors', 'trees'])
+                             ['user', 'trees', 'minors'])
 
     def test_sort_nans_asc(self):
         settings = {"selected_scoring_methods": {"TF-IDF", "YAKE!"},
